@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build v4: dark-contrast CGI + composited lattice pylon + high-visibility flow lines."""
+"""Build v4: dark-contrast CGI master + HV/site flow lines (pylon from master on right hill)."""
 
 from __future__ import annotations
 
@@ -15,14 +15,15 @@ PYLON_REF = ROOT / "www" / "solar-dashboard" / "assets" / "pylon-reference.png"
 OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 SIZE = (1920, 1080)
 
-# Hill crest (user red arrow) — lattice tower on distant hill above house (center-left)
-PYLON_CX = 730
-PYLON_BASE_Y = 300
-PYLON_WIDTH_PX = 168
-PYLON_MAX_HEIGHT_PX = 300
+# Right hill — realistic lattice tower in master-clear (no center-left overlay)
+PYLON_CX = 1250
+PYLON_ATTACH_Y = 200
+PYLON_BASE_Y = 290
+PYLON_WIDTH_PX = 70
+PYLON_MAX_HEIGHT_PX = 150
 
 SITE = {
-    "pylon": (PYLON_CX, 170),
+    "pylon": (PYLON_CX, PYLON_ATTACH_Y),
     "pylon_base": (PYLON_CX, PYLON_BASE_Y),
     "inverter": (1410, 498),
     "battery_wall": (1385, 468),
@@ -62,14 +63,14 @@ ROUTES = {
     ],
     "grid_pylon_to_inverter": [
         SITE["pylon_base"],
-        (745, 325),
-        (780, 355),
-        (820, 385),
-        (920, 415),
-        (1040, 440),
-        (1160, 465),
-        (1280, 485),
-        (1350, 493),
+        (1240, 330),
+        (1210, 380),
+        (1170, 420),
+        (1100, 450),
+        (1000, 472),
+        (1180, 488),
+        (1280, 495),
+        (1350, 498),
         SITE["inverter"],
     ],
     "house_to_inverter": [
@@ -90,20 +91,19 @@ HV_LINES = {
         (0, 72),
         (180, 76),
         (360, 88),
-        (520, 108),
-        (620, 128),
-        (680, 148),
-        (710, 162),
+        (520, 100),
+        (720, 118),
+        (940, 142),
+        (1120, 168),
+        (1200, 188),
         SITE["pylon"],
     ],
     "from_right": [
         (1919, 72),
         (1720, 76),
-        (1480, 86),
-        (1240, 108),
-        (1040, 138),
-        (920, 158),
-        (820, 168),
+        (1520, 84),
+        (1380, 98),
+        (1300, 155),
         SITE["pylon"],
     ],
 }
@@ -150,7 +150,6 @@ def _key_sprite_background(img: Image.Image) -> Image.Image:
                 continue
             if g > 165 and r > 65 and b < 145:
                 continue
-            # Soften fringe toward dusk steel tones
             nr = int(r * 0.82)
             ng = int(g * 0.84)
             nb = int(b * 0.88)
@@ -159,9 +158,8 @@ def _key_sprite_background(img: Image.Image) -> Image.Image:
 
 
 def prepare_pylon_sprite(ref_path: Path) -> Image.Image:
-    """Extract lattice tower from reference PNG; scale for hill composite."""
+    """Extract lattice tower from reference PNG; scale ~50% for right-hill composite."""
     ref = Image.open(ref_path).convert("RGBA")
-    # Crop tower only (exclude right-hand icon and most foreground island)
     tower = ref.crop((40, 12, 200, 355))
     tower = _key_sprite_background(tower)
     tw, th = tower.size
@@ -174,10 +172,9 @@ def prepare_pylon_sprite(ref_path: Path) -> Image.Image:
     return sprite
 
 
-def composite_pylon_on_hill(base: Image.Image, sprite: Image.Image) -> Image.Image:
-    """Paste visible CGI pylon on hill crest with soft ground shadow."""
+def composite_pylon_on_right_hill(base: Image.Image, sprite: Image.Image) -> Image.Image:
+    """Optional half-scale reinforcement on right hill (master already has tower)."""
     img = base.convert("RGBA")
-    draw = ImageDraw.Draw(img, "RGBA")
     cx, base_y = PYLON_CX, PYLON_BASE_Y
     x = cx - sprite.width // 2
     y = base_y - sprite.height + 12
@@ -196,27 +193,6 @@ def draw_hv_line(draw: ImageDraw.ImageDraw, points: list[tuple[int, int]]) -> No
         draw.line([points[i], points[i + 1]], fill=HV_COLOUR, width=4)
     for i in range(len(points) - 1):
         draw.line([points[i], points[i + 1]], fill=HV_HIGHLIGHT, width=2)
-
-
-def draw_lattice_pylon(draw: ImageDraw.ImageDraw, cx: int, base_y: int) -> None:
-    """Subtle vector reinforcement on cross-arms (wires attach here)."""
-    s = 1.35
-    top = base_y - int(165 * s)
-    steel = (210, 220, 235, 255)
-    steel_dark = (155, 165, 180, 255)
-    leg = int(20 * s)
-    peak_off = int(22 * s)
-
-    for dx in (-leg, 0, leg):
-        draw.line([(cx + dx, base_y), (cx, top + peak_off)], fill=steel_dark, width=int(3 * s))
-    draw.line([(cx - leg, base_y), (cx + leg, base_y)], fill=steel, width=int(4 * s))
-
-    for arm_y, arm_w in (
-        (top + int(50 * s), int(50 * s)),
-        (top + int(88 * s), int(64 * s)),
-        (top + int(120 * s), int(44 * s)),
-    ):
-        draw.line([(cx - arm_w, arm_y), (cx + arm_w, arm_y)], fill=steel, width=int(4 * s))
 
 
 def glow_polyline(
@@ -277,11 +253,12 @@ def stub_to_target(draw: ImageDraw.ImageDraw, card: tuple[int, int], target: tup
     glow_polyline(draw, [card, mid, target], colour, width, dashed=True)
 
 
-def draw_overlays(base: Image.Image, pylon_sprite: Image.Image | None) -> Image.Image:
-    img = composite_pylon_on_hill(base, pylon_sprite) if pylon_sprite else base
-    draw = ImageDraw.Draw(img, "RGBA")
+def draw_overlays(base: Image.Image, pylon_sprite: Image.Image | None, paste_pylon: bool) -> Image.Image:
+    img = base
+    if paste_pylon and pylon_sprite:
+        img = composite_pylon_on_right_hill(base, pylon_sprite)
 
-    draw_lattice_pylon(draw, PYLON_CX, PYLON_BASE_Y)
+    draw = ImageDraw.Draw(img, "RGBA")
     draw_hv_line(draw, HV_LINES["from_left"])
     draw_hv_line(draw, HV_LINES["from_right"])
 
@@ -343,17 +320,28 @@ def main() -> None:
     parser.add_argument("--master", type=Path, default=MASTER)
     parser.add_argument("--out", type=Path, default=OUT)
     parser.add_argument("--pylon-ref", type=Path, default=PYLON_REF)
+    parser.add_argument(
+        "--paste-pylon",
+        action="store_true",
+        help="Paste half-scale sprite on right hill (default: master tower only)",
+    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
     pylon_sprite = prepare_pylon_sprite(args.pylon_ref) if args.pylon_ref.is_file() else None
-    if pylon_sprite:
-        print(f"pylon sprite {pylon_sprite.size} → hill ({PYLON_CX}, {PYLON_BASE_Y})")
+    if args.paste_pylon and pylon_sprite:
+        print(
+            f"pylon sprite {pylon_sprite.size} → right hill "
+            f"attach={SITE['pylon']} base={SITE['pylon_base']}"
+        )
+    elif pylon_sprite:
+        print(f"pylon ref available ({pylon_sprite.size}); using master tower only (no paste)")
     else:
-        print(f"warning: no pylon reference at {args.pylon_ref}; vector tower only")
+        print(f"warning: no pylon reference at {args.pylon_ref}; lines only")
 
     master = darken_master(crop_16_9(Image.open(args.master).convert("RGB")))
-    overlaid = draw_overlays(master, pylon_sprite)
+    overlaid = draw_overlays(master, pylon_sprite, paste_pylon=args.paste_pylon)
+    print(f"site pylon attach={SITE['pylon']} base={SITE['pylon_base']}")
     for name in ("clear", "cloudy", "covered", "very_covered", "night"):
         out = variant(overlaid, name)
         out.save(args.out / f"{name}.jpg", quality=92)

@@ -84,7 +84,7 @@ widgets:
     anchor: grid_pylon_hill_above_house
     top: 14%
     left: 18%
-    note: "White stub → lattice tower on distant hill above house (center-left)"
+    note: "White stub → lattice tower on right hill (master CGI)"
 
   home_use:
     type: custom:button-card
