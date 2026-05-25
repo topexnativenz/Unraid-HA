@@ -64,8 +64,8 @@ views:
               moonset: false
               moon_phase: false
             style:
-              top: 3%
-              right: 4%
+              top: 4%
+              right: 5%
               width: 14%
               max-width: 200px
               z-index: 20
@@ -129,8 +129,8 @@ views:
                   </motion.div>`.replace(/motion\./g,'');
                 ]]]
             style:
-              top: 4%
-              left: 4%
+              top: 5%
+              left: 5%
 
           - type: custom:button-card
             entity: sensor.solar_forecast_today
@@ -170,8 +170,8 @@ views:
                   </motion.div>`.replace(/motion\./g,'');
                 ]]]
             style:
-              top: 4%
-              right: 4%
+              top: 5%
+              right: 5%
 
           - type: custom:button-card
             entity: sensor.grid_import_power
@@ -204,8 +204,8 @@ views:
                 - font-size: 20px
                 - font-weight: 700
             style:
-              top: 8%
-              left: 40%
+              top: 12%
+              left: 22%
 
           - type: custom:button-card
             entity: sensor.home_consumption_power
@@ -237,8 +237,8 @@ views:
                 - font-size: 20px
                 - font-weight: 700
             style:
-              top: 36%
-              left: 32%
+              top: 42%
+              left: 42%
 
           - type: custom:button-card
             entity: sensor.solar_battery_soc
@@ -285,8 +285,8 @@ views:
                   </motion.div>`.replace(/motion\./g,'');
                 ]]]
             style:
-              top: 38%
-              left: 73%
+              top: 18%
+              right: 8%
 
           - type: custom:button-card
             name: Garage
@@ -336,7 +336,7 @@ views:
                   return row('Model S', sSoc, sPwr, sSt) + row('Model X', xSoc, xPwr, xSt);
                 ]]]
             style:
-              top: 50%
+              top: 52%
               left: 73%
 
           - type: custom:button-card
@@ -373,8 +373,8 @@ views:
                   return row('Voltage', v + ' V') + row('Temp', t + ' °C') + row('Cycles', c);
                 ]]]
             style:
-              top: 14%
-              left: 40%
+              top: 20%
+              left: 22%
 
           - type: custom:button-card
             entity: sensor.solar_ground_power
@@ -392,8 +392,8 @@ views:
                 - background: rgba(8, 22, 48, 0.92)
                 - border-radius: 16px
                 - padding: 12px 10px
-                - width: 160px
-                - max-width: 160px
+                - width: 155px
+                - max-width: 155px
                 - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
               icon:
                 - color: "#f5c842"
@@ -407,8 +407,8 @@ views:
                 - font-size: 22px
                 - font-weight: 700
             style:
-              bottom: 4%
-              left: 4%
+              bottom: 5%
+              left: 5%
 
           - type: custom:button-card
             entity: sensor.solar_pv_total_today
@@ -426,8 +426,8 @@ views:
                 - background: rgba(8, 22, 48, 0.92)
                 - border-radius: 16px
                 - padding: 12px 10px
-                - width: 160px
-                - max-width: 160px
+                - width: 155px
+                - max-width: 155px
                 - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
               icon:
                 - color: "#f5c842"
@@ -441,8 +441,8 @@ views:
                 - font-size: 22px
                 - font-weight: 700
             style:
-              bottom: 4%
-              left: 13%
+              bottom: 5%
+              left: 15%
 
           - type: custom:button-card
             entity: sensor.solar_production_today
@@ -460,8 +460,8 @@ views:
                 - background: rgba(8, 22, 48, 0.92)
                 - border-radius: 16px
                 - padding: 12px 10px
-                - width: 160px
-                - max-width: 160px
+                - width: 155px
+                - max-width: 155px
                 - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
               icon:
                 - color: "#f5c842"
@@ -475,8 +475,8 @@ views:
                 - font-size: 22px
                 - font-weight: 700
             style:
-              bottom: 4%
-              left: 22%
+              bottom: 5%
+              left: 25%
 
           - type: custom:button-card
             entity: sensor.solar_production_month
@@ -494,8 +494,8 @@ views:
                 - background: rgba(8, 22, 48, 0.92)
                 - border-radius: 16px
                 - padding: 12px 10px
-                - width: 160px
-                - max-width: 160px
+                - width: 155px
+                - max-width: 155px
                 - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
               icon:
                 - color: "#f5c842"
@@ -509,8 +509,8 @@ views:
                 - font-size: 22px
                 - font-weight: 700
             style:
-              bottom: 4%
-              left: 31%
+              bottom: 5%
+              left: 35%
 
           - type: custom:button-card
             entity: sensor.solar_production_year
@@ -528,8 +528,8 @@ views:
                 - background: rgba(8, 22, 48, 0.92)
                 - border-radius: 16px
                 - padding: 12px 10px
-                - width: 160px
-                - max-width: 160px
+                - width: 155px
+                - max-width: 155px
                 - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
               icon:
                 - color: "#f5c842"
@@ -543,5 +543,5 @@ views:
                 - font-size: 22px
                 - font-weight: 700
             style:
-              bottom: 4%
-              left: 40%
+              bottom: 5%
+              left: 45%

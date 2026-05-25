@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build v4: dark-contrast CGI + drawn lattice pylon + high-visibility flow lines."""
+"""Build v4: dark-contrast CGI + composited lattice pylon + high-visibility flow lines."""
 
 from __future__ import annotations
 
@@ -11,26 +11,34 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 MASTER = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4" / "master-clear.png"
+PYLON_REF = ROOT / "www" / "solar-dashboard" / "assets" / "pylon-reference.png"
 OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 SIZE = (1920, 1080)
 
+# Hill crest (user red arrow) — lattice tower on distant hill
+PYLON_CX = 960
+PYLON_BASE_Y = 308
+PYLON_WIDTH_PX = 168
+PYLON_MAX_HEIGHT_PX = 300
+
 SITE = {
-    "pylon": (960, 220),
-    "pylon_base": (960, 295),
+    "pylon": (PYLON_CX, 198),
+    "pylon_base": (PYLON_CX, PYLON_BASE_Y),
     "inverter": (1410, 498),
     "battery_wall": (1385, 468),
     "ev_charger": (1465, 538),
     "array_field": (1570, 790),
-    "house_tie": (615, 390),
+    "house_tie": (806, 454),
 }
 
+# Pixel stubs aligned to Serpo-style card positions in solar_dashboard.yaml
 CARD_STUBS = {
-    "grid": ((768, 86), "pylon"),
-    "grid_details": ((768, 151), "pylon"),
-    "home": ((614, 389), "house_tie"),
-    "battery": ((1402, 410), "battery_wall"),
-    "garage": ((1402, 540), "ev_charger"),
-    "solar_array": ((200, 1010), "array_field"),
+    "grid": ((422, 130), "pylon"),
+    "grid_details": ((422, 216), "pylon"),
+    "home": (SITE["house_tie"], "house_tie"),
+    "battery": ((1766, 194), "battery_wall"),
+    "garage": ((1402, 562), "ev_charger"),
+    "solar_array": ((96, 1026), "array_field"),
 }
 
 ROUTES = {
@@ -43,22 +51,22 @@ ROUTES = {
         SITE["inverter"],
     ],
     "array_card_to_field": [
-        (200, 1010),
-        (380, 980),
-        (620, 920),
-        (920, 860),
-        (1180, 820),
-        (1380, 760),
+        (96, 1026),
+        (288, 1010),
+        (480, 990),
+        (672, 960),
+        (864, 920),
+        (1180, 860),
+        (1380, 800),
         SITE["array_field"],
     ],
     "grid_pylon_to_inverter": [
         SITE["pylon_base"],
-        (985, 318),
-        (1025, 345),
-        (1085, 375),
-        (1165, 405),
-        (1255, 435),
-        (1345, 468),
+        (1000, 340),
+        (1060, 375),
+        (1140, 410),
+        (1225, 440),
+        (1315, 470),
         SITE["inverter"],
     ],
     "house_to_inverter": [
@@ -75,9 +83,29 @@ ROUTES = {
 }
 
 HV_LINES = {
-    "from_left": [(0, 80), (240, 84), (480, 98), (720, 118), (860, 155), (920, 195), SITE["pylon"]],
-    "from_right": [(1919, 80), (1680, 84), (1420, 92), (1180, 125), (1040, 175), SITE["pylon"]],
+    "from_left": [
+        (0, 72),
+        (200, 76),
+        (420, 88),
+        (640, 108),
+        (800, 138),
+        (880, 168),
+        (920, 188),
+        SITE["pylon"],
+    ],
+    "from_right": [
+        (1919, 72),
+        (1720, 76),
+        (1480, 86),
+        (1240, 108),
+        (1080, 148),
+        (1000, 178),
+        SITE["pylon"],
+    ],
 }
+
+HV_COLOUR = "#2a2a30"
+HV_HIGHLIGHT = "#e0e8f0"
 
 
 def crop_16_9(img: Image.Image) -> Image.Image:
@@ -102,42 +130,89 @@ def darken_master(img: Image.Image) -> Image.Image:
     return img
 
 
+def _key_sprite_background(img: Image.Image) -> Image.Image:
+    """Make sky/water/grass transparent; keep lattice steel."""
+    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    px_in = img.load()
+    px_out = out.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px_in[x, y]
+            lum = (r + g + b) / 3
+            if lum > 175 and abs(r - g) < 35 and b >= g - 10:
+                continue
+            if b > max(r, g) + 12 and b > 95:
+                continue
+            if g > 165 and r > 65 and b < 145:
+                continue
+            # Soften fringe toward dusk steel tones
+            nr = int(r * 0.82)
+            ng = int(g * 0.84)
+            nb = int(b * 0.88)
+            px_out[x, y] = (nr, ng, nb, a)
+    return out
+
+
+def prepare_pylon_sprite(ref_path: Path) -> Image.Image:
+    """Extract lattice tower from reference PNG; scale for hill composite."""
+    ref = Image.open(ref_path).convert("RGBA")
+    # Crop tower only (exclude right-hand icon and most foreground island)
+    tower = ref.crop((40, 12, 200, 355))
+    tower = _key_sprite_background(tower)
+    tw, th = tower.size
+    scale = min(PYLON_WIDTH_PX / tw, PYLON_MAX_HEIGHT_PX / th)
+    nw, nh = max(1, int(tw * scale)), max(1, int(th * scale))
+    sprite = tower.resize((nw, nh), Image.Resampling.LANCZOS)
+    rgb = ImageEnhance.Contrast(sprite.convert("RGB")).enhance(1.2)
+    rgb = ImageEnhance.Brightness(rgb).enhance(0.78)
+    sprite = Image.merge("RGBA", (*rgb.split(), sprite.split()[3]))
+    return sprite
+
+
+def composite_pylon_on_hill(base: Image.Image, sprite: Image.Image) -> Image.Image:
+    """Paste visible CGI pylon on hill crest with soft ground shadow."""
+    img = base.convert("RGBA")
+    draw = ImageDraw.Draw(img, "RGBA")
+    cx, base_y = PYLON_CX, PYLON_BASE_Y
+    x = cx - sprite.width // 2
+    y = base_y - sprite.height + 12
+
+    shadow = Image.new("RGBA", (sprite.width + 40, 28), (0, 0, 0, 0))
+    sdraw = ImageDraw.Draw(shadow)
+    sdraw.ellipse((4, 6, shadow.width - 4, shadow.height - 2), fill=(0, 0, 0, 90))
+    img.alpha_composite(shadow, (x - 20, base_y - 6))
+    img.alpha_composite(sprite, (x, y))
+    return img.convert("RGB")
+
+
+def draw_hv_line(draw: ImageDraw.ImageDraw, points: list[tuple[int, int]]) -> None:
+    """Thick transmission lines: dark core + light highlight."""
+    for i in range(len(points) - 1):
+        draw.line([points[i], points[i + 1]], fill=HV_COLOUR, width=4)
+    for i in range(len(points) - 1):
+        draw.line([points[i], points[i + 1]], fill=HV_HIGHLIGHT, width=2)
+
+
 def draw_lattice_pylon(draw: ImageDraw.ImageDraw, cx: int, base_y: int) -> None:
-    """Draw visible lattice transmission tower (reference-style) on the hill."""
-    s = 1.5
-    top = base_y - int(175 * s)
-    steel = (200, 212, 232, 255)  # #c8d4e8
-    steel_dark = (140, 152, 172, 255)
-    insulator = (240, 240, 245, 255)
-    leg = int(22 * s)
-    peak_off = int(25 * s)
+    """Subtle vector reinforcement on cross-arms (wires attach here)."""
+    s = 1.35
+    top = base_y - int(165 * s)
+    steel = (210, 220, 235, 255)
+    steel_dark = (155, 165, 180, 255)
+    leg = int(20 * s)
+    peak_off = int(22 * s)
 
-    # Main legs (A-frame)
     for dx in (-leg, 0, leg):
-        draw.line([(cx + dx, base_y), (cx, top + peak_off)], fill=steel_dark, width=int(4 * s))
-    draw.line([(cx - leg, base_y), (cx + leg, base_y)], fill=steel, width=int(5 * s))
+        draw.line([(cx + dx, base_y), (cx, top + peak_off)], fill=steel_dark, width=int(3 * s))
+    draw.line([(cx - leg, base_y), (cx + leg, base_y)], fill=steel, width=int(4 * s))
 
-    # Cross-bracing
-    brace_step = int(35 * s)
-    for y in range(base_y - int(30 * s), top + int(40 * s), -brace_step):
-        w = int((18 + (base_y - y) * 0.08) * s)
-        draw.line([(cx - w, y), (cx + w, y)], fill=steel, width=int(3 * s))
-        draw.line([(cx - w, y), (cx, y - int(28 * s))], fill=steel_dark, width=int(2 * s))
-        draw.line([(cx + w, y), (cx, y - int(28 * s))], fill=steel_dark, width=int(2 * s))
-
-    # Three cross-arms with insulators
     for arm_y, arm_w in (
-        (top + int(55 * s), int(55 * s)),
-        (top + int(95 * s), int(70 * s)),
-        (top + int(130 * s), int(48 * s)),
+        (top + int(50 * s), int(50 * s)),
+        (top + int(88 * s), int(64 * s)),
+        (top + int(120 * s), int(44 * s)),
     ):
-        draw.line([(cx - arm_w, arm_y), (cx + arm_w, arm_y)], fill=steel, width=int(5 * s))
-        for ax in (cx - arm_w, cx, cx + arm_w):
-            for iy in range(arm_y, arm_y + int(22 * s), int(6 * s)):
-                draw.line([(ax, arm_y), (ax, iy)], fill=insulator, width=int(2 * s))
-
-    # Peak
-    draw.line([(cx, top + peak_off), (cx, top)], fill=steel, width=int(4 * s))
+        draw.line([(cx - arm_w, arm_y), (cx + arm_w, arm_y)], fill=steel, width=int(4 * s))
 
 
 def glow_polyline(
@@ -179,11 +254,6 @@ def dashed_segment(draw: ImageDraw.ImageDraw, a: tuple[int, int], b: tuple[int, 
         )
 
 
-def dashed_polyline(draw: ImageDraw.ImageDraw, points: list[tuple[int, int]], colour: str, width: int = 4) -> None:
-    for i in range(len(points) - 1):
-        dashed_segment(draw, points[i], points[i + 1], colour, width)
-
-
 def arrow_head(draw: ImageDraw.ImageDraw, tip: tuple[int, int], origin: tuple[int, int], colour: str, size: int = 16) -> None:
     tx, ty = tip
     ox, oy = origin
@@ -203,23 +273,18 @@ def stub_to_target(draw: ImageDraw.ImageDraw, card: tuple[int, int], target: tup
     glow_polyline(draw, [card, mid, target], colour, width, dashed=True)
 
 
-def draw_overlays(base: Image.Image) -> Image.Image:
-    img = base.copy()
+def draw_overlays(base: Image.Image, pylon_sprite: Image.Image | None) -> Image.Image:
+    img = composite_pylon_on_hill(base, pylon_sprite) if pylon_sprite else base
     draw = ImageDraw.Draw(img, "RGBA")
 
-    cx, base_y = SITE["pylon"][0], SITE["pylon_base"][1]
-    draw_lattice_pylon(draw, cx, base_y)
+    draw_lattice_pylon(draw, PYLON_CX, PYLON_BASE_Y)
+    draw_hv_line(draw, HV_LINES["from_left"])
+    draw_hv_line(draw, HV_LINES["from_right"])
 
     amber = "#ffeb3b"
     white = "#ffffff"
     green = "#69f0ae"
-    hv_line = "#d0d8e8"
 
-    # HV transmission (solid, visible from distance)
-    glow_polyline(draw, HV_LINES["from_left"], hv_line, 3, dashed=False)
-    glow_polyline(draw, HV_LINES["from_right"], hv_line, 3, dashed=False)
-
-    # Site energy flow (dashed, thick)
     glow_polyline(draw, ROUTES["grid_pylon_to_inverter"], white, 6, dashed=True)
     glow_polyline(draw, ROUTES["solar_to_inverter"], amber, 7, dashed=True)
     glow_polyline(draw, ROUTES["array_card_to_field"], amber, 6, dashed=True)
@@ -246,7 +311,7 @@ def draw_overlays(base: Image.Image) -> Image.Image:
         elif join == "ev_charger":
             stub_to_target(draw, card_pos, SITE["ev_charger"], green)
         elif join == "array_field":
-            stub_to_target(draw, card_pos, ROUTES["array_card_to_field"][3], amber)
+            stub_to_target(draw, card_pos, ROUTES["array_card_to_field"][5], amber)
 
     return img
 
@@ -273,10 +338,18 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--master", type=Path, default=MASTER)
     parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument("--pylon-ref", type=Path, default=PYLON_REF)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
+
+    pylon_sprite = prepare_pylon_sprite(args.pylon_ref) if args.pylon_ref.is_file() else None
+    if pylon_sprite:
+        print(f"pylon sprite {pylon_sprite.size} → hill ({PYLON_CX}, {PYLON_BASE_Y})")
+    else:
+        print(f"warning: no pylon reference at {args.pylon_ref}; vector tower only")
+
     master = darken_master(crop_16_9(Image.open(args.master).convert("RGB")))
-    overlaid = draw_overlays(master)
+    overlaid = draw_overlays(master, pylon_sprite)
     for name in ("clear", "cloudy", "covered", "very_covered", "night"):
         out = variant(overlaid, name)
         out.save(args.out / f"{name}.jpg", quality=92)
