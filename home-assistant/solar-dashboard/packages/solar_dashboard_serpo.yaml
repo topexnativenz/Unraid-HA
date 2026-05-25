@@ -1,0 +1,170 @@
+# Serpo dashboard placeholder sensors — swap entity IDs in the Lovelace card when real integrations are live.
+
+template:
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/1"
+      - platform: state
+        entity_id:
+          - input_boolean.solar_dashboard_demo
+          - sun.sun
+    sensor:
+      - name: heure_lever_soleil
+        unique_id: serpo_heure_lever_soleil
+        icon: mdi:weather-sunset-up
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            06:42
+          {% else %}
+            {{ state_attr('sun.sun', 'next_rising') | as_timestamp | timestamp_custom('%H:%M', true) }}
+          {% endif %}
+
+      - name: heure_coucher_soleil
+        unique_id: serpo_heure_coucher_soleil
+        icon: mdi:weather-sunset-down
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            20:18
+          {% else %}
+            {{ state_attr('sun.sun', 'next_setting') | as_timestamp | timestamp_custom('%H:%M', true) }}
+          {% endif %}
+
+      - name: production_solaire_aujourd_hui
+        unique_id: serpo_production_solaire_aujourd_hui
+        unit_of_measurement: kWh
+        device_class: energy
+        state: "{{ 25.06 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: solcast_ppv_1_et_2_forecast_previsions_pour_demain
+        unique_id: serpo_solcast_forecast_demain
+        unit_of_measurement: kWh
+        device_class: energy
+        state: "{{ 34.27 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: growatt_spf_x_2_inverter_2_pv_power
+        unique_id: serpo_growatt_roof_pv_power
+        unit_of_measurement: W
+        device_class: power
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ (now().hour * 180 + now().minute * 3) | int % 4200 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_pv_power
+        unique_id: serpo_growatt_ground_pv_power
+        unit_of_measurement: W
+        device_class: power
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ (now().hour * 120 + now().minute * 2) | int % 2800 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_x_2_grid_power
+        unique_id: serpo_growatt_grid_power
+        unit_of_measurement: W
+        device_class: power
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ (now().minute * 13) % 900 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_battery_power
+        unique_id: serpo_growatt_battery_power
+        unit_of_measurement: W
+        device_class: power
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ ((now().minute * 47) % 2200) - 400 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_battery_state_of_charge
+        unique_id: serpo_growatt_battery_soc
+        unit_of_measurement: "%"
+        device_class: battery
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ 55 + ((now().hour + now().minute / 60) * 2.5) | int % 35 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_battery_voltage
+        unique_id: serpo_growatt_battery_voltage
+        unit_of_measurement: V
+        device_class: voltage
+        state: "{{ 51.2 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: compteur_pv_journalier
+        unique_id: serpo_compteur_pv_journalier
+        unit_of_measurement: kWh
+        device_class: energy
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ (now().hour * 1.6 + now().minute / 40) | round(2) }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: conso_maison
+        unique_id: serpo_conso_maison
+        unit_of_measurement: W
+        device_class: power
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ 800 + (now().minute * 19) % 900 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_pv_energy
+        unique_id: serpo_growatt_pv_energy_month
+        unit_of_measurement: kWh
+        device_class: energy
+        state: "{{ 532.5 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: production_pv_annuelle_corrigee
+        unique_id: serpo_production_pv_annuelle
+        unit_of_measurement: kWh
+        device_class: energy
+        state: "{{ 2106.1 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: growatt_spf_x_2_grid_voltage
+        unique_id: serpo_growatt_grid_voltage
+        unit_of_measurement: V
+        device_class: voltage
+        state: "{{ 240 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: growatt_spf_battery_temperature
+        unique_id: serpo_growatt_battery_temperature
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ 24.5 }}
+          {% else %}
+            —
+          {% endif %}
+
+      - name: growatt_spf_cycles
+        unique_id: serpo_growatt_battery_cycles
+        state: "{{ 293 if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: rte_tempo_prochaine_couleur
+        unique_id: serpo_rte_tempo_demain
+        icon: mdi:flash
+        state: "{{ 'Bleu' if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"
+
+      - name: rte_tempo_couleur_actuelle
+        unique_id: serpo_rte_tempo_aujourdhui
+        icon: mdi:flash
+        state: "{{ 'Bleu' if is_state('input_boolean.solar_dashboard_demo', 'on') else '—' }}"

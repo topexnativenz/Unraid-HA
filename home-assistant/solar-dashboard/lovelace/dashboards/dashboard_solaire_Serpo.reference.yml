@@ -1,0 +1,393 @@
+type: picture-elements
+entity: weather.forecast_maison
+state_image:
+  sunny: /local/energie/soleil1.png
+  clear-night: /local/energie/nuit.png
+  partlycloudy: /local/energie/nuageux1.png
+  cloudy: /local/energie/couvert1.png
+  fog: /local/energie/trescouvert1.png
+  rainy: /local/energie/trescouvert1.png
+  pouring: /local/energie/trescouvert1.png
+image: /local/energie/soleil1.png
+elements:
+  - type: state-label
+    entity: sensor.heure_lever_soleil
+    style:
+      top: 24%
+      left: 29%
+      color: white
+      font-size: 18px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.heure_coucher_soleil
+    style:
+      top: 24%
+      left: 69%
+      color: white
+      font-size: 18px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.production_solaire_aujourd_hui
+    style:
+      top: 12.5%
+      left: 90%
+      color: white
+      font-size: 16px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.solcast_ppv_1_et_2_forecast_previsions_pour_demain
+    style:
+      top: 19%
+      left: 90%
+      color: white
+      font-size: 16px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_x_2_inverter_2_pv_power
+    style:
+      top: 23%
+      left: 50%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_pv_power
+    style:
+      top: 75%
+      left: 61%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_x_2_grid_power
+    style:
+      top: 55%
+      left: 26%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: custom:button-card
+    name: PUISSANCE
+    show_icon: false
+    show_state: false
+    styles:
+      card:
+        - background: none
+        - border: none
+        - box-shadow: none
+        - padding: 0
+      name:
+        - color: white
+        - font-size: 14px
+        - font-weight: bold
+        - text-shadow: 1px 1px 3px black
+    style:
+      top: 36%
+      left: 78.5%
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+  - type: custom:button-card
+    entity: sensor.growatt_spf_battery_power
+    show_name: false
+    show_icon: false
+    show_state: true
+    state_display: |
+      [[[
+        return Math.abs(parseInt(entity.state)) + " W";
+      ]]]
+    styles:
+      card:
+        - background: none
+        - border: none
+        - box-shadow: none
+        - padding: 0
+      state:
+        - font-size: 22px
+        - font-weight: bold
+        - text-shadow: 1px 1px 4px black
+        - color: |
+            [[[
+              return parseFloat(entity.state) >= 0
+                ? "#00ff00"
+                : "#ff0000";
+            ]]]
+    style:
+      top: 41%
+      left: 80%
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_battery_state_of_charge
+    style:
+      top: 50%
+      left: 80%
+      color: "#ff5e00"
+      font-size: 20px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_battery_voltage
+    style:
+      top: 56.5%
+      left: 80%
+      color: white
+      font-size: 20px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: custom:button-card
+    entity: sensor.growatt_spf_battery_state_of_charge
+    show_name: false
+    show_icon: false
+    show_state: false
+    styles:
+      card:
+        - padding: 0
+        - width: 82px
+        - height: 210px
+        - border-radius: 12px
+        - border: none
+        - box-shadow: none
+        - background: |
+            [[[
+              let soc = parseInt(entity.state);
+
+              let color = "#ff0000";
+
+              if (soc >= 80)
+                color = "#2e7d32";
+              else if (soc >= 60)
+                color = "#b6ff00";
+              else if (soc >= 40)
+                color = "#ff9a00";
+              else if (soc >= 20)
+                color = "#ff5e00";
+              else
+                color = "#ff0000";
+
+              let fill = Math.min(soc * 1.12, 100);
+
+              return `
+                linear-gradient(
+                  to top,
+                  ${color} 0%,
+                  ${color} ${fill}%,
+                  transparent ${fill}%,
+                  transparent 100%
+                )
+              `;
+            ]]]
+    style:
+      top: 45%
+      left: 90.5%
+      opacity: 0.92
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+  - type: state-label
+    entity: sensor.compteur_pv_journalier
+    style:
+      top: 93%
+      left: 13%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: custom:button-card
+    name: E
+    show_icon: false
+    show_state: false
+    show_name: true
+    styles:
+      card:
+        - background: none
+        - background-color: transparent
+        - "--ha-card-background": transparent
+        - border: none
+        - box-shadow: none
+        - padding: 0
+        - width: 10px
+        - height: 16px
+      name:
+        - color: "#e6e6e6"
+        - font-size: 14.8px
+        - font-weight: bold
+        - line-height: 13px
+        - text-shadow: 0px 0px 2px rgba(0,0,0,0.7)
+    style:
+      top: 89.2%
+      left: 19.18%
+      transform: translate(-50%, -50%)
+      z-index: 10
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+  - type: state-label
+    entity: sensor.conso_maison
+    style:
+      top: 93%
+      left: 33%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.production_solaire_aujourd_hui
+    style:
+      top: 95%
+      left: 52%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_pv_energy
+    style:
+      top: 95%
+      left: 71%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.production_pv_annuelle_corrigee
+    style:
+      top: 95%
+      left: 91%
+      color: white
+      font-size: 22px
+      font-weight: bold
+      text-shadow: 1px 1px 4px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_x_2_grid_voltage
+    style:
+      top: 67.3%
+      left: 89%
+      color: white
+      font-size: 18px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_battery_temperature
+    style:
+      top: 71.5%
+      left: 89.5%
+      color: white
+      font-size: 18px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: state-label
+    entity: sensor.growatt_spf_cycles
+    style:
+      top: 76%
+      left: 88.5%
+      color: white
+      font-size: 18px
+      font-weight: bold
+      text-shadow: 1px 1px 3px black
+    tap_action:
+      action: none
+  - type: custom:button-card
+    entity: sensor.rte_tempo_prochaine_couleur
+    show_name: false
+    show_icon: false
+    show_state: false
+    styles:
+      card:
+        - width: 27px
+        - height: 27px
+        - border-radius: 50%
+        - border: 2px solid white
+        - box-shadow: 1px 1px 4px black
+        - background: |
+            [[[
+              let s = entity.state.toLowerCase();
+              if (s.includes("bleu")) return "#007bff";
+              if (s.includes("blanc")) return "#ffffff";
+              if (s.includes("rouge")) return "#ff0000";
+              
+            return "transparent";
+            ]]]
+    style:
+      top: 14.7%
+      left: 11.5%
+    tap_action:
+      action: none
+    hold_action:
+      action: none
+  - type: custom:button-card
+    entity: sensor.rte_tempo_couleur_actuelle
+    show_name: false
+    show_icon: false
+    show_state: false
+    styles:
+      card:
+        - width: 26px
+        - height: 26px
+        - border-radius: 50%
+        - border: 2px solid white
+        - box-shadow: 1px 1px 4px black
+        - padding: 0
+        - background: |
+            [[[
+              let s = entity.state.toLowerCase();
+
+              if (s.includes("bleu")) return "#007bff";
+              if (s.includes("blanc")) return "#ffffff";
+              if (s.includes("rouge")) return "#ff0000";
+
+              return "transparent";
+            ]]]
+    style:
+      top: 10%
+      left: 11.5%
+      transform: translate(-50%, -50%)
+      z-index: 20
+    tap_action:
+      action: none
+    hold_action:
+      action: none

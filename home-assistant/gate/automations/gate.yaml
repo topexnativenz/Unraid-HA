@@ -1,0 +1,88 @@
+# Gate automations — included from automations.yaml via !include
+
+- id: gate_mark_exit_in_progress
+  alias: Gate — mark exit in progress when leaving home
+  description: >-
+    Sets a flag while driving out (cleared automatically on arrival approach).
+    Kept for dashboard visibility; approach automations no longer depend on it.
+  triggers:
+    - trigger: zone
+      entity_id: person.dave
+      zone: zone.home
+      event: leave
+  actions:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.gate_exit_in_progress
+    - delay:
+        minutes: 15
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.gate_exit_in_progress
+  mode: restart
+
+- id: gate_open_on_approach
+  alias: Gate — open on approach from outside
+  description: >-
+    Opens when arriving from outside and entering the Gate Approach zone
+    (centred on the road end of the driveway). Does not fire when leaving
+    (home → Gate Approach).
+  triggers:
+    - trigger: state
+      entity_id: person.dave
+      from: not_home
+      to: Gate Approach
+  conditions:
+    - condition: template
+      value_template: >-
+        {% set last = states.input_datetime.gate_last_open %}
+        {{ last.last_changed is none
+           or (now() - last.last_changed).total_seconds() > 120 }}
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.gate_exit_in_progress
+    - action: script.gate_open_with_hold
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.gate_last_open
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.gate_last_relay
+      data:
+        option: auto_approach
+  mode: single
+
+- id: gate_open_tesla_departure
+  alias: Gate — open when Model S leaves park at home
+  description: >-
+    Opens when the Model S shifts out of Park, starts moving, or the driver
+    door opens at home (wakes Tessie and waits up to 15 s for movement).
+  triggers:
+    - trigger: state
+      entity_id: sensor.model_s_p100d_shift_state
+      from: p
+      to:
+        - d
+        - r
+    - trigger: numeric_state
+      entity_id: sensor.model_s_p100d_speed
+      above: 0.5
+    - trigger: state
+      entity_id: binary_sensor.model_s_p100d_front_driver_door
+      from: "off"
+      to: "on"
+  conditions:
+    - condition: state
+      entity_id: device_tracker.model_s_p100d_location
+      state: home
+    - condition: template
+      value_template: >-
+        {% set last = states.input_datetime.gate_last_open %}
+        {{ last.last_changed is none
+           or (now() - last.last_changed).total_seconds() > 120 }}
+  actions:
+    - action: script.gate_open_tesla_when_leaving
+  mode: single

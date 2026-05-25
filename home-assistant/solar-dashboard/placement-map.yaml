@@ -1,0 +1,142 @@
+# 332 Three Mile Bush Road — overlay placement map
+# Master canvas: 1920×1080 landscape (16:9)
+# Camera: v4 AI archviz — elevated 3/4, property-only crop (see master-clear.png)
+# Align widgets after v4 master is approved on tablet
+
+canvas:
+  width: 1920
+  height: 1080
+  aspect: "16:9"
+  orientation: landscape
+
+site:
+  address: "332 Three Mile Bush Road, Te Kamo"
+  retailer: Contact Energy
+  network: Northpower
+  phases: 3
+
+# Real-world anchors (for art compositing — approximate from aerial)
+site_anchors:
+  ground_pv_array:
+    note: "45× SunPower ground mount, far right of property"
+    aerial: { horizontal: right, vertical: mid }
+  main_house:
+    note: "Centre frame in photoreal; pool may appear left"
+    aerial: { horizontal: centre, vertical: centre }
+  garage_shed:
+    note: "Right of house — SigenStor, main board, battery, EV charger, Teslas"
+    aerial: { horizontal: right_of_house, vertical: centre }
+  meter_box:
+    note: "House wall — import/export"
+    aerial: { horizontal: house_east_wall, vertical: mid }
+  grid_connection:
+    note: "3-phase service — left/front boundary"
+    aerial: { horizontal: left, vertical: mid }
+
+# Energy flow lines — routed polylines in scripts/build_v4_backgrounds.py
+# Amber: solar / battery / house. White: grid. Green: EV charger.
+# Hub: Sigenergy inverter on garage wall. EV: Sigen/Tesla charger inside garage.
+flow_lines:
+  - id: pv_to_garage
+    from: ground_pv_array
+    to: garage_shed
+    style: { colour: "#f5c842", dash: true, arrow: true }
+    label: "Solar → inverter/battery"
+  - id: battery_to_house
+    from: garage_shed
+    to: main_house
+    style: { colour: "#f5c842", dash: true, arrow: true }
+    label: "Battery → home"
+  - id: grid_to_site
+    from: grid_connection
+    to: garage_shed
+    style: { colour: "#ffffff", dash: true, arrow: bidirectional }
+    label: "Grid import/export"
+
+# Lovelace picture-elements positions (tune on v3 master — provisional)
+widgets:
+  sun_hours_arc:
+    type: custom:horizon-card
+    entity: sun.sun
+    note: "Compact discreet — top right corner"
+    top: 1%
+    right: 1%
+    width: 17%
+    max_width_px: 240
+
+  tariff_contact:
+    type: custom:button-card
+    name: Contact
+    top: 2%
+    left: 1.5%
+    width_px: 138
+
+  solar_forecast:
+    type: custom:button-card
+    name: Solar forecast
+    top: 2%
+    right: 1.5%
+    width_px: 162
+
+  grid_use:
+    type: custom:button-card
+    name: Grid use
+    anchor: grid_pylon_behind_garage
+    top: 10%
+    left: 52%
+    note: "White stub → lattice tower on hill behind garage"
+
+  home_use:
+    type: custom:button-card
+    name: Home use
+    anchor: main_house
+    top: 40%
+    left: 38%
+
+  battery_sigenergy:
+    type: custom:button-card
+    name: Battery
+    anchor: garage_inverter_wall
+    top: 32%
+    left: 66%
+
+  bottom_power_row:
+    note: "Clustered bottom-left — away from ground array on right"
+    cards:
+      - { name: Solar array, bottom: 2%, left: 0.5% }
+      - { name: PV total, bottom: 2%, left: 11.5% }
+      - { name: Solar today, bottom: 2%, left: 22.5% }
+      - { name: Solar month, bottom: 2%, left: 33.5% }
+      - { name: Solar year, bottom: 2%, left: 44.5% }
+
+  garage_ev:
+    type: custom:button-card
+    name: Garage
+    anchor: garage_inverter_wall
+    top: 36%
+    left: 74%
+    notes: "Model S live; Model X slot reserved; Sigenergy EV charger kW"
+
+  grid_details:
+    type: custom:button-card
+    name: Grid details
+    bottom: 26%
+    right: 2%
+
+  bottom_row:
+    - { name: PV total, bottom: 5%, left: 1% }
+    - { name: Home use, bottom: 5%, left: 20.5% }
+    - { name: Solar today, bottom: 5%, left: 40% }
+    - { name: Solar month, bottom: 5%, left: 59.5% }
+    - { name: Solar year, bottom: 5%, right: 1% }
+
+entities_live:
+  solar_array_power: TBD.sigenergy_pv_power
+  battery_soc: TBD.sigenergy_battery_soc
+  battery_power: TBD.sigenergy_battery_power
+  grid_import: TBD.sigenergy_grid_power
+  ev_charger_power: TBD.sigenergy_ev_charger_power
+  model_s_battery: sensor.model_s_p100d_battery_level
+  model_s_charger: sensor.model_s_p100d_charger_power
+  model_x_battery: sensor.garage_model_x_battery
+  model_x_charger: sensor.garage_model_x_charger_power

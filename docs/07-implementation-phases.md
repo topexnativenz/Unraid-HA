@@ -94,10 +94,12 @@ Per disk (parallel if spare ports):
 
 | Week | Task |
 |------|------|
-| 1 | Deploy Docker stack (media automation) |
+| 1 | Deploy media Docker stack per [09-media-centre.md](09-media-centre.md) (incremental waves A–C) |
 | 2 | Configure local backup job to USB/NAS2 |
 | 3 | Configure offsite encrypted backup |
 | 4 | **Restore test** — random 10 GB + one Docker volume |
+
+**Media stack (summary):** Plex, Overseerr, Prowlarr, Sonarr, Radarr, Bazarr, Recyclarr, qBittorrent + Gluetun, Tautulli. TRaSH `data/` layout with hard links. Quality profiles: **WEB-1080p fast** until post-migration phase 2. Details and low-downtime waves: [09-media-centre.md](09-media-centre.md).
 
 ---
 

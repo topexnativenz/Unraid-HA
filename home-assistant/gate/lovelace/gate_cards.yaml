@@ -1,0 +1,15 @@
+# Mobile Home — gate controls (use mushroom-lock-card; button-card state_display breaks on iOS)
+
+- type: custom:mushroom-lock-card
+  entity: lock.gate_intercom_gate_open
+  name: Gate Open
+  fill_container: true
+  grid_options:
+    columns: 6
+
+- type: custom:mushroom-lock-card
+  entity: lock.gate_intercom_gate_latch
+  name: Gate Latch
+  fill_container: true
+  grid_options:
+    columns: 6

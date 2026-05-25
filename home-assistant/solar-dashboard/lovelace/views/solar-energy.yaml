@@ -1,0 +1,446 @@
+# Lovelace view — Solar energy picture-elements dashboard
+# Include from dashboard YAML or paste into UI raw editor as one views[] entry.
+
+title: Solar
+path: solar
+icon: mdi:solar-power
+theme: default
+type: panel
+cards:
+  - type: picture-elements
+    card_mod:
+      style: |
+        ha-card {
+          background: #0a1628;
+          border: none;
+          box-shadow: none;
+        }
+    image: >
+      /local/solar-dashboard/backgrounds/{{ states('sensor.solar_dashboard_background') }}.jpg
+    elements:
+      # -----------------------------------------------------------------------
+      # Sun / moon arc (horizon-card)
+      # -----------------------------------------------------------------------
+      - type: custom:horizon-card
+        entity: sun.sun
+        style:
+          top: 2%
+          left: 18%
+          width: 64%
+          transform: translate(-50%, 0)
+        card_mod:
+          style: |
+            ha-card {
+              background: transparent !important;
+              box-shadow: none !important;
+              border: none !important;
+            }
+
+      # -----------------------------------------------------------------------
+      # Tariff / TEMPO-style indicator (top left)
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        name: Tariff
+        show_icon: true
+        icon: mdi:flash
+        show_state: false
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 10px 14px
+            - width: 155px
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          icon:
+            - color: "#f5c842"
+            - width: 22px
+          name:
+            - color: rgba(255, 255, 255, 0.85)
+            - font-size: 11px
+            - font-weight: 700
+            - letter-spacing: 0.06em
+            - text-transform: uppercase
+        custom_fields:
+          rows: |
+            [[[
+              const today = states['sensor.energy_tariff_today']?.state ?? '—';
+              const tomorrow = states['sensor.energy_tariff_tomorrow']?.state ?? '—';
+              const dot = (s) => {
+                const c = s === 'off_peak' ? '#4fc3f7' : s === 'peak' ? '#ef5350' : '#42a5f5';
+                return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${c};margin-right:8px;"></span>`;
+              };
+              return `
+                <div style="font-size:11px;color:rgba(255,255,255,0.75);line-height:1.9;margin-top:6px;">
+                  <div>${dot(today)} TODAY <span style="float:right;color:#fff;text-transform:capitalize;">${today.replace('_',' ')}</span></div>
+                  <div>${dot(tomorrow)} TOMORROW <span style="float:right;color:#fff;text-transform:capitalize;">${tomorrow.replace('_',' ')}</span></div>
+                </div>`;
+            ]]]
+        style:
+          top: 3%
+          left: 2%
+
+      # -----------------------------------------------------------------------
+      # Solar forecast (top right)
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        entity: sensor.solar_forecast_today
+        name: Solar forecast
+        show_icon: true
+        icon: mdi:weather-partly-cloudy
+        show_state: false
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 10px 14px
+            - width: 195px
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          icon:
+            - color: "#f5c842"
+            - width: 24px
+          name:
+            - color: rgba(255, 255, 255, 0.85)
+            - font-size: 11px
+            - font-weight: 700
+            - letter-spacing: 0.06em
+            - text-transform: uppercase
+        custom_fields:
+          forecast: |
+            [[[
+              const today = states['sensor.solar_forecast_today']?.state ?? '—';
+              const tomorrow = states['sensor.solar_forecast_tomorrow']?.state ?? '—';
+              return `
+                <div style="font-size:11px;color:rgba(255,255,255,0.75);line-height:2;margin-top:6px;">
+                  <div><ha-icon icon="mdi:calendar-today" style="width:14px;height:14px;margin-right:6px;color:#f5c842;"></ha-icon>
+                    TODAY <span style="float:right;color:#fff;font-weight:600;">${today} kWh</span></div>
+                  <div><ha-icon icon="mdi:calendar" style="width:14px;height:14px;margin-right:6px;color:#f5c842;"></ha-icon>
+                    TOMORROW <span style="float:right;color:#fff;font-weight:600;">${tomorrow} kWh</span></div>
+                </div>`;
+            ]]]
+        style:
+          top: 3%
+          right: 2%
+          transform: translate(0, 0)
+
+      # -----------------------------------------------------------------------
+      # Grid import (left, near pylon)
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        entity: sensor.grid_import_power
+        name: Grid use
+        icon: mdi:transmission-tower
+        show_icon: true
+        show_name: true
+        show_state: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 8px 12px
+            - width: 145px
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          icon:
+            - color: "#f5c842"
+            - width: 22px
+          name:
+            - color: rgba(255, 255, 255, 0.75)
+            - font-size: 10px
+            - font-weight: 600
+            - text-transform: uppercase
+            - justify-self: start
+          state:
+            - color: "#ffffff"
+            - font-size: 20px
+            - font-weight: 700
+            - justify-self: start
+        style:
+          top: 42%
+          left: 11%
+
+      # -----------------------------------------------------------------------
+      # Roof solar
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        entity: sensor.solar_roof_power
+        name: Solar (roof)
+        icon: mdi:solar-power
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 8px 12px
+            - width: 135px
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          icon:
+            - color: "#f5c842"
+          name:
+            - color: rgba(255, 255, 255, 0.75)
+            - font-size: 10px
+            - font-weight: 600
+            - text-transform: uppercase
+          state:
+            - color: "#ffffff"
+            - font-size: 20px
+            - font-weight: 700
+        style:
+          top: 30%
+          left: 44%
+
+      # -----------------------------------------------------------------------
+      # Ground solar
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        entity: sensor.solar_ground_power
+        name: Solar (ground)
+        icon: mdi:solar-panel
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 8px 12px
+            - width: 145px
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          icon:
+            - color: "#f5c842"
+          name:
+            - color: rgba(255, 255, 255, 0.75)
+            - font-size: 10px
+            - font-weight: 600
+            - text-transform: uppercase
+          state:
+            - color: "#ffffff"
+            - font-size: 20px
+            - font-weight: 700
+        style:
+          top: 58%
+          left: 36%
+
+      # -----------------------------------------------------------------------
+      # Battery (large card with fill indicator)
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        entity: sensor.solar_battery_soc
+        name: Battery
+        icon: mdi:battery-high
+        show_icon: true
+        show_state: false
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 12px 14px
+            - width: 210px
+            - height: auto
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          grid:
+            - grid-template-areas: '"i n n" "b b b" "p p p"'
+            - grid-template-columns: 24px 1fr 1fr
+          icon:
+            - color: "#f5c842"
+            - width: 22px
+          name:
+            - color: rgba(255, 255, 255, 0.85)
+            - font-size: 11px
+            - font-weight: 700
+            - text-transform: uppercase
+            - justify-self: start
+            - padding-left: 6px
+        custom_fields:
+          batt: |
+            [[[
+              const soc = Number(entity.state) || 0;
+              const h = Math.max(4, Math.round(soc * 0.9));
+              return `
+                <div style="display:flex;gap:12px;align-items:stretch;margin-top:8px;">
+                  <div style="flex:1;font-size:11px;color:rgba(255,255,255,0.8);line-height:1.85;">
+                    <div>POWER <span style="float:right;color:#ff5252;font-weight:700;">${states['sensor.solar_battery_power']?.state ?? '—'} W</span></div>
+                    <div>SOC <span style="float:right;color:#ffb74d;font-weight:700;">${soc} %</span></div>
+                    <div>VOLTAGE <span style="float:right;color:#fff;font-weight:600;">${states['sensor.solar_battery_voltage']?.state ?? '—'} V</span></div>
+                  </div>
+                  <div style="width:34px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;padding:3px;display:flex;flex-direction:column;justify-content:flex-end;height:88px;">
+                    <div style="height:${h}px;background:linear-gradient(0deg,#2e7d32,#66bb6a);border-radius:3px;"></div>
+                  </div>
+                </div>`;
+            ]]]
+        style:
+          top: 36%
+          right: 4%
+
+      # -----------------------------------------------------------------------
+      # Grid details (bottom right)
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        name: Grid details
+        show_icon: false
+        show_state: false
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 14px
+            - padding: 10px 14px
+            - width: 175px
+            - box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35)
+          name:
+            - color: rgba(255, 255, 255, 0.85)
+            - font-size: 11px
+            - font-weight: 700
+            - text-transform: uppercase
+        custom_fields:
+          grid: |
+            [[[
+              const v = states['sensor.grid_voltage']?.state ?? '—';
+              const t = states['sensor.inverter_temperature']?.state ?? '—';
+              const c = states['sensor.battery_cycle_count']?.state ?? '—';
+              const row = (icon, label, val) =>
+                `<div style="font-size:11px;color:rgba(255,255,255,0.75);line-height:2;">
+                  <ha-icon icon="${icon}" style="width:14px;height:14px;margin-right:6px;color:#ef5350;"></ha-icon>
+                  ${label} <span style="float:right;color:#fff;font-weight:600;">${val}</span>
+                </div>`;
+              return row('mdi:flash', 'VOLTAGE', v + ' V')
+                + row('mdi:thermometer', 'TEMP', t + ' °C')
+                + row('mdi:sync', 'CYCLES', c);
+            ]]]
+        style:
+          bottom: 22%
+          right: 2%
+
+      # -----------------------------------------------------------------------
+      # Bottom summary row (5 tiles)
+      # -----------------------------------------------------------------------
+      - type: custom:button-card
+        entity: sensor.solar_pv_total_today
+        name: Total PV today
+        icon: mdi:solar-panel-large
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 12px
+            - padding: 8px 10px
+            - width: 17.5vw
+            - min-width: 155px
+            - max-width: 220px
+          icon:
+            - color: "#f5c842"
+            - width: 20px
+          name:
+            - color: rgba(255, 255, 255, 0.65)
+            - font-size: 9px
+            - text-transform: uppercase
+          state:
+            - color: "#fff"
+            - font-size: 16px
+            - font-weight: 700
+        style:
+          bottom: 2%
+          left: 1%
+
+      - type: custom:button-card
+        entity: sensor.home_consumption_power
+        name: Home use
+        icon: mdi:home-lightning-bolt
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 12px
+            - padding: 8px 10px
+            - width: 17.5vw
+            - min-width: 155px
+            - max-width: 220px
+          icon:
+            - color: "#f5c842"
+          name:
+            - color: rgba(255, 255, 255, 0.65)
+            - font-size: 9px
+            - text-transform: uppercase
+          state:
+            - color: "#fff"
+            - font-size: 16px
+            - font-weight: 700
+        style:
+          bottom: 2%
+          left: 20%
+
+      - type: custom:button-card
+        entity: sensor.solar_production_today
+        name: Solar today
+        icon: mdi:white-balance-sunny
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 12px
+            - padding: 8px 10px
+            - width: 17.5vw
+            - min-width: 155px
+            - max-width: 220px
+          icon:
+            - color: "#f5c842"
+          name:
+            - color: rgba(255, 255, 255, 0.65)
+            - font-size: 9px
+            - text-transform: uppercase
+          state:
+            - color: "#fff"
+            - font-size: 16px
+            - font-weight: 700
+        style:
+          bottom: 2%
+          left: 39%
+
+      - type: custom:button-card
+        entity: sensor.solar_production_month
+        name: Solar this month
+        icon: mdi:calendar-month
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 12px
+            - padding: 8px 10px
+            - width: 17.5vw
+            - min-width: 155px
+            - max-width: 220px
+          icon:
+            - color: "#f5c842"
+          name:
+            - color: rgba(255, 255, 255, 0.65)
+            - font-size: 9px
+            - text-transform: uppercase
+          state:
+            - color: "#fff"
+            - font-size: 16px
+            - font-weight: 700
+        style:
+          bottom: 2%
+          left: 58%
+
+      - type: custom:button-card
+        entity: sensor.solar_production_year
+        name: Solar this year
+        icon: mdi:chart-bar
+        show_icon: true
+        styles:
+          card:
+            - background: rgba(12, 28, 58, 0.88)
+            - border-radius: 12px
+            - padding: 8px 10px
+            - width: 17.5vw
+            - min-width: 155px
+            - max-width: 220px
+          icon:
+            - color: "#f5c842"
+          name:
+            - color: rgba(255, 255, 255, 0.65)
+            - font-size: 9px
+            - text-transform: uppercase
+          state:
+            - color: "#fff"
+            - font-size: 16px
+            - font-weight: 700
+        style:
+          bottom: 2%
+          right: 1%

@@ -1,0 +1,156 @@
+template:
+  - button:
+      - name: "Gate Open"
+        unique_id: gate_open_button
+        press:
+          - service: shell_command.akuvox_gate_open_relay_1
+      - name: "Gate Open Relay 2"
+        unique_id: gate_open_relay_2_button
+        press:
+          - service: shell_command.akuvox_gate_open_relay_2
+  - binary_sensor:
+      - name: Gate still needs hold
+        unique_id: gate_still_needs_hold
+        icon: mdi:gate-open
+        state: >-
+          {{
+            is_state('input_boolean.gate_hold_active', 'on')
+            and (
+              is_state('person.dave', 'Gate Approach')
+              or is_state('device_tracker.model_s_p100d_location', 'Gate Approach')
+              or (
+                is_state('device_tracker.model_s_p100d_location', 'home')
+                and (
+                  states('sensor.model_s_p100d_shift_state') in ['d', 'r']
+                  or (
+                    states('sensor.model_s_p100d_speed') | float(0) > 0
+                    and states('sensor.model_s_p100d_speed') | float(0) < 8
+                  )
+                  or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
+                  or is_state('binary_sensor.model_s_p100d_front_passenger_door', 'on')
+                  or is_state('binary_sensor.model_s_p100d_rear_driver_door', 'on')
+                  or is_state('binary_sensor.model_s_p100d_rear_passenger_door', 'on')
+                )
+              )
+            )
+          }}
+
+input_datetime:
+  gate_last_open:
+    name: Gate Last Open
+    has_date: true
+    has_time: true
+
+input_select:
+  gate_last_relay:
+    name: Gate Last Relay
+    options:
+      - unknown
+      - relay_1
+      - relay_2
+      - auto_approach
+      - auto_tesla
+
+input_number:
+  gate_hold_repulse_seconds:
+    name: Gate hold repulse interval
+    min: 3
+    max: 30
+    step: 1
+    initial: 4
+    unit_of_measurement: s
+    icon: mdi:timer-sync
+  gate_hold_max_minutes:
+    name: Gate hold maximum duration
+    min: 2
+    max: 15
+    step: 1
+    initial: 8
+    unit_of_measurement: min
+    icon: mdi:timer-lock
+
+script:
+  gate_open_with_hold:
+    alias: Gate — open and hold until clear
+    description: >-
+      Pulses the gate relay on an interval while the car or an arriving person
+      is still at/near the gate (Akuvox auto-close is ~5 s per pulse).
+    mode: restart
+    sequence:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.gate_hold_active
+      - action: rest_command.tessie_wake_model_s
+        continue_on_error: true
+      - action: lock.unlock
+        target:
+          entity_id: lock.gate_intercom_gate_open
+      - repeat:
+          until:
+            - condition: state
+              entity_id: binary_sensor.gate_still_needs_hold
+              state: "off"
+            - condition: template
+              value_template: >-
+                {{ repeat.index >= (
+                     (states('input_number.gate_hold_max_minutes') | float(8) * 60)
+                     / (states('input_number.gate_hold_repulse_seconds') | float(4))
+                   ) | int(120) }}
+          sequence:
+            - delay:
+                seconds: "{{ states('input_number.gate_hold_repulse_seconds') | int(4) }}"
+            - condition: state
+              entity_id: binary_sensor.gate_still_needs_hold
+              state: "on"
+            - action: rest_command.tessie_wake_model_s
+              continue_on_error: true
+            - action: lock.unlock
+              target:
+                entity_id: lock.gate_intercom_gate_open
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.gate_hold_active
+
+  gate_open_tesla_when_leaving:
+    alias: Gate — open when Tesla starts leaving home
+    description: >-
+      Wakes Tessie if telemetry is stale, waits for Drive/Reverse or movement,
+      then opens the gate and keeps it held until the car has cleared.
+    mode: single
+    sequence:
+      - action: rest_command.tessie_wake_model_s
+        continue_on_error: true
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: >-
+                  {{ states('sensor.model_s_p100d_shift_state') in ['d', 'r']
+                     or states('sensor.model_s_p100d_speed') | float(0) > 0.5 }}
+            sequence: []
+        default:
+          - action: button.press
+            target:
+              entity_id: button.model_s_p100d_wake
+          - wait_for_trigger:
+              - trigger: state
+                entity_id: sensor.model_s_p100d_shift_state
+                to:
+                  - d
+                  - r
+              - trigger: numeric_state
+                entity_id: sensor.model_s_p100d_speed
+                above: 0.5
+            timeout:
+              seconds: 15
+            continue_on_timeout: false
+      - action: script.gate_open_with_hold
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.gate_last_open
+        data:
+          datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+      - action: input_select.select_option
+        target:
+          entity_id: input_select.gate_last_relay
+        data:
+          option: auto_tesla

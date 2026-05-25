@@ -1,0 +1,138 @@
+# Tessie / EV helpers for solar dashboard garage overlay
+
+input_text:
+  tessie_model_s_battery:
+    name: Tessie entity — Model S battery level
+    initial: sensor.model_s_p100d_battery_level
+    max: 255
+  tessie_model_s_charger_power:
+    name: Tessie entity — Model S charger power
+    initial: sensor.model_s_p100d_charger_power
+    max: 255
+  tessie_model_s_charging:
+    name: Tessie entity — Model S charging state
+    initial: sensor.model_s_p100d_charging
+    max: 255
+  tessie_model_x_battery:
+    name: Tessie entity — Model X battery level
+    initial: sensor.tesla_model_x_battery_level
+    max: 255
+  tessie_model_x_charger_power:
+    name: Tessie entity — Model X charger power
+    initial: sensor.tesla_model_x_charger_power
+    max: 255
+  tessie_model_x_charging:
+    name: Tessie entity — Model X charging state
+    initial: sensor.tesla_model_x_charging
+    max: 255
+
+template:
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/1"
+      - platform: state
+        entity_id:
+          - input_boolean.solar_dashboard_demo
+          - input_text.tessie_model_s_battery
+          - input_text.tessie_model_s_charger_power
+          - input_text.tessie_model_s_charging
+          - input_text.tessie_model_x_battery
+          - input_text.tessie_model_x_charger_power
+          - input_text.tessie_model_x_charging
+          - sensor.model_s_p100d_battery_level
+          - sensor.model_s_p100d_charger_power
+          - sensor.model_s_p100d_charging
+    sensor:
+      - name: Garage Model S battery
+        unique_id: garage_model_s_battery
+        unit_of_measurement: "%"
+        device_class: battery
+        icon: mdi:car-electric
+        state: >
+          {% set e = states('input_text.tessie_model_s_battery') %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown', 'unavailable', none, ''] %}
+            {{ v | float(0) | round(0) }}
+          {% elif is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            38
+          {% else %}
+            —
+          {% endif %}
+
+      - name: Garage Model S charger power
+        unique_id: garage_model_s_charger_power
+        unit_of_measurement: kW
+        device_class: power
+        icon: mdi:ev-station
+        state: >
+          {% set e = states('input_text.tessie_model_s_charger_power') %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown', 'unavailable', none, ''] %}
+            {{ v | float(0) | round(1) }}
+          {% elif is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            0
+          {% else %}
+            —
+          {% endif %}
+
+      - name: Garage Model S charging
+        unique_id: garage_model_s_charging
+        icon: mdi:battery-charging
+        state: >
+          {% set e = states('input_text.tessie_model_s_charging') %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown', 'unavailable', none, ''] %}
+            {{ v }}
+          {% elif is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            disconnected
+          {% else %}
+            —
+          {% endif %}
+
+      - name: Garage Model X battery
+        unique_id: garage_model_x_battery
+        unit_of_measurement: "%"
+        device_class: battery
+        icon: mdi:car-electric
+        state: >
+          {% set e = states('input_text.tessie_model_x_battery') %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown', 'unavailable', none, ''] %}
+            {{ v | float(0) | round(0) }}
+          {% elif is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            72
+          {% else %}
+            —
+          {% endif %}
+
+      - name: Garage Model X charger power
+        unique_id: garage_model_x_charger_power
+        unit_of_measurement: kW
+        device_class: power
+        icon: mdi:ev-station
+        state: >
+          {% set e = states('input_text.tessie_model_x_charger_power') %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown', 'unavailable', none, ''] %}
+            {{ v | float(0) | round(1) }}
+          {% elif is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            0
+          {% else %}
+            —
+          {% endif %}
+
+      - name: Garage Model X charging
+        unique_id: garage_model_x_charging
+        icon: mdi:battery-charging
+        state: >
+          {% set e = states('input_text.tessie_model_x_charging') %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown', 'unavailable', none, ''] %}
+            {{ v }}
+          {% elif is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            disconnected
+          {% else %}
+            —
+          {% endif %}

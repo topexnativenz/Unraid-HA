@@ -1,0 +1,25 @@
+# Contact Energy tariff display helpers (from bill 14 Feb – 13 Mar 2026)
+# Retailer on bill: Contact. Network: Northpower (09 430 1800 faults line on bill).
+
+input_text:
+  contact_tariff_peak_rate:
+    name: Contact tariff peak rate (c/kWh)
+    initial: "33.5"
+    max: 32
+  contact_tariff_offpeak_rate:
+    name: Contact tariff off-peak rate (c/kWh)
+    initial: "16.5"
+    max: 32
+
+template:
+  - sensor:
+      - name: Contact tariff summary
+        unique_id: contact_tariff_summary
+        icon: mdi:flash
+        state: "time_of_use"
+      - name: Contact tariff peak display
+        unique_id: contact_tariff_peak_display
+        state: "{{ states('input_text.contact_tariff_peak_rate') }} c/kWh"
+      - name: Contact tariff offpeak display
+        unique_id: contact_tariff_offpeak_display
+        state: "{{ states('input_text.contact_tariff_offpeak_rate') }} c/kWh"

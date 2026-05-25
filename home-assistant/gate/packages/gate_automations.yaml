@@ -1,0 +1,19 @@
+# Gate zone + helpers for automations (see /config/automations.yaml)
+# Tune gate_latitude / gate_longitude / gate_approach_radius in secrets.yaml.
+# Centre the zone on the main-road end of the driveway; increase radius if GPS
+# triggers too late.
+
+zone:
+  - name: Gate Approach
+    latitude: !secret gate_latitude
+    longitude: !secret gate_longitude
+    radius: !secret gate_approach_radius
+    icon: mdi:gate-arrow-right
+
+input_boolean:
+  gate_exit_in_progress:
+    name: Gate exit in progress
+    icon: mdi:gate-open
+  gate_hold_active:
+    name: Gate hold active
+    icon: mdi:gate-arrow-right

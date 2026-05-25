@@ -45,8 +45,15 @@
 | **NUT** (Network UPS Tools) | UPS shutdown |
 | **Scrutiny** or **HDDashboard** | SMART UI |
 | **Tailscale** or **WireGuard** | Remote VPN |
-| **Plex / Jellyfin** | Media |
-| **Sonarr / Radarr / Prowlarr** | Library automation |
+| **Plex** | Media server (primary — see [09-media-centre.md](09-media-centre.md)) |
+| **Overseerr** | Plex + *arr* requests |
+| **Sonarr / Radarr / Prowlarr / Lidarr** | Library automation |
+| **Bazarr** | Subtitles |
+| **Recyclarr** | TRaSH profile sync |
+| **Tautulli** | Plex monitoring |
+| **Gluetun** + download client | VPN for torrents only |
+
+Full media stack, quality phases, and rollout: **[09-media-centre.md](09-media-centre.md)**.
 
 ---
 

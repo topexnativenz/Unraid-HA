@@ -1,0 +1,535 @@
+# 332 Three Mile Bush Road — AI archviz render + energy-flow overlays (v4)
+views:
+  - title: Solar
+    theme: default
+    type: panel
+    panel: true
+    cards:
+      - type: picture-elements
+        card_mod:
+          style: |
+            :host {
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              height: 100vh !important;
+              overflow: hidden !important;
+            }
+            ha-card {
+              width: min(100vw, calc(100vh * 16 / 9)) !important;
+              max-width: 100vw !important;
+              aspect-ratio: 16 / 9 !important;
+              height: auto !important;
+              margin: 0 auto !important;
+              border: none !important;
+              box-shadow: none !important;
+              overflow: hidden !important;
+            }
+            ha-card img {
+              width: 100% !important;
+              height: 100% !important;
+              object-fit: fill !important;
+              display: block !important;
+            }
+        entity: sensor.solar_dashboard_background
+        state_image:
+          clear: /local/solar-dashboard/backgrounds/v4/clear.jpg
+          cloudy: /local/solar-dashboard/backgrounds/v4/cloudy.jpg
+          covered: /local/solar-dashboard/backgrounds/v4/covered.jpg
+          very_covered: /local/solar-dashboard/backgrounds/v4/very_covered.jpg
+          night: /local/solar-dashboard/backgrounds/v4/night.jpg
+        image: /local/solar-dashboard/backgrounds/v4/clear.jpg
+        elements:
+          - type: custom:horizon-card
+            entity: sun.sun
+            southern_flip: true
+            moon: false
+            language: en
+            fields:
+              sunrise: true
+              sunset: true
+              dawn: false
+              noon: false
+              dusk: false
+              azimuth: false
+              elevation: false
+              moonrise: false
+              moonset: false
+              moon_phase: false
+            style:
+              top: 1%
+              right: 1%
+              width: 17%
+              max-width: 240px
+              z-index: 20
+              pointer-events: none
+            card_mod:
+              style: |
+                ha-card {
+                  background: rgba(8, 22, 48, 0.55) !important;
+                  box-shadow: none !important;
+                  border: none !important;
+                  border-radius: 10px !important;
+                  max-height: 52px !important;
+                  overflow: hidden !important;
+                  padding: 2px 6px !important;
+                  transform: scale(0.88);
+                  transform-origin: top right;
+                }
+                .horizon-card-graph { max-height: 28px !important; }
+                .horizon-card-field-name,
+                .horizon-card-field-value {
+                  color: rgba(255,255,255,0.9) !important;
+                  font-size: 0.58rem !important;
+                  text-shadow: 0 1px 3px rgba(0,0,0,0.8) !important;
+                }
+
+          - type: custom:button-card
+            name: Contact
+            layout: grid
+            show_icon: true
+            icon: mdi:flash
+            show_state: false
+            styles:
+              grid:
+                - grid-template-areas: '"i n" "rows rows"'
+                - grid-template-columns: 20px 1fr
+              card:
+                - background: rgba(8, 22, 48, 0.86)
+                - border-radius: 12px
+                - padding: 8px 10px
+                - width: 148px
+                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+              icon:
+                - color: "#f5c842"
+                - width: 18px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 10px
+                - font-weight: 700
+              custom_fields:
+                rows:
+                  - grid-area: rows
+            custom_fields:
+              rows: |
+                [[[
+                  const peak = states['sensor.contact_tariff_peak_display']?.state ?? '33.5 c/kWh';
+                  const off = states['sensor.contact_tariff_offpeak_display']?.state ?? '16.5 c/kWh';
+                  return `<motion.div style="font-size:10px;color:#fff;line-height:1.65;margin-top:4px;">
+                    <motion.div style="display:flex;justify-content:space-between;gap:6px;"><span style="color:#ffb74d;">Peak 7am–9pm</span><span>${peak}</span></motion.div>
+                    <motion.div style="display:flex;justify-content:space-between;gap:6px;"><span style="color:#66bb6a;">Off-peak</span><span>${off}</span></motion.div>
+                    <motion.div style="font-size:9px;opacity:0.75;margin-top:4px;">Northpower network</motion.div>
+                  </motion.div>`.replace(/motion\./g,'');
+                ]]]
+            style:
+              top: 2%
+              left: 1.5%
+
+          - type: custom:button-card
+            entity: sensor.solar_forecast_today
+            name: Solar forecast
+            layout: grid
+            show_icon: true
+            icon: mdi:weather-partly-cloudy
+            show_state: false
+            styles:
+              grid:
+                - grid-template-areas: '"i n" "forecast forecast"'
+                - grid-template-columns: 20px 1fr
+              card:
+                - background: rgba(8, 22, 48, 0.86)
+                - border-radius: 12px
+                - padding: 8px 10px
+                - width: 162px
+                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+              icon:
+                - color: "#f5c842"
+                - width: 18px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 10px
+                - font-weight: 700
+              custom_fields:
+                forecast:
+                  - grid-area: forecast
+            custom_fields:
+              forecast: |
+                [[[
+                  const today = states['sensor.solar_forecast_today']?.state ?? '—';
+                  const tomorrow = states['sensor.solar_forecast_tomorrow']?.state ?? '—';
+                  return `<motion.div style="font-size:10px;color:rgba(255,255,255,0.85);line-height:1.65;margin-top:4px;">
+                    <motion.div style="display:flex;justify-content:space-between;gap:8px;"><span>Today</span><span style="font-weight:600;">${today} kWh</span></motion.div>
+                    <motion.div style="display:flex;justify-content:space-between;gap:8px;"><span>Tomorrow</span><span style="font-weight:600;">${tomorrow} kWh</span></motion.div>
+                  </motion.div>`.replace(/motion\./g,'');
+                ]]]
+            style:
+              top: 2%
+              right: 20%
+
+          - type: custom:button-card
+            entity: sensor.grid_import_power
+            name: Grid use
+            icon: mdi:transmission-tower
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '0') + ' W';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.9)
+                - border-radius: 14px
+                - padding: 12px 16px
+                - width: 172px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.45)
+              icon:
+                - color: "#f5c842"
+                - width: 30px
+              name:
+                - color: rgba(255,255,255,0.85)
+                - font-size: 12px
+                - font-weight: 700
+                - text-transform: uppercase
+              state:
+                - color: "#fff"
+                - font-size: 20px
+                - font-weight: 700
+            style:
+              top: 10%
+              left: 52%
+
+          - type: custom:button-card
+            entity: sensor.home_consumption_power
+            name: Home use
+            icon: mdi:home-lightning-bolt
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '0') + ' W';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.9)
+                - border-radius: 14px
+                - padding: 12px 16px
+                - width: 172px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.45)
+              icon:
+                - color: "#f5c842"
+                - width: 30px
+              name:
+                - color: rgba(255,255,255,0.85)
+                - font-size: 12px
+                - font-weight: 700
+              state:
+                - color: "#fff"
+                - font-size: 20px
+                - font-weight: 700
+            style:
+              top: 40%
+              left: 38%
+
+          - type: custom:button-card
+            entity: sensor.solar_battery_soc
+            name: Battery
+            layout: grid
+            icon: mdi:battery-high
+            show_icon: true
+            show_state: false
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.9)
+                - border-radius: 14px
+                - padding: 10px 12px
+                - width: 210px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.45)
+              grid:
+                - grid-template-areas: '"i n n" "batt batt batt"'
+                - grid-template-columns: 24px 1fr 1fr
+              icon:
+                - color: "#f5c842"
+                - width: 28px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 12px
+                - font-weight: 700
+              custom_fields:
+                batt:
+                  - grid-area: batt
+            custom_fields:
+              batt: |
+                [[[
+                  const soc = Number(entity.state) || 0;
+                  const h = Math.max(4, Math.round(soc * 0.8));
+                  const pwr = Math.abs(parseInt(states['sensor.solar_battery_power']?.state) || 0);
+                  return `<motion.div style="display:flex;gap:10px;margin-top:8px;">
+                    <motion.div style="flex:1;font-size:11px;color:rgba(255,255,255,0.9);line-height:1.65;">
+                      <motion.div style="display:flex;justify-content:space-between;"><span style="color:#b39ddb;">Power</span><span style="color:#ff5252;font-weight:700;font-size:13px;">${pwr} W</span></motion.div>
+                      <motion.div style="display:flex;justify-content:space-between;"><span>SOC</span><span style="color:#ffb74d;font-weight:700;font-size:13px;">${soc}%</span></motion.div>
+                      <motion.div style="display:flex;justify-content:space-between;"><span>Voltage</span><span style="font-size:12px;">${states['sensor.solar_battery_voltage']?.state ?? '—'} V</span></motion.div>
+                    </motion.div>
+                    <motion.div style="width:32px;border:2px solid rgba(255,255,255,0.35);border-radius:6px;padding:3px;display:flex;flex-direction:column;justify-content:flex-end;height:76px;">
+                      <motion.div style="height:${h}px;background:linear-gradient(0deg,#2e7d32,#b6ff00);border-radius:3px;"></motion.div>
+                    </motion.div>
+                  </motion.div>`.replace(/motion\./g,'');
+                ]]]
+            style:
+              top: 32%
+              left: 66%
+
+          - type: custom:button-card
+            name: Garage
+            layout: grid
+            show_icon: true
+            icon: mdi:garage
+            show_state: false
+            styles:
+              grid:
+                - grid-template-areas: '"i n" "ev ev"'
+                - grid-template-columns: 20px 1fr
+              card:
+                - background: rgba(8, 22, 48, 0.86)
+                - border-radius: 12px
+                - padding: 8px 10px
+                - width: 176px
+                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+              icon:
+                - color: "#f5c842"
+                - width: 18px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 10px
+                - font-weight: 700
+              custom_fields:
+                ev:
+                  - grid-area: ev
+            custom_fields:
+              ev: |
+                [[[
+                  const row = (name, soc, pwr, st) => {
+                    const charging = ['charging','connected'].includes((st||'').toLowerCase());
+                    const pColor = charging ? '#66bb6a' : '#fff';
+                    return `<motion.div style="font-size:10px;line-height:1.55;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,255,255,0.15);">
+                      <motion.div style="font-weight:700;color:#f5c842;margin-bottom:2px;">${name}</motion.div>
+                      <motion.div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);"><span>Battery</span><span>${soc}%</span></motion.div>
+                      <motion.div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.85);"><span>Charger</span><span style="color:${pColor};font-weight:600;">${pwr} kW</span></motion.div>
+                      <motion.div style="display:flex;justify-content:space-between;color:rgba(255,255,255,0.7);"><span>Status</span><span style="text-transform:capitalize;">${st}</span></motion.div>
+                    </motion.div>`;
+                  };
+                  const sSoc = states['sensor.garage_model_s_battery']?.state ?? '—';
+                  const sPwr = states['sensor.garage_model_s_charger_power']?.state ?? '0';
+                  const sSt = states['sensor.garage_model_s_charging']?.state ?? '—';
+                  const xSoc = states['sensor.garage_model_x_battery']?.state ?? '—';
+                  const xPwr = states['sensor.garage_model_x_charger_power']?.state ?? '0';
+                  const xSt = states['sensor.garage_model_x_charging']?.state ?? '—';
+                  return row('Model S', sSoc, sPwr, sSt) + row('Model X', xSoc, xPwr, xSt);
+                ]]]
+            style:
+              top: 36%
+              left: 74%
+
+          - type: custom:button-card
+            name: Grid details
+            layout: grid
+            show_icon: false
+            show_state: false
+            styles:
+              grid:
+                - grid-template-areas: '"n n" "grid grid"'
+              card:
+                - background: rgba(8, 22, 48, 0.86)
+                - border-radius: 12px
+                - padding: 8px 10px
+                - width: 142px
+                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 10px
+                - font-weight: 700
+              custom_fields:
+                grid:
+                  - grid-area: grid
+            custom_fields:
+              grid: |
+                [[[
+                  const v = states['sensor.grid_voltage']?.state ?? '—';
+                  const t = states['sensor.inverter_temperature']?.state ?? '—';
+                  const c = states['sensor.battery_cycle_count']?.state ?? '—';
+                  const row = (label, val) =>
+                    `<motion.div style="font-size:10px;color:rgba(255,255,255,0.85);line-height:1.65;display:flex;justify-content:space-between;gap:8px;">
+                      <span>${label}</span><span style="font-weight:600;">${val}</span>
+                    </motion.div>`;
+                  return row('Voltage', v + ' V') + row('Temp', t + ' °C') + row('Cycles', c);
+                ]]]
+            style:
+              top: 17%
+              left: 52%
+
+          - type: custom:button-card
+            entity: sensor.solar_ground_power
+            name: Solar array
+            icon: mdi:solar-panel
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '0') + ' W';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.92)
+                - border-radius: 16px
+                - padding: 14px 12px
+                - width: 200px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+              icon:
+                - color: "#f5c842"
+                - width: 44px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 14px
+                - font-weight: 700
+              state:
+                - color: "#fff"
+                - font-size: 28px
+                - font-weight: 700
+            style:
+              bottom: 2%
+              left: 0.5%
+
+          - type: custom:button-card
+            entity: sensor.solar_pv_total_today
+            name: PV total
+            icon: mdi:solar-power-variant
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '—') + ' kWh';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.92)
+                - border-radius: 16px
+                - padding: 14px 12px
+                - width: 200px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+              icon:
+                - color: "#f5c842"
+                - width: 44px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 14px
+                - font-weight: 700
+              state:
+                - color: "#fff"
+                - font-size: 28px
+                - font-weight: 700
+            style:
+              bottom: 2%
+              left: 11.5%
+
+          - type: custom:button-card
+            entity: sensor.solar_production_today
+            name: Solar today
+            icon: mdi:white-balance-sunny
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '—') + ' kWh';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.92)
+                - border-radius: 16px
+                - padding: 14px 12px
+                - width: 200px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+              icon:
+                - color: "#f5c842"
+                - width: 44px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 14px
+                - font-weight: 700
+              state:
+                - color: "#fff"
+                - font-size: 28px
+                - font-weight: 700
+            style:
+              bottom: 2%
+              left: 22.5%
+
+          - type: custom:button-card
+            entity: sensor.solar_production_month
+            name: Solar month
+            icon: mdi:calendar-month
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '—') + ' kWh';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.92)
+                - border-radius: 16px
+                - padding: 14px 12px
+                - width: 200px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+              icon:
+                - color: "#f5c842"
+                - width: 44px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 14px
+                - font-weight: 700
+              state:
+                - color: "#fff"
+                - font-size: 28px
+                - font-weight: 700
+            style:
+              bottom: 2%
+              left: 33.5%
+
+          - type: custom:button-card
+            entity: sensor.solar_production_year
+            name: Solar year
+            icon: mdi:chart-bar
+            show_icon: true
+            show_name: true
+            show_state: true
+            state_display: |
+              [[[
+                return (entity.state ?? '—') + ' kWh';
+              ]]]
+            styles:
+              card:
+                - background: rgba(8, 22, 48, 0.92)
+                - border-radius: 16px
+                - padding: 14px 12px
+                - width: 200px
+                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+              icon:
+                - color: "#f5c842"
+                - width: 44px
+              name:
+                - color: rgba(255,255,255,0.9)
+                - font-size: 14px
+                - font-weight: 700
+              state:
+                - color: "#fff"
+                - font-size: 28px
+                - font-weight: 700
+            style:
+              bottom: 2%
+              left: 44.5%
