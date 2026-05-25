@@ -205,7 +205,7 @@ views:
                 - font-weight: 700
             style:
               top: 8%
-              left: 44%
+              left: 40%
 
           - type: custom:button-card
             entity: sensor.home_consumption_power
@@ -237,8 +237,8 @@ views:
                 - font-size: 20px
                 - font-weight: 700
             style:
-              top: 38%
-              left: 34%
+              top: 36%
+              left: 32%
 
           - type: custom:button-card
             entity: sensor.solar_battery_soc
@@ -285,8 +285,8 @@ views:
                   </motion.div>`.replace(/motion\./g,'');
                 ]]]
             style:
-              top: 24%
-              left: 62%
+              top: 38%
+              left: 73%
 
           - type: custom:button-card
             name: Garage
@@ -336,8 +336,8 @@ views:
                   return row('Model S', sSoc, sPwr, sSt) + row('Model X', xSoc, xPwr, xSt);
                 ]]]
             style:
-              top: 42%
-              left: 68%
+              top: 50%
+              left: 73%
 
           - type: custom:button-card
             name: Grid details
@@ -373,8 +373,8 @@ views:
                   return row('Voltage', v + ' V') + row('Temp', t + ' °C') + row('Cycles', c);
                 ]]]
             style:
-              top: 15%
-              left: 44%
+              top: 14%
+              left: 40%
 
           - type: custom:button-card
             entity: sensor.solar_ground_power

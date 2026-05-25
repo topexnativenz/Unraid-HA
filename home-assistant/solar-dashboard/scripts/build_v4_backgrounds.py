@@ -15,21 +15,21 @@ OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 SIZE = (1920, 1080)
 
 SITE = {
-    "pylon": (980, 260),
-    "pylon_base": (980, 320),
+    "pylon": (960, 220),
+    "pylon_base": (960, 295),
     "inverter": (1410, 498),
     "battery_wall": (1385, 468),
     "ev_charger": (1465, 538),
     "array_field": (1570, 790),
-    "house_tie": (800, 508),
+    "house_tie": (615, 390),
 }
 
 CARD_STUBS = {
-    "grid": ((845, 86), "pylon"),
-    "grid_details": ((845, 162), "pylon"),
-    "home": ((653, 410), "house_tie"),
-    "battery": ((1190, 259), "battery_wall"),
-    "garage": ((1306, 454), "ev_charger"),
+    "grid": ((768, 86), "pylon"),
+    "grid_details": ((768, 151), "pylon"),
+    "home": ((614, 389), "house_tie"),
+    "battery": ((1402, 410), "battery_wall"),
+    "garage": ((1402, 540), "ev_charger"),
     "solar_array": ((200, 1010), "array_field"),
 }
 
@@ -53,11 +53,12 @@ ROUTES = {
     ],
     "grid_pylon_to_inverter": [
         SITE["pylon_base"],
-        (1020, 355),
-        (1085, 385),
-        (1155, 415),
-        (1235, 445),
-        (1320, 475),
+        (985, 318),
+        (1025, 345),
+        (1085, 375),
+        (1165, 405),
+        (1255, 435),
+        (1345, 468),
         SITE["inverter"],
     ],
     "house_to_inverter": [
@@ -74,8 +75,8 @@ ROUTES = {
 }
 
 HV_LINES = {
-    "from_left": [(0, 95), (240, 100), (480, 115), (720, 140), (860, 195), SITE["pylon"]],
-    "from_right": [(1919, 90), (1680, 95), (1420, 110), (1180, 155), (1040, 220), SITE["pylon"]],
+    "from_left": [(0, 80), (240, 84), (480, 98), (720, 118), (860, 155), (920, 195), SITE["pylon"]],
+    "from_right": [(1919, 80), (1680, 84), (1420, 92), (1180, 125), (1040, 175), SITE["pylon"]],
 }
 
 
@@ -103,32 +104,40 @@ def darken_master(img: Image.Image) -> Image.Image:
 
 def draw_lattice_pylon(draw: ImageDraw.ImageDraw, cx: int, base_y: int) -> None:
     """Draw visible lattice transmission tower (reference-style) on the hill."""
-    top = base_y - 175
-    steel = (195, 205, 220, 255)
-    steel_dark = (120, 130, 150, 255)
+    s = 1.5
+    top = base_y - int(175 * s)
+    steel = (200, 212, 232, 255)  # #c8d4e8
+    steel_dark = (140, 152, 172, 255)
     insulator = (240, 240, 245, 255)
+    leg = int(22 * s)
+    peak_off = int(25 * s)
 
     # Main legs (A-frame)
-    for dx in (-22, 0, 22):
-        draw.line([(cx + dx, base_y), (cx, top + 25)], fill=steel_dark, width=4)
-    draw.line([(cx - 22, base_y), (cx + 22, base_y)], fill=steel, width=5)
+    for dx in (-leg, 0, leg):
+        draw.line([(cx + dx, base_y), (cx, top + peak_off)], fill=steel_dark, width=int(4 * s))
+    draw.line([(cx - leg, base_y), (cx + leg, base_y)], fill=steel, width=int(5 * s))
 
     # Cross-bracing
-    for y in range(base_y - 30, top + 40, -35):
-        w = int(18 + (base_y - y) * 0.08)
-        draw.line([(cx - w, y), (cx + w, y)], fill=steel, width=3)
-        draw.line([(cx - w, y), (cx, y - 28)], fill=steel_dark, width=2)
-        draw.line([(cx + w, y), (cx, y - 28)], fill=steel_dark, width=2)
+    brace_step = int(35 * s)
+    for y in range(base_y - int(30 * s), top + int(40 * s), -brace_step):
+        w = int((18 + (base_y - y) * 0.08) * s)
+        draw.line([(cx - w, y), (cx + w, y)], fill=steel, width=int(3 * s))
+        draw.line([(cx - w, y), (cx, y - int(28 * s))], fill=steel_dark, width=int(2 * s))
+        draw.line([(cx + w, y), (cx, y - int(28 * s))], fill=steel_dark, width=int(2 * s))
 
     # Three cross-arms with insulators
-    for arm_y, arm_w in ((top + 55, 55), (top + 95, 70), (top + 130, 48)):
-        draw.line([(cx - arm_w, arm_y), (cx + arm_w, arm_y)], fill=steel, width=5)
+    for arm_y, arm_w in (
+        (top + int(55 * s), int(55 * s)),
+        (top + int(95 * s), int(70 * s)),
+        (top + int(130 * s), int(48 * s)),
+    ):
+        draw.line([(cx - arm_w, arm_y), (cx + arm_w, arm_y)], fill=steel, width=int(5 * s))
         for ax in (cx - arm_w, cx, cx + arm_w):
-            for iy in range(arm_y, arm_y + 22, 6):
-                draw.line([(ax, arm_y), (ax, iy)], fill=insulator, width=2)
+            for iy in range(arm_y, arm_y + int(22 * s), int(6 * s)):
+                draw.line([(ax, arm_y), (ax, iy)], fill=insulator, width=int(2 * s))
 
     # Peak
-    draw.line([(cx, top + 25), (cx, top)], fill=steel, width=4)
+    draw.line([(cx, top + peak_off), (cx, top)], fill=steel, width=int(4 * s))
 
 
 def glow_polyline(
@@ -207,8 +216,8 @@ def draw_overlays(base: Image.Image) -> Image.Image:
     hv_line = "#d0d8e8"
 
     # HV transmission (solid, visible from distance)
-    glow_polyline(draw, HV_LINES["from_left"], hv_line, 4, dashed=False)
-    glow_polyline(draw, HV_LINES["from_right"], hv_line, 4, dashed=False)
+    glow_polyline(draw, HV_LINES["from_left"], hv_line, 3, dashed=False)
+    glow_polyline(draw, HV_LINES["from_right"], hv_line, 3, dashed=False)
 
     # Site energy flow (dashed, thick)
     glow_polyline(draw, ROUTES["grid_pylon_to_inverter"], white, 6, dashed=True)
