@@ -81,10 +81,10 @@ widgets:
   grid_use:
     type: custom:button-card
     name: Grid use
-    anchor: grid_pylon_behind_garage
-    top: 10%
-    left: 52%
-    note: "White stub → lattice tower on hill behind garage"
+    anchor: grid_pylon_hill_above_house
+    top: 14%
+    left: 18%
+    note: "White stub → lattice tower on distant hill above house (center-left)"
 
   home_use:
     type: custom:button-card
@@ -120,8 +120,8 @@ widgets:
   grid_details:
     type: custom:button-card
     name: Grid details
-    bottom: 26%
-    right: 2%
+    top: 22%
+    left: 18%
 
   bottom_row:
     - { name: PV total, bottom: 5%, left: 1% }

@@ -204,8 +204,8 @@ views:
                 - font-size: 20px
                 - font-weight: 700
             style:
-              top: 12%
-              left: 22%
+              top: 14%
+              left: 18%
 
           - type: custom:button-card
             entity: sensor.home_consumption_power
@@ -373,8 +373,8 @@ views:
                   return row('Voltage', v + ' V') + row('Temp', t + ' °C') + row('Cycles', c);
                 ]]]
             style:
-              top: 20%
-              left: 22%
+              top: 22%
+              left: 18%
 
           - type: custom:button-card
             entity: sensor.solar_ground_power

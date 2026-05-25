@@ -15,14 +15,14 @@ PYLON_REF = ROOT / "www" / "solar-dashboard" / "assets" / "pylon-reference.png"
 OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 SIZE = (1920, 1080)
 
-# Hill crest (user red arrow) — lattice tower on distant hill
-PYLON_CX = 960
-PYLON_BASE_Y = 308
+# Hill crest (user red arrow) — lattice tower on distant hill above house (center-left)
+PYLON_CX = 730
+PYLON_BASE_Y = 300
 PYLON_WIDTH_PX = 168
 PYLON_MAX_HEIGHT_PX = 300
 
 SITE = {
-    "pylon": (PYLON_CX, 198),
+    "pylon": (PYLON_CX, 170),
     "pylon_base": (PYLON_CX, PYLON_BASE_Y),
     "inverter": (1410, 498),
     "battery_wall": (1385, 468),
@@ -33,8 +33,8 @@ SITE = {
 
 # Pixel stubs aligned to Serpo-style card positions in solar_dashboard.yaml
 CARD_STUBS = {
-    "grid": ((422, 130), "pylon"),
-    "grid_details": ((422, 216), "pylon"),
+    "grid": ((346, 151), "pylon"),
+    "grid_details": ((346, 238), "pylon"),
     "home": (SITE["house_tie"], "house_tie"),
     "battery": ((1766, 194), "battery_wall"),
     "garage": ((1402, 562), "ev_charger"),
@@ -62,11 +62,14 @@ ROUTES = {
     ],
     "grid_pylon_to_inverter": [
         SITE["pylon_base"],
-        (1000, 340),
-        (1060, 375),
-        (1140, 410),
-        (1225, 440),
-        (1315, 470),
+        (745, 325),
+        (780, 355),
+        (820, 385),
+        (920, 415),
+        (1040, 440),
+        (1160, 465),
+        (1280, 485),
+        (1350, 493),
         SITE["inverter"],
     ],
     "house_to_inverter": [
@@ -85,12 +88,12 @@ ROUTES = {
 HV_LINES = {
     "from_left": [
         (0, 72),
-        (200, 76),
-        (420, 88),
-        (640, 108),
-        (800, 138),
-        (880, 168),
-        (920, 188),
+        (180, 76),
+        (360, 88),
+        (520, 108),
+        (620, 128),
+        (680, 148),
+        (710, 162),
         SITE["pylon"],
     ],
     "from_right": [
@@ -98,8 +101,9 @@ HV_LINES = {
         (1720, 76),
         (1480, 86),
         (1240, 108),
-        (1080, 148),
-        (1000, 178),
+        (1040, 138),
+        (920, 158),
+        (820, 168),
         SITE["pylon"],
     ],
 }
