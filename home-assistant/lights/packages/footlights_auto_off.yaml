@@ -1,0 +1,37 @@
+# Hall footlights: turn off automatically after no activity (timer resets on re-trigger).
+
+input_number:
+  footlights_auto_off_seconds:
+    name: Footlights auto-off delay
+    min: 30
+    max: 600
+    step: 15
+    unit_of_measurement: s
+    icon: mdi:timer-outline
+    mode: box
+    initial: 120
+
+automation:
+  - id: hallway_footlights_auto_off_timer
+    alias: Hall footlights — auto off after delay
+    description: >-
+      When hall footlights turn on (motion, sunset, or C-Bus), turn them off after
+      the delay in input_number.footlights_auto_off_seconds (default 120 s).
+      mode restart resets the timer if motion fires again.
+    triggers:
+      - trigger: state
+        entity_id:
+          - light.main_footlights
+          - light.kids_hall_footlights
+          - light.stair_footlights
+        to: "on"
+    actions:
+      - delay:
+          seconds: "{{ states('input_number.footlights_auto_off_seconds') | int(120) }}"
+      - action: light.turn_off
+        target:
+          entity_id:
+            - light.main_footlights
+            - light.kids_hall_footlights
+            - light.stair_footlights
+    mode: restart
