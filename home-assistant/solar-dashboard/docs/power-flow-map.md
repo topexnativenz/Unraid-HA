@@ -2,7 +2,7 @@
 
 Visual layers on `backgrounds/v4/*.jpg` (built by `scripts/build_v4_backgrounds.py`).
 
-**Style:** Dark high-contrast CGI (dusk blue hour) so yellow/white/green flow lines read clearly. The lattice **transmission tower is drawn in code** on the hill (always visible) plus HV lines from both horizons.
+**Style:** Bright daytime CGI master; smooth dashed Bézier curves (white grid, amber solar, green EV). Small lattice **pylon sprite** (~46×100 px) composited on the right hill over the master tower footprint.
 
 ## Layer 1 — Transmission (Northpower grid)
 
