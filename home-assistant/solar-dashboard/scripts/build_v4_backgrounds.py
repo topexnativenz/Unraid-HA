@@ -15,8 +15,8 @@ OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 SIZE = (1920, 1080)
 
 SITE = {
-    "pylon": (1085, 200),
-    "pylon_base": (1085, 295),
+    "pylon": (980, 260),
+    "pylon_base": (980, 320),
     "inverter": (1410, 498),
     "battery_wall": (1385, 468),
     "ev_charger": (1465, 538),
@@ -25,11 +25,11 @@ SITE = {
 }
 
 CARD_STUBS = {
-    "grid": ((1040, 125), "pylon"),
-    "grid_details": ((1040, 195), "pylon"),
-    "home": ((730, 432), "house_tie"),
-    "battery": ((1267, 346), "battery_wall"),
-    "garage": ((1421, 389), "ev_charger"),
+    "grid": ((845, 86), "pylon"),
+    "grid_details": ((845, 162), "pylon"),
+    "home": ((653, 410), "house_tie"),
+    "battery": ((1190, 259), "battery_wall"),
+    "garage": ((1306, 454), "ev_charger"),
     "solar_array": ((200, 1010), "array_field"),
 }
 
@@ -53,10 +53,11 @@ ROUTES = {
     ],
     "grid_pylon_to_inverter": [
         SITE["pylon_base"],
-        (1110, 340),
-        (1200, 400),
-        (1300, 450),
-        (1370, 480),
+        (1020, 355),
+        (1085, 385),
+        (1155, 415),
+        (1235, 445),
+        (1320, 475),
         SITE["inverter"],
     ],
     "house_to_inverter": [
@@ -73,8 +74,8 @@ ROUTES = {
 }
 
 HV_LINES = {
-    "from_left": [(0, 120), (200, 115), (450, 125), (700, 150), (900, 175), SITE["pylon"]],
-    "from_right": [(1919, 115), (1720, 118), (1480, 135), (1280, 160), (1160, 185), SITE["pylon"]],
+    "from_left": [(0, 95), (240, 100), (480, 115), (720, 140), (860, 195), SITE["pylon"]],
+    "from_right": [(1919, 90), (1680, 95), (1420, 110), (1180, 155), (1040, 220), SITE["pylon"]],
 }
 
 
