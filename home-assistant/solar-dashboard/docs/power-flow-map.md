@@ -2,7 +2,7 @@
 
 Visual layers on `backgrounds/v4/*.jpg` (built by `scripts/build_v4_backgrounds.py`).
 
-**Style:** Bright daytime CGI master; smooth dashed Bézier curves (white grid, amber solar, green EV). Small lattice **pylon sprite** (~46×100 px) composited on the right hill over the master tower footprint.
+**Style:** Bright daytime CGI master; smooth dashed Bézier curves (white grid, amber solar, green EV). Grid lines anchor to the **master lattice tower** on the right hill (no pasted sprite / ellipse mask).
 
 ## Layer 1 — Transmission (Northpower grid)
 

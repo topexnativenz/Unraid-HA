@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build v4: daytime CGI master + small right-hill pylon + smooth dashed energy curves."""
+"""Build v4/v5: daytime CGI master + smooth dashed energy curves (master pylon only)."""
 
 from __future__ import annotations
 
@@ -11,34 +11,45 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 MASTER = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4" / "master-clear.png"
-PYLON_REF = ROOT / "www" / "solar-dashboard" / "assets" / "pylon-reference.png"
 OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 V5_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v5"
 SIZE = (1920, 1080)
 
-# Right hill — ~1/3 smaller than prior 70×150 paste (target ~46×100)
-PYLON_CX = 1250
-PYLON_ATTACH_Y = 200
-PYLON_BASE_Y = 290
-PYLON_WIDTH_PX = 46
-PYLON_MAX_HEIGHT_PX = 100
+# Master lattice tower on right hill (1920×1080) — cross-arms / wire junction + foot on slope
+PYLON_CX = 1320
+PYLON_ATTACH_Y = 168
+PYLON_BASE_Y = 298
 
 SITE = {
     "pylon": (PYLON_CX, PYLON_ATTACH_Y),
-    "pylon_base": (PYLON_CX, PYLON_BASE_Y),
+    "pylon_base": (PYLON_CX - 8, PYLON_BASE_Y),
     "inverter": (1410, 498),
     "battery_wall": (1385, 468),
     "ev_charger": (1465, 538),
     "array_field": (1570, 790),
     "house_tie": (806, 454),
+    "grid_left": (140, 360),
+    "grid_right": (1880, 95),
 }
 
-# Cubic Bézier control chains (start, cp1, cp2, end) — gentle arcs, no card stubs
+# Cubic Bézier (start, cp1, cp2, end) — converge on right pylon, hub at garage inverter
 FLOW_CURVES: dict[str, tuple[tuple[int, int], ...]] = {
+    "grid_left_to_pylon": (
+        SITE["grid_left"],
+        (360, 260),
+        (1080, 188),
+        SITE["pylon"],
+    ),
+    "grid_right_to_pylon": (
+        SITE["grid_right"],
+        (1720, 108),
+        (1420, 152),
+        SITE["pylon"],
+    ),
     "grid_pylon_to_inverter": (
         SITE["pylon_base"],
-        (1280, 340),
-        (1180, 430),
+        (1360, 360),
+        (1395, 440),
         SITE["inverter"],
     ),
     "solar_to_inverter": (
@@ -53,12 +64,6 @@ FLOW_CURVES: dict[str, tuple[tuple[int, int], ...]] = {
         (1220, 492),
         SITE["inverter"],
     ),
-    "pylon_to_house": (
-        SITE["pylon_base"],
-        (1080, 380),
-        (900, 420),
-        SITE["house_tie"],
-    ),
     "inverter_to_charger": (
         SITE["inverter"],
         (1445, 520),
@@ -68,10 +73,11 @@ FLOW_CURVES: dict[str, tuple[tuple[int, int], ...]] = {
 }
 
 LINE_STYLES = {
+    "grid_left_to_pylon": ("#ffffff", 3),
+    "grid_right_to_pylon": ("#ffffff", 3),
     "grid_pylon_to_inverter": ("#ffffff", 3),
     "solar_to_inverter": ("#f5c842", 3),
     "house_to_inverter": ("#f5c842", 3),
-    "pylon_to_house": ("#ffffff", 3),
     "inverter_to_charger": ("#69f0ae", 3),
 }
 
@@ -99,71 +105,6 @@ def prepare_daytime_master(img: Image.Image) -> Image.Image:
     img = ImageEnhance.Brightness(img).enhance(1.02)
     img = ImageEnhance.Color(img).enhance(1.04)
     return img
-
-
-def _key_sprite_background(img: Image.Image) -> Image.Image:
-    """Make sky/water/grass transparent; keep lattice steel."""
-    out = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    px_in = img.load()
-    px_out = out.load()
-    w, h = img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = px_in[x, y]
-            lum = (r + g + b) / 3
-            if lum > 175 and abs(r - g) < 35 and b >= g - 10:
-                continue
-            if b > max(r, g) + 12 and b > 95:
-                continue
-            if g > 165 and r > 65 and b < 145:
-                continue
-            nr = int(r * 0.82)
-            ng = int(g * 0.84)
-            nb = int(b * 0.88)
-            px_out[x, y] = (nr, ng, nb, a)
-    return out
-
-
-def prepare_pylon_sprite(ref_path: Path) -> Image.Image:
-    """Extract lattice tower; scale to ~46×100 for right hill."""
-    ref = Image.open(ref_path).convert("RGBA")
-    tower = ref.crop((40, 12, 200, 355))
-    tower = _key_sprite_background(tower)
-    tw, th = tower.size
-    scale = min(PYLON_WIDTH_PX / tw, PYLON_MAX_HEIGHT_PX / th)
-    nw, nh = max(1, int(tw * scale)), max(1, int(th * scale))
-    sprite = tower.resize((nw, nh), Image.Resampling.LANCZOS)
-    rgb = ImageEnhance.Contrast(sprite.convert("RGB")).enhance(1.15)
-    rgb = ImageEnhance.Brightness(rgb).enhance(0.92)
-    sprite = Image.merge("RGBA", (*rgb.split(), sprite.split()[3]))
-    return sprite
-
-
-def _darken_tower_footprint(img: Image.Image) -> None:
-    """Soft ellipse over master full-size tower so smaller sprite reads cleanly."""
-    patch = Image.new("RGBA", (120, 200), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(patch)
-    draw.ellipse((8, 20, 112, 198), fill=(0, 0, 0, 110))
-    patch = patch.filter(ImageFilter.GaussianBlur(3))
-    x = PYLON_CX - patch.width // 2
-    y = PYLON_ATTACH_Y - 24
-    img.alpha_composite(patch, (x, y))
-
-
-def composite_pylon_on_right_hill(base: Image.Image, sprite: Image.Image) -> Image.Image:
-    """Small pylon on right hill at (1250, 200) attach / base_y=290."""
-    img = base.convert("RGBA")
-    _darken_tower_footprint(img)
-    cx, base_y = PYLON_CX, PYLON_BASE_Y
-    x = cx - sprite.width // 2
-    y = base_y - sprite.height + 12
-
-    shadow = Image.new("RGBA", (sprite.width + 32, 22), (0, 0, 0, 0))
-    sdraw = ImageDraw.Draw(shadow)
-    sdraw.ellipse((4, 5, shadow.width - 4, shadow.height - 2), fill=(0, 0, 0, 85))
-    img.alpha_composite(shadow, (x - 16, base_y - 5))
-    img.alpha_composite(sprite, (x, y))
-    return img.convert("RGB")
 
 
 def _bezier_point(t: float, controls: tuple[tuple[float, float], ...]) -> tuple[float, float]:
@@ -279,10 +220,11 @@ def draw_flow_lines(base: Image.Image) -> Image.Image:
         colour, width = LINE_STYLES[route_id]
         smooth_dashed_bezier(layer, controls, colour, width)
 
-    arrow_head(layer, SITE["inverter"], FLOW_CURVES["solar_to_inverter"][-2], "#f5c842")
+    arrow_head(layer, SITE["pylon"], FLOW_CURVES["grid_left_to_pylon"][-2], "#ffffff")
+    arrow_head(layer, SITE["pylon"], FLOW_CURVES["grid_right_to_pylon"][-2], "#ffffff")
     arrow_head(layer, SITE["inverter"], FLOW_CURVES["grid_pylon_to_inverter"][-2], "#ffffff")
+    arrow_head(layer, SITE["inverter"], FLOW_CURVES["solar_to_inverter"][-2], "#f5c842")
     arrow_head(layer, SITE["inverter"], FLOW_CURVES["house_to_inverter"][-2], "#f5c842")
-    arrow_head(layer, SITE["house_tie"], FLOW_CURVES["pylon_to_house"][-2], "#ffffff")
     arrow_head(layer, SITE["ev_charger"], SITE["inverter"], "#69f0ae")
 
     out = base.convert("RGBA")
@@ -290,11 +232,8 @@ def draw_flow_lines(base: Image.Image) -> Image.Image:
     return out.convert("RGB")
 
 
-def draw_overlays(base: Image.Image, pylon_sprite: Image.Image | None, paste_pylon: bool) -> Image.Image:
-    img = base
-    if paste_pylon and pylon_sprite:
-        img = composite_pylon_on_right_hill(base, pylon_sprite)
-    return draw_flow_lines(img)
+def draw_overlays(base: Image.Image) -> Image.Image:
+    return draw_flow_lines(base)
 
 
 def variant(img: Image.Image, mode: str) -> Image.Image:
@@ -319,29 +258,17 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--master", type=Path, default=MASTER)
     parser.add_argument("--out", type=Path, default=OUT)
-    parser.add_argument("--pylon-ref", type=Path, default=PYLON_REF)
-    parser.add_argument(
-        "--no-paste-pylon",
-        action="store_true",
-        help="Skip small sprite (master tower only)",
-    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    paste_pylon = not args.no_paste_pylon
 
-    pylon_sprite = prepare_pylon_sprite(args.pylon_ref) if args.pylon_ref.is_file() else None
-    if paste_pylon and pylon_sprite:
-        print(
-            f"pylon sprite {pylon_sprite.size[0]}×{pylon_sprite.size[1]} @ "
-            f"({PYLON_CX}, {PYLON_ATTACH_Y}); smooth bezier flow lines"
-        )
-    elif pylon_sprite:
-        print(f"pylon ref available ({pylon_sprite.size}); flow lines only")
-    else:
-        print(f"warning: no pylon reference at {args.pylon_ref}")
+    print(
+        f"master pylon anchor ({PYLON_CX}, {PYLON_ATTACH_Y}) "
+        f"base ({SITE['pylon_base'][0]}, {SITE['pylon_base'][1]}); "
+        "no sprite paste / ellipse"
+    )
 
     master = prepare_daytime_master(crop_16_9(Image.open(args.master).convert("RGB")))
-    overlaid = draw_overlays(master, pylon_sprite, paste_pylon=paste_pylon)
+    overlaid = draw_overlays(master)
     for name in ("clear", "cloudy", "covered", "very_covered", "night"):
         out = variant(overlaid, name)
         out.save(args.out / f"{name}.jpg", quality=92)
