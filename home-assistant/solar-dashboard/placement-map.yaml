@@ -97,8 +97,10 @@ widgets:
     type: custom:button-card
     name: Battery
     anchor: garage_inverter_wall
-    top: 32%
-    left: 66%
+    top: 30%
+    left: 72%
+    width_px: 175
+    note: "Flush to garage cladding — stacked above Garage EV card (v5 daytime)"
 
   bottom_power_row:
     note: "Clustered bottom-left — away from ground array on right"
@@ -113,9 +115,10 @@ widgets:
     type: custom:button-card
     name: Garage
     anchor: garage_inverter_wall
-    top: 36%
+    top: 46%
     left: 74%
-    notes: "Model S live; Model X slot reserved; Sigenergy EV charger kW"
+    width_px: 175
+    notes: "Model S + Model X — right garage wall / open door (v5 daytime master)"
 
   grid_details:
     type: custom:button-card
