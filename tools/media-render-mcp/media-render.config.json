@@ -1,0 +1,15 @@
+{
+  "ha_host": "192.168.1.239",
+  "ha_url": "http://192.168.1.239:8123",
+  "backgrounds_root": "home-assistant/solar-dashboard/www/solar-dashboard/backgrounds",
+  "locked_master": "home-assistant/solar-dashboard/www/solar-dashboard/backgrounds/v5/master-clear.png",
+  "render_backend": "fal",
+  "fal_image_model": "fal-ai/flux/dev",
+  "deploy_script": "home-assistant/solar-dashboard/scripts/deploy_to_ha.py",
+  "lovelace_yaml_paths": [
+    "home-assistant/solar-dashboard/lovelace/views/solar-energy.yaml",
+    "home-assistant/solar-dashboard/lovelace/views/solar-energy-fr.yaml",
+    "home-assistant/solar-dashboard/lovelace/dashboards/solar_dashboard.yaml"
+  ],
+  "weather_variants": ["clear", "cloudy", "covered", "very_covered", "night"]
+}
