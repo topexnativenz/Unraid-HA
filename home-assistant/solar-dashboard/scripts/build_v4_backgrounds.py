@@ -1,89 +1,52 @@
 #!/usr/bin/env python3
-"""Build v4/v5: daytime CGI master + smooth dashed energy curves (master pylon only)."""
+"""Build clean CGI backgrounds (no flow overlays).
+
+Notes:
+- The CGI master render is locked. This script only derives variants (incl. night).
+- v8: optional left-sky wire inpaint (use --keep-wires to skip).
+- v9: master-only weather grades (--keep-wires); no inpaint/smudge.
+- v10: median wire-corridor clean (smears — superseded).
+- v11: remove_left_orphan_wires — Fal fill or OpenCV TELEA (2-pass), pylon hard-restore.
+"""
 
 from __future__ import annotations
 
 import argparse
-import math
+import json
+import os
+import random
 from pathlib import Path
 
+import cv2
+import numpy as np
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 MASTER = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4" / "master-clear.png"
 OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
 V5_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v5"
+V7_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v7"
+V8_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v8"
+V10_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v10"
+V11_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v11"
+QA_OUT = ROOT / "assets" / "wire-removal-qa.jpg"
 SIZE = (1920, 1080)
 
-# Master lattice tower on right hill (1920×1080) — cross-arms / wire junction + foot on slope
-PYLON_CX = 1320
-PYLON_ATTACH_Y = 168
+# Left-side sky wire corridors (1920×1080). Right-side pylon wires stay untouched.
+# Far-left sky only (x < 1020) — keeps pylon-attached conductors to the right.
+_UPPER_WIRE_CORRIDOR = [(0, 4), (1020, 12), (1020, 168), (0, 228)]
+_MIDDLE_WIRE_CORRIDOR = [(0, 148), (1010, 162), (1010, 298), (0, 282)]
+_LOWER_WIRE_CORRIDOR = [(0, 238), (1080, 288), (1080, 388), (0, 368)]
+
+# Clean sky donor — no wires (master crop).
+_SKY_PATCH_SOURCE = (1500, 40, 1900, 200)
+
+# Master lattice tower on right hill (1920×1080) — do not edit inside protect ellipse
+PYLON_CX = 1315
+PYLON_CY = 220
+PYLON_RX = 90
+PYLON_RY = 200
 PYLON_BASE_Y = 298
-
-SITE = {
-    "pylon": (PYLON_CX, PYLON_ATTACH_Y),
-    "pylon_base": (PYLON_CX - 8, PYLON_BASE_Y),
-    "inverter": (1410, 498),
-    "battery_wall": (1385, 468),
-    "ev_charger": (1465, 538),
-    "array_field": (1570, 790),
-    "house_tie": (806, 454),
-    "grid_left": (140, 360),
-    "grid_right": (1880, 95),
-}
-
-# Cubic Bézier (start, cp1, cp2, end) — converge on right pylon, hub at garage inverter
-FLOW_CURVES: dict[str, tuple[tuple[int, int], ...]] = {
-    "grid_left_to_pylon": (
-        SITE["grid_left"],
-        (360, 260),
-        (1080, 188),
-        SITE["pylon"],
-    ),
-    "grid_right_to_pylon": (
-        SITE["grid_right"],
-        (1720, 108),
-        (1420, 152),
-        SITE["pylon"],
-    ),
-    "grid_pylon_to_inverter": (
-        SITE["pylon_base"],
-        (1360, 360),
-        (1395, 440),
-        SITE["inverter"],
-    ),
-    "solar_to_inverter": (
-        SITE["array_field"],
-        (1520, 720),
-        (1460, 580),
-        SITE["inverter"],
-    ),
-    "house_to_inverter": (
-        SITE["house_tie"],
-        (980, 500),
-        (1220, 492),
-        SITE["inverter"],
-    ),
-    "inverter_to_charger": (
-        SITE["inverter"],
-        (1445, 520),
-        (1458, 532),
-        SITE["ev_charger"],
-    ),
-}
-
-LINE_STYLES = {
-    "grid_left_to_pylon": ("#ffffff", 3),
-    "grid_right_to_pylon": ("#ffffff", 3),
-    "grid_pylon_to_inverter": ("#ffffff", 3),
-    "solar_to_inverter": ("#f5c842", 3),
-    "house_to_inverter": ("#f5c842", 3),
-    "inverter_to_charger": ("#69f0ae", 3),
-}
-
-DASH_LEN = 16
-DASH_GAP = 10
-
 
 def crop_16_9(img: Image.Image) -> Image.Image:
     w, h = img.size
@@ -106,134 +69,305 @@ def prepare_daytime_master(img: Image.Image) -> Image.Image:
     img = ImageEnhance.Color(img).enhance(1.04)
     return img
 
-
-def _bezier_point(t: float, controls: tuple[tuple[float, float], ...]) -> tuple[float, float]:
-    pts = [tuple(float(c) for c in p) for p in controls]
-    while len(pts) > 1:
-        nxt: list[tuple[float, float]] = []
-        for i in range(len(pts) - 1):
-            x0, y0 = pts[i]
-            x1, y1 = pts[i + 1]
-            nxt.append((x0 + (x1 - x0) * t, y0 + (y1 - y0) * t))
-        pts = nxt
-    return pts[0]
+def _cool_grade(img: Image.Image) -> Image.Image:
+    img = ImageEnhance.Brightness(img).enhance(0.46)
+    img = ImageEnhance.Contrast(img).enhance(1.14)
+    img = ImageEnhance.Color(img).enhance(0.72)
+    r, g, b = img.split()
+    r = r.point(lambda p: int(p * 0.78))
+    g = g.point(lambda p: int(p * 0.88))
+    b = b.point(lambda p: min(255, int(p * 1.12)))
+    return Image.merge("RGB", (r, g, b))
 
 
-def sample_bezier(controls: tuple[tuple[int, int], ...], steps: int = 140) -> list[tuple[float, float]]:
-    if len(controls) < 2:
-        return [tuple(float(c) for c in controls[0])] if controls else []
-    return [_bezier_point(i / steps, controls) for i in range(steps + 1)]
+def _add_star_field(img: Image.Image, *, sky_y: int = 320, seed: int = 7) -> Image.Image:
+    w, h = img.size
+    rng = random.Random(seed)
+    stars = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(stars)
 
+    n = 720
+    for i in range(n):
+        x = rng.randrange(0, w)
+        t = rng.random()
+        y = int((t * t) * sky_y)
+        if y < 0 or y >= sky_y:
+            continue
 
-def _polyline_length(points: list[tuple[float, float]]) -> float:
-    total = 0.0
-    for i in range(len(points) - 1):
-        x0, y0 = points[i]
-        x1, y1 = points[i + 1]
-        total += math.hypot(x1 - x0, y1 - y0)
-    return total
+        if i % 90 == 0:
+            rad = rng.choice([2, 3])
+            a = rng.randint(120, 190)
+        else:
+            rad = 1
+            a = rng.randint(60, 120)
 
+        tint = rng.random()
+        if tint < 0.12:
+            col = (190, 210, 255, a)
+        else:
+            c = rng.randint(235, 255)
+            col = (c, c, c, a)
 
-def _point_at_distance(points: list[tuple[float, float]], dist: float) -> tuple[float, float]:
-    if dist <= 0:
-        return points[0]
-    walked = 0.0
-    for i in range(len(points) - 1):
-        x0, y0 = points[i]
-        x1, y1 = points[i + 1]
-        seg = math.hypot(x1 - x0, y1 - y0)
-        if walked + seg >= dist:
-            t = (dist - walked) / seg if seg else 0.0
-            return (x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)
-        walked += seg
-    return points[-1]
+        draw.ellipse((x - rad, y - rad, x + rad, y + rad), fill=col)
 
-
-def smooth_dashed_bezier(
-    layer: Image.Image,
-    control_points: tuple[tuple[int, int], ...],
-    color: str,
-    width: int,
-    *,
-    dash_len: int = DASH_LEN,
-    dash_gap: int = DASH_GAP,
-) -> None:
-    """Anti-aliased dashed cubic/quadratic curve with soft glow (3× supersample)."""
-    samples = sample_bezier(control_points)
-    if len(samples) < 2:
-        return
-
-    scale = 3
-    w, h = layer.size
-    hi = Image.new("RGBA", (w * scale, h * scale), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(hi)
-
-    hi_pts = [(x * scale, y * scale) for x, y in samples]
-    glow_w = max(1, width * scale + 6)
-    core_w = max(1, width * scale)
-
-    glow_rgb: tuple[int, int, int, int] = (0, 0, 0, 70)
-    if color.startswith("#") and len(color) >= 7:
-        cr = int(color[1:3], 16)
-        cg = int(color[3:5], 16)
-        cb = int(color[5:7], 16)
-        glow_rgb = (cr, cg, cb, 55)
-
-    total = _polyline_length(hi_pts)
-    period = dash_len * scale + dash_gap * scale
-    dist = 0.0
-    while dist < total:
-        d0 = dist
-        d1 = min(total, dist + dash_len * scale)
-        p0 = _point_at_distance(hi_pts, d0)
-        p1 = _point_at_distance(hi_pts, d1)
-        draw.line([p0, p1], fill=glow_rgb, width=glow_w)
-        draw.line([p0, p1], fill=color, width=core_w)
-        dist += period
-
-    smooth = hi.resize((w, h), Image.Resampling.LANCZOS)
-    layer.alpha_composite(smooth)
-
-
-def arrow_head(
-    layer: Image.Image,
-    tip: tuple[int, int],
-    origin: tuple[int, int],
-    colour: str,
-    size: int = 14,
-) -> None:
-    tx, ty = tip
-    ox, oy = origin
-    ang = math.atan2(ty - oy, tx - ox)
-    pts = [
-        (tx - size * math.cos(ang - 2.4), ty - size * math.sin(ang - 2.4)),
-        (tx - size * math.cos(ang + 2.4), ty - size * math.sin(ang + 2.4)),
-    ]
-    draw = ImageDraw.Draw(layer, "RGBA")
-    draw.polygon([(tx, ty), *pts], fill="#000000cc")
-    draw.polygon([(tx, ty), *pts], fill=colour)
-
-
-def draw_flow_lines(base: Image.Image) -> Image.Image:
-    layer = Image.new("RGBA", base.size, (0, 0, 0, 0))
-    for route_id, controls in FLOW_CURVES.items():
-        colour, width = LINE_STYLES[route_id]
-        smooth_dashed_bezier(layer, controls, colour, width)
-
-    arrow_head(layer, SITE["pylon"], FLOW_CURVES["grid_left_to_pylon"][-2], "#ffffff")
-    arrow_head(layer, SITE["pylon"], FLOW_CURVES["grid_right_to_pylon"][-2], "#ffffff")
-    arrow_head(layer, SITE["inverter"], FLOW_CURVES["grid_pylon_to_inverter"][-2], "#ffffff")
-    arrow_head(layer, SITE["inverter"], FLOW_CURVES["solar_to_inverter"][-2], "#f5c842")
-    arrow_head(layer, SITE["inverter"], FLOW_CURVES["house_to_inverter"][-2], "#f5c842")
-    arrow_head(layer, SITE["ev_charger"], SITE["inverter"], "#69f0ae")
-
-    out = base.convert("RGBA")
-    out.alpha_composite(layer)
+    stars = stars.filter(ImageFilter.GaussianBlur(0.6))
+    out = img.convert("RGBA")
+    out.alpha_composite(stars)
     return out.convert("RGB")
 
 
-def draw_overlays(base: Image.Image) -> Image.Image:
-    return draw_flow_lines(base)
+def _add_house_glow(img: Image.Image) -> Image.Image:
+    w, h = img.size
+    glow = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(glow)
+
+    # Hand-tuned glows over house/garage openings (approx, 1920×1080 master)
+    d.ellipse((220, 420, 560, 690), fill=(255, 180, 90, 110))  # main house windows
+    d.ellipse((120, 470, 350, 700), fill=(255, 170, 80, 85))  # left wing glass
+    d.ellipse((1260, 470, 1605, 760), fill=(255, 190, 110, 120))  # garage interior
+    d.ellipse((1455, 500, 1695, 700), fill=(255, 195, 120, 90))  # inverter wall vicinity
+
+    glow = glow.filter(ImageFilter.GaussianBlur(26))
+    out = img.convert("RGBA")
+    out.alpha_composite(glow)
+    return out.convert("RGB")
+
+
+def _pylon_protect_mask(w: int, h: int, *, soft: bool = False) -> Image.Image:
+    """L mask: 255 = keep original pixels (pylon lattice + hill foot)."""
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    d.ellipse(
+        (PYLON_CX - PYLON_RX, PYLON_CY - PYLON_RY, PYLON_CX + PYLON_RX, PYLON_CY + PYLON_RY),
+        fill=255,
+    )
+    d.polygon(
+        [
+            (PYLON_CX - 72, PYLON_BASE_Y - 6),
+            (PYLON_CX + 78, PYLON_BASE_Y - 6),
+            (PYLON_CX + 78, h),
+            (PYLON_CX - 72, h),
+        ],
+        fill=255,
+    )
+    return mask.filter(ImageFilter.GaussianBlur(2)) if soft else mask
+
+
+def _left_wire_corridor_mask(w: int, h: int) -> Image.Image:
+    """L mask: 255 = inpaint target (left orphan wire corridors only)."""
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    for poly in (_UPPER_WIRE_CORRIDOR, _MIDDLE_WIRE_CORRIDOR, _LOWER_WIRE_CORRIDOR):
+        d.polygon(poly, fill=255)
+    return mask.filter(ImageFilter.GaussianBlur(4))
+
+
+def _corridor_mask_excluding_pylon(w: int, h: int) -> Image.Image:
+    corridor = _left_wire_corridor_mask(w, h)
+    protect = _pylon_protect_mask(w, h, soft=True)
+    c_px = corridor.load()
+    p_px = protect.load()
+    for y in range(h):
+        for x in range(w):
+            if p_px[x, y] > 0:
+                c_px[x, y] = 0
+    return corridor
+
+
+def _load_fal_key() -> str | None:
+    key = os.environ.get("FAL_KEY", "").strip()
+    if key:
+        return key
+    mcp = Path.home() / ".cursor" / "mcp.json"
+    if not mcp.exists():
+        return None
+    try:
+        data = json.loads(mcp.read_text())
+        return (data.get("mcpServers", {}).get("user-media-render", {}).get("env", {}).get("FAL_KEY") or "").strip() or None
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _save_wire_mask_png(path: Path, mask: Image.Image) -> None:
+    """RGB mask for Fal: white = edit, black = keep."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rgb = Image.merge("RGB", (mask, mask, mask))
+    rgb.save(path)
+
+
+def _wire_stroke_mask(img: Image.Image, corridor: Image.Image, protect: Image.Image) -> Image.Image:
+    """L mask: 255 = thin wire pixels inside corridor, excluding pylon protect."""
+    arr = np.array(img.convert("RGB"), dtype=np.float32)
+    cmask = np.array(corridor) > 64
+    pmask = np.array(protect) > 32
+    lum = 0.299 * arr[:, :, 0] + 0.587 * arr[:, :, 1] + 0.114 * arr[:, :, 2]
+    dark = cmask & ~pmask & (lum < 168)
+    mask = Image.fromarray((dark.astype(np.uint8) * 255))
+    return mask.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(2))
+
+
+def _remaining_wire_mask(img: Image.Image, corridor: Image.Image, protect: Image.Image) -> Image.Image:
+    """Second-pass mask for faint wire halos left in corridor."""
+    arr = np.array(img.convert("RGB"), dtype=np.float32)
+    cmask = np.array(corridor) > 64
+    pmask = np.array(protect) > 32
+    lum = 0.299 * arr[:, :, 0] + 0.587 * arr[:, :, 1] + 0.114 * arr[:, :, 2]
+    faint = cmask & ~pmask & (lum < 172)
+    return Image.fromarray((faint.astype(np.uint8) * 255))
+
+
+def _sky_patch_fill(img: Image.Image, blend_mask: Image.Image) -> Image.Image:
+    """Paste resized clean-sky donor (1500,40)-(1900,200) through feathered wire mask."""
+    bbox = blend_mask.getbbox()
+    if not bbox:
+        return img
+    x0, y0, x1, y1 = bbox
+    donor = img.crop(_SKY_PATCH_SOURCE).resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS)
+    filled = img.copy()
+    filled.paste(donor, (x0, y0))
+    feather = blend_mask.filter(ImageFilter.GaussianBlur(8))
+    return Image.composite(filled, img, feather)
+
+
+def _inpaint_telea(img: Image.Image, wire_mask: Image.Image, *, radius: int = 5) -> Image.Image:
+    bgr = cv2.cvtColor(np.array(img.convert("RGB")), cv2.COLOR_RGB2BGR)
+    m = np.array(wire_mask)
+    if m.max() == 0:
+        return img
+    repaired = cv2.inpaint(bgr, m, radius, cv2.INPAINT_TELEA)
+    return Image.fromarray(cv2.cvtColor(repaired, cv2.COLOR_BGR2RGB))
+
+
+def _fal_inpaint_sky(img: Image.Image, wire_mask: Image.Image, *, mask_path: Path) -> Image.Image:
+    """Fal flux-pro fill: remove masked orphan wires; restore pylon from master."""
+    key = _load_fal_key()
+    if not key:
+        raise RuntimeError("FAL_KEY not set")
+
+    os.environ["FAL_KEY"] = key
+    import fal_client
+
+    w, h = img.size
+    tmp = mask_path.parent
+    tmp.mkdir(parents=True, exist_ok=True)
+    src_jpg = tmp / "_fal_source.jpg"
+    msk_png = mask_path
+
+    img.convert("RGB").save(src_jpg, quality=95)
+    _save_wire_mask_png(msk_png, wire_mask)
+
+    image_url = fal_client.upload_file(str(src_jpg))
+    mask_url = fal_client.upload_file(str(msk_png))
+
+    prompt = (
+        "Seamless photorealistic daytime blue sky with soft white wispy clouds, "
+        "matching the surrounding sky exactly. No power lines, no wires, no cables, "
+        "no smudges, no blur artifacts. Natural clear sky only."
+    )
+    result = fal_client.subscribe(
+        "fal-ai/flux-pro/v1/fill",
+        arguments={
+            "prompt": prompt,
+            "image_url": image_url,
+            "mask_url": mask_url,
+        },
+    )
+    images = result.get("images") or []
+    if not images:
+        raise RuntimeError(f"Fal fill returned no images: {result}")
+
+    image_entry = images[0]
+    out_url = image_entry.get("url") if isinstance(image_entry, dict) else image_entry
+    if not out_url:
+        raise RuntimeError(f"No image URL in Fal response: {result}")
+
+    import httpx
+
+    with httpx.Client(timeout=180.0) as client:
+        resp = client.get(out_url)
+        resp.raise_for_status()
+        filled = Image.open(__import__("io").BytesIO(resp.content)).convert("RGB")
+
+    if filled.size != (w, h):
+        filled = filled.resize((w, h), Image.Resampling.LANCZOS)
+
+    protect = _pylon_protect_mask(w, h, soft=False)
+    feather = wire_mask.filter(ImageFilter.GaussianBlur(6))
+    wired = Image.composite(filled, img, feather)
+    return Image.composite(img, wired, protect)
+
+
+def save_wire_removal_qa(before: Image.Image, after: Image.Image, path: Path) -> None:
+    """Side-by-side crop of left sky band (before | after)."""
+    band = (0, 0, 1280, 400)
+    qa = Image.new("RGB", (band[2] * 2, band[3]))
+    qa.paste(before.crop(band), (0, 0))
+    qa.paste(after.crop(band), (band[2], 0))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    qa.save(path, quality=90)
+    print(f"wrote QA {path}")
+
+
+def remove_left_orphan_wires(
+    img: Image.Image,
+    *,
+    method: str = "auto",
+    mask_dir: Path | None = None,
+) -> tuple[Image.Image, str]:
+    """Remove left orphan sky wires; keep pylon-attached conductors. Returns (image, method)."""
+    w, h = img.size
+    base = img.convert("RGB")
+    protect_hard = _pylon_protect_mask(w, h, soft=False)
+    corridor = _corridor_mask_excluding_pylon(w, h)
+    if not corridor.getbbox():
+        return base, "none"
+
+    wire_mask = _wire_stroke_mask(base, corridor, protect_hard)
+    if not wire_mask.getbbox():
+        return base, "none"
+
+    mask_dir = mask_dir or V11_OUT
+    mask_path = mask_dir / "wire-inpaint-mask.png"
+    _save_wire_mask_png(mask_path, wire_mask)
+
+    if method == "fal":
+        if not _load_fal_key():
+            raise RuntimeError("FAL_KEY not set (required for --wire-method fal)")
+        return _fal_inpaint_sky(base, wire_mask, mask_path=mask_path), "fal-flux-pro-fill"
+
+    inpainted = _inpaint_telea(base, wire_mask, radius=7)
+    pass2 = _remaining_wire_mask(inpainted, corridor, protect_hard)
+    if pass2.getbbox():
+        inpainted = _inpaint_telea(inpainted, pass2, radius=5)
+    patched = _sky_patch_fill(inpainted, wire_mask)
+    out = np.array(patched, dtype=np.uint8)
+    base_arr = np.array(base, dtype=np.uint8)
+    prot = np.array(protect_hard) > 64
+    out[prot] = base_arr[prot]
+    return Image.fromarray(out), "opencv-telea+sky-donor"
+
+
+def pylon_pixel_diff(master: Image.Image, edited: Image.Image) -> tuple[int, float]:
+    """Return (changed_pixels, max_channel_delta) inside pylon protect mask."""
+    w, h = master.size
+    protect = _pylon_protect_mask(w, h, soft=False)
+    m_px = master.convert("RGB").load()
+    e_px = edited.convert("RGB").load()
+    p_px = protect.load()
+    changed = 0
+    max_delta = 0
+    for y in range(h):
+        for x in range(w):
+            if p_px[x, y] < 128:
+                continue
+            dr = abs(m_px[x, y][0] - e_px[x, y][0])
+            dg = abs(m_px[x, y][1] - e_px[x, y][1])
+            db = abs(m_px[x, y][2] - e_px[x, y][2])
+            d = max(dr, dg, db)
+            if d:
+                changed += 1
+                max_delta = max(max_delta, d)
+    return changed, max_delta
 
 
 def variant(img: Image.Image, mode: str) -> Image.Image:
@@ -250,36 +384,56 @@ def variant(img: Image.Image, mode: str) -> Image.Image:
         dark = Image.merge("RGB", (g, g, g)).point(lambda p: min(255, int(p * 0.75)))
         return ImageEnhance.Brightness(dark).enhance(0.88)
     if mode == "night":
-        return ImageEnhance.Brightness(img).enhance(0.58)
+        n = _cool_grade(img)
+        n = _add_star_field(n)
+        n = _add_house_glow(n)
+        return n
     raise ValueError(mode)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--master", type=Path, default=MASTER)
-    parser.add_argument("--out", type=Path, default=OUT)
+    parser.add_argument("--out", type=Path, default=V11_OUT)
+    parser.add_argument("--keep-wires", action="store_true", help="Skip sky wire removal")
+    parser.add_argument(
+        "--wire-method",
+        choices=("opencv", "fal"),
+        default="opencv",
+        help="Wire removal: OpenCV TELEA + sky donor (default), or Fal fill",
+    )
+    parser.add_argument("--qa", type=Path, default=QA_OUT, help="Before/after left-sky QA crop")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    print(
-        f"master pylon anchor ({PYLON_CX}, {PYLON_ATTACH_Y}) "
-        f"base ({SITE['pylon_base'][0]}, {SITE['pylon_base'][1]}); "
-        "no sprite paste / ellipse"
-    )
+    print(f"building backgrounds from {args.master} -> {args.out}")
 
     master = prepare_daytime_master(crop_16_9(Image.open(args.master).convert("RGB")))
-    overlaid = draw_overlays(master)
+    wire_method = "skipped"
+    if args.keep_wires:
+        base = master
+    else:
+        base, wire_method = remove_left_orphan_wires(
+            master, method=args.wire_method, mask_dir=args.out
+        )
+        print(f"wire removal method: {wire_method}")
+        save_wire_removal_qa(master, base, args.qa)
+    if not args.keep_wires:
+        changed, max_d = pylon_pixel_diff(master, base)
+        print(f"pylon protect: {changed} changed px, max delta {max_d}")
+        if changed > 0:
+            raise SystemExit(f"pylon region altered ({changed} px) — aborting")
     for name in ("clear", "cloudy", "covered", "very_covered", "night"):
-        out = variant(overlaid, name)
+        out = variant(base, name)
         out.save(args.out / f"{name}.jpg", quality=92)
         print(f"wrote {args.out / f'{name}.jpg'}")
 
-    v5 = V5_OUT if args.out == OUT else args.out.parent / "v5"
+    # Back-compat copy: if someone explicitly rebuilds v4, also mirror to v5.
     if args.out == OUT:
-        v5.mkdir(parents=True, exist_ok=True)
+        V5_OUT.mkdir(parents=True, exist_ok=True)
         for name in ("clear", "cloudy", "covered", "very_covered", "night"):
             src = args.out / f"{name}.jpg"
-            dst = v5 / f"{name}.jpg"
+            dst = V5_OUT / f"{name}.jpg"
             dst.write_bytes(src.read_bytes())
             print(f"copied {dst}")
 
