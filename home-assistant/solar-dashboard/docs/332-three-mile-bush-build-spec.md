@@ -6,7 +6,21 @@
 **Tablet:** Landscape 16:9  
 **Style:** AI architectural render (photoreal archviz, not drone photo)  
 **Retailer:** Contact Energy (Northpower = lines company)  
-**Last updated:** 2026-05-25
+**Last updated:** 2026-05-26
+
+---
+
+## Background master (LOCKED)
+
+**Owner approval (2026-05-25):** The daytime CGI render is **perfect**. Keep it exactly as it is.
+
+| Rule | Detail |
+|------|--------|
+| **Frozen asset** | `www/solar-dashboard/backgrounds/v5/master-clear.png` and weather variants built from it (`clear.jpg`, etc.) |
+| **Do not change** | No regeneration, re-prompting, colour grading, compositing, pylon paste, ellipse masks, or other edits to the CGI master without your **explicit, subtle** request |
+| **Overlays (on request)** | Lovelace card position/styling and baked flow-line geometry — tunable when you ask; master render does not |
+| **Always OK** | Entity wiring, demo helpers, deploy paths (e.g. `v5/` cache bust) |
+| **Agents / contractors** | Treat the master CGI as read-only; do not rebuild baked art unless you ask |
 
 ---
 
@@ -120,17 +134,17 @@ Store under `/config/www/solar-dashboard/icons/` (repo: `www/solar-dashboard/ico
 
 ---
 
-## 7. Background pipeline (v4 AI render)
+## 7. Background pipeline (v5 AI render)
 
 **Rejected:** v3 drone aerial (neighbours visible, not Serpo-style).
 
-**Approved:** Closer **elevated 3/4 archviz** of property only (inside orange boundary on site map). Reference photos: house (`-2.jpg`), garage (`-14.jpg`, `-15.jpg`). Master: `backgrounds/v4/master-clear.png` (AI-generated, not a photograph).
+**Approved (LOCKED):** Closer **elevated 3/4 archviz** of property only (inside orange boundary on site map). Reference photos: house (`-2.jpg`), garage (`-14.jpg`, `-15.jpg`). Master: `backgrounds/v5/master-clear.png` (AI-generated daytime CGI — see **Background master (LOCKED)** above).
 
 ### Steps
 
-1. Regenerate master if needed (prompt in `scripts/build_v4_backgrounds.py` header / design notes).
-2. Run `python3 scripts/build_v4_backgrounds.py` → five weather JPGs with **baked flow lines**.
-3. Dashboard uses `/local/solar-dashboard/backgrounds/v4/*.jpg`.
+1. **Do not regenerate the master** without explicit user art direction (see **Background master (LOCKED)**).
+2. Rebuild weather JPGs only if you explicitly request line-geometry changes (`scripts/build_v4_backgrounds.py` → `backgrounds/v5/`).
+3. Dashboard uses `/local/solar-dashboard/backgrounds/v5/*.jpg`.
 4. Tune `placement-map.yaml` on tablet once.
 
 **Scene must include:** main house + pool (left), open garage with **Model S + Model X**, **45-panel ground array** (right lawn), Sigenergy battery on garage wall, 3-phase pole (left), no neighbouring properties.
@@ -141,7 +155,7 @@ Store under `/config/www/solar-dashboard/icons/` (repo: `www/solar-dashboard/ico
 
 | Phase | When | Work |
 |-------|------|------|
-| **Now** | Pre-install | Tessie Model S, demo solar, Model X placeholder, Contact TOU, **v4 AI render** |
+| **Now** | Pre-install | Tessie Model S, demo solar, Model X placeholder, Contact TOU, **v5 AI render (LOCKED)** |
 | **Install day** | Hubands commission | Sigenergy app + HomePro Gateway on LAN; check for HA integration / Modbus / API |
 | **Go-live** | Export meter active | Map Sigenergy entities → package `input_text` helpers; demo off |
 | **Model X** | Before go-live (your plan) | Update `input_text.tessie_model_x_*` in HA |

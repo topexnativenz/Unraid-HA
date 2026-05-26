@@ -4,6 +4,8 @@ Picture-elements dashboard inspired by the French community solar card: a house-
 
 Designed for a wall tablet. Works in **demo mode** today; swap entity IDs when your inverter and battery are live.
 
+**Background policy:** Approved v5 daytime CGI master is **LOCKED** — no master regeneration or compositing changes unless you request them explicitly; flow lines and Lovelace overlays tunable only on your request.
+
 ## What you get
 
 | File | Purpose |

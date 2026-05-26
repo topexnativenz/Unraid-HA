@@ -1,6 +1,8 @@
 # Power flow map — 332 Three Mile Bush Road dashboard
 
-Visual layers on `backgrounds/v4/*.jpg` (built by `scripts/build_v4_backgrounds.py`).
+> **Baked art frozen:** `backgrounds/v5/master-clear.png` and the five weather JPGs are approved and locked — no CGI regeneration or compositing changes without explicit user request. **Flow lines** (waypoints in `build_v4_backgrounds.py`) and **Lovelace overlays** are tunable **only on user request** (see `docs/332-three-mile-bush-build-spec.md` § *Background master (LOCKED)*).
+
+Visual layers on `backgrounds/v5/*.jpg` (built by `scripts/build_v4_backgrounds.py`; master unchanged).
 
 **Style:** Bright daytime CGI master; smooth dashed Bézier curves (white grid, amber solar, green EV). Grid lines anchor to the **master lattice tower** on the right hill (no pasted sprite / ellipse mask).
 
@@ -52,9 +54,9 @@ Visual layers on `backgrounds/v4/*.jpg` (built by `scripts/build_v4_backgrounds.
 | Garage Model S | Tessie | `sensor.garage_model_s_*` |
 | Garage Model X | Tessie when added | `sensor.garage_model_x_*` |
 
-## Tuning line geometry
+## Tuning line geometry (user request only)
 
-Edit waypoint lists in `scripts/build_v4_backgrounds.py` (`SITE`, `ROUTES`, `HV_LINES`, `CARD_STUBS`), then:
+**Locked by default** — see note at top. When the user asks to adjust curves, edit waypoint lists in `scripts/build_v4_backgrounds.py` (`SITE`, `ROUTES`, `HV_LINES`, `CARD_STUBS`), then:
 
 ```bash
 python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/scripts/build_v4_backgrounds.py
