@@ -1,4 +1,5 @@
-# 332 Three Mile Bush Road — AI archviz render + energy-flow overlays (v4)
+# 332 Three Mile Bush Road — AI archviz render + energy-flow overlays (v5)
+# cache-bust 2026-05-26: new URL folder — tablets cached /v4/ for 31 days
 views:
   - title: Solar
     theme: default
@@ -40,12 +41,12 @@ views:
             }
         entity: sensor.solar_dashboard_background
         state_image:
-          clear: /local/solar-dashboard/backgrounds/v4/clear.jpg
-          cloudy: /local/solar-dashboard/backgrounds/v4/cloudy.jpg
-          covered: /local/solar-dashboard/backgrounds/v4/covered.jpg
-          very_covered: /local/solar-dashboard/backgrounds/v4/very_covered.jpg
-          night: /local/solar-dashboard/backgrounds/v4/night.jpg
-        image: /local/solar-dashboard/backgrounds/v4/clear.jpg
+          clear: /local/solar-dashboard/backgrounds/v5/clear.jpg
+          cloudy: /local/solar-dashboard/backgrounds/v5/cloudy.jpg
+          covered: /local/solar-dashboard/backgrounds/v5/covered.jpg
+          very_covered: /local/solar-dashboard/backgrounds/v5/very_covered.jpg
+          night: /local/solar-dashboard/backgrounds/v5/night.jpg
+        image: /local/solar-dashboard/backgrounds/v5/clear.jpg
         elements:
           - type: custom:horizon-card
             entity: sun.sun

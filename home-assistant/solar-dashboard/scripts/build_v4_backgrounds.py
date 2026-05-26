@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MASTER = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4" / "master-clear.png"
 PYLON_REF = ROOT / "www" / "solar-dashboard" / "assets" / "pylon-reference.png"
 OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v4"
+V5_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v5"
 SIZE = (1920, 1080)
 
 # Right hill — ~1/3 smaller than prior 70×150 paste (target ~46×100)
@@ -345,6 +346,15 @@ def main() -> None:
         out = variant(overlaid, name)
         out.save(args.out / f"{name}.jpg", quality=92)
         print(f"wrote {args.out / f'{name}.jpg'}")
+
+    v5 = V5_OUT if args.out == OUT else args.out.parent / "v5"
+    if args.out == OUT:
+        v5.mkdir(parents=True, exist_ok=True)
+        for name in ("clear", "cloudy", "covered", "very_covered", "night"):
+            src = args.out / f"{name}.jpg"
+            dst = v5 / f"{name}.jpg"
+            dst.write_bytes(src.read_bytes())
+            print(f"copied {dst}")
 
 
 if __name__ == "__main__":
