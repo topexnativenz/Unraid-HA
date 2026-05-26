@@ -1,5 +1,5 @@
-# 332 Three Mile Bush Road — AI archviz render (v11 backgrounds)
-# cache-bust 2026-05-28: v11 — TELEA wire removal, card layout
+# 332 Three Mile Bush Road — AI archviz render (v12 backgrounds)
+# cache-bust 2026-05-28: v12 — full sky wire removal, pylon preserved
 views:
   - title: Solar
     theme: default
@@ -41,12 +41,12 @@ views:
             }
         entity: sensor.solar_dashboard_background
         state_image:
-          clear: /local/solar-dashboard/backgrounds/v11/clear.jpg?v=20260528a
-          cloudy: /local/solar-dashboard/backgrounds/v11/cloudy.jpg?v=20260528a
-          covered: /local/solar-dashboard/backgrounds/v11/covered.jpg?v=20260528a
-          very_covered: /local/solar-dashboard/backgrounds/v11/very_covered.jpg?v=20260528a
-          night: /local/solar-dashboard/backgrounds/v11/night.jpg?v=20260528a
-        image: /local/solar-dashboard/backgrounds/v11/clear.jpg?v=20260528a
+          clear: /local/solar-dashboard/backgrounds/v12/clear.jpg?v=20260528b
+          cloudy: /local/solar-dashboard/backgrounds/v12/cloudy.jpg?v=20260528b
+          covered: /local/solar-dashboard/backgrounds/v12/covered.jpg?v=20260528b
+          very_covered: /local/solar-dashboard/backgrounds/v12/very_covered.jpg?v=20260528b
+          night: /local/solar-dashboard/backgrounds/v12/night.jpg?v=20260528b
+        image: /local/solar-dashboard/backgrounds/v12/clear.jpg?v=20260528b
         elements:
           - type: custom:horizon-card
             entity: sun.sun

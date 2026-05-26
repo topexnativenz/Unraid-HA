@@ -16,7 +16,7 @@ cards:
           box-shadow: none;
         }
     image: >
-      /local/solar-dashboard/backgrounds/v11/{{ states('sensor.solar_dashboard_background') }}.jpg?v=20260528a
+      /local/solar-dashboard/backgrounds/v12/{{ states('sensor.solar_dashboard_background') }}.jpg?v=20260528b
     elements:
       # -----------------------------------------------------------------------
       # Sun / moon arc (horizon-card)
