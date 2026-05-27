@@ -7,7 +7,8 @@ Notes:
 - v9: master-only weather grades (--keep-wires); no inpaint/smudge.
 - v10: median wire-corridor clean (smears — superseded).
 - v11: remove_left_orphan_wires — Fal fill or OpenCV TELEA (2-pass), pylon hard-restore.
-- v12: remove_all_sky_wires — full sky band (no wires anywhere), pylon 100% master.
+- v12: remove_all_sky_wires — full sky band (deprecated; caused paint blobs).
+- v13: remove_sky_wires_conservative — left/center sky only (x<1100,y<380); x≥1100 hard master.
 """
 
 from __future__ import annotations
@@ -31,8 +32,10 @@ V8_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v8"
 V10_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v10"
 V11_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v11"
 V12_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v12"
+V13_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v13"
 QA_OUT = ROOT / "assets" / "wire-removal-qa.jpg"
 SKY_CLEAN_QA = ROOT / "assets" / "sky-clean-qa.jpg"
+SKY_CLEAN_V13_QA = ROOT / "assets" / "sky-clean-v13-qa.jpg"
 SIZE = (1920, 1080)
 
 # Left-side sky wire corridors (1920×1080). Right-side pylon wires stay untouched.
@@ -80,6 +83,11 @@ _HOUSE_ROOF_EXCLUDE = [
 ]
 _LEFT_TREES_EXCLUDE = [(0, 300), (268, 278), (312, 418), (0, 418)]
 _GROUND_EXCLUDE_Y = 540  # bottom ~50% — no sky edits below this line
+
+# v13: never edit right third or below this sky ceiling
+V13_EDIT_X_MAX = 1100
+V13_EDIT_Y_MAX = 380
+V13_MASTER_PASTE_X = 1100
 
 # Wire-bearing sky corridors (master 1920×1080) — merged into detection mask
 _WIRE_SKY_CORRIDORS = [
@@ -428,6 +436,21 @@ def _inpaint_telea(img: Image.Image, wire_mask: Image.Image, *, radius: int = 5)
     return Image.fromarray(cv2.cvtColor(repaired, cv2.COLOR_BGR2RGB))
 
 
+def _image_data_uri(img: Image.Image, *, fmt: str = "JPEG", quality: int = 95) -> str:
+    import base64
+    import io
+
+    buf = io.BytesIO()
+    if fmt.upper() == "PNG":
+        img.save(buf, format="PNG")
+        mime = "image/png"
+    else:
+        img.convert("RGB").save(buf, format="JPEG", quality=quality)
+        mime = "image/jpeg"
+    b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+    return f"data:{mime};base64,{b64}"
+
+
 def _fal_inpaint_sky(img: Image.Image, wire_mask: Image.Image, *, mask_path: Path) -> Image.Image:
     """Fal flux-pro fill: remove masked orphan wires; restore pylon from master."""
     key = _load_fal_key()
@@ -446,22 +469,32 @@ def _fal_inpaint_sky(img: Image.Image, wire_mask: Image.Image, *, mask_path: Pat
     img.convert("RGB").save(src_jpg, quality=95)
     _save_wire_mask_png(msk_png, wire_mask)
 
-    image_url = fal_client.upload_file(str(src_jpg))
-    mask_url = fal_client.upload_file(str(msk_png))
-
+    mask_rgb = Image.merge("RGB", (wire_mask, wire_mask, wire_mask))
     prompt = (
         "Seamless photorealistic daytime blue sky with soft white wispy clouds, "
         "matching the surrounding sky exactly. No power lines, no wires, no cables, "
         "no smudges, no blur artifacts. Natural clear sky only."
     )
-    result = fal_client.subscribe(
-        "fal-ai/flux-pro/v1/fill",
-        arguments={
-            "prompt": prompt,
-            "image_url": image_url,
-            "mask_url": mask_url,
-        },
-    )
+    last_err: Exception | None = None
+    result = None
+    for image_url, mask_url in (
+        (_image_data_uri(img.convert("RGB")), _image_data_uri(mask_rgb, fmt="PNG")),
+        (fal_client.upload_file(str(src_jpg)), fal_client.upload_file(str(msk_png))),
+    ):
+        try:
+            result = fal_client.subscribe(
+                "fal-ai/flux-pro/v1/fill",
+                arguments={
+                    "prompt": prompt,
+                    "image_url": image_url,
+                    "mask_url": mask_url,
+                },
+            )
+            break
+        except Exception as exc:
+            last_err = exc
+    if result is None:
+        raise RuntimeError(f"Fal fill failed: {last_err}")
     images = result.get("images") or []
     if not images:
         raise RuntimeError(f"Fal fill returned no images: {result}")
@@ -482,9 +515,80 @@ def _fal_inpaint_sky(img: Image.Image, wire_mask: Image.Image, *, mask_path: Pat
         filled = filled.resize((w, h), Image.Resampling.LANCZOS)
 
     protect = _pylon_protect_mask(w, h, soft=False)
-    feather = wire_mask.filter(ImageFilter.GaussianBlur(6))
-    wired = Image.composite(filled, img, feather)
+    feather = wire_mask.filter(ImageFilter.GaussianBlur(3))
+    wired = _blend_inpaint_only(img, filled, wire_mask, feather_px=3)
     return Image.composite(img, wired, protect)
+
+
+def _blend_inpaint_only(
+    original: Image.Image,
+    inpainted: Image.Image,
+    wire_mask: Image.Image,
+    *,
+    feather_px: int = 3,
+) -> Image.Image:
+    """Blend inpainted pixels only where wire_mask > 0 (feathered)."""
+    if wire_mask.getbbox() is None:
+        return original
+    alpha = wire_mask.filter(ImageFilter.GaussianBlur(max(1, feather_px)))
+    return Image.composite(inpainted, original, alpha)
+
+
+def _conservative_edit_region_mask(w: int, h: int) -> Image.Image:
+    """L mask: left/center sky band only (x < 1100, y < 380), minus house/trees."""
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    d.rectangle((0, 0, V13_EDIT_X_MAX, V13_EDIT_Y_MAX), fill=255)
+    for poly in (_HOUSE_ROOF_EXCLUDE, _LEFT_TREES_EXCLUDE):
+        d.polygon(poly, fill=0)
+    d.rectangle((V13_MASTER_PASTE_X, 0, w, h), fill=0)
+    return mask
+
+
+def _hard_paste_master_zones(master: Image.Image, edited: Image.Image) -> Image.Image:
+    """Hard paste: entire right third (x ≥ 1100) + pylon bitmap from master."""
+    m = np.array(master.convert("RGB"), dtype=np.uint8)
+    e = np.array(edited.convert("RGB"), dtype=np.uint8)
+    out = e.copy()
+    out[:, V13_MASTER_PASTE_X:] = m[:, V13_MASTER_PASTE_X:]
+    bx0, by0, bx1, by1 = PYLON_BITMAP
+    out[by0:by1, bx0:bx1] = m[by0:by1, bx0:bx1]
+    lat = np.array(_pylon_protect_mask(master.width, master.height, soft=False)) > 64
+    out[lat] = m[lat]
+    return Image.fromarray(out)
+
+
+def _has_white_blobs(
+    img: Image.Image,
+    edit_mask: Image.Image,
+    master: Image.Image | None = None,
+    *,
+    lum_thresh: int = 252,
+) -> bool:
+    """True if edit region has large flat near-white smears (inpaint failure)."""
+    rgb = np.array(img.convert("RGB"), dtype=np.uint8)
+    edit = np.array(edit_mask) > 64
+    lum = (0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2])
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+    sat = hsv[:, :, 1].astype(np.float32)
+    # Smear fills: very bright, almost gray (not natural blue sky)
+    white = edit & (lum >= lum_thresh) & (sat < 28)
+    if master is not None:
+        m_lum = (
+            0.299 * np.array(master.convert("RGB"))[:, :, 0]
+            + 0.587 * np.array(master.convert("RGB"))[:, :, 1]
+            + 0.114 * np.array(master.convert("RGB"))[:, :, 2]
+        )
+        white &= lum - m_lum > 35
+    if not white.any():
+        return False
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    blobs = cv2.morphologyEx(white.astype(np.uint8) * 255, cv2.MORPH_CLOSE, k)
+    n, _, stats, _ = cv2.connectedComponentsWithStats(blobs, connectivity=8)
+    for i in range(1, n):
+        if stats[i, cv2.CC_STAT_AREA] >= 180:
+            return True
+    return False
 
 
 def save_wire_removal_qa(before: Image.Image, after: Image.Image, path: Path) -> None:
@@ -601,6 +705,77 @@ def remove_all_sky_wires(
     return Image.fromarray(out_arr), "opencv-telea+sky-gradient"
 
 
+def remove_sky_wires_conservative(
+    img: Image.Image,
+    *,
+    method: str = "auto",
+    mask_dir: Path | None = None,
+) -> tuple[Image.Image, str]:
+    """Remove wires in left/center sky only; x≥1100 and pylon stay 100% master."""
+    w, h = img.size
+    base = img.convert("RGB")
+    protect = _pylon_protect_mask(w, h, soft=False)
+    edit_region = _conservative_edit_region_mask(w, h)
+    corridor = _corridor_mask_excluding_pylon(w, h)
+    # Clip corridors to v13 edit box
+    c_px = corridor.load()
+    e_px = edit_region.load()
+    for y in range(h):
+        for x in range(w):
+            if e_px[x, y] == 0:
+                c_px[x, y] = 0
+    if not corridor.getbbox():
+        return _hard_paste_master_zones(base, base), "none"
+
+    wire_mask = _wire_stroke_mask(base, corridor, protect)
+    if not wire_mask.getbbox():
+        return _hard_paste_master_zones(base, base), "none"
+
+    mask_dir = mask_dir or V13_OUT
+    mask_path = mask_dir / "wire-inpaint-mask.png"
+    _save_wire_mask_png(mask_path, wire_mask)
+
+    def _telea_conservative() -> Image.Image:
+        inpainted = _inpaint_telea(base, wire_mask, radius=5)
+        pass2 = _remaining_wire_mask(inpainted, corridor, protect)
+        if pass2.getbbox():
+            inpainted = _inpaint_telea(inpainted, pass2, radius=4)
+        blended = _blend_inpaint_only(base, inpainted, wire_mask, feather_px=3)
+        edit = np.array(edit_region) > 64
+        out = np.array(base, dtype=np.uint8)
+        b = np.array(blended, dtype=np.uint8)
+        out[edit] = b[edit]
+        return Image.fromarray(out)
+
+    tried: list[str] = []
+    if method in ("auto", "fal"):
+        if _load_fal_key():
+            try:
+                filled = _fal_inpaint_sky(base, wire_mask, mask_path=mask_path)
+                edit = np.array(edit_region) > 64
+                out = np.array(base, dtype=np.uint8)
+                f = np.array(filled, dtype=np.uint8)
+                out[edit] = f[edit]
+                result = _hard_paste_master_zones(base, Image.fromarray(out))
+                if not _has_white_blobs(result, edit_region, master=base):
+                    return result, "fal-flux-pro-fill"
+                tried.append("fal-white-blobs")
+            except Exception as exc:
+                tried.append(f"fal-error:{exc}")
+        elif method == "fal":
+            raise RuntimeError("FAL_KEY not set (required for --wire-method fal)")
+
+    if method in ("auto", "opencv"):
+        telea = _telea_conservative()
+        result = _hard_paste_master_zones(base, telea)
+        if not _has_white_blobs(result, edit_region, master=base):
+            return result, "opencv-telea-masked"
+        tried.append("opencv-white-blobs")
+
+    # User prefers clean master over bad edit
+    return _hard_paste_master_zones(base, base), "master-fallback" + (f" ({'; '.join(tried)})" if tried else "")
+
+
 def pylon_pixel_diff(master: Image.Image, edited: Image.Image) -> tuple[int, float]:
     """Return (changed_pixels, max_channel_delta) inside pylon protect mask."""
     w, h = master.size
@@ -648,25 +823,39 @@ def variant(img: Image.Image, mode: str) -> Image.Image:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--master", type=Path, default=MASTER)
-    parser.add_argument("--out", type=Path, default=V12_OUT)
+    parser.add_argument("--out", type=Path, default=V13_OUT)
     parser.add_argument("--keep-wires", action="store_true", help="Skip sky wire removal")
     parser.add_argument(
         "--wire-method",
-        choices=("opencv", "fal"),
-        default="opencv",
-        help="Wire removal: OpenCV TELEA + sky donor (default), or Fal fill",
+        choices=("auto", "opencv", "fal"),
+        default="auto",
+        help="Wire removal: auto (Fal then TELEA, else master), opencv, or fal",
     )
     parser.add_argument(
         "--legacy-left-wires",
         action="store_true",
-        help="v11 left-corridor removal only (default is v12 full sky)",
+        help="v11 left-corridor removal only",
+    )
+    parser.add_argument(
+        "--legacy-v12-sky",
+        action="store_true",
+        help="Deprecated v12 full-sky removal (paint blobs)",
     )
     parser.add_argument("--qa", type=Path, default=None, help="Before/after sky QA crop")
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    v12 = not args.legacy_left_wires and args.out.resolve() == V12_OUT.resolve()
+    out_resolved = args.out.resolve()
+    v13 = not args.legacy_left_wires and not args.legacy_v12_sky and out_resolved == V13_OUT.resolve()
+    v12 = args.legacy_v12_sky or (
+        not args.legacy_left_wires and out_resolved == V12_OUT.resolve()
+    )
     if args.qa is None:
-        args.qa = SKY_CLEAN_QA if v12 else QA_OUT
+        if v13:
+            args.qa = SKY_CLEAN_V13_QA
+        elif v12:
+            args.qa = SKY_CLEAN_QA
+        else:
+            args.qa = QA_OUT
 
     print(f"building backgrounds from {args.master} -> {args.out}")
 
@@ -674,9 +863,16 @@ def main() -> None:
     wire_method = "skipped"
     if args.keep_wires:
         base = master
-    elif v12 or not args.legacy_left_wires:
-        base, wire_method = remove_all_sky_wires(
+    elif v13:
+        base, wire_method = remove_sky_wires_conservative(
             master, method=args.wire_method, mask_dir=args.out
+        )
+        print(f"wire removal method: {wire_method}")
+        save_sky_clean_qa(master, base, args.qa)
+    elif v12:
+        base, wire_method = remove_all_sky_wires(
+            master, method="opencv" if args.wire_method == "auto" else args.wire_method,
+            mask_dir=args.out,
         )
         print(f"wire removal method: {wire_method}")
         save_sky_clean_qa(master, base, args.qa)

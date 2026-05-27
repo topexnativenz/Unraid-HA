@@ -83,7 +83,7 @@ def copy_files(mount: str) -> None:
     bg_dst.mkdir(parents=True, exist_ok=True)
     for jpg in (ROOT / "www" / "solar-dashboard" / "backgrounds").glob("*.jpg"):
         shutil.copy2(jpg, bg_dst / jpg.name)
-    for sub in ("v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12"):
+    for sub in ("v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11", "v12", "v13"):
         src_sub = ROOT / "www" / "solar-dashboard" / "backgrounds" / sub
         dst_sub = bg_dst / sub
         dst_sub.mkdir(parents=True, exist_ok=True)
