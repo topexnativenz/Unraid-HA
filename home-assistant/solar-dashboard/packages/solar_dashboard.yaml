@@ -77,7 +77,7 @@ input_text:
     max: 255
   solar_entity_weather:
     name: Solar entity — weather
-    initial: weather.home
+    initial: weather.forecast_home
     max: 255
 
 template:

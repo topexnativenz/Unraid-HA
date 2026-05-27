@@ -9,6 +9,7 @@ Notes:
 - v11: remove_left_orphan_wires — Fal fill or OpenCV TELEA (2-pass), pylon hard-restore.
 - v12: remove_all_sky_wires — full sky band (deprecated; caused paint blobs).
 - v13: remove_sky_wires_conservative — left/center sky only (x<1100,y<380); x≥1100 hard master.
+- v14: replace_entire_sky — synthetic gradient + clouds; master keep mask (no TELEA).
 """
 
 from __future__ import annotations
@@ -33,9 +34,11 @@ V10_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v10"
 V11_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v11"
 V12_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v12"
 V13_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v13"
+V14_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v14"
 QA_OUT = ROOT / "assets" / "wire-removal-qa.jpg"
 SKY_CLEAN_QA = ROOT / "assets" / "sky-clean-qa.jpg"
 SKY_CLEAN_V13_QA = ROOT / "assets" / "sky-clean-v13-qa.jpg"
+SKY_REPLACE_V14_QA = ROOT / "assets" / "sky-replace-v14-qa.jpg"
 SIZE = (1920, 1080)
 
 # Left-side sky wire corridors (1920×1080). Right-side pylon wires stay untouched.
@@ -88,6 +91,11 @@ _GROUND_EXCLUDE_Y = 540  # bottom ~50% — no sky edits below this line
 V13_EDIT_X_MAX = 1100
 V13_EDIT_Y_MAX = 380
 V13_MASTER_PASTE_X = 1100
+
+# v14 synthetic sky (BGR order for OpenCV gradients)
+_SKY_TOP_RGB = (0x4A, 0x90, 0xE2)
+_SKY_BOTTOM_RGB = (0x87, 0xCE, 0xEB)
+_V14_PYLON_KEEP_BOX = (1150, 0, 1920, 400)  # x0, y0, x1, y1 — force master
 
 # Wire-bearing sky corridors (master 1920×1080) — merged into detection mask
 _WIRE_SKY_CORRIDORS = [
@@ -613,6 +621,178 @@ def save_sky_clean_qa(before: Image.Image, after: Image.Image, path: Path) -> No
     print(f"wrote QA {path}")
 
 
+def save_sky_replace_qa(before: Image.Image, after: Image.Image, path: Path) -> None:
+    """Full-width sky strip y=0..450 (master | v14 sky replace)."""
+    save_sky_clean_qa(before, after, path)
+
+
+def _rasterize_polygons_keep(w: int, h: int, polygons: list[list[tuple[int, int]]]) -> np.ndarray:
+    """True where any polygon covers a pixel (always keep master)."""
+    mask = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(mask)
+    for poly in polygons:
+        d.polygon(poly, fill=255)
+    return np.array(mask) > 64
+
+
+def _build_sky_keep_mask(master: Image.Image) -> np.ndarray:
+    """True = keep master pixel (vegetation, buildings, ground, pylon). False = replace with synthetic sky."""
+    rgb = np.array(master.convert("RGB"), dtype=np.uint8)
+    h, w = rgb.shape[:2]
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+    hue = hsv[:, :, 0].astype(np.float32)
+    sat = hsv[:, :, 1].astype(np.float32) / 255.0
+    val = hsv[:, :, 2].astype(np.float32) / 255.0
+
+    upper_y = int(h * 0.55)
+    upper = np.zeros((h, w), dtype=bool)
+    upper[:upper_y, :] = True
+
+    is_sky = (
+        upper
+        & (hue >= 90)
+        & (hue <= 130)
+        & (sat > 0.15)
+        & (val > 0.4)
+    )
+    poly_sky = np.array(_sky_edit_region_mask(w, h)) > 64
+    is_sky |= poly_sky & upper
+
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray, 40, 110)
+    k5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    edge_fg = cv2.dilate(edges, k5, iterations=2) > 0
+
+    tree_green = upper & (hue >= 32) & (hue <= 92) & (sat > 0.22) & (val < 0.92)
+    foliage = (sat < 0.42) & (val > 0.1) & ((hue < 35) | ((hue >= 32) & (hue <= 95)))
+
+    sky_replace = is_sky & ~edge_fg & ~tree_green & ~foliage
+
+    keep = np.ones((h, w), dtype=bool)
+    keep[sky_replace] = False
+
+    for poly in (_HOUSE_ROOF_EXCLUDE, _LEFT_TREES_EXCLUDE):
+        keep[_rasterize_polygons_keep(w, h, [poly])] = True
+    keep[h >= _GROUND_EXCLUDE_Y, :] = True
+
+    bx0, by0, bx1, by1 = _V14_PYLON_KEEP_BOX
+    keep[by0:by1, bx0:bx1] = True
+    protect = np.array(_pylon_protect_mask(w, h, soft=False)) > 64
+    keep[protect] = True
+
+    # Shrink sky slightly so tree/house silhouettes stay 100% master
+    sky_u8 = (~keep).astype(np.uint8) * 255
+    k3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    sky_u8 = cv2.erode(sky_u8, k3, iterations=1)
+    keep = sky_u8 == 0
+    keep[protect] = True
+    keep[by0:by1, bx0:bx1] = True
+    keep[h >= _GROUND_EXCLUDE_Y, :] = True
+    for poly in (_HOUSE_ROOF_EXCLUDE, _LEFT_TREES_EXCLUDE):
+        keep[_rasterize_polygons_keep(w, h, [poly])] = True
+
+    return keep
+
+
+def _generate_synthetic_sky(
+    size: tuple[int, int],
+    *,
+    cloud_opacity: float = 0.72,
+    cloud_count: int = 7,
+    top_rgb: tuple[int, int, int] = _SKY_TOP_RGB,
+    bottom_rgb: tuple[int, int, int] = _SKY_BOTTOM_RGB,
+    seed: int = 14,
+) -> Image.Image:
+    """1920×1080 blue gradient + soft white cloud ellipses."""
+    w, h = size
+    top = np.array(top_rgb, dtype=np.float32)
+    bot = np.array(bottom_rgb, dtype=np.float32)
+    t = np.linspace(0.0, 1.0, h, dtype=np.float32)[:, None]
+    grad = (top * (1.0 - t) + bot * t).astype(np.uint8)
+    sky = np.broadcast_to(grad[:, None, :], (h, w, 3)).copy()
+
+    rng = random.Random(seed)
+    clouds = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    d = ImageDraw.Draw(clouds)
+    for _ in range(cloud_count):
+        cx = rng.randint(int(w * 0.05), int(w * 0.95))
+        cy = rng.randint(8, int(h * 0.42))
+        rx = rng.randint(90, 280)
+        ry = rng.randint(28, 95)
+        alpha = rng.randint(48, 118)
+        d.ellipse((cx - rx, cy - ry, cx + rx, cy + ry), fill=(255, 255, 255, alpha))
+    clouds = clouds.filter(ImageFilter.GaussianBlur(rng.randint(18, 32)))
+    base = Image.fromarray(sky).convert("RGBA")
+    base.alpha_composite(clouds)
+    if cloud_opacity < 0.999:
+        r, g, b, a = base.split()
+        a = a.point(lambda p: int(p * cloud_opacity))
+        base = Image.merge("RGBA", (r, g, b, a))
+        under = Image.fromarray(sky).convert("RGBA")
+        under.alpha_composite(base)
+        base = under
+    return base.convert("RGB")
+
+
+_V14_SKY_PARAMS: dict[str, dict[str, float | int | tuple[int, int, int]]] = {
+    "clear": {"cloud_opacity": 0.68, "cloud_count": 6, "top_rgb": _SKY_TOP_RGB, "bottom_rgb": _SKY_BOTTOM_RGB},
+    "cloudy": {"cloud_opacity": 0.88, "cloud_count": 10, "top_rgb": (0x3D, 0x7E, 0xC8), "bottom_rgb": (0x6A, 0xA8, 0xD8)},
+    "covered": {"cloud_opacity": 0.96, "cloud_count": 14, "top_rgb": (0x5A, 0x6E, 0x82), "bottom_rgb": (0x7A, 0x8E, 0x9E)},
+    "very_covered": {
+        "cloud_opacity": 1.0,
+        "cloud_count": 18,
+        "top_rgb": (0x4A, 0x52, 0x5C),
+        "bottom_rgb": (0x62, 0x6A, 0x72),
+    },
+}
+
+
+def _composite_sky_replace(
+    master: Image.Image,
+    synthetic: Image.Image,
+    keep_mask: np.ndarray,
+    *,
+    feather_px: int = 3,
+) -> Image.Image:
+    """Blend synthetic sky only where keep_mask is False; feather 2–4 px at tree line."""
+    m = np.array(master.convert("RGB"), dtype=np.float32)
+    s = np.array(synthetic.convert("RGB"), dtype=np.float32)
+    keep_f = keep_mask.astype(np.float32)
+    if feather_px > 0:
+        k = feather_px * 2 + 1
+        keep_f = cv2.GaussianBlur(keep_f, (k, k), 0)
+        keep_f = np.clip(keep_f, 0.0, 1.0)
+    alpha = keep_f[..., None]
+    out = m * alpha + s * (1.0 - alpha)
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
+
+def replace_entire_sky(
+    master: Image.Image,
+    mode: str = "clear",
+    *,
+    keep_mask: np.ndarray | None = None,
+) -> Image.Image:
+    """v14: full synthetic sky replacement; no TELEA/inpaint."""
+    w, h = master.size
+    keep = keep_mask if keep_mask is not None else _build_sky_keep_mask(master)
+    params = dict(_V14_SKY_PARAMS.get(mode, _V14_SKY_PARAMS["clear"]))
+    seed = {"clear": 14, "cloudy": 24, "covered": 34, "very_covered": 44}.get(mode, 14)
+    synthetic = _generate_synthetic_sky((w, h), seed=seed, **params)  # type: ignore[arg-type]
+    return _composite_sky_replace(master, synthetic, keep, feather_px=3)
+
+
+def build_v14_variants(master: Image.Image) -> dict[str, Image.Image]:
+    """Build all v14 JPGs from master + shared keep mask."""
+    keep = _build_sky_keep_mask(master)
+    out: dict[str, Image.Image] = {}
+    for mode in ("clear", "cloudy", "covered", "very_covered"):
+        out[mode] = replace_entire_sky(master, mode, keep_mask=keep)
+    night_base = out["clear"]
+    out["night"] = variant(night_base, "night")
+    return out
+
+
 def remove_left_orphan_wires(
     img: Image.Image,
     *,
@@ -845,12 +1025,20 @@ def main() -> None:
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     out_resolved = args.out.resolve()
-    v13 = not args.legacy_left_wires and not args.legacy_v12_sky and out_resolved == V13_OUT.resolve()
+    v14 = out_resolved == V14_OUT.resolve()
+    v13 = (
+        not v14
+        and not args.legacy_left_wires
+        and not args.legacy_v12_sky
+        and out_resolved == V13_OUT.resolve()
+    )
     v12 = args.legacy_v12_sky or (
-        not args.legacy_left_wires and out_resolved == V12_OUT.resolve()
+        not args.legacy_left_wires and not v14 and out_resolved == V12_OUT.resolve()
     )
     if args.qa is None:
-        if v13:
+        if v14:
+            args.qa = SKY_REPLACE_V14_QA
+        elif v13:
             args.qa = SKY_CLEAN_V13_QA
         elif v12:
             args.qa = SKY_CLEAN_QA
@@ -861,6 +1049,26 @@ def main() -> None:
 
     master = prepare_daytime_master(crop_16_9(Image.open(args.master).convert("RGB")))
     wire_method = "skipped"
+    if v14:
+        variants = build_v14_variants(master)
+        base = variants["clear"]
+        wire_method = "synthetic-sky-replace"
+        print(f"sky replace: {wire_method} (no TELEA)")
+        save_sky_replace_qa(master, base, args.qa)
+        changed, max_d = pylon_pixel_diff(master, base)
+        print(f"pylon protect: {changed} changed px, max delta {max_d}")
+        if changed > 0:
+            raise SystemExit(f"pylon region altered ({changed} px) — aborting")
+        for name, out in variants.items():
+            out.save(args.out / f"{name}.jpg", quality=92)
+            print(f"wrote {args.out / f'{name}.jpg'}")
+        if args.out == OUT:
+            V5_OUT.mkdir(parents=True, exist_ok=True)
+            for name in variants:
+                dst = V5_OUT / f"{name}.jpg"
+                dst.write_bytes((args.out / f"{name}.jpg").read_bytes())
+                print(f"copied {dst}")
+        return
     if args.keep_wires:
         base = master
     elif v13:

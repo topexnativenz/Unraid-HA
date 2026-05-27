@@ -1,5 +1,5 @@
-# 332 Three Mile Bush Road — AI archviz render (v13 backgrounds)
-# cache-bust 2026-05-28: v13 — conservative left-sky wire removal, master right third
+# 332 Three Mile Bush Road — AI archviz render (v14 backgrounds)
+# cache-bust 2026-05-28: v14 — full synthetic sky replace; master keep mask
 views:
   - title: Solar
     theme: default
@@ -41,12 +41,12 @@ views:
             }
         entity: sensor.solar_dashboard_background
         state_image:
-          clear: /local/solar-dashboard/backgrounds/v13/clear.jpg?v=20260528c
-          cloudy: /local/solar-dashboard/backgrounds/v13/cloudy.jpg?v=20260528c
-          covered: /local/solar-dashboard/backgrounds/v13/covered.jpg?v=20260528c
-          very_covered: /local/solar-dashboard/backgrounds/v13/very_covered.jpg?v=20260528c
-          night: /local/solar-dashboard/backgrounds/v13/night.jpg?v=20260528c
-        image: /local/solar-dashboard/backgrounds/v13/clear.jpg?v=20260528c
+          clear: /local/solar-dashboard/backgrounds/v14/clear.jpg?v=20260528d
+          cloudy: /local/solar-dashboard/backgrounds/v14/cloudy.jpg?v=20260528d
+          covered: /local/solar-dashboard/backgrounds/v14/covered.jpg?v=20260528d
+          very_covered: /local/solar-dashboard/backgrounds/v14/very_covered.jpg?v=20260528d
+          night: /local/solar-dashboard/backgrounds/v14/night.jpg?v=20260528d
+        image: /local/solar-dashboard/backgrounds/v14/clear.jpg?v=20260528d
         elements:
           - type: custom:button-card
             name: Contact
@@ -182,15 +182,27 @@ views:
             custom_fields:
               rows: |
                 [[[
-                  const w = states['weather.forecast_home'] || states['weather.home'];
-                  const fc = w?.attributes?.forecast ?? [];
+                  const pick = (id) => states[id];
+                  const w = pick('weather.forecast_home') || pick(states['input_text.solar_entity_weather']?.state) || pick('weather.home');
+                  let fc = w?.attributes?.forecast ?? w?.attributes?.forecast_daily ?? [];
+                  if (!fc.length && Array.isArray(w?.attributes?.forecast_hourly)) {
+                    const seen = new Set();
+                    fc = w.attributes.forecast_hourly.filter((h) => {
+                      const d = (h.datetime || '').slice(0, 10);
+                      if (!d || seen.has(d)) return false;
+                      seen.add(d);
+                      return true;
+                    }).slice(0, 2);
+                  }
+                  const today = fc[0] || (w ? { condition: w.state, temperature: w.attributes?.temperature } : null);
+                  const tomorrow = fc[1] || null;
                   const row = (label, day) => {
                     if (!day) return `<motion.div style="display:flex;justify-content:space-between;gap:6px;"><span>${label}</span><span>—</span></motion.div>`;
-                    const cond = (day.condition || '—').replace(/_/g, ' ');
+                    const cond = (day.condition || day.state || '—').replace(/_/g, ' ');
                     const temp = day.temperature != null ? Math.round(day.temperature) + '°' : '—';
                     return `<motion.div style="display:flex;justify-content:space-between;gap:6px;"><span style="color:#90caf9;">${label}</span><span style="text-transform:capitalize;">${cond} ${temp}</span></motion.div>`;
                   };
-                  return `<motion.div style="font-size:10px;color:#fff;line-height:1.65;margin-top:4px;">${row('Today', fc[0])}${row('Tomorrow', fc[1])}</motion.div>`.replace(/motion\./g,'');
+                  return `<motion.div style="font-size:10px;color:#fff;line-height:1.65;margin-top:4px;">${row('Today', today)}${row('Tomorrow', tomorrow)}</motion.div>`.replace(/motion\./g,'');
                 ]]]
             card_mod:
               style: |
