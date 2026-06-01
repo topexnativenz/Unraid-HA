@@ -673,7 +673,7 @@ def _build_sky_keep_mask(master: Image.Image) -> np.ndarray:
 
     for poly in (_HOUSE_ROOF_EXCLUDE, _LEFT_TREES_EXCLUDE):
         keep[_rasterize_polygons_keep(w, h, [poly])] = True
-    keep[h >= _GROUND_EXCLUDE_Y, :] = True
+    keep[_GROUND_EXCLUDE_Y:, :] = True
 
     bx0, by0, bx1, by1 = _V14_PYLON_KEEP_BOX
     keep[by0:by1, bx0:bx1] = True
@@ -687,7 +687,7 @@ def _build_sky_keep_mask(master: Image.Image) -> np.ndarray:
     keep = sky_u8 == 0
     keep[protect] = True
     keep[by0:by1, bx0:bx1] = True
-    keep[h >= _GROUND_EXCLUDE_Y, :] = True
+    keep[_GROUND_EXCLUDE_Y:, :] = True
     for poly in (_HOUSE_ROOF_EXCLUDE, _LEFT_TREES_EXCLUDE):
         keep[_rasterize_polygons_keep(w, h, [poly])] = True
 

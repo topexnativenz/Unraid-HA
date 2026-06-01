@@ -6,7 +6,7 @@
 **Tablet:** Landscape 16:9  
 **Style:** AI architectural render (photoreal archviz, not drone photo)  
 **Retailer:** Contact Energy (Northpower = lines company)  
-**Last updated:** 2026-05-26
+**Last updated:** 2026-06-02
 
 ---
 
@@ -16,10 +16,11 @@
 
 | Rule | Detail |
 |------|--------|
-| **Frozen asset** | `www/solar-dashboard/backgrounds/v5/master-clear.png` and weather variants built from it (`clear.jpg`, etc.) |
-| **Do not change** | No regeneration, re-prompting, colour grading, compositing, pylon paste, ellipse masks, or other edits to the CGI master without your **explicit, subtle** request |
-| **Overlays (on request)** | Lovelace card position/styling and baked flow-line geometry — tunable when you ask; master render does not |
-| **Always OK** | Entity wiring, demo helpers, deploy paths (e.g. `v5/` cache bust) |
+| **Frozen asset** | `www/solar-dashboard/backgrounds/v4/master-clear.png` (locked CGI). Weather JPGs in `backgrounds/v14/` via synthetic sky replace only |
+| **Do not change** | No regeneration, re-prompting, colour grading, compositing, pylon paste, TELEA/inpaint, or flow-line overlays on the master without your **explicit** request |
+| **Sky edits (v14)** | `scripts/build_v4_backgrounds.py --out …/v14` — synthetic gradient + clouds; master keep mask preserves palms, house, pylon |
+| **Overlays (on request)** | Lovelace card position/styling — tunable when you ask; master render does not |
+| **Always OK** | Entity wiring, demo helpers, deploy paths, Lovelace cache-bust (`v14/?v=…`) |
 | **Agents / contractors** | Treat the master CGI as read-only; do not rebuild baked art unless you ask |
 
 ---
@@ -81,19 +82,17 @@ From the annotated aerial (landscape drone view):
 
 ---
 
-## 4. Energy flow (directional lines)
+## 4. Energy flow (Lovelace cards only)
 
-Lines are **baked into each of the 5 background JPGs** (same geometry, different sky/light):
+**No flow lines baked into background JPGs** (v14 clean master + synthetic sky). Power direction is shown via overlay cards only:
 
-| Colour | From | To | Meaning |
-|--------|------|-----|---------|
-| **Amber / yellow dashed** | Ground PV array | Garage (SigenStor) | Solar production |
-| **Amber dashed** | Garage battery | Main house | Battery discharge to load |
-| **Amber dashed** | Garage battery ← array | (bidirectional segment) | Charging from solar |
-| **White dashed** | Grid / meter direction | Garage or house | Import / export |
-| **Green accent** (optional) | Sigenergy EV charger | Model S / X in garage | EV charging when active |
-
-**Live behaviour (phase 2):** When Sigenergy + HA sensors exist, arrow opacity or pulse can follow power direction via `button-card` / CSS (no need for animated GIF backgrounds).
+| Card | Meaning |
+|------|---------|
+| **Grid use** | Import / export at site |
+| **Solar array** | PV production |
+| **Home use** | House load |
+| **Battery** | SOC / charge / discharge |
+| **Garage** | EV charging (Tessie) |
 
 ---
 
@@ -134,17 +133,17 @@ Store under `/config/www/solar-dashboard/icons/` (repo: `www/solar-dashboard/ico
 
 ---
 
-## 7. Background pipeline (v5 AI render)
+## 7. Background pipeline (v14 synthetic sky)
 
-**Rejected:** v3 drone aerial (neighbours visible, not Serpo-style).
+**Rejected:** v3 drone aerial; v10–v13 TELEA wire removal (smears / paint blobs).
 
-**Approved (LOCKED):** Closer **elevated 3/4 archviz** of property only (inside orange boundary on site map). Reference photos: house (`-2.jpg`), garage (`-14.jpg`, `-15.jpg`). Master: `backgrounds/v5/master-clear.png` (AI-generated daytime CGI — see **Background master (LOCKED)** above).
+**Approved (LOCKED):** Closer **elevated 3/4 archviz** master at `backgrounds/v4/master-clear.png`. Weather JPGs in **`backgrounds/v14/`** — synthetic sky replace with keep mask (palms, house, pylon untouched). **No dashed flow lines** on backgrounds.
 
 ### Steps
 
 1. **Do not regenerate the master** without explicit user art direction (see **Background master (LOCKED)**).
-2. Rebuild weather JPGs only if you explicitly request line-geometry changes (`scripts/build_v4_backgrounds.py` → `backgrounds/v5/`).
-3. Dashboard uses `/local/solar-dashboard/backgrounds/v5/*.jpg`.
+2. Rebuild weather JPGs: `python3 scripts/build_v4_backgrounds.py --out www/solar-dashboard/backgrounds/v14`.
+3. Dashboard uses `/local/solar-dashboard/backgrounds/v14/*.jpg?v=…` (cache-bust in Lovelace).
 4. Tune `placement-map.yaml` on tablet once.
 
 **Scene must include:** main house + pool (left), open garage with **Model S + Model X**, **45-panel ground array** (right lawn), Sigenergy battery on garage wall, 3-phase pole (left), no neighbouring properties.

@@ -1,18 +1,17 @@
 # Power flow map — 332 Three Mile Bush Road dashboard
 
-> **Baked art frozen:** `backgrounds/v5/master-clear.png` and the five weather JPGs are approved and locked — no CGI regeneration or compositing changes without explicit user request. **Flow lines** (waypoints in `build_v4_backgrounds.py`) and **Lovelace overlays** are tunable **only on user request** (see `docs/332-three-mile-bush-build-spec.md` § *Background master (LOCKED)*).
+> **Baked art frozen:** `backgrounds/v4/master-clear.png` is the locked CGI master. **Do not regenerate** it. Weather JPGs live in `backgrounds/v14/` and are built by **synthetic sky replace only** (`scripts/build_v4_backgrounds.py --out …/v14`) — no TELEA/inpaint on the master, no flow-line overlays on backgrounds. Lovelace card positions are tunable on user request (see `docs/332-three-mile-bush-build-spec.md` § *Background master (LOCKED)*).
 
-Visual layers on `backgrounds/v5/*.jpg` (built by `scripts/build_v4_backgrounds.py`; master unchanged).
+Visual layers: clean CGI property render + Lovelace `button-card` overlays (no dashed energy-flow lines baked into JPGs).
 
-**Style:** Bright daytime CGI master; smooth dashed Bézier curves (white grid, amber solar, green EV). Grid lines anchor to the **master lattice tower** on the right hill (no pasted sprite / ellipse mask).
+**Style:** Bright daytime CGI master; grid pylon on the right hill stays 100% master pixels. Sky band uses v14 synthetic gradient + clouds; palm foliage and house silhouettes preserved via keep mask.
 
 ## Layer 1 — Transmission (Northpower grid)
 
 | Visual | Meaning |
 |--------|---------|
-| **Solid dark lines** from left/right horizon | 11 kV / grid transmission into the district |
-| **Lattice tower on hill** (behind garage, distant) | Grid connection point |
-| **White dashed** tower → garage inverter | Import / export at site |
+| **Lattice tower on hill** (behind garage, distant) | Grid connection point (master CGI — never edited) |
+| *(No baked flow lines)* | Import/export shown via **Grid use** card only |
 
 | Card | Entity (live, TBD) | Demo entity |
 |------|-------------------|-------------|
@@ -21,22 +20,12 @@ Visual layers on `backgrounds/v5/*.jpg` (built by `scripts/build_v4_backgrounds.
 
 ## Layer 2 — Solar (SunPower ground array)
 
-| Visual | Meaning |
-|--------|---------|
-| **Amber dashed** along lawn → inverter | PV production |
-
 | Card | Entity (live) | Demo |
 |------|---------------|------|
 | Solar array | `TBD.sigenergy_pv_power` | `sensor.solar_ground_power` |
 | PV total / today / month / year | Sigenergy energy counters | `sensor.solar_*` |
 
 ## Layer 3 — Site hub (Sigenergy SigenStor)
-
-| Visual | Meaning |
-|--------|---------|
-| **Inverter** on garage exterior wall | 30 kW controller |
-| **Amber** inverter ↔ house | Home load / battery discharge |
-| **Amber** inverter ↔ battery cabinet | SOC / charge |
 
 | Card | Entity (live) | Demo |
 |------|---------------|------|
@@ -45,21 +34,18 @@ Visual layers on `backgrounds/v5/*.jpg` (built by `scripts/build_v4_backgrounds.
 
 ## Layer 4 — EV (Sigenergy DC charger + Tessie)
 
-| Visual | Meaning |
-|--------|---------|
-| **Green dashed** inverter → charger → garage | EV charging |
-
 | Card | Entity (live) | Demo |
 |------|---------------|------|
 | Garage Model S | Tessie | `sensor.garage_model_s_*` |
 | Garage Model X | Tessie when added | `sensor.garage_model_x_*` |
 
-## Tuning line geometry (user request only)
+## Rebuilding backgrounds (agent / maintainer)
 
-**Locked by default** — see note at top. When the user asks to adjust curves, edit waypoint lists in `scripts/build_v4_backgrounds.py` (`SITE`, `ROUTES`, `HV_LINES`, `CARD_STUBS`), then:
+**Locked by default** — see note at top. When the user asks to adjust sky or weather grades:
 
 ```bash
-python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/scripts/build_v4_backgrounds.py
+python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/scripts/build_v4_backgrounds.py \
+  --out /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/www/solar-dashboard/backgrounds/v14
 ```
 
-Redeploy with `scripts/deploy_to_ha.py --skip-restart`.
+Bump the Lovelace cache-bust query (`?v=…`) in `lovelace/dashboards/solar_dashboard.yaml`, then redeploy with `scripts/deploy_to_ha.py --skip-restart`.

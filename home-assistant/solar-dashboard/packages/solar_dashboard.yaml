@@ -94,11 +94,24 @@ template:
           - sun.sun
     sensor:
       # --- Background scene key (used by picture-elements image path) ---
-      # TEST 2026-05-26: forced clear for v5 tablet verify — restore weather/sun template after confirm
       - name: Solar dashboard background
         unique_id: solar_dashboard_background
         icon: mdi:image-filter-hdr
-        state: clear
+        state: >
+          {% set weather_entity = states('input_text.solar_entity_weather') %}
+          {% set wx = states(weather_entity) %}
+          {% set elev = state_attr('sun.sun', 'elevation') | float(-6) %}
+          {% if elev < -1 %}
+            night
+          {% elif wx in ['lightning-rainy', 'lightning', 'hail', 'exceptional'] %}
+            very_covered
+          {% elif wx in ['rainy', 'pouring', 'snowy-rainy', 'snowy', 'fog', 'cloudy'] %}
+            covered
+          {% elif wx in ['partlycloudy', 'windy', 'windy-variant'] %}
+            cloudy
+          {% else %}
+            clear
+          {% endif %}
 
       # --- Demo / passthrough helpers ---
       - name: Solar roof power
