@@ -1,5 +1,23 @@
 # Garage doors (Shelly) — House Garage unavailable
 
+## Mobile Home pulse scripts (momentary Shelly)
+
+Shelly relays are **momentary** — do not use `switch.toggle` on the dashboard (first press only flips HA state). Use:
+
+| Button | Tracked state | Script |
+|--------|---------------|--------|
+| House Garage | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
+| Main Shed | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
+| Second Shed | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
+
+Package: `packages/garage_doors_pulse.yaml` — deploy:
+
+```bash
+bash /Users/topexnative/Projects/unraid-array-design/home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
+```
+
+Red = open (boolean on), grey = closed. Each tap runs the pulse script: if the Shelly switch is already `on`, `turn_off` then `turn_on` so the relay always fires; then toggles the boolean.
+
 ## Entity map (Mobile Home → Garage & Doors)
 
 | Dashboard label | Entity | Hardware |

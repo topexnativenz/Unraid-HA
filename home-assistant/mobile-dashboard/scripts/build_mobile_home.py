@@ -45,6 +45,50 @@ def mushroom_lock(entity: str, name: str, *, columns: int = 6) -> dict:
     }
 
 
+def mushroom_lock_style(
+    entity: str,
+    name: str,
+    *,
+    columns: int = 6,
+    tap_action: dict | None = None,
+) -> dict:
+    """Same layout as gate lock cards; entity-card for switch/cover actions."""
+    card: dict = {
+        "type": "custom:mushroom-entity-card",
+        "entity": entity,
+        "name": name,
+        "fill_container": True,
+        "grid_options": {"columns": columns},
+    }
+    card["tap_action"] = tap_action or {"action": "toggle"}
+    return card
+
+
+def mushroom_garage_pulse(
+    state_entity: str,
+    label: str,
+    script_id: str,
+    *,
+    columns: int = 6,
+) -> dict:
+    """Pulse momentary relay via script; red/grey from tracked open boolean."""
+    return {
+        "type": "custom:mushroom-template-card",
+        "entity": state_entity,
+        "primary": label,
+        "fill_container": True,
+        "icon": "{{ 'mdi:garage-open' if is_state(entity, 'on') else 'mdi:garage' }}",
+        "icon_color": "{{ 'red' if is_state(entity, 'on') else 'grey' }}",
+        # call-service works reliably on Companion + mushroom-template-card
+        "tap_action": {
+            "action": "call-service",
+            "service": "script.turn_on",
+            "target": {"entity_id": script_id},
+        },
+        "grid_options": {"columns": columns},
+    }
+
+
 def mushroom_entity(
     entity: str,
     name: str,
@@ -114,6 +158,9 @@ def lights_grid(title: str, subtitle: str, entities: list[str], *, col: int = 6)
 
 TOP_FIVE: list[tuple[str, str]] = [
     ("light.kitchen", "Kitchen"),
+    ("light.dining_room", "Kitchen dining"),
+    ("light.main_atrium", "Main area"),
+    ("light.garage", "Garage"),
     ("light.entry_centre", "Entry"),
     ("light.main_footlights", "Hall footlights"),
     ("light.all_lights", "All lights"),
@@ -244,41 +291,42 @@ def section_by_title(sections: list[dict], title: str) -> dict:
 
 
 def build_quick_actions() -> dict:
-    """Uniform 50% width (columns 6) mushroom cards — no button-card state_display bugs."""
+    """Uniform 50% width (columns 6) cards matching gate button sizing."""
     col = 6
-    return {
-        "type": "grid",
-        "cards": [
-            {
-                "type": "custom:mushroom-title-card",
-                "title": "Quick Actions",
-                "subtitle": "Tap to control",
-                "grid_options": {"columns": 12},
-            },
-            mushroom_lock("lock.gate_intercom_gate_open", "Gate Open", columns=col),
-            mushroom_lock("lock.gate_intercom_gate_latch", "Gate Latch", columns=col),
-            mushroom_cover("cover.garage_door", "Main Garage", columns=col),
-            mushroom_entity(
-                "switch.garage_door_3",
+    cards: list[dict] = [
+        {
+            "type": "custom:mushroom-title-card",
+            "title": "Quick Actions",
+            "subtitle": "Tap to control",
+            "grid_options": {"columns": 12},
+        },
+        mushroom_lock("lock.gate_intercom_gate_open", "Gate Open", columns=col),
+        mushroom_lock("lock.gate_intercom_gate_latch", "Gate Latch", columns=col),
+    ]
+    cards.extend(
+        [
+            mushroom_garage_pulse(
+                "input_boolean.house_garage_door_open",
                 "House Garage",
-                icon="mdi:garage",
-                icon_color="amber",
+                "script.pulse_house_garage_door",
                 columns=col,
             ),
-            mushroom_entity(
-                "switch.garage_door_1",
+            mushroom_garage_pulse(
+                "input_boolean.main_shed_door_open",
                 "Main Shed",
-                icon="mdi:garage-variant",
-                icon_color="amber",
+                "script.pulse_main_shed_door",
                 columns=col,
             ),
-            mushroom_entity(
-                "switch.garage_door_2",
+            mushroom_garage_pulse(
+                "input_boolean.second_shed_door_open",
                 "Second Shed",
-                icon="mdi:garage-variant",
-                icon_color="amber",
+                "script.pulse_second_shed_door",
                 columns=col,
             ),
+        ]
+    )
+    cards.extend(
+        [
             mushroom_action(
                 "All Off",
                 "Turn off all lights",
@@ -303,8 +351,9 @@ def build_quick_actions() -> dict:
                     "target": {"entity_id": "light.night_arrival"},
                 },
             ),
-        ],
-    }
+        ]
+    )
+    return {"type": "grid", "cards": cards}
 
 
 def build_top_lights() -> dict:

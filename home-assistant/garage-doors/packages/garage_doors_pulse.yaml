@@ -1,0 +1,78 @@
+# Momentary Shelly garage relays: one press = pulse relay + flip tracked open state.
+# Dashboard uses input_boolean.*_open for red/grey; scripts avoid switch.toggle double-press bug.
+# If HA shows switch "on", turn_off first so turn_on always fires the relay pulse.
+
+input_boolean:
+  house_garage_door_open:
+    name: House Garage open (tracked)
+    icon: mdi:garage
+  main_shed_door_open:
+    name: Main Shed open (tracked)
+    icon: mdi:garage
+  second_shed_door_open:
+    name: Second Shed open (tracked)
+    icon: mdi:garage
+
+script:
+  pulse_house_garage_door:
+    alias: Pulse House Garage door
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: switch.garage_door_3
+            state: "on"
+        then:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.garage_door_3
+          - delay:
+              milliseconds: 300
+      - action: switch.turn_on
+        target:
+          entity_id: switch.garage_door_3
+      - action: input_boolean.toggle
+        target:
+          entity_id: input_boolean.house_garage_door_open
+
+  pulse_main_shed_door:
+    alias: Pulse Main Shed door
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: switch.garage_door_1
+            state: "on"
+        then:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.garage_door_1
+          - delay:
+              milliseconds: 300
+      - action: switch.turn_on
+        target:
+          entity_id: switch.garage_door_1
+      - action: input_boolean.toggle
+        target:
+          entity_id: input_boolean.main_shed_door_open
+
+  pulse_second_shed_door:
+    alias: Pulse Second Shed door
+    mode: single
+    sequence:
+      - if:
+          - condition: state
+            entity_id: switch.garage_door_2
+            state: "on"
+        then:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.garage_door_2
+          - delay:
+              milliseconds: 300
+      - action: switch.turn_on
+        target:
+          entity_id: switch.garage_door_2
+      - action: input_boolean.toggle
+        target:
+          entity_id: input_boolean.second_shed_door_open
