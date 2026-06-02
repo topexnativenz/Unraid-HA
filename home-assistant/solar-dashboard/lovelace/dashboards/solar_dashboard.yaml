@@ -139,6 +139,12 @@ views:
                 ]]]
             card_mod:
               style: |
+                :host {
+                  right: 5% !important;
+                  left: auto !important;
+                  width: 148px !important;
+                  max-width: 148px !important;
+                }
                 ha-card {
                   background: rgba(8, 22, 48, 0.86) !important;
                   border-radius: 12px !important;
@@ -151,6 +157,8 @@ views:
             style:
               top: 5%
               right: 5%
+              left: auto
+              width: 148px
 
           - type: custom:button-card
             entity: weather.forecast_home
@@ -206,6 +214,12 @@ views:
                 ]]]
             card_mod:
               style: |
+                :host {
+                  right: 5% !important;
+                  left: auto !important;
+                  width: 148px !important;
+                  max-width: 148px !important;
+                }
                 ha-card {
                   background: rgba(8, 22, 48, 0.86) !important;
                   border-radius: 12px !important;
@@ -218,6 +232,8 @@ views:
             style:
               top: 16%
               right: 5%
+              left: auto
+              width: 148px
 
           - type: custom:button-card
             entity: sensor.grid_import_power
