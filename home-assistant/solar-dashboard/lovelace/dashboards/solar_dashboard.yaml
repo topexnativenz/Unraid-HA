@@ -1,5 +1,5 @@
-# 332 Three Mile Bush Road — AI archviz render (v14 backgrounds)
-# cache-bust 2026-06-02: v14 — full synthetic sky replace; master keep mask
+# 332 Three Mile Bush Road — AI archviz render (v15 backgrounds)
+# cache-bust 2026-06-02: v15 — master pixels + weather grades; optional sky tidy
 views:
   - title: Solar
     theme: default
@@ -41,12 +41,12 @@ views:
             }
         entity: sensor.solar_dashboard_background
         state_image:
-          clear: /local/solar-dashboard/backgrounds/v14/clear.jpg?v=20260602a
-          cloudy: /local/solar-dashboard/backgrounds/v14/cloudy.jpg?v=20260602a
-          covered: /local/solar-dashboard/backgrounds/v14/covered.jpg?v=20260602a
-          very_covered: /local/solar-dashboard/backgrounds/v14/very_covered.jpg?v=20260602a
-          night: /local/solar-dashboard/backgrounds/v14/night.jpg?v=20260602a
-        image: /local/solar-dashboard/backgrounds/v14/clear.jpg?v=20260602a
+          clear: /local/solar-dashboard/backgrounds/v15/clear.jpg?v=20260602b
+          cloudy: /local/solar-dashboard/backgrounds/v15/cloudy.jpg?v=20260602b
+          covered: /local/solar-dashboard/backgrounds/v15/covered.jpg?v=20260602b
+          very_covered: /local/solar-dashboard/backgrounds/v15/very_covered.jpg?v=20260602b
+          night: /local/solar-dashboard/backgrounds/v15/night.jpg?v=20260602b
+        image: /local/solar-dashboard/backgrounds/v15/clear.jpg?v=20260602b
         elements:
           - type: custom:button-card
             name: Contact Energy TOU

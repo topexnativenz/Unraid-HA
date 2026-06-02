@@ -9,7 +9,8 @@ Notes:
 - v11: remove_left_orphan_wires — Fal fill or OpenCV TELEA (2-pass), pylon hard-restore.
 - v12: remove_all_sky_wires — full sky band (deprecated; caused paint blobs).
 - v13: remove_sky_wires_conservative — left/center sky only (x<1100,y<380); x≥1100 hard master.
-- v14: replace_entire_sky — synthetic gradient + clouds; master keep mask (no TELEA).
+- v14: replace_entire_sky — synthetic gradient + clouds; master keep mask (deprecated — jagged edges).
+- v15: master pixels + weather grades; optional horizon sky gradient (QA-gated, no clouds).
 """
 
 from __future__ import annotations
@@ -35,10 +36,12 @@ V11_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v11"
 V12_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v12"
 V13_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v13"
 V14_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v14"
+V15_OUT = ROOT / "www" / "solar-dashboard" / "backgrounds" / "v15"
 QA_OUT = ROOT / "assets" / "wire-removal-qa.jpg"
 SKY_CLEAN_QA = ROOT / "assets" / "sky-clean-qa.jpg"
 SKY_CLEAN_V13_QA = ROOT / "assets" / "sky-clean-v13-qa.jpg"
 SKY_REPLACE_V14_QA = ROOT / "assets" / "sky-replace-v14-qa.jpg"
+SKY_TIDY_V15_QA = ROOT / "assets" / "sky-tidy-v15-qa.jpg"
 SIZE = (1920, 1080)
 
 # Left-side sky wire corridors (1920×1080). Right-side pylon wires stay untouched.
@@ -793,6 +796,147 @@ def build_v14_variants(master: Image.Image) -> dict[str, Image.Image]:
     return out
 
 
+def _master_sky_gradient_colors(master: Image.Image) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
+    """Sample natural sky tones from wire-free master crop (RGB)."""
+    x0, y0, x1, y1 = _SKY_PATCH_SOURCE
+    patch = np.array(master.crop((x0, y0, x1, y1)).convert("RGB"), dtype=np.float32)
+    ph = patch.shape[0]
+    top = patch[: max(1, ph // 3)].mean(axis=(0, 1))
+    bot = patch[-max(1, ph // 3) :].mean(axis=(0, 1))
+    return tuple(int(c) for c in top), tuple(int(c) for c in bot)
+
+
+def _horizontal_sky_gradient(
+    size: tuple[int, int],
+    top_rgb: tuple[int, int, int],
+    bottom_rgb: tuple[int, int, int],
+) -> Image.Image:
+    """Full-width sky strip — no cloud ellipses."""
+    w, h = size
+    top = np.array(top_rgb, dtype=np.float32)
+    bot = np.array(bottom_rgb, dtype=np.float32)
+    t = np.linspace(0.0, 1.0, h, dtype=np.float32)[:, None]
+    grad = (top * (1.0 - t) + bot * t).astype(np.uint8)
+    sky = np.broadcast_to(grad[:, None, :], (h, w, 3)).copy()
+    return Image.fromarray(sky)
+
+
+def _build_v15_sky_replace_mask(master: Image.Image) -> np.ndarray:
+    """True = allow sky gradient (poly sky ∩ color sky; trees/edges excluded)."""
+    rgb = np.array(master.convert("RGB"), dtype=np.uint8)
+    h, w = rgb.shape[:2]
+    poly_sky = np.array(_sky_edit_region_mask(w, h)) > 64
+
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+    hue = hsv[:, :, 0].astype(np.float32)
+    sat = hsv[:, :, 1].astype(np.float32) / 255.0
+    val = hsv[:, :, 2].astype(np.float32) / 255.0
+    color_sky = (hue >= 88) & (hue <= 132) & (sat > 0.10) & (val > 0.32)
+
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    edges = cv2.Canny(gray, 45, 115)
+    k5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    edge_fg = cv2.dilate(edges, k5, iterations=2) > 0
+
+    tree_green = (hue >= 30) & (hue <= 94) & (sat > 0.16)
+    brown = (hue >= 6) & (hue <= 30) & (sat > 0.12) & (val < 0.88)
+
+    keep = edge_fg | tree_green | brown
+    k8 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (17, 17))
+    keep = cv2.dilate(keep.astype(np.uint8), k8, iterations=1) > 0
+
+    for poly in (_HOUSE_ROOF_EXCLUDE, _LEFT_TREES_EXCLUDE):
+        keep[_rasterize_polygons_keep(w, h, [poly])] = True
+    keep[_GROUND_EXCLUDE_Y:, :] = True
+    bx0, by0, bx1, by1 = _V14_PYLON_KEEP_BOX
+    keep[by0:by1, bx0:bx1] = True
+    keep[np.array(_pylon_protect_mask(w, h, soft=False)) > 64] = True
+
+    replace = poly_sky & color_sky & ~keep
+    rep_u8 = replace.astype(np.uint8) * 255
+    k3 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    rep_u8 = cv2.erode(rep_u8, k3, iterations=1)
+    return rep_u8 > 64
+
+
+def _horizon_alpha_ramp(replace_mask: np.ndarray, *, feather_px: int = 12) -> np.ndarray:
+    """Soften replace mask near tree/house skyline (distance transform)."""
+    rep = replace_mask.astype(np.uint8)
+    if not rep.any():
+        return replace_mask.astype(np.float32)
+    dist = cv2.distanceTransform(rep, cv2.DIST_L2, 5).astype(np.float32)
+    ramp = np.clip(dist / max(feather_px, 1), 0.0, 1.0)
+    return (replace_mask.astype(np.float32) * ramp).astype(np.float32)
+
+
+def apply_horizon_sky_gradient(master: Image.Image, *, feather_px: int = 12) -> Image.Image:
+    """Composite master-toned horizontal gradient only in classified sky band."""
+    w, h = master.size
+    replace = _build_v15_sky_replace_mask(master)
+    top_rgb, bot_rgb = _master_sky_gradient_colors(master)
+    gradient = _horizontal_sky_gradient((w, h), top_rgb, bot_rgb)
+    alpha = _horizon_alpha_ramp(replace, feather_px=feather_px)
+    if feather_px > 0:
+        k = feather_px * 2 + 1
+        alpha = cv2.GaussianBlur(alpha, (k, k), 0)
+    keep_f = 1.0 - np.clip(alpha, 0.0, 1.0)
+    m = np.array(master.convert("RGB"), dtype=np.float32)
+    g = np.array(gradient.convert("RGB"), dtype=np.float32)
+    out = m * keep_f[..., None] + g * (1.0 - keep_f[..., None])
+    return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8))
+
+
+def _qa_palm_sky_tidy_ok(master: Image.Image, edited: Image.Image) -> bool:
+    """Reject tidy if palm/tree silhouettes or jagged sky polygons were altered."""
+    w, h = master.size
+    tree = _rasterize_polygons_keep(w, h, [_LEFT_TREES_EXCLUDE])
+    m = np.array(master.convert("RGB"), dtype=np.int16)
+    e = np.array(edited.convert("RGB"), dtype=np.int16)
+    diff = np.abs(m - e).max(axis=2)
+    if tree.any():
+        tree_diff = diff[tree]
+        if (tree_diff > 16).sum() > 60:
+            return False
+
+    band = (0, 0, 560, 400)
+    mc = m[band[1] : band[3], band[0] : band[2]]
+    ec = e[band[1] : band[3], band[0] : band[2]]
+    dc = np.abs(mc - ec).max(axis=2)
+    hsv_e = cv2.cvtColor(ec.astype(np.uint8), cv2.COLOR_RGB2HSV)
+    sat = hsv_e[:, :, 1].astype(np.float32) / 255.0
+    # Large flat synthetic-blue smear in upper-left sky
+    synthetic_blob = (sat > 0.55) & (dc > 25) & (np.arange(dc.shape[0])[:, None] < 280)
+    if synthetic_blob.sum() > 4000:
+        return False
+
+    edges_m = cv2.Canny(mc.astype(np.uint8), 50, 120)
+    edges_e = cv2.Canny(ec.astype(np.uint8), 50, 120)
+    tree_crop = tree[band[1] : band[3], band[0] : band[2]]
+    if tree_crop.any():
+        new_edges = (edges_e > 0) & (edges_m == 0) & tree_crop
+        if new_edges.sum() > 120:
+            return False
+    return True
+
+
+def build_v15_variants(master: Image.Image, *, allow_sky_tidy: bool = False) -> tuple[dict[str, Image.Image], str]:
+    """Master-based weather JPGs; optional horizon gradient only when QA passes."""
+    base = master
+    sky_note = "master-only"
+    if allow_sky_tidy:
+        tidy = apply_horizon_sky_gradient(master)
+        if _qa_palm_sky_tidy_ok(master, tidy):
+            base = tidy
+            sky_note = "horizon-gradient-tidy"
+        else:
+            sky_note = "master-only (tidy QA failed)"
+    out: dict[str, Image.Image] = {}
+    for mode in ("clear", "cloudy", "covered", "very_covered"):
+        out[mode] = variant(base, mode)
+    out["night"] = variant(out["clear"], "night")
+    return out, sky_note
+
+
 def remove_left_orphan_wires(
     img: Image.Image,
     *,
@@ -1022,21 +1166,33 @@ def main() -> None:
         help="Deprecated v12 full-sky removal (paint blobs)",
     )
     parser.add_argument("--qa", type=Path, default=None, help="Before/after sky QA crop")
+    parser.add_argument(
+        "--v15-sky-tidy",
+        action="store_true",
+        help="v15: try horizon sky gradient (default: master-only)",
+    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     out_resolved = args.out.resolve()
+    v15 = out_resolved == V15_OUT.resolve()
     v14 = out_resolved == V14_OUT.resolve()
     v13 = (
         not v14
+        and not v15
         and not args.legacy_left_wires
         and not args.legacy_v12_sky
         and out_resolved == V13_OUT.resolve()
     )
     v12 = args.legacy_v12_sky or (
-        not args.legacy_left_wires and not v14 and out_resolved == V12_OUT.resolve()
+        not args.legacy_left_wires
+        and not v14
+        and not v15
+        and out_resolved == V12_OUT.resolve()
     )
     if args.qa is None:
-        if v14:
+        if v15:
+            args.qa = SKY_TIDY_V15_QA
+        elif v14:
             args.qa = SKY_REPLACE_V14_QA
         elif v13:
             args.qa = SKY_CLEAN_V13_QA
@@ -1049,6 +1205,20 @@ def main() -> None:
 
     master = prepare_daytime_master(crop_16_9(Image.open(args.master).convert("RGB")))
     wire_method = "skipped"
+    if v15:
+        variants, sky_note = build_v15_variants(master, allow_sky_tidy=args.v15_sky_tidy)
+        base = variants["clear"]
+        wire_method = sky_note
+        print(f"v15 sky: {sky_note} (no TELEA, no synthetic clouds)")
+        save_sky_clean_qa(master, base, args.qa)
+        changed, max_d = pylon_pixel_diff(master, base)
+        print(f"pylon protect: {changed} changed px, max delta {max_d}")
+        if changed > 0:
+            raise SystemExit(f"pylon region altered ({changed} px) — aborting")
+        for name, out in variants.items():
+            out.save(args.out / f"{name}.jpg", quality=92)
+            print(f"wrote {args.out / f'{name}.jpg'}")
+        return
     if v14:
         variants = build_v14_variants(master)
         base = variants["clear"]

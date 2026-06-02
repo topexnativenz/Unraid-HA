@@ -16,11 +16,11 @@
 
 | Rule | Detail |
 |------|--------|
-| **Frozen asset** | `www/solar-dashboard/backgrounds/v4/master-clear.png` (locked CGI). Weather JPGs in `backgrounds/v14/` via synthetic sky replace only |
+| **Frozen asset** | `www/solar-dashboard/backgrounds/v4/master-clear.png` (locked CGI). Weather JPGs in `backgrounds/v15/` — master pixels + subtle weather grades |
 | **Do not change** | No regeneration, re-prompting, colour grading, compositing, pylon paste, TELEA/inpaint, or flow-line overlays on the master without your **explicit** request |
-| **Sky edits (v14)** | `scripts/build_v4_backgrounds.py --out …/v14` — synthetic gradient + clouds; master keep mask preserves palms, house, pylon |
+| **Sky edits (v15)** | `scripts/build_v4_backgrounds.py --out …/v15` — master-only default; optional `--v15-sky-tidy` when QA passes |
 | **Overlays (on request)** | Lovelace card position/styling — tunable when you ask; master render does not |
-| **Always OK** | Entity wiring, demo helpers, deploy paths, Lovelace cache-bust (`v14/?v=…`) |
+| **Always OK** | Entity wiring, demo helpers, deploy paths, Lovelace cache-bust (`v15/?v=…`) |
 | **Agents / contractors** | Treat the master CGI as read-only; do not rebuild baked art unless you ask |
 
 ---
@@ -84,7 +84,7 @@ From the annotated aerial (landscape drone view):
 
 ## 4. Energy flow (Lovelace cards only)
 
-**No flow lines baked into background JPGs** (v14 clean master + synthetic sky). Power direction is shown via overlay cards only:
+**No flow lines baked into background JPGs** (v15 master + weather grades). Power direction is shown via overlay cards only:
 
 | Card | Meaning |
 |------|---------|
@@ -133,17 +133,17 @@ Store under `/config/www/solar-dashboard/icons/` (repo: `www/solar-dashboard/ico
 
 ---
 
-## 7. Background pipeline (v14 synthetic sky)
+## 7. Background pipeline (v15 master)
 
-**Rejected:** v3 drone aerial; v10–v13 TELEA wire removal (smears / paint blobs).
+**Rejected:** v3 drone aerial; v10–v13 TELEA wire removal; v14 synthetic sky + clouds (jagged polygon on palms).
 
-**Approved (LOCKED):** Closer **elevated 3/4 archviz** master at `backgrounds/v4/master-clear.png`. Weather JPGs in **`backgrounds/v14/`** — synthetic sky replace with keep mask (palms, house, pylon untouched). **No dashed flow lines** on backgrounds.
+**Approved (LOCKED):** Closer **elevated 3/4 archviz** master at `backgrounds/v4/master-clear.png`. Weather JPGs in **`backgrounds/v15/`** — master pixels + subtle weather grades (wires may remain). **No dashed flow lines** on backgrounds.
 
 ### Steps
 
 1. **Do not regenerate the master** without explicit user art direction (see **Background master (LOCKED)**).
-2. Rebuild weather JPGs: `python3 scripts/build_v4_backgrounds.py --out www/solar-dashboard/backgrounds/v14`.
-3. Dashboard uses `/local/solar-dashboard/backgrounds/v14/*.jpg?v=…` (cache-bust in Lovelace).
+2. Rebuild weather JPGs: `python3 scripts/build_v4_backgrounds.py --out www/solar-dashboard/backgrounds/v15`.
+3. Dashboard uses `/local/solar-dashboard/backgrounds/v15/*.jpg?v=…` (cache-bust in Lovelace).
 4. Tune `placement-map.yaml` on tablet once.
 
 **Scene must include:** main house + pool (left), open garage with **Model S + Model X**, **45-panel ground array** (right lawn), Sigenergy battery on garage wall, 3-phase pole (left), no neighbouring properties.

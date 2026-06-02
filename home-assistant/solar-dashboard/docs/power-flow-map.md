@@ -1,10 +1,10 @@
 # Power flow map — 332 Three Mile Bush Road dashboard
 
-> **Baked art frozen:** `backgrounds/v4/master-clear.png` is the locked CGI master. **Do not regenerate** it. Weather JPGs live in `backgrounds/v14/` and are built by **synthetic sky replace only** (`scripts/build_v4_backgrounds.py --out …/v14`) — no TELEA/inpaint on the master, no flow-line overlays on backgrounds. Lovelace card positions are tunable on user request (see `docs/332-three-mile-bush-build-spec.md` § *Background master (LOCKED)*).
+> **Baked art frozen:** `backgrounds/v4/master-clear.png` is the locked CGI master. **Do not regenerate** it. Weather JPGs live in `backgrounds/v15/` — **master pixels + weather grades** (`scripts/build_v4_backgrounds.py --out …/v15`); optional horizon sky gradient when QA passes. No TELEA/inpaint, no synthetic cloud overlays. Lovelace card positions are tunable on user request (see `docs/332-three-mile-bush-build-spec.md` § *Background master (LOCKED)*).
 
 Visual layers: clean CGI property render + Lovelace `button-card` overlays (no dashed energy-flow lines baked into JPGs).
 
-**Style:** Bright daytime CGI master; grid pylon on the right hill stays 100% master pixels. Sky band uses v14 synthetic gradient + clouds; palm foliage and house silhouettes preserved via keep mask.
+**Style:** Bright daytime CGI master; grid pylon on the right hill stays 100% master pixels. Sky may retain wire remnants; palm foliage and house silhouettes always master pixels.
 
 ## Layer 1 — Transmission (Northpower grid)
 
@@ -45,7 +45,7 @@ Visual layers: clean CGI property render + Lovelace `button-card` overlays (no d
 
 ```bash
 python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/scripts/build_v4_backgrounds.py \
-  --out /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/www/solar-dashboard/backgrounds/v14
+  --out /Users/topexnative/Projects/unraid-array-design/home-assistant/solar-dashboard/www/solar-dashboard/backgrounds/v15
 ```
 
 Bump the Lovelace cache-bust query (`?v=…`) in `lovelace/dashboards/solar_dashboard.yaml`, then redeploy with `scripts/deploy_to_ha.py --skip-restart`.
