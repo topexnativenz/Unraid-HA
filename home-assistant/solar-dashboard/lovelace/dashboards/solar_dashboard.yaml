@@ -245,7 +245,7 @@ views:
                   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
-              top: 16%
+              top: 19%
               right: 5%
               left: auto
               width: 148px
@@ -293,8 +293,8 @@ views:
                   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
-              top: 15%
-              left: 60%
+              top: 12%
+              left: 57%
 
           - type: custom:button-card
             entity: sensor.home_consumption_power
@@ -339,8 +339,8 @@ views:
                   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
-              top: 42%
-              left: 42%
+              top: 46%
+              left: 38%
 
           - type: custom:button-card
             entity: sensor.solar_battery_soc
@@ -384,8 +384,13 @@ views:
                       <motion.div style="display:flex;justify-content:space-between;"><span>SOC</span><span style="color:#ffb74d;font-weight:700;font-size:12px;">${soc}%</span></motion.div>
                       <motion.div style="display:flex;justify-content:space-between;"><span>Voltage</span><span style="font-size:11px;">${states['sensor.solar_battery_voltage']?.state ?? '—'} V</span></motion.div>
                     </motion.div>
-                    <motion.div style="width:28px;border:2px solid rgba(255,255,255,0.3);border-radius:5px;padding:2px;display:flex;flex-direction:column;justify-content:flex-end;height:68px;">
-                      <motion.div style="height:${h}px;background:linear-gradient(0deg,#2e7d32,#b6ff00);border-radius:3px;"></motion.div>
+                    <motion.div class="batt-3d-wrap" style="position:relative;width:34px;height:74px;perspective:220px;transform-style:preserve-3d;">
+                      <motion.div class="batt-3d-cap" style="position:absolute;top:-5px;left:50%;width:12px;height:5px;margin-left:-6px;border-radius:2px 2px 0 0;background:linear-gradient(180deg,rgba(220,230,240,0.95),rgba(140,155,170,0.85));border:1px solid rgba(255,255,255,0.35);box-shadow:0 1px 3px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.5);transform:translateZ(6px);"></motion.div>
+                      <motion.div class="batt-3d-shell" style="width:100%;height:68px;margin-top:4px;border:2px solid rgba(190,205,220,0.55);border-radius:6px;padding:3px;display:flex;flex-direction:column;justify-content:flex-end;background:linear-gradient(145deg,rgba(30,38,52,0.92),rgba(12,18,28,0.96));box-shadow:inset 0 2px 6px rgba(0,0,0,0.55),inset -2px 0 5px rgba(255,255,255,0.08),0 6px 14px rgba(0,0,0,0.45),2px 0 8px rgba(0,0,0,0.25);transform:rotateY(-18deg) rotateX(4deg);transform-origin:center center;">
+                        <motion.div class="batt-3d-fill" style="height:${h}px;border-radius:4px;background:linear-gradient(90deg,#1b5e20 0%,#43a047 18%,#7cb342 42%,#c6ff00 72%,#e8ff80 100%);box-shadow:inset 0 2px 4px rgba(255,255,255,0.35),inset 0 -3px 6px rgba(0,0,0,0.35),0 0 10px rgba(182,255,0,0.35);position:relative;overflow:hidden;">
+                          <motion.div style="position:absolute;top:0;left:0;right:0;height:40%;background:linear-gradient(180deg,rgba(255,255,255,0.42),rgba(255,255,255,0));border-radius:4px 4px 0 0;pointer-events:none;"></motion.div>
+                        </motion.div>
+                      </motion.div>
                     </motion.div>
                   </motion.div>`.replace(/motion\./g,'');
                 ]]]
@@ -423,9 +428,18 @@ views:
                   opacity: 0.75;
                   pointer-events: none;
                 }
+                .batt-3d-wrap {
+                  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.45));
+                }
+                .batt-3d-shell {
+                  transform: rotateY(-18deg) rotateX(4deg) !important;
+                }
+                .batt-3d-fill {
+                  border: 1px solid rgba(255, 255, 255, 0.12);
+                }
             style:
-              top: 44%
-              left: 76%
+              top: 36%
+              left: 78%
               z-index: 12
 
           - type: custom:button-card
@@ -513,8 +527,8 @@ views:
                   pointer-events: none;
                 }
             style:
-              top: 56%
-              left: 76%
+              top: 63%
+              left: 78%
               z-index: 12
 
           - type: custom:button-card
@@ -564,8 +578,8 @@ views:
                   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
-              top: 27%
-              left: 60%
+              top: 31%
+              left: 57%
 
           - type: custom:button-card
             entity: sensor.solar_ground_power
@@ -612,7 +626,7 @@ views:
                 }
             style:
               bottom: 5%
-              left: 5%
+              left: 4%
 
           - type: custom:button-card
             entity: sensor.solar_pv_total_today
@@ -659,7 +673,7 @@ views:
                 }
             style:
               bottom: 5%
-              left: 15%
+              left: 16%
 
           - type: custom:button-card
             entity: sensor.solar_production_today
@@ -706,7 +720,7 @@ views:
                 }
             style:
               bottom: 5%
-              left: 25%
+              left: 28%
 
           - type: custom:button-card
             entity: sensor.solar_production_month
@@ -753,7 +767,7 @@ views:
                 }
             style:
               bottom: 5%
-              left: 35%
+              left: 40%
 
           - type: custom:button-card
             entity: sensor.solar_production_year
@@ -800,4 +814,4 @@ views:
                 }
             style:
               bottom: 5%
-              left: 45%
+              left: 52%
