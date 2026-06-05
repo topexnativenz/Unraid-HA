@@ -59,11 +59,14 @@ views:
                 - grid-template-areas: '"i n" "rows rows"'
                 - grid-template-columns: 20px 1fr
               card:
-                - background: rgba(8, 22, 48, 0.86)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px
                 - padding: 8px 10px
                 - width: 148px
-                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 18px
@@ -88,13 +91,15 @@ views:
             card_mod:
               style: |
                 ha-card {
-                  background: rgba(8, 22, 48, 0.86) !important;
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
                   border-radius: 12px !important;
                   padding: 8px 10px !important;
                   width: 148px !important;
                   max-width: 148px !important;
-                  box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
-                  border: none !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
               top: 5%
@@ -112,11 +117,14 @@ views:
                 - grid-template-areas: '"i n" "rows rows"'
                 - grid-template-columns: 20px 1fr
               card:
-                - background: rgba(8, 22, 48, 0.86)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px
                 - padding: 8px 10px
                 - width: 148px
-                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 18px
@@ -146,13 +154,15 @@ views:
                   max-width: 148px !important;
                 }
                 ha-card {
-                  background: rgba(8, 22, 48, 0.86) !important;
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
                   border-radius: 12px !important;
                   padding: 8px 10px !important;
                   width: 148px !important;
                   max-width: 148px !important;
-                  box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
-                  border: none !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
               top: 5%
@@ -172,11 +182,14 @@ views:
                 - grid-template-areas: '"i n" "rows rows"'
                 - grid-template-columns: 20px 1fr
               card:
-                - background: rgba(8, 22, 48, 0.86)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px
                 - padding: 8px 10px
                 - width: 148px
-                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 18px
@@ -221,13 +234,15 @@ views:
                   max-width: 148px !important;
                 }
                 ha-card {
-                  background: rgba(8, 22, 48, 0.86) !important;
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
                   border-radius: 12px !important;
                   padding: 8px 10px !important;
                   width: 148px !important;
                   max-width: 148px !important;
-                  box-shadow: 0 4px 14px rgba(0,0,0,0.4) !important;
-                  border: none !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
                 }
             style:
               top: 16%
@@ -248,11 +263,14 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.86)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px
                 - padding: 8px 10px
                 - width: 154px
-                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 22px
@@ -264,6 +282,16 @@ views:
                 - color: "#fff"
                 - font-size: 16px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               top: 15%
               left: 60%
@@ -281,11 +309,14 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.9)
-                - border-radius: 14px
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
+                - border-radius: 12px
                 - padding: 12px 16px
                 - width: 172px
-                - box-shadow: 0 6px 18px rgba(0,0,0,0.45)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 30px
@@ -297,6 +328,16 @@ views:
                 - color: "#fff"
                 - font-size: 20px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               top: 42%
               left: 42%
@@ -310,13 +351,14 @@ views:
             show_state: false
             styles:
               card:
-                - background: rgba(20, 28, 40, 0.75)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px 0 0 12px
-                - border: none
-                - border-left: 1px solid rgba(255, 255, 255, 0.08)
                 - padding: 8px 10px
                 - width: 175px
-                - box-shadow: inset 6px 0 12px rgba(0, 0, 0, 0.35), 2px 4px 10px rgba(0, 0, 0, 0.22)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               grid:
                 - grid-template-areas: '"i n n" "batt batt batt"'
                 - grid-template-columns: 22px 1fr 1fr
@@ -350,19 +392,20 @@ views:
             card_mod:
               style: |
                 ha-card {
-                  background: rgba(20, 28, 40, 0.75) !important;
-                  border: none !important;
-                  border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
                   border-radius: 12px 0 0 12px !important;
                   position: relative;
                   overflow: visible;
                   transform-origin: center right;
                   transform: perspective(900px) rotateY(-12deg) rotateX(2deg) skewY(0.8deg) rotateZ(-0.2deg);
                   box-shadow:
+                    0 8px 32px rgba(0, 0, 0, 0.25),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.12),
                     inset 10px 0 16px rgba(0, 0, 0, 0.28),
-                    inset -1px 0 0 rgba(255, 255, 255, 0.16),
                     -12px 10px 18px rgba(0, 0, 0, 0.35) !important;
-                  backdrop-filter: blur(4px);
                 }
                 ha-card::after {
                   content: "";
@@ -396,13 +439,14 @@ views:
                 - grid-template-areas: '"i n" "ev ev"'
                 - grid-template-columns: 18px 1fr
               card:
-                - background: rgba(20, 28, 40, 0.75)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px 0 0 12px
-                - border: none
-                - border-left: 1px solid rgba(255, 255, 255, 0.08)
                 - padding: 6px 9px
                 - width: 175px
-                - box-shadow: inset 6px 0 12px rgba(0, 0, 0, 0.35), 2px 4px 10px rgba(0, 0, 0, 0.22)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 16px
@@ -437,19 +481,20 @@ views:
             card_mod:
               style: |
                 ha-card {
-                  background: rgba(20, 28, 40, 0.75) !important;
-                  border: none !important;
-                  border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
                   border-radius: 12px 0 0 12px !important;
                   position: relative;
                   overflow: visible;
                   transform-origin: center right;
                   transform: perspective(900px) rotateY(-12deg) rotateX(2deg) skewY(0.8deg) rotateZ(-0.4deg);
                   box-shadow:
+                    0 8px 32px rgba(0, 0, 0, 0.25),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.12),
                     inset 10px 0 16px rgba(0, 0, 0, 0.28),
-                    inset -1px 0 0 rgba(255, 255, 255, 0.16),
                     -12px 10px 18px rgba(0, 0, 0, 0.35) !important;
-                  backdrop-filter: blur(4px);
                 }
                 ha-card::after {
                   content: "";
@@ -481,11 +526,14 @@ views:
               grid:
                 - grid-template-areas: '"n n" "grid grid"'
               card:
-                - background: rgba(8, 22, 48, 0.86)
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
                 - border-radius: 12px
                 - padding: 8px 10px
                 - width: 148px
-                - box-shadow: 0 4px 14px rgba(0,0,0,0.4)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               name:
                 - color: rgba(255,255,255,0.9)
                 - font-size: 10px
@@ -505,6 +553,16 @@ views:
                     </motion.div>`;
                   return row('Voltage', v + ' V') + row('Temp', t + ' °C') + row('Cycles', c);
                 ]]]
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               top: 27%
               left: 60%
@@ -522,12 +580,15 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.92)
-                - border-radius: 16px
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
+                - border-radius: 12px
                 - padding: 12px 10px
                 - width: 155px
                 - max-width: 155px
-                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 36px
@@ -539,6 +600,16 @@ views:
                 - color: "#fff"
                 - font-size: 22px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               bottom: 5%
               left: 5%
@@ -556,12 +627,15 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.92)
-                - border-radius: 16px
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
+                - border-radius: 12px
                 - padding: 12px 10px
                 - width: 155px
                 - max-width: 155px
-                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 36px
@@ -573,6 +647,16 @@ views:
                 - color: "#fff"
                 - font-size: 22px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               bottom: 5%
               left: 15%
@@ -590,12 +674,15 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.92)
-                - border-radius: 16px
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
+                - border-radius: 12px
                 - padding: 12px 10px
                 - width: 155px
                 - max-width: 155px
-                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 36px
@@ -607,6 +694,16 @@ views:
                 - color: "#fff"
                 - font-size: 22px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               bottom: 5%
               left: 25%
@@ -624,12 +721,15 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.92)
-                - border-radius: 16px
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
+                - border-radius: 12px
                 - padding: 12px 10px
                 - width: 155px
                 - max-width: 155px
-                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 36px
@@ -641,6 +741,16 @@ views:
                 - color: "#fff"
                 - font-size: 22px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               bottom: 5%
               left: 35%
@@ -658,12 +768,15 @@ views:
               ]]]
             styles:
               card:
-                - background: rgba(8, 22, 48, 0.92)
-                - border-radius: 16px
+                - background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45))
+                - backdrop-filter: blur(12px) saturate(1.2)
+                - -webkit-backdrop-filter: blur(12px) saturate(1.2)
+                - border: 1px solid rgba(255, 255, 255, 0.18)
+                - border-radius: 12px
                 - padding: 12px 10px
                 - width: 155px
                 - max-width: 155px
-                - box-shadow: 0 6px 18px rgba(0,0,0,0.5)
+                - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12)
               icon:
                 - color: "#f5c842"
                 - width: 36px
@@ -675,6 +788,16 @@ views:
                 - color: "#fff"
                 - font-size: 22px
                 - font-weight: 700
+            card_mod:
+              style: |
+                ha-card {
+                  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(15, 25, 45, 0.45)) !important;
+                  backdrop-filter: blur(12px) saturate(1.2);
+                  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+                  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+                  border-radius: 12px !important;
+                  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+                }
             style:
               bottom: 5%
               left: 45%
