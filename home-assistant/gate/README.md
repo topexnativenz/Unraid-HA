@@ -2,93 +2,95 @@
 
 Deploy to Home Assistant at `http://192.168.1.239:8123`.
 
-## Root cause (fixed)
+**Strategy doc (dead zone, layers, hardware):** [`docs/gate-approach-strategy.md`](../../docs/gate-approach-strategy.md)
 
-The old `configuration.yaml` gate block used **HTTP** and the legacy `/fcgi/do?...&UserName=...&Password=...` URL. The door phone at `192.168.1.73` requires **HTTPS + HTTP Digest auth** via `/fcgi/OpenDoor?action=OpenDoor&DoorNum=N`.
+## Arrival — Tessie only (Model S)
 
-## Entities (after deploy)
+| Layer | Trigger | Notes |
+|-------|---------|-------|
+| **Road Approach** | `binary_sensor.model_s_tessie_in_road_approach` | Primary — Tessie GPS on Three Mile Bush Road |
+| **Gate Approach** | `binary_sensor.model_s_tessie_in_gate_approach` | Driveway mouth |
+| **Distance** | `sensor.model_s_tessie_distance_to_home` &lt; `gate_tessie_trigger_distance_m` | Backup if zone circles drift |
 
-| Entity | Purpose |
-|--------|---------|
-| `button.gate_open` | Pulse relay 1 (primary gate test) |
-| `button.gate_open_relay_2` | Pulse relay 2 (secondary test) |
-| `input_datetime.gate_last_open` | Last open attempt timestamp |
-| `input_select.gate_last_relay` | Which relay was last triggered |
+Automation: **Gate — open on Tessie arrival** → relay 1 pulse, then `script.gate_pulse_hold_approach` until Tessie reports car parked at home.
 
-Services: `shell_command.akuvox_gate_open_relay_1` / `_relay_2`
+**Departure** (unchanged): Tesla **P → R/D** → short departure hold.
 
-Lovelace (**Mobile Home** Quick Actions): gate controls use `custom:mushroom-lock-card` with friendly **Locked** / **Unlocked** labels. Reference: `home-assistant/gate/lovelace/gate_cards.yaml`.
+Phones are not used for gate open. Companion zones remain useful for dashboards only.
 
-## Automations (`automations/gate.yaml` → `/config/automations.yaml`)
+**Zone entity IDs:** automations reference the live UI zones (`zone.gate_approach_2`, `zone.road_approach_2` on this HA). If you recreate zones, run `cleanup_gate_zones.py` and update `automations/gate.yaml` to match entity IDs shown under **Developer tools → States**.
 
-| Automation | Trigger | Notes |
-|------------|---------|-------|
-| **Gate — open on approach from outside** | `person.dave` goes `not_home` → `Gate Approach` | Zone centred on road end of driveway (200 m radius); hold until clear |
-| **Gate — open when Model S leaves park at home** | Shift p→d/r, speed > 0.5 km/h, or driver door opens | Wakes Tessie; holds gate open until car clears (passengers/delays OK) |
+## Zones (editable on the HA map)
 
-**Gate hold:** the Akuvox relay auto-closes after ~5 s. `script.gate_open_with_hold` re-pulses every 4 s while `binary_sensor.gate_still_needs_hold` is on (only when `input_boolean.gate_hold_active` is on). Hold continues during active departure (Drive/Reverse, moving, doors open) or while in the approach zone — **not** while the car is simply parked at home in Park. Stops when clear or after 8 min max.
+**Gate Approach** and **Road Approach** are **not** in YAML anymore — create/update them in the UI:
 
-**Emergency close:** turn off `input_boolean.gate_hold_active`, stop `script.gate_open_with_hold`, then `lock.lock` on both gate lock entities.
+**Settings → Areas & zones → Zones** — drag the circles on the map (pencil icon).
 
-Tune hold timing: `input_number.gate_hold_repulse_seconds`, `input_number.gate_hold_max_minutes`.
+After deploy or a YAML→UI migration, run once:
 
-**Tessie:** API key and wake URL live in `/config/secrets.yaml` (`tessie_api_key_header`, `tessie_wake_model_s_url`). Do not commit secrets to git.
-| **Gate — mark exit in progress** | `person.dave` leaves `zone.home` | Prevents false open when driving out |
-
-Entity IDs: `automation.gate_open_on_approach_from_outside_100_m`, `automation.gate_open_when_model_s_leaves_park_at_home`, `automation.gate_mark_exit_in_progress_when_leaving_home`.
-
-Tune gate position in `/config/secrets.yaml` (quotes required on negative latitude):
-
-```yaml
-gate_latitude: "-35.69110"      # road end of driveway — drag zone on HA map to refine
-gate_longitude: "174.2669872"
-gate_approach_radius: 200       # metres; increase if GPS triggers too late
+```bash
+python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/gate/scripts/ensure_gate_zones.py
 ```
 
-The **Gate Approach** zone is centred on those coordinates with the configured radius (`packages/gate_automations.yaml`).
+Use `--update-existing` only if you want to reset coordinates from `secrets.yaml` defaults (normally **drag the map** instead).
 
-**Approach logic:** triggers only on `not_home` → `Gate Approach` (removed the `home` backup — it opened the gate too close to the intercom). Leaving (`home` → `Gate Approach`) does not match.
+| Zone | Place on map |
+|------|----------------|
+| **Gate Approach** | Three Mile Bush Road at the **driveway mouth** (small radius ~100 m) |
+| **Road Approach** | On **Three Mile Bush Road** upstream of the driveway — **~450 m** radius for Tessie’s ~30 s GPS cadence |
 
-**Tesla logic:** Tessie often sleeps and does not report shift/speed changes. The script wakes the car via Tessie REST + HA button, waits up to 15 s for Drive/Reverse or movement, then runs `gate_open_with_hold`.
+Optional starting values in `/config/secrets.yaml` (used only by `ensure_gate_zones.py`):
 
-**Exit flag:** `input_boolean.gate_exit_in_progress` is set when leaving home (for visibility) and cleared when an arrival automation opens the gate.
+```yaml
+gate_latitude: "-35.69110"
+gate_longitude: "174.2669872"
+gate_approach_radius: 100
+road_approach_latitude: "-35.68926"
+road_approach_longitude: "174.26696"
+road_approach_radius: 450
+```
+
+## Other secrets (`/config/secrets.yaml`)
+
+```yaml
+tessie_api_key_header: "Bearer …"
+tessie_wake_model_s_url: "https://api.tessie.com/…/wake"
+tessie_model_s_location_url: "https://api.tessie.com/…/location"
+```
+
+## Notifications
+
+Gate open/close alerts use `notify.halo`. Arrival is **Tessie-only** — phones are not in the open automation.
+
+Tessie location polls every 10 s; `gate_tessie_wake_while_away` wakes the car every 5 min when `model_s_was_away` is on.
+
+## Packages
+
+| File | Role |
+|------|------|
+| `gate_automations.yaml` | Gate + home zones |
+| `gate_approach_layers.yaml` | Road Approach zone + tunables |
+| `gate_tessie_location.yaml` | Tessie REST poll + distance sensors |
+| `gate_akuvox.yaml` | Relay scripts, `gate_arrival_passage_active` |
+| `gate_phone.yaml` | Status sensor |
+| `automations/gate.yaml` | Automations block for `automations.yaml` |
+
+## Relays
+
+Relay **1** = pulse (automations). Relay **2** = latch (manual test only).
 
 ## Deploy
 
 ```bash
-python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/gate/scripts/deploy_gate_to_ha.py --gate-password 'YOUR_PASSWORD'
+/Users/topexnative/Projects/unraid-array-design/home-assistant/gate/scripts/deploy_gate_packages.sh
 ```
 
-Secrets on HA (`/config/secrets.yaml`) must define `akuvox_gate_curl_relay_1` and `_relay_2` as full curl commands (see deployed example). Use **single-quoted** YAML scalars for passwords containing `!!`.
+If you are inside a `.venv` without `websockets`, the script uses system Python automatically. Alternatively:
 
-## Local Akuvox (recommended next step)
+```bash
+python3 -m pip install --user websockets
+# or
+export HA_SAMBA_PASSWORD='…'   # HA → Settings → Add-ons → Samba share
+```
 
-Custom component is copied to `/config/custom_components/local_akuvox`. Add via HA UI:
-
-**Settings → Devices & Services → Add Integration → Local Akuvox**
-
-| Setting | Value |
-|---------|-------|
-| Host | `192.168.1.73` |
-| SSL | On |
-| Verify SSL | Off |
-| Auth | Digest |
-| Username | `admin` |
-| Password | (from secrets) |
-| Webhooks | On |
-
-This creates `lock.*` entities and pushes relay events to HA (`local_akuvox_webhook_received`).
-
-## Relay mapping (TBD on site)
-
-Both **DoorNum=1** and **DoorNum=2** return `{"retcode":0,"message":"OK"}` from the API. Test each button and see which one actually moves the swing gate.
-
-## Door phone
-
-- IP: `192.168.1.73` (MAC `0c:11:05:32:20:7b`)
-- RTSP: port `554`
-- HyPanel IP: not found on LAN scan (may be Wi‑Fi / sleeping); HTTP API whitelist already includes HA (`192.168.1.239`) and tower (`192.168.1.7`).
-
-## BelaHome
-
-No native HA integration. BelaHome / SmartPlus cloud (`custom_components/akuvox`) is optional for remote control; local control is preferred.
+Manual fallback: copy all `packages/gate*.yaml` and the gate block in `automations/gate.yaml` into `/config`, then reload core config + template + automations + scripts.

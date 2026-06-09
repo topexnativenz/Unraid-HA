@@ -1,0 +1,75 @@
+# Tessie tunables + zone coordinates (match Settings → Areas & zones map circles).
+
+input_number:
+  gate_tessie_trigger_distance_m:
+    name: Gate Tessie trigger distance
+    min: 150
+    max: 800
+    step: 25
+    initial: 400
+    unit_of_measurement: m
+    icon: mdi:car-connected
+  gate_early_hold_seconds:
+    name: Gate dead-zone tail (after leaving approach)
+    min: 60
+    max: 600
+    step: 30
+    initial: 180
+    unit_of_measurement: s
+    icon: mdi:timer-outline
+  gate_departure_hold_seconds:
+    name: Gate departure hold (leaving home)
+    min: 30
+    max: 180
+    step: 15
+    initial: 75
+    unit_of_measurement: s
+    icon: mdi:car-arrow-left
+  gate_zone_latitude:
+    name: Gate zone latitude (Tessie)
+    min: -90
+    max: 90
+    step: 0.00001
+    initial: -35.69166
+    mode: box
+    icon: mdi:gate
+  gate_zone_longitude:
+    name: Gate zone longitude (Tessie)
+    min: -180
+    max: 180
+    step: 0.00001
+    initial: 174.26696
+    mode: box
+    icon: mdi:gate
+  gate_zone_radius_m:
+    name: Gate zone radius (Tessie)
+    min: 50
+    max: 300
+    step: 5
+    initial: 100
+    unit_of_measurement: m
+    icon: mdi:gate
+  road_zone_latitude:
+    name: Road zone latitude (Tessie)
+    min: -90
+    max: 90
+    step: 0.00001
+    initial: -35.68926
+    mode: box
+    icon: mdi:road-variant
+  road_zone_longitude:
+    name: Road zone longitude (Tessie)
+    min: -180
+    max: 180
+    step: 0.00001
+    initial: 174.26696
+    mode: box
+    icon: mdi:road-variant
+  road_zone_radius_m:
+    name: Road zone radius (Tessie)
+    min: 100
+    max: 600
+    step: 10
+    initial: 450
+    unit_of_measurement: m
+    icon: mdi:road-variant
