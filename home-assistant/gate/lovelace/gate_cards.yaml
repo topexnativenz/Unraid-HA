@@ -1,4 +1,4 @@
-# Mobile Home — gate controls (use mushroom-lock-card; button-card state_display breaks on iOS)
+# Mobile Home — gate controls + phone location status (server zones = source of truth)
 
 - type: custom:mushroom-lock-card
   entity: lock.gate_intercom_gate_open
@@ -13,3 +13,28 @@
   fill_container: true
   grid_options:
     columns: 6
+
+- type: entities
+  title: Gate — Tessie location
+  show_header_toggle: false
+  entities:
+    - entity: sensor.gate_automation_status
+      name: Status
+    - entity: input_text.gate_status_message
+      name: Message
+    - entity: sensor.model_s_tessie_distance_to_gate
+      name: Distance to gate (m)
+    - entity: sensor.model_s_tessie_distance_to_home
+      name: Distance to home (m)
+    - entity: binary_sensor.model_s_tessie_in_road_approach
+      name: In road approach zone
+    - entity: binary_sensor.model_s_tessie_in_gate_approach
+      name: In gate approach zone
+    - entity: input_boolean.model_s_was_away
+      name: Was away (arrival armed)
+    - entity: input_boolean.gate_exit_in_progress
+      name: Exit in progress
+    - entity: zone.road_approach
+      name: Road Approach zone
+    - entity: zone.gate_approach
+      name: Gate Approach zone

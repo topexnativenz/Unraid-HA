@@ -1,0 +1,31 @@
+# Gate status for dashboards and the HA app (Tessie-first arrival).
+
+template:
+  - sensor:
+      - name: Gate automation status
+        unique_id: gate_automation_status
+        icon: mdi:gate
+        state: >-
+          {% if is_state('input_boolean.gate_arrival_session', 'on') %}
+            Tessie arrival — pulsing until home
+          {% elif is_state('input_boolean.gate_departure_in_progress', 'on') %}
+            Tesla departing
+          {% elif is_state('input_boolean.gate_hold_active', 'on') %}
+            Opening — relay 1 hold active
+          {% elif is_state('binary_sensor.model_s_tessie_in_gate_approach', 'on') %}
+            Tessie at gate approach
+          {% elif is_state('binary_sensor.model_s_tessie_in_road_approach', 'on') %}
+            Tessie on road approach
+          {% elif is_state('input_boolean.model_s_was_away', 'on') %}
+            Model S away — Tessie armed
+          {% else %}
+            Idle
+          {% endif %}
+        attributes:
+          tessie_distance_home_m: "{{ states('sensor.model_s_tessie_distance_to_home') }}"
+          tessie_distance_gate_m: "{{ states('sensor.model_s_tessie_distance_to_gate') }}"
+          shift_state: "{{ states('sensor.model_s_p100d_shift_state') }}"
+          message: "{{ states('input_text.gate_status_message') }}"
+          session_active: "{{ states('input_boolean.gate_arrival_session') }}"
+          hold_active: "{{ states('input_boolean.gate_hold_active') }}"
+          passage_active: "{{ states('binary_sensor.gate_arrival_passage_active') }}"
