@@ -1,0 +1,217 @@
+# Main Garage automations — nightly close + House Garage on Tessie arrival.
+# House Garage contact: binary_sensor.house_garage_door_sensor_door (off=closed, on=open)
+# House Garage pulse: script.pulse_house_garage_door
+# Main Garage cover: cover.garage_door (template in main_garage_cover.yaml)
+
+- id: house_garage_open_on_tessie_arrival
+  alias: House Garage — open and light on Tessie arrival (Model S or X)
+  description: >-
+    When Model S or Model X approach home via Tessie, open the House Garage if
+    the contact sensor reports closed and turn on garage lights when off.
+    Uses the Tapo contact sensor (not the pulse boolean).
+  triggers:
+    - id: model_s_gate
+      trigger: state
+      entity_id: binary_sensor.model_s_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+    - id: model_x_gate
+      trigger: state
+      entity_id: binary_sensor.model_x_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+    - id: model_s_home
+      trigger: template
+      value_template: >-
+        {{ states('sensor.model_s_tessie_distance_to_home') | float(9999) < 90
+           and states('sensor.model_s_p100d_shift_state') | lower in ['p', 'd', 'r']
+           and (
+             is_state('input_boolean.model_s_was_away', 'on')
+             or states('sensor.model_s_tessie_distance_to_home') | float(0) > 200
+           ) }}
+      for:
+        seconds: 25
+    - id: model_x_home
+      trigger: template
+      value_template: >-
+        {{ states('sensor.model_x_tessie_distance_to_home') | float(9999) < 90
+           and states('sensor.x_shift_state') | lower in ['p', 'd', 'r']
+           and (
+             is_state('input_boolean.model_x_was_away', 'on')
+             or states('sensor.model_x_tessie_distance_to_home') | float(0) > 200
+           ) }}
+      for:
+        seconds: 25
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ not is_state('input_boolean.gate_departure_in_progress', 'on') }}
+    - condition: template
+      value_template: >-
+        {{ trigger.id in ['model_s_gate', 'model_x_gate']
+           or (
+             trigger.id == 'model_s_home'
+             and (
+               is_state('input_boolean.model_s_was_away', 'on')
+               or is_state('binary_sensor.model_s_tessie_in_gate_approach', 'on')
+               or is_state('binary_sensor.model_s_tessie_in_road_approach', 'on')
+             )
+           )
+           or (
+             trigger.id == 'model_x_home'
+             and (
+               is_state('input_boolean.model_x_was_away', 'on')
+               or is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on')
+               or is_state('binary_sensor.model_x_tessie_in_road_approach', 'on')
+             )
+           ) }}
+  actions:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: binary_sensor.house_garage_door_sensor_door
+              state: "off"
+          sequence:
+            - action: script.turn_on
+              target:
+                entity_id: script.pulse_house_garage_door
+            - action: notify.halo
+              data:
+                title: House Garage
+                message: >-
+                  Opening House Garage — {{ trigger.id | replace('model_', 'Model ')
+                  | replace('_gate', ' gate approach') | replace('_home', ' at home') }}.
+                data:
+                  tag: house_garage_arrival
+                  channel: gate
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: light.garage
+              state: "off"
+          sequence:
+            - action: light.turn_on
+              target:
+                entity_id: light.garage
+  mode: single
+
+- id: garage_outside_lights_on_tessie_arrival_after_dark
+  alias: Garage outside lights — on Tessie arrival after dark
+  description: >-
+    Turns on light.outside_garage when Model S or X approach home after sunset.
+    Arms garage_outside_lights_arrival_active so they turn off when the House
+    Garage door closes.
+  triggers:
+    - id: model_s_gate
+      trigger: state
+      entity_id: binary_sensor.model_s_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+    - id: model_x_gate
+      trigger: state
+      entity_id: binary_sensor.model_x_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+    - id: model_s_home
+      trigger: template
+      value_template: >-
+        {{ states('sensor.model_s_tessie_distance_to_home') | float(9999) < 90
+           and states('sensor.model_s_p100d_shift_state') | lower in ['p', 'd', 'r']
+           and (
+             is_state('input_boolean.model_s_was_away', 'on')
+             or states('sensor.model_s_tessie_distance_to_home') | float(0) > 200
+           ) }}
+      for:
+        seconds: 25
+    - id: model_x_home
+      trigger: template
+      value_template: >-
+        {{ states('sensor.model_x_tessie_distance_to_home') | float(9999) < 90
+           and states('sensor.x_shift_state') | lower in ['p', 'd', 'r']
+           and (
+             is_state('input_boolean.model_x_was_away', 'on')
+             or states('sensor.model_x_tessie_distance_to_home') | float(0) > 200
+           ) }}
+      for:
+        seconds: 25
+  conditions:
+    - condition: sun
+      after: sunset
+      before: sunrise
+    - condition: template
+      value_template: >-
+        {{ not is_state('input_boolean.gate_departure_in_progress', 'on') }}
+    - condition: template
+      value_template: >-
+        {{ trigger.id in ['model_s_gate', 'model_x_gate']
+           or (
+             trigger.id == 'model_s_home'
+             and (
+               is_state('input_boolean.model_s_was_away', 'on')
+               or is_state('binary_sensor.model_s_tessie_in_gate_approach', 'on')
+               or is_state('binary_sensor.model_s_tessie_in_road_approach', 'on')
+             )
+           )
+           or (
+             trigger.id == 'model_x_home'
+             and (
+               is_state('input_boolean.model_x_was_away', 'on')
+               or is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on')
+               or is_state('binary_sensor.model_x_tessie_in_road_approach', 'on')
+             )
+           ) }}
+  actions:
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.garage_outside_lights_arrival_active
+    - action: light.turn_on
+      target:
+        entity_id: light.outside_garage
+  mode: single
+
+- id: garage_outside_lights_off_house_garage_closed
+  alias: Garage outside lights — off when House Garage closes
+  description: >-
+    Turns off light.outside_garage as soon as the House Garage contact sensor
+    reports closed, only when lit for an arrival session after dark.
+  triggers:
+    - trigger: state
+      entity_id: binary_sensor.house_garage_door_sensor_door
+      from: "on"
+      to: "off"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.garage_outside_lights_arrival_active
+      state: "on"
+  actions:
+    - action: light.turn_off
+      target:
+        entity_id: light.outside_garage
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.garage_outside_lights_arrival_active
+  mode: single
+
+- id: garage_close_at_9pm
+  alias: Garage — close Main Garage at 9 PM
+  description: >-
+    Closes Main Garage nightly at 21:00 Pacific/Auckland if still open.
+    Skips when the Tapo camera reports a person in the garage.
+  triggers:
+    - trigger: time
+      at: "21:00:00"
+  conditions:
+    - condition: state
+      entity_id: cover.garage_door
+      state: open
+    - condition: state
+      entity_id: binary_sensor.garage_door_sensor_open
+      state: "on"
+    - condition: state
+      entity_id: binary_sensor.garage_door_person_detected
+      state: "off"
+  actions:
+    - action: cover.close_cover
+      target:
+        entity_id: cover.garage_door
+  mode: single

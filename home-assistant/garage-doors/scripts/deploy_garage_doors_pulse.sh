@@ -78,7 +78,6 @@ sync_bool() {
 
 echo "Syncing tracked state from Shelly switches (one-time alignment):"
 sync_bool input_boolean.house_garage_door_open switch.garage_door_3
-sync_bool input_boolean.main_shed_door_open switch.garage_door_1
 sync_bool input_boolean.second_shed_door_open switch.garage_door_2
 
 echo "Done. If helpers are new, restart HA or reload all YAML once."
