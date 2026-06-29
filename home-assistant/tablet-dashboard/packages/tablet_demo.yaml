@@ -1,0 +1,175 @@
+# Tablet dashboard — demo/template entities for pre-solar-install kiosk preview.
+# Toggle off input_boolean.tablet_demo_mode and remap lovelace/includes/*.yaml when live.
+
+input_boolean:
+  tablet_demo_mode:
+    name: Tablet Demo Mode
+    icon: mdi:test-tube
+    initial: true
+
+input_button:
+  tablet_demo_scene_guest:
+    name: Demo Scene Guest
+    icon: mdi:account-multiple
+  tablet_demo_scene_dim:
+    name: Demo Scene Dim
+    icon: mdi:brightness-4
+  tablet_demo_scene_movie:
+    name: Demo Scene Movie
+    icon: mdi:movie-open
+  tablet_demo_scene_night:
+    name: Demo Scene Night
+    icon: mdi:weather-night
+  tablet_demo_scene_vaca:
+    name: Demo Scene Vaca
+    icon: mdi:beach
+
+template:
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        hours: "/1"
+    sensor:
+      - name: Tablet Demo Weather
+        unique_id: tablet_demo_weather
+        icon: mdi:weather-sunny
+        state: sunny
+        attributes:
+          friendly_condition: Sunny
+          temperature: 82
+          temperature_unit: "°F"
+          humidity: 24
+          wind_speed: 8
+          wind_speed_unit: mph
+          precipitation: 0
+          precipitation_unit: in
+          uv_index: 2
+          forecast: >
+            {% set lows = [62, 64, 63, 61] %}
+            {% set highs = [82, 84, 83, 80] %}
+            {% set conditions = ['sunny', 'partlycloudy', 'sunny', 'cloudy'] %}
+            {% set ns = namespace(items=[]) %}
+            {% for i in range(4) %}
+              {% set ns.items = ns.items + [{
+                'datetime': (now() + timedelta(days=i)).strftime('%Y-%m-%d'),
+                'condition': conditions[i],
+                'templow': lows[i],
+                'temperature': highs[i]
+              }] %}
+            {% endfor %}
+            {{ ns.items }}
+
+      - name: Tablet Demo UV Index
+        unique_id: tablet_demo_uv_index
+        icon: mdi:weather-sunny-alert
+        state: "2"
+
+      - name: Tablet Demo Person David
+        unique_id: tablet_demo_person_david
+        icon: mdi:account
+        state: home
+        attributes:
+          friendly_name: David
+          battery: 65
+          location_text: "Home • 4 hours ago"
+          entity_picture: /local/tablet-dashboard/avatar-david.png
+
+      - name: Tablet Demo Person Genna
+        unique_id: tablet_demo_person_genna
+        icon: mdi:account
+        state: home
+        attributes:
+          friendly_name: Genna
+          battery: 80
+          location_text: "Home • 25 mins ago"
+          entity_picture: /local/tablet-dashboard/avatar-genna.png
+
+      - name: Tablet Demo Vacuum
+        unique_id: tablet_demo_vacuum
+        icon: mdi:robot-vacuum
+        state: idle
+        attributes:
+          friendly_name: RoboVacs
+          status_text: Housekeeper controls
+
+      - name: Tablet Demo Climate
+        unique_id: tablet_demo_climate
+        icon: mdi:thermostat
+        state: "72"
+        unit_of_measurement: "°F"
+        attributes:
+          friendly_name: Climate
+          current_temperature: 72
+          temperature_unit: "°F"
+          hvac_mode: heat_cool
+
+      - name: Tablet Demo Media
+        unique_id: tablet_demo_media
+        icon: mdi:speaker
+        state: idle
+        attributes:
+          friendly_name: Media
+          status_text: Music control
+          media_title: ""
+
+automation:
+  - id: tablet_demo_scene_guest_notify
+    alias: Tablet Demo Scene Guest
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.tablet_demo_scene_guest
+    action:
+      - service: persistent_notification.create
+        data:
+          title: Guest Scene
+          message: Demo mode — Guest scene activated.
+
+  - id: tablet_demo_scene_dim_notify
+    alias: Tablet Demo Scene Dim
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.tablet_demo_scene_dim
+    action:
+      - service: persistent_notification.create
+        data:
+          title: Dim Scene
+          message: Demo mode — Dim scene activated.
+
+  - id: tablet_demo_scene_movie_notify
+    alias: Tablet Demo Scene Movie
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.tablet_demo_scene_movie
+    action:
+      - service: persistent_notification.create
+        data:
+          title: Movie Scene
+          message: Demo mode — Movie scene activated.
+
+  - id: tablet_demo_scene_night_notify
+    alias: Tablet Demo Scene Night
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.tablet_demo_scene_night
+    action:
+      - service: persistent_notification.create
+        data:
+          title: Night Scene
+          message: Demo mode — Night scene activated.
+
+  - id: tablet_demo_scene_vaca_notify
+    alias: Tablet Demo Scene Vaca
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: input_button.tablet_demo_scene_vaca
+    action:
+      - service: persistent_notification.create
+        data:
+          title: Vaca Scene
+          message: Demo mode — Vacation scene activated.

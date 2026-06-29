@@ -155,10 +155,12 @@ sequenceDiagram
 
 | Method | Use |
 |--------|-----|
+| **Nabu Casa** (HA Cloud) | **Home Assistant Companion** on phones — gates, garage, lights, location ([home-assistant/README.md](../home-assistant/README.md)) |
 | WireGuard on router | Remote admin + SMB over VPN |
-| Tailscale on NAS | Easy homelab; mind ACLs |
-| Cloudflare Tunnel | Web apps only (Notifiarr, etc.) |
+| Tailscale on NAS / tower | **Admin SSH**, Cursor MCP, Unraid — **not** Companion app |
+| Cloudflare Tunnel | Web apps only (Notifiarr, Helmarr, etc.) |
 | Port-forward SMB | **Avoid** |
+| Tailscale / VPN URL in Companion | **Avoid** — use Nabu Casa instead |
 
 ---
 

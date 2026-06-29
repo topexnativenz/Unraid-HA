@@ -20,11 +20,16 @@ template:
           {% else %}
             {% set session_age = (now() - states.input_boolean.gate_arrival_session.last_changed).total_seconds() %}
             {% set max_sec = states('input_number.gate_hold_max_minutes') | float(8) * 60 %}
-            {% set dist_home = states('sensor.model_s_tessie_distance_to_home') | float(9999) %}
+            {% set dist_home_s = states('sensor.model_s_tessie_distance_to_home') | float(9999) %}
+            {% set dist_home_x = states('sensor.model_x_tessie_distance_to_home') | float(9999) %}
             {% set in_approach = is_state('binary_sensor.model_s_tessie_in_road_approach', 'on')
-               or is_state('binary_sensor.model_s_tessie_in_gate_approach', 'on') %}
-            {% set car_at_home = dist_home < 60
-               and states('sensor.model_s_p100d_shift_state') | lower in ['p', ''] %}
+               or is_state('binary_sensor.model_s_tessie_in_gate_approach', 'on')
+               or is_state('binary_sensor.model_x_tessie_in_road_approach', 'on')
+               or is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on') %}
+            {% set car_at_home = (dist_home_s < 60
+               and states('sensor.model_s_p100d_shift_state') | lower in ['p', ''])
+               or (dist_home_x < 60
+               and states('sensor.x_shift_state') | lower in ['p', '']) %}
             {% set dead_zone = states('input_number.gate_early_hold_seconds') | float(180) %}
             {% set grace = states('input_number.gate_approach_grace_seconds') | float(90) %}
             {{
@@ -48,8 +53,12 @@ template:
             {% set max_s = states('input_number.gate_departure_hold_seconds') | float(75) %}
             {{
               age < max_s
-              and states('sensor.model_s_p100d_shift_state') | lower in ['d', 'r']
-              and states('sensor.model_s_p100d_speed') | float(0) < 15
+              and (
+                (states('sensor.model_s_p100d_shift_state') | lower in ['d', 'r']
+                 and states('sensor.model_s_p100d_speed') | float(0) < 15)
+                or (states('sensor.x_shift_state') | lower in ['d', 'r']
+                 and states('sensor.x_speed') | float(0) < 15)
+              )
             }}
           {% endif %}
 

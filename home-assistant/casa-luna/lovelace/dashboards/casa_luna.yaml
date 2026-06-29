@@ -1,0 +1,206 @@
+# Casa Luna — G-UNIT wall tablet (332 Three Mile Bush Road)
+# Energy: solar_dashboard demo sensors until Sigenergy live.
+# Home: real HA entities (lights, gate, Tessie, cameras, automations).
+# kiosk-mode (HACS NemesisRE/kiosk-mode): lock down wall panels logged in as Panel user.
+
+kiosk_mode:
+  user_settings:
+    - users:
+        - Panel
+      kiosk: true
+      hide_sidebar: true
+      hide_header: true
+      hide_overflow: true
+      block_overflow: true
+      hide_settings: true
+      hide_account: true
+      hide_search: true
+      hide_assistant: true
+      hide_notifications: true
+      hide_edit_dashboard: true
+      hide_add_to_home_assistant: true
+      hide_refresh: true
+      hide_unused_entities: true
+      hide_reload_resources: true
+      block_context_menu: true
+      hide_dialog_header_settings: true
+      hide_dialog_header_overflow: true
+      hide_dialog_header_action_items: true
+      hide_dialog_header_breadcrumb_navigation: true
+      hide_dialog_header_history: true
+      ignore_mobile_settings: true
+  non_admin_settings:
+    kiosk: true
+    hide_sidebar: true
+    hide_header: true
+    hide_overflow: true
+    block_overflow: true
+    hide_settings: true
+    hide_account: true
+    hide_search: true
+    hide_assistant: true
+    hide_notifications: true
+    hide_edit_dashboard: true
+    hide_add_to_home_assistant: true
+    hide_refresh: true
+    hide_unused_entities: true
+    hide_reload_resources: true
+    block_context_menu: true
+    hide_dialog_header_settings: true
+    hide_dialog_header_overflow: true
+    hide_dialog_header_action_items: true
+    hide_dialog_header_breadcrumb_navigation: true
+    hide_dialog_header_history: true
+
+views:
+  - title: G-UNIT
+    path: home
+    type: panel
+    panel: true
+    cards:
+      - type: custom:casa-luna
+        header_title: G-UNIT
+        header_subtitle: THREE MILE BUSH · LIVE
+        background_path: /local/community/casa-luna/sky
+        weather_entity: weather.forecast_home
+        sun: sun.sun
+
+        # --- Solar (demo until Sigenergy) ---
+        pv1_power: sensor.solar_roof_power
+        pv2_power: sensor.solar_ground_power
+        pv_total_power: sensor.casa_luna_pv_total
+        pv_max_power: 7500
+        grid_active_power: sensor.grid_import_power
+        grid_voltage: sensor.grid_voltage
+        consump: sensor.home_consumption_power
+        invert_grid_power: true
+        battery_soc: sensor.solar_battery_soc
+        battery_power: sensor.solar_battery_power
+        battery_voltage: sensor.solar_battery_voltage
+        battery_current: sensor.casa_luna_battery_current
+        battery_cap_unit: kwh
+        battery_full_wh: 27000
+        invert_battery_power: false
+        inverter_state: sensor.casa_luna_inverter_state
+        inv_temp: sensor.inverter_temperature
+        today_pv: sensor.solar_production_today
+        today_load: sensor.casa_luna_today_load
+        total_pv: sensor.solar_production_year
+        _show_pv_extra: false
+        _show_3phase: false
+        _show_battery2: false
+        history_charts: true
+
+        # --- Tessie EV (Model S primary banner; Model X on bottom tile) ---
+        _show_ev: true
+        charger_soc: sensor.model_s_p100d_battery_level
+        charger_power: sensor.model_s_p100d_charger_power
+        charger_current: sensor.model_s_p100d_charger_current
+        charger_state: sensor.model_s_p100d_charging
+
+        # --- Energy / Battery nav views (solar demo) ---
+        en_pv1: sensor.solar_roof_power
+        en_pv2: sensor.solar_ground_power
+        en_grid_power: sensor.grid_import_power
+        en_load: sensor.home_consumption_power
+        en_work_mode: sensor.casa_luna_inverter_state
+        bat_soc: sensor.solar_battery_soc
+        bat_voltage: sensor.solar_battery_voltage
+        bat_current: sensor.casa_luna_battery_current
+        bat_power: sensor.solar_battery_power
+        bat_temp1: sensor.growatt_spf_battery_temperature
+
+        # --- Climate: auto-discover climate.* + temp/humidity sensors ---
+        auto_discover_climate: true
+        clim_ambient: sensor.hypanel_pro_temperature_2
+        clim_humidity: sensor.hypanel_pro_humidity_2
+
+        # --- Security: cameras, motion, gate scripts, garage door ---
+        auto_discover_security: false
+        sec_cam1: camera.front_yard
+        sec_cam2: camera.garage_door
+        sec_motion: binary_sensor.front_yard_motion_detected
+        sec_door1: binary_sensor.house_garage_door_sensor_door
+        sec_door2: binary_sensor.garage_door_sensor_open
+        sec_door3: binary_sensor.casa_luna_main_shed_garage_door
+        sec_window1: binary_sensor.front_door_doorbell_person_detected
+        sec_scene_arm: script.gate_pulse_open_once
+        sec_scene_disarm: script.gate_pulse_departure
+        sec_scene_night: script.gate_open_tesla_when_leaving
+        sec_motion_alert: automation.night_lights_on_arrival
+
+        # --- Lighting: nav tile → Floorplan (4:3) ground floor ---
+        nav_lighting_url: /floorplan-4-3/ground-floor
+        auto_discover_lighting: true
+        light_all_on: script.casa_luna_lights_all_on
+        light_all_off: script.casa_luna_lights_all_off
+
+        # --- Automation: scenes (scripts) + key automations ---
+        auto_discover_automation: false
+        auto_scene_night: script.casa_luna_goodnight
+        auto_scene_morning: script.casa_luna_scene_night
+        auto_scene_away: script.casa_luna_scene_vacation
+        auto_scene_movie: script.casa_luna_scene_movie
+        auto_scene_party: script.casa_luna_scene_guest
+        auto_scene_home: script.casa_luna_scene_dim
+        auto_relay1: script.gate_pulse_open_once
+        auto_relay2: script.gate_pulse_hold_approach
+        auto_relay3: script.pulse_house_garage_door
+        auto_relay4: script.pulse_main_shed_door
+        auto_motion_lights: automation.night_lights_on_arrival
+        auto_sunset_lights: automation.hallway_footlights_after_sunset
+        auto_door_alerts: automation.garage_close_main_garage_at_9_pm
+        auto_smoke_fan: automation.sensor_lights_off_during_daylight
+        # auto_alexa cleared — Kitchen Sonos removed from automation panel
+
+        # --- System / network ---
+        sys_inv_temp: sensor.inverter_temperature
+        sys_work_mode: sensor.casa_luna_inverter_state
+        sys_board_temp: sensor.hypanel_pro_temperature_2
+        sys_wifi: sensor.casa_luna_unifi_ap_status
+        sys_unifi_firmware: sensor.casa_luna_unifi_firmware_pending
+
+        # --- Bottom quick tiles: Gate · garages · Model S · Model X · UniFi ---
+        _extra_tile_1_enabled: true
+        _extra_tile_1_label: Gate
+        _extra_tile_1_entity: binary_sensor.casa_luna_gate_status
+        _extra_tile_1_icon: shield
+        _extra_tile_2_enabled: true
+        _extra_tile_2_label: House garage
+        _extra_tile_2_entity: binary_sensor.house_garage_door_sensor_door
+        _extra_tile_2_icon: home
+        _extra_tile_3_enabled: true
+        _extra_tile_3_label: Main shed
+        _extra_tile_3_entity: binary_sensor.casa_luna_main_shed_garage_door
+        _extra_tile_3_icon: home
+        _extra_tile_4_enabled: true
+        _extra_tile_4_label: Model S
+        _extra_tile_4_entity: sensor.model_s_p100d_battery_level
+        _extra_tile_4_icon: bolt
+        _extra_tile_5_enabled: true
+        _extra_tile_5_label: Model X
+        _extra_tile_5_entity: sensor.x_battery_level
+        _extra_tile_5_icon: bolt
+        _extra_tile_6_enabled: true
+        _extra_tile_6_label: UniFi AP
+        _extra_tile_6_entity: sensor.casa_luna_unifi_summary_short
+        _extra_tile_6_icon: gear
+
+        # --- Recent events feed (gate, garage, motion, alarm) ---
+        events_entities:
+          - sensor.gate_automation_status
+          - automation.gate_open_on_arrival_road_tessie_or_gate_zone
+          - sensor.x_charging
+          - sensor.x_battery_level
+          - binary_sensor.house_garage_door_sensor_door
+          - binary_sensor.garage_door_sensor_open
+          - binary_sensor.casa_luna_main_shed_garage_door
+          - sensor.casa_luna_unifi_ap_status
+          - sensor.casa_luna_unifi_firmware_pending
+          - sensor.casa_luna_latest_tv_download
+          - sensor.casa_luna_latest_movie_download
+          - binary_sensor.front_yard_motion_detected
+          - binary_sensor.garage_door_motion_detected
+          - binary_sensor.front_door_doorbell_person_detected
+          - alarm_control_panel.three_mile_bush
+          - cover.garage_door

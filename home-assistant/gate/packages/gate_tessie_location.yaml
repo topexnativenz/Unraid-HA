@@ -18,6 +18,21 @@ rest:
         unique_id: model_s_tessie_longitude
         value_template: "{{ value_json.longitude }}"
         unit_of_measurement: "°"
+  - resource: !secret tessie_model_x_location_url
+    method: GET
+    headers:
+      Authorization: !secret tessie_api_key_header
+      Content-Type: application/json
+    scan_interval: 10
+    sensor:
+      - name: Model X Tessie latitude
+        unique_id: model_x_tessie_latitude
+        value_template: "{{ value_json.latitude }}"
+        unit_of_measurement: "°"
+      - name: Model X Tessie longitude
+        unique_id: model_x_tessie_longitude
+        value_template: "{{ value_json.longitude }}"
+        unit_of_measurement: "°"
 
 template:
   - trigger:
@@ -60,6 +75,46 @@ template:
             {{ (distance(lat | float(0), lon | float(0), 'zone.home') * 1000) | round(0) }}
           {% endif %}
 
+  - trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id:
+          - sensor.model_x_tessie_latitude
+          - sensor.model_x_tessie_longitude
+          - input_number.gate_zone_latitude
+          - input_number.gate_zone_longitude
+          - input_number.road_zone_latitude
+          - input_number.road_zone_longitude
+          - zone.home
+    sensor:
+      - name: Model X Tessie distance to gate
+        unique_id: model_x_tessie_distance_to_gate
+        unit_of_measurement: m
+        icon: mdi:map-marker-distance
+        state: >-
+          {% set lat = states('sensor.model_x_tessie_latitude') %}
+          {% set lon = states('sensor.model_x_tessie_longitude') %}
+          {% if lat in ['unknown', 'unavailable', 'none', ''] or lon in ['unknown', 'unavailable', 'none', ''] %}
+            unknown
+          {% else %}
+            {% set gzlat = states('input_number.gate_zone_latitude') | float(-35.69166) %}
+            {% set gzlon = states('input_number.gate_zone_longitude') | float(174.26696) %}
+            {{ (distance(lat | float(0), lon | float(0), gzlat, gzlon) * 1000) | round(0) }}
+          {% endif %}
+      - name: Model X Tessie distance to home
+        unique_id: model_x_tessie_distance_to_home
+        unit_of_measurement: m
+        icon: mdi:home-map-marker
+        state: >-
+          {% set lat = states('sensor.model_x_tessie_latitude') %}
+          {% set lon = states('sensor.model_x_tessie_longitude') %}
+          {% if lat in ['unknown', 'unavailable', 'none', ''] or lon in ['unknown', 'unavailable', 'none', ''] %}
+            unknown
+          {% else %}
+            {{ (distance(lat | float(0), lon | float(0), 'zone.home') * 1000) | round(0) }}
+          {% endif %}
+
   - binary_sensor:
       - name: Model S Tessie in road approach
         unique_id: model_s_tessie_in_road_approach
@@ -83,3 +138,25 @@ template:
           {{ dist < (states('input_number.gate_zone_radius_m') | float(100)) }}
         availability: >-
           {{ states('sensor.model_s_tessie_distance_to_gate') not in ['unknown', 'unavailable', 'none', ''] }}
+      - name: Model X Tessie in road approach
+        unique_id: model_x_tessie_in_road_approach
+        icon: mdi:car-arrow-right
+        state: >-
+          {% set lat = states('sensor.model_x_tessie_latitude') %}
+          {% set lon = states('sensor.model_x_tessie_longitude') %}
+          {% if lat in ['unknown', 'unavailable', 'none', ''] or lon in ['unknown', 'unavailable', 'none', ''] %}
+            false
+          {% else %}
+            {% set rzlat = states('input_number.road_zone_latitude') | float(-35.68926) %}
+            {% set rzlon = states('input_number.road_zone_longitude') | float(174.26696) %}
+            {% set dist_m = (distance(lat | float(0), lon | float(0), rzlat, rzlon) * 1000) | round(0) %}
+            {{ dist_m < (states('input_number.road_zone_radius_m') | float(450)) }}
+          {% endif %}
+      - name: Model X Tessie in gate approach
+        unique_id: model_x_tessie_in_gate_approach
+        icon: mdi:car
+        state: >-
+          {% set dist = states('sensor.model_x_tessie_distance_to_gate') | float(9999) %}
+          {{ dist < (states('input_number.gate_zone_radius_m') | float(100)) }}
+        availability: >-
+          {{ states('sensor.model_x_tessie_distance_to_gate') not in ['unknown', 'unavailable', 'none', ''] }}

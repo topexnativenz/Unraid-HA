@@ -7,7 +7,7 @@ This doc = **live tower state**, **audit findings**, **unified task list**, and 
 
 **Merged from:** media-centre planning chat (2026-05-23) + tower audit chat ([950fdba7-f409-47f5-8123-5f55eae23ab0](950fdba7-f409-47f5-8123-5f55eae23ab0)).
 
-**Last updated:** 2026-05-24 (Overseerr + Tautulli deployed)
+**Last updated:** 2026-06-26 (stability audit — [11-tower-stability.md](11-tower-stability.md))
 
 ---
 
@@ -61,7 +61,40 @@ Parity needs ~**3–4 nights** (~7 h/night × 4 ≈ full check). Plan assumes **
 
 **Weekly (outside core window):** `plex-arr-cleanup-completed.sh` Sundays 04:30 — light orphan scan; OK.
 
+**Daily (automated):** Docker container image updates — see [Docker update automation](#docker-update-automation) below.
+
 If parity finishes early (e.g. night 3), shift **T1.8** forward to the first free heavy slot.
+
+### Docker update automation
+
+Checks use Unraid’s native **Docker Manager** update-status (same digest logic as **Docker → Check for Updates**). Applies use the official `update_container` script — **only inside 00:00–07:00**.
+
+| Item | Value |
+|------|--------|
+| **Scripts** | `/boot/config/scripts/docker-update-maintenance.sh`, `docker-update-check.php` |
+| **Repo copy** | `/Users/topexnative/Projects/unraid-array-design/tower/boot/config/scripts/` |
+| **Deploy** | `bash /Users/topexnative/Projects/unraid-array-design/tower/scripts/deploy-docker-update-maintenance.sh` |
+| **Pending list** | `/boot/config/docker-update-pending.txt` |
+| **Exclude list** | `/boot/config/docker-update-exclude.txt` (substring match on container name) |
+| **Log** | `/var/log/docker-update-maintenance.log` |
+| **Queue task** | `T-docker-updates` (**light** — can stack with parity if updates are non-media) |
+
+**Cron** (in `/boot/config/go` after deploy):
+
+| Time (NZ) | Action |
+|-----------|--------|
+| **17:45** | `check` — refresh pending list; queue light task if updates exist |
+| **00:05** | `resume` — clear stop flag for new window |
+| **01:15** | `apply` — up to 4 containers/night if `maintenance-queue.sh can-run light` |
+| **07:00** | `stop` — no new updates after window |
+
+**Parity rule:** While correcting parity is active, **media stack** containers (`plex`, Sonarr, Radarr, Prowlarr, SAB, Overseerr, Tautulli, etc.) stay pending; other containers may still update.
+
+```bash
+ssh tower 'bash /boot/config/scripts/docker-update-maintenance.sh status'
+ssh tower 'bash /boot/config/scripts/docker-update-maintenance.sh check'   # daytime OK
+ssh tower 'bash /boot/config/scripts/docker-update-maintenance.sh apply'  # window only
+```
 
 ### Active campaign: correcting parity check
 
@@ -121,11 +154,32 @@ ssh tower 'bash /boot/config/scripts/parity-correcting-maintenance.sh start'
 |-------|----------|
 | Media server | **Plex only** — lifetime Plex Pass; **no Jellyfin** |
 | Clients | **Apple TV 4K** + iOS |
-| Audio | **Sonos** + Apple Music / Spotify; **Plexamp** = backlog |
+| Audio | **Plex Amp** → Plex Media Server; Sonos + Apple Music / Spotify; **Music Assistant** not used (HA UI retired) |
 | Quality (now) | **Fast WEB-1080p** (Recyclarr/TRaSH phase 1) — not 4K/remux wait |
 | Quality (later) | Re-profile after new NAS hardware ([09-media-centre.md](09-media-centre.md) phase 2) |
 | Downtime | Media **all day** — **all heavy maintenance 00:00–07:00 only**; defer daytime commits to next window |
 | Future NAS paths | TRaSH `data/` layout on new box — **do not force on tower mid-audit** unless planned |
+
+---
+
+## Docker stack (current)
+
+**As of 2026-05-26** after post-reboot cleanup (`rc.docker restart` cleared stale port bindings).
+
+| Container | State | Notes |
+|-----------|--------|--------|
+| **Plex-Media-Server** | Running | Media |
+| **sonarr, radarr, prowlarr, sabnzbd** | Running | *arr* + downloads |
+| **EmbyServer** | Running | Secondary player (still deployed) |
+| **lidarr** | Running | Music library automation (feeds Plex music library) |
+| **music-assistant** | **Stopped** | **Not Plex Amp** — separate HA-oriented server; disabled 2026-05-26 (household uses **Plex Amp** → Plex only) |
+| **swag, cloudflared, unifi, unifi-mongo** | Running | Infra |
+| **marshal, notified-voice-agent, livekit, mcp-files, mcp-playwright** | Running | Voice/agent stack |
+| **splash-voice-agent** | Running | Fixed 2026-05-26: truncated `main.py` missing `cli.run_app()` |
+| **overseerr** | Running | `:5055` — complete Plex wizard at `/setup` if not done |
+| **tautulli** | Running (healthy) | Host network `:8181` — Plex token in settings |
+| **Bazarr, Recyclarr, Gluetun** | Not installed | Roadmap |
+| **aider, n8n, scrypted, claude-agent** | **Removed** | Containers + `my-n8n.xml` / `my-scrypted.xml` templates deleted |
 
 ---
 
@@ -305,6 +359,9 @@ flowchart TD
 | 2026-05-23 | Plex-only; WEB-1080p phase 1 | See [09-media-centre.md](09-media-centre.md) |
 | 2026-05-23 | Correcting parity campaign via cron + pause/resume 00:00–07:00 | Post-reboot; May 15 check had 6 errors |
 | 2026-05-24 | **Maintenance window policy** — all heavy work 00:00–07:00 only; queue + calendar | Daytime rsync caused CPU spike; agents defer commits |
+| 2026-05-26 | Docker cleanup: removed aider/n8n/scrypted/claude-agent; `rc.docker restart` for ghost ports | Post-reboot Exited (255) + stale iptables |
+| 2026-06-26 | Stability audit; fixed `go` cron bug; restored tunnels; `unless-stopped` on media/tunnels | [11-tower-stability.md](11-tower-stability.md) |
+| 2026-05-26 | Overseerr + Tautulli started; splash `main.py` completed with `cli.run_app` | Splash exited 0 — file truncated at line 107 |
 | 2026-05-24 | **Overseerr + Tautulli** deployed (Docker Hub images; Tautulli host network) | iOS Helmarr prep; Plex OAuth wizards remain for user |
 
 ---

@@ -1,0 +1,65 @@
+# Quick reference — edit zone_*.yaml files to swap demo → live entity IDs.
+# Demo mode ON (default): dashboard uses sensor.tablet_demo_* entities below.
+
+demo_mode: input_boolean.tablet_demo_mode
+
+weather: sensor.tablet_demo_weather
+uv_index: sensor.tablet_uv_index
+
+status_sensors:
+  lights: sensor.tablet_lights_on_count
+  locks: sensor.tablet_locks_open_count
+  shades: sensor.tablet_shades_open_count
+  alarms: sensor.tablet_alarms_active_count
+  occupancy: sensor.tablet_occupancy_on_count
+
+people:
+  - person: sensor.tablet_demo_person_david
+    battery: attribute:battery
+    location: attribute:location_text
+    avatar: /local/tablet-dashboard/avatar-david.png
+  - person: sensor.tablet_demo_person_genna
+    battery: attribute:battery
+    location: attribute:location_text
+    avatar: /local/tablet-dashboard/avatar-genna.png
+
+quick_controls:
+  vacuum: sensor.tablet_demo_vacuum
+  climate: sensor.tablet_demo_climate
+  media: sensor.tablet_demo_media
+
+scenes:
+  guest: input_button.tablet_demo_scene_guest
+  dim: input_button.tablet_demo_scene_dim
+  movie: input_button.tablet_demo_scene_movie
+  night: input_button.tablet_demo_scene_night
+  vacation: input_button.tablet_demo_scene_vaca
+
+cameras:
+  - image: /local/tablet-dashboard/camera-backyard.jpg
+    label: Backyard
+  - image: /local/tablet-dashboard/camera-front-yard.jpg
+    label: Front Yard
+  - image: /local/tablet-dashboard/camera-driveway.jpg
+    label: Driveway
+  - image: /local/tablet-dashboard/camera-porch.jpg
+    label: Porch
+
+helpers:
+  floor: input_select.tablet_active_floor
+  radar: input_boolean.tablet_radar_expanded
+
+# --- Post-solar-install live mapping (swap zone YAML entity IDs) ---
+live_mapping:
+  weather: weather.forecast_home
+  people:
+    - person.david
+    - person.genna
+  vacuum: vacuum.saros_10
+  climate: climate.main_thermostat
+  media: media_player.kitchen_sonos
+  cameras:
+    - camera.backyard
+    - camera.front_yard
+    - camera.driveway
+    - camera.garage_door

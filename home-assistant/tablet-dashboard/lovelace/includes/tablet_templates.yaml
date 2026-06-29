@@ -1,0 +1,168 @@
+# Reusable button-card templates — included at dashboard root.
+
+tablet_glass:
+  styles:
+    card:
+      - background: rgba(255, 255, 255, 0.06)
+      - border: 1px solid rgba(255, 255, 255, 0.1)
+      - border-radius: 24px
+      - backdrop-filter: blur(18px)
+      - -webkit-backdrop-filter: blur(18px)
+      - box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35)
+      - padding: 16px
+    name:
+      - color: rgba(255, 255, 255, 0.72)
+      - font-size: 12px
+      - font-weight: 500
+    state:
+      - color: #ffffff
+      - font-size: 18px
+      - font-weight: 700
+
+tablet_metric_chip:
+  template: tablet_glass
+  show_icon: true
+  show_name: true
+  show_state: true
+  layout: vertical
+  styles:
+    card:
+      - padding: 12px 10px
+      - min-height: 88px
+    icon:
+      - color: rgba(255, 255, 255, 0.85)
+      - width: 22px
+    name:
+      - font-size: 11px
+      - margin-top: 4px
+    state:
+      - font-size: 16px
+      - margin-top: 2px
+
+tablet_status_chip:
+  template: tablet_glass
+  show_icon: true
+  show_name: true
+  show_state: true
+  layout: vertical
+  styles:
+    card:
+      - padding: 14px 8px
+      - border-radius: 20px
+      - min-height: 96px
+    icon:
+      - color: rgba(255, 255, 255, 0.9)
+      - width: 26px
+    name:
+      - font-size: 12px
+      - font-weight: 600
+    state:
+      - font-size: 15px
+      - font-weight: 700
+
+tablet_scene:
+  show_icon: true
+  show_name: true
+  show_state: false
+  layout: vertical
+  styles:
+    card:
+      - border-radius: 22px
+      - padding: 18px 8px
+      - min-height: 96px
+      - border: none
+      - box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25)
+    icon:
+      - width: 30px
+      - color: rgba(0, 0, 0, 0.65)
+    name:
+      - color: rgba(0, 0, 0, 0.75)
+      - font-size: 13px
+      - font-weight: 700
+      - margin-top: 8px
+
+tablet_person_pill:
+  show_icon: false
+  show_name: false
+  show_state: false
+  styles:
+    card:
+      - border-radius: 999px
+      - padding: 14px 18px
+      - min-height: 92px
+      - border: none
+      - box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35)
+
+tablet_quick_pill:
+  show_icon: true
+  show_name: true
+  show_state: false
+  layout: horizontal
+  styles:
+    card:
+      - border-radius: 999px
+      - padding: 14px 18px
+      - min-height: 92px
+      - border: none
+      - box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35)
+    grid:
+      - grid-template-areas: '"i n chevron" "i s chevron"'
+      - grid-template-columns: 48px 1fr 24px
+    icon:
+      - width: 42px
+      - color: rgba(255, 255, 255, 0.95)
+    name:
+      - justify-self: start
+      - color: #fff
+      - font-size: 16px
+      - font-weight: 700
+    custom_fields:
+      sub:
+        - justify-self: start
+        - color: rgba(255, 255, 255, 0.78)
+        - font-size: 12px
+      chevron:
+        - justify-self: end
+        - align-self: center
+        - color: rgba(255, 255, 255, 0.85)
+        - font-size: 22px
+
+tablet_room_row:
+  template: tablet_glass
+  show_icon: true
+  show_name: true
+  show_state: false
+  layout: horizontal
+  styles:
+    card:
+      - border-radius: 18px
+      - padding: 14px 16px
+      - margin-bottom: 8px
+    grid:
+      - grid-template-areas: '"i n chevron"'
+      - grid-template-columns: 32px 1fr 24px
+    icon:
+      - width: 24px
+      - color: rgba(255, 255, 255, 0.9)
+    name:
+      - font-size: 15px
+      - font-weight: 600
+    custom_fields:
+      chevron:
+        - justify-self: end
+        - color: rgba(255, 255, 255, 0.55)
+        - font-size: 20px
+
+tablet_nav_icon:
+  show_icon: true
+  show_name: false
+  show_state: false
+  styles:
+    card:
+      - background: transparent
+      - border: none
+      - box-shadow: none
+      - padding: 8px
+    icon:
+      - width: 26px
+      - color: #111827

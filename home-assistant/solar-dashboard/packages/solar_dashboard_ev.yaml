@@ -15,15 +15,15 @@ input_text:
     max: 255
   tessie_model_x_battery:
     name: Tessie entity — Model X battery level
-    initial: sensor.tesla_model_x_battery_level
+    initial: sensor.x_battery_level
     max: 255
   tessie_model_x_charger_power:
     name: Tessie entity — Model X charger power
-    initial: sensor.tesla_model_x_charger_power
+    initial: sensor.x_charger_power
     max: 255
   tessie_model_x_charging:
     name: Tessie entity — Model X charging state
-    initial: sensor.tesla_model_x_charging
+    initial: sensor.x_charging
     max: 255
 
 template:
@@ -44,6 +44,9 @@ template:
           - sensor.model_s_p100d_battery_level
           - sensor.model_s_p100d_charger_power
           - sensor.model_s_p100d_charging
+          - sensor.x_battery_level
+          - sensor.x_charger_power
+          - sensor.x_charging
     sensor:
       - name: Garage Model S battery
         unique_id: garage_model_s_battery

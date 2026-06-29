@@ -1,0 +1,9 @@
+# docker-update-maintenance (unraid-array-design)
+# Check for image updates (registry digest; no container recreate)
+45 17 * * * /usr/bin/bash /boot/config/scripts/docker-update-maintenance.sh check >>/var/log/docker-update-maintenance.log 2>&1
+# Apply pending updates during maintenance window only
+15 1 * * * /usr/bin/bash /boot/config/scripts/docker-update-maintenance.sh apply >>/var/log/docker-update-maintenance.log 2>&1
+# Stop starting new updates at 07:00 (parity pause window boundary)
+0 7 * * * /usr/bin/bash /boot/config/scripts/docker-update-maintenance.sh stop >>/var/log/docker-update-maintenance.log 2>&1
+# Clear stop flag at window open so 01:15 apply can run
+5 0 * * * /usr/bin/bash /boot/config/scripts/docker-update-maintenance.sh resume >>/var/log/docker-update-maintenance.log 2>&1

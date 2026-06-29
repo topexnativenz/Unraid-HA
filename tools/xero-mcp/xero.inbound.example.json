@@ -1,0 +1,57 @@
+{
+  "domain": "matarikigroup.co.nz",
+  "routing_mode": "portfolio",
+  "default_org_slug": "matariki-property-group",
+  "webhook_secret": "GENERATE_ON_SETUP",
+  "webhook_port": 8766,
+  "auto_process": true,
+  "process_delay_sec": 1.5,
+  "require_attachment": true,
+  "require_bill_classification": true,
+  "min_bill_confidence": 0.55,
+  "bill_classifier_mode": "heuristic",
+  "allow_xero_links": true,
+  "allow_xero_link_without_attachment": true,
+  "allow_email_body_without_attachment": true,
+  "blocked_sender_domains": [],
+  "default_document_type": "ACCPAY",
+  "default_status": "DRAFT",
+  "allowed_extensions": [".pdf", ".jpg", ".jpeg", ".png", ".heic", ".doc", ".docx", ".xls", ".xlsx"],
+  "intake_addresses": [
+    "accounts@matarikigroup.co.nz",
+    "david@matarikigroup.co.nz",
+    "genna@matarikigroup.co.nz",
+    "david@gillespie.kiwi",
+    "genna@gillespie.kiwi"
+  ],
+  "allowed_from": [
+    "accounts@matarikigroup.co.nz",
+    "david@matarikigroup.co.nz",
+    "genna@matarikigroup.co.nz",
+    "david@gillespie.kiwi",
+    "genna@gillespie.kiwi"
+  ],
+  "default_intake_address": "accounts@matarikigroup.co.nz",
+  "routes": [],
+  "heal": {
+    "enabled": true,
+    "pending_max_age_sec": 900,
+    "processing_max_age_sec": 600,
+    "done_missing_bill_grace_sec": 120,
+    "max_attempts": 5,
+    "min_interval_sec": 300,
+    "retryable_error_patterns": [
+      "429",
+      "rate.?limit",
+      "too many requests",
+      "timeout",
+      "503",
+      "502",
+      "504"
+    ]
+  },
+  "cloudflare_worker": {
+    "INBOX_COPY_TO": "david@gillespie.kiwi",
+    "FALLBACK_TO": "david@gillespie.kiwi"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "xero-mcp-local",
+  "private": true,
+  "dependencies": {
+    "@xeroapi/xero-mcp-server": "0.0.17"
+  }
+}

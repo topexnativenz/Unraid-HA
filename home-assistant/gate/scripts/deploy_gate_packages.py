@@ -25,6 +25,7 @@ PACKAGE_FILES = (
     "gate_approach_layers.yaml",
     "gate_tessie_location.yaml",
     "gate_tessie.yaml",
+    "gate_tessie_model_s_drive.yaml",
 )
 
 
@@ -169,7 +170,7 @@ def api_post(ha_url: str, token: str, path: str, data: dict | None = None) -> in
 def reload_ha(ha_url: str, token: str) -> None:
     api_post(ha_url, token, "/api/services/homeassistant/reload_core_config")
     time.sleep(8)
-    for svc in ("input_boolean/reload", "template/reload", "automation/reload", "script/reload"):
+    for svc in ("input_boolean/reload", "template/reload", "rest_command/reload", "automation/reload", "script/reload"):
         domain, name = svc.split("/")
         status = api_post(ha_url, token, f"/api/services/{domain}/{name}")
         print(f"reloaded {name}: {status}")

@@ -1,0 +1,105 @@
+# Top-left: weather, time, sub-metrics (demo: sensor.tablet_demo_weather)
+type: vertical-stack
+cards:
+  - type: custom:button-card
+    entity: sensor.tablet_demo_weather
+    show_icon: true
+    show_name: true
+    show_state: false
+    layout: grid
+    styles:
+      grid:
+        - grid-template-areas: '"temp icon" "cond icon" "clock clock"'
+        - grid-template-columns: 1fr 88px
+        - grid-template-rows: auto auto auto
+      card:
+        - background: rgba(255, 255, 255, 0.06)
+        - border: 1px solid rgba(255, 255, 255, 0.1)
+        - border-radius: 24px
+        - backdrop-filter: blur(18px)
+        - -webkit-backdrop-filter: blur(18px)
+        - padding: 20px 22px
+        - min-height: 168px
+      icon:
+        - grid-area: icon
+        - width: 72px
+        - color: "#fbbf24"
+        - justify-self: end
+        - align-self: start
+        - filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.55))
+    custom_fields:
+      temp: |
+        [[[
+          const t = entity.attributes.temperature;
+          const unit = entity.attributes.temperature_unit || '°F';
+          return `<div style="grid-area:temp;font-size:42px;font-weight:800;color:#fff;line-height:1;">${t ?? '--'}${unit}</div>`;
+        ]]]
+      cond: |
+        [[[
+          const c = entity.attributes.friendly_condition
+            || (entity.state ? entity.state.replace(/^\w/, m => m.toUpperCase()) : '—');
+          return `<div style="grid-area:cond;font-size:18px;font-weight:600;color:rgba(255,255,255,0.82);margin-top:4px;">${c}</div>`;
+        ]]]
+      clock: |
+        [[[
+          const now = new Date();
+          const h = now.getHours();
+          const m = now.getMinutes().toString().padStart(2, '0');
+          const ampm = h >= 12 ? 'pm' : 'am';
+          const hr = h % 12 || 12;
+          return `<div style="grid-area:clock;font-size:34px;font-weight:700;color:#fff;margin-top:14px;">${hr}:${m} ${ampm}</div>`;
+        ]]]
+
+  - type: horizontal-stack
+    cards:
+      - type: custom:button-card
+        template: tablet_metric_chip
+        entity: sensor.tablet_demo_weather
+        name: Humidity
+        icon: mdi:water-percent
+        show_state: true
+        state_display: |
+          [[[
+            return (entity.attributes.humidity ?? '--') + '%';
+          ]]]
+      - type: custom:button-card
+        template: tablet_metric_chip
+        entity: sensor.tablet_uv_index
+        name: UV Index
+        icon: mdi:weather-sunny-alert
+        show_state: true
+        state_display: |
+          [[[
+            const v = parseFloat(entity.state);
+            if (isNaN(v)) return entity.state || 'Low';
+            if (v < 3) return 'Low';
+            if (v < 6) return 'Moderate';
+            if (v < 8) return 'High';
+            return 'Very High';
+          ]]]
+      - type: custom:button-card
+        template: tablet_metric_chip
+        entity: sensor.tablet_demo_weather
+        name: Wind
+        icon: mdi:weather-windy
+        show_state: true
+        state_display: |
+          [[[
+            const s = entity.attributes.wind_speed;
+            const u = entity.attributes.wind_speed_unit || 'mph';
+            return s != null ? `${s} ${u}` : '—';
+          ]]]
+      - type: custom:button-card
+        template: tablet_metric_chip
+        entity: sensor.tablet_demo_weather
+        name: Precip
+        icon: mdi:weather-rainy
+        show_state: true
+        state_display: |
+          [[[
+            const p = entity.attributes.precipitation_unit || 'in';
+            const v = entity.attributes.precipitation ?? 0;
+            return `${v} ${p}`;
+          ]]]
+view_layout:
+  grid-area: weather

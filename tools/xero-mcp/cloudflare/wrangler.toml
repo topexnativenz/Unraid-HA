@@ -1,0 +1,14 @@
+name = "xero-inbound-email"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+# Skips /memberships lookup when using CLOUDFLARE_API_TOKEN (User token without Memberships:Read)
+account_id = "6b75f8187544327aba3ac88047b7fb92"
+
+# WEBHOOK_SECRET: set on tower via deploy-cloudflare-xero-inbound.sh (from xero-inbound config)
+
+[vars]
+WEBHOOK_URL = "https://xero-inbound.gillespie.kiwi"
+# Inbox copy after successful tower POST (comma-separated; empty disables copy)
+INBOX_COPY_TO = "david@gillespie.kiwi"
+# Fallback inbox when tower POST fails (default david@gillespie.kiwi)
+# FALLBACK_TO = "david@gillespie.kiwi"

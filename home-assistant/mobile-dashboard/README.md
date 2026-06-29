@@ -23,7 +23,9 @@ python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/mobile-da
 
 This rebuilds the config, writes storage on disk, then calls `lovelace/config/save` for `mobile-home`.
 
-After deploy: **force-quit** the Home Assistant app and reopen (or open `http://192.168.1.239:8123/mobile-home/home` in a browser).
+After deploy: **force-quit** the Home Assistant app and reopen (or open `http://192.168.1.239:8123/mobile-home/home` in a browser on LAN).
+
+**Away from home:** Companion uses Nabu Casa automatically when **Use Home Assistant Cloud** is enabled — no Tailscale URL. See [home-assistant/README.md](../README.md#companion-app--remote-access-nabu-casa).
 
 Garage buttons require `home-assistant/garage-doors/packages/garage_doors_pulse.yaml` on HA (pulse + tracked open state). Deploy with `garage-doors/scripts/deploy_garage_doors_pulse.sh` before first use.
 
@@ -51,9 +53,11 @@ Do **all** of these — profile alone is not enough on iOS:
 2. **Settings → Dashboards → Mobile Home** → **Set as default on this device**.
 3. **App Configuration → Debugging → Reset Frontend Cache**, then force-quit and reopen the app.
 
-Direct link (Safari or after cache reset): `http://192.168.1.239:8123/mobile-home/home`
+Direct link on **LAN** (Safari or after cache reset): `http://192.168.1.239:8123/mobile-home/home`
 
-Shortcut / automation deep link: `homeassistant://navigate/mobile-home/home`
+Shortcut / automation deep link (works locally and via Nabu Casa): `homeassistant://navigate/mobile-home/home`
+
+Do **not** bookmark a Tailscale `100.x.x.x` URL for Mobile Home — use `homeassistant://` or open the app after cloud connect.
 
 ### If it still opens Overview
 

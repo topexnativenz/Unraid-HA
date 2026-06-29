@@ -1,0 +1,13 @@
+# Picture-elements background patch applied by deploy_casa_luna.py
+# House pixels: base-view-alpha.png (original RGB, exterior void transparent).
+# Night sky: card_mod background image behind the floorplan — no pixel compositing.
+
+image: /local/community/casa-luna/floorplan/base-view-alpha.png?v=floorplan-v3
+
+card_mod:
+  style: |
+    ha-card {
+      background: url('/local/community/casa-luna/floorplan/sky-bg.png?v=floorplan-v3') center / cover no-repeat #020c1e;
+      border: none;
+      box-shadow: none;
+    }

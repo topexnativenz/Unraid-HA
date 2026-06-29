@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "default_org_slug": "matariki-property-group",
+  "classifier_mode": "hybrid",
+  "org_hints": [
+    {
+      "org_slug": "matariki-property-group",
+      "label": "Matariki Property Group",
+      "keywords": ["property group", "matariki property", "mpg"]
+    },
+    {
+      "org_slug": "matariki-traders",
+      "label": "Matariki Traders",
+      "keywords": ["traders", "matariki traders"]
+    },
+    {
+      "org_slug": "matariki-morningside-development",
+      "label": "Matariki Morningside Development",
+      "keywords": ["morningside", "morningside development", "msn"]
+    }
+  ],
+  "properties": [
+    {
+      "id": "example-logyard",
+      "nickname": "Logyard",
+      "address": "Logyard Road",
+      "suburb": "",
+      "city": "",
+      "org_slug": "matariki-property-group",
+      "keywords": ["logyard", "logyard road"]
+    }
+  ]
+}

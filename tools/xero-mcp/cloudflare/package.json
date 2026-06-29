@@ -1,0 +1,11 @@
+{
+  "name": "xero-inbound-email",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test worker.test.js"
+  },
+  "dependencies": {
+    "postal-mime": "^2.4.3"
+  }
+}

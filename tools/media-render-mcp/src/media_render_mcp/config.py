@@ -17,6 +17,7 @@ class MediaRenderConfig:
     )
     render_backend: str = "fal"
     fal_image_model: str = "fal-ai/flux/dev"
+    fal_img2img_model: str = "fal-ai/flux-pro/kontext"
     deploy_script: str = "home-assistant/solar-dashboard/scripts/deploy_to_ha.py"
     lovelace_yaml_paths: list[str] = field(
         default_factory=lambda: [

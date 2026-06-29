@@ -1,0 +1,53 @@
+# Casa Luna demo helpers — supplements existing solar_dashboard demo sensors.
+# Requires input_boolean.solar_dashboard_demo (from solar_dashboard.yaml package).
+# Does NOT duplicate roof/ground/battery/grid templates; only fills casa-luna-specific gaps.
+
+template:
+  - sensor:
+      - name: Casa Luna PV total
+        unique_id: casa_luna_pv_total
+        unit_of_measurement: W
+        device_class: power
+        state_class: measurement
+        icon: mdi:solar-power
+        state: >
+          {{ (states('sensor.solar_roof_power') | float(0)
+              + states('sensor.solar_ground_power') | float(0)) | round(0) }}
+
+      - name: Casa Luna inverter state
+        unique_id: casa_luna_inverter_state
+        icon: mdi:solar-power-variant
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            Self Use
+          {% else %}
+            unknown
+          {% endif %}
+
+      - name: Casa Luna battery current
+        unique_id: casa_luna_battery_current
+        unit_of_measurement: A
+        device_class: current
+        state_class: measurement
+        icon: mdi:current-dc
+        state: >
+          {% set p = states('sensor.solar_battery_power') | float(0) %}
+          {% set v = states('sensor.solar_battery_voltage') | float(51.2) %}
+          {% if v > 0 %}
+            {{ (p / v) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: Casa Luna today load
+        unique_id: casa_luna_today_load
+        unit_of_measurement: kWh
+        device_class: energy
+        state_class: total_increasing
+        icon: mdi:home-lightning-bolt
+        state: >
+          {% if is_state('input_boolean.solar_dashboard_demo', 'on') %}
+            {{ (now().hour * 0.85 + now().minute / 70) | round(2) }}
+          {% else %}
+            {{ states('sensor.home_consumption_power') | float(0) / 1000 | round(2) }}
+          {% endif %}

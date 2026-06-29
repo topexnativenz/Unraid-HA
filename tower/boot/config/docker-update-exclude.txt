@@ -1,0 +1,3 @@
+# Containers to never auto-update (one name per line, case-insensitive substring match).
+# Example: pin Plex during a known-good tag window.
+# plex

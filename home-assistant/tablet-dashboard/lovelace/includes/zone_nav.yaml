@@ -1,0 +1,38 @@
+# Bottom: floating pill navigation bar
+type: custom:button-card
+show_icon: false
+show_name: false
+show_state: false
+styles:
+  card:
+    - background: rgba(255, 255, 255, 0.95)
+    - border-radius: 999px
+    - padding: 8px 14px
+    - margin: 0 auto
+    - max-width: 720px
+    - box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45)
+    - border: none
+custom_fields:
+  bar: |
+    [[[
+      const items = [
+        ['mdi:home', '/tablet-dashboard/home'],
+        ['mdi:speaker', '/dashboard-music'],
+        ['mdi:cctv', '/mobile-home/cameras'],
+        ['mdi:sprinkler', '/tablet-dashboard/home'],
+        ['mdi:shield-home', '/tablet-dashboard/home'],
+        ['mdi:floor-plan', '/tablet-dashboard/home'],
+        ['mdi:lightning-bolt', '/solar-dashboard'],
+        ['mdi:account-voice', '/tablet-dashboard/home'],
+      ];
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
+        ${items.map(([icon, path]) =>
+          `<button onclick="history.pushState(null,'','${path}');window.dispatchEvent(new PopStateEvent('popstate'));"
+            style="display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:none;background:transparent;cursor:pointer;color:#111827;">
+            <ha-icon icon="${icon}" style="width:26px;height:26px;pointer-events:none;"></ha-icon>
+          </button>`
+        ).join('')}
+      </div>`;
+    ]]]
+view_layout:
+  grid-area: nav

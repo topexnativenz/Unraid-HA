@@ -1,0 +1,15 @@
+# Wall-panel theme — zero sidebar width (backup to panel-kiosk-fix.js).
+# Assigned to the Panel user via set_panel_default.py.
+panel-kiosk:
+  modes:
+    dark:
+      primary-color: "#4da3ff"
+      accent-color: "#4da3ff"
+      app-header-background-color: "#0a1628"
+      sidebar-background-color: "#0a1628"
+  card-mod-theme: |
+    home-assistant-main {
+      --ha-sidebar-width: 0px !important;
+      --mdc-drawer-width: 0px !important;
+      --kiosk-sidebar-width: 0px !important;
+    }

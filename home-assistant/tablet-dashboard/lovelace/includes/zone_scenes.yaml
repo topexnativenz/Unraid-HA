@@ -1,0 +1,147 @@
+# Lower-left: scenes, floor selector, room navigation (demo input_button scenes)
+type: vertical-stack
+cards:
+  - type: horizontal-stack
+    cards:
+      - type: custom:button-card
+        template: tablet_scene
+        entity: input_button.tablet_demo_scene_guest
+        name: Guest
+        icon: mdi:account-multiple
+        tap_action:
+          action: call-service
+          service: input_button.press
+          service_data:
+            entity_id: input_button.tablet_demo_scene_guest
+        styles:
+          card:
+            - background: linear-gradient(145deg, #86efac, #4ade80)
+      - type: custom:button-card
+        template: tablet_scene
+        entity: input_button.tablet_demo_scene_dim
+        name: Dim
+        icon: mdi:brightness-4
+        tap_action:
+          action: call-service
+          service: input_button.press
+          service_data:
+            entity_id: input_button.tablet_demo_scene_dim
+        styles:
+          card:
+            - background: linear-gradient(145deg, #93c5fd, #60a5fa)
+      - type: custom:button-card
+        template: tablet_scene
+        entity: input_button.tablet_demo_scene_movie
+        name: Movie
+        icon: mdi:movie-open
+        tap_action:
+          action: call-service
+          service: input_button.press
+          service_data:
+            entity_id: input_button.tablet_demo_scene_movie
+        styles:
+          card:
+            - background: linear-gradient(145deg, #fde68a, #fbbf24)
+      - type: custom:button-card
+        template: tablet_scene
+        entity: input_button.tablet_demo_scene_night
+        name: Night
+        icon: mdi:weather-night
+        tap_action:
+          action: call-service
+          service: input_button.press
+          service_data:
+            entity_id: input_button.tablet_demo_scene_night
+        styles:
+          card:
+            - background: linear-gradient(145deg, #a78bfa, #7c3aed)
+      - type: custom:button-card
+        template: tablet_scene
+        entity: input_button.tablet_demo_scene_vaca
+        name: Vaca
+        icon: mdi:beach
+        tap_action:
+          action: call-service
+          service: input_button.press
+          service_data:
+            entity_id: input_button.tablet_demo_scene_vaca
+        styles:
+          card:
+            - background: linear-gradient(145deg, #fdba74, #fb923c)
+
+  - type: custom:button-card
+    entity: input_select.tablet_active_floor
+    show_icon: false
+    show_name: false
+    show_state: false
+    styles:
+      card:
+        - background: rgba(255, 255, 255, 0.06)
+        - border: 1px solid rgba(255, 255, 255, 0.1)
+        - border-radius: 999px
+        - padding: 6px
+        - margin: 8px 0 12px
+    custom_fields:
+      toggle: |
+        [[[
+          const val = entity.state;
+          const upper = val === 'Upper Floor';
+          return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:999px;background:${upper ? 'linear-gradient(135deg,#ec4899,#f472b6)' : 'transparent'};color:${upper ? '#fff' : 'rgba(255,255,255,0.65)'};font-weight:700;font-size:14px;">
+              <span>🧊</span> Upper Floor
+            </div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;border-radius:999px;background:${!upper ? 'linear-gradient(135deg,#ec4899,#f472b6)' : 'transparent'};color:${!upper ? '#fff' : 'rgba(255,255,255,0.65)'};font-weight:700;font-size:14px;">
+              <span>💡</span> Lower Floor
+            </div>
+          </div>`;
+        ]]]
+    tap_action:
+      action: call-service
+      service: input_select.select_option
+      service_data:
+        entity_id: input_select.tablet_active_floor
+        option: |
+          [[[
+            return entity.state === 'Upper Floor' ? 'Lower Floor' : 'Upper Floor';
+          ]]]
+
+  - type: vertical-stack
+    cards:
+      - type: custom:button-card
+        template: tablet_room_row
+        name: Family Room
+        icon: mdi:sofa
+        tap_action:
+          action: navigate
+          navigation_path: /mobile-home/lights
+        custom_fields:
+          chevron: ›
+      - type: custom:button-card
+        template: tablet_room_row
+        name: Kitchen
+        icon: mdi:silverware-fork-knife
+        tap_action:
+          action: navigate
+          navigation_path: /mobile-home/lights
+        custom_fields:
+          chevron: ›
+      - type: custom:button-card
+        template: tablet_room_row
+        name: Media Room
+        icon: mdi:television
+        tap_action:
+          action: navigate
+          navigation_path: /mobile-home/lights
+        custom_fields:
+          chevron: ›
+      - type: custom:button-card
+        template: tablet_room_row
+        name: Master Bedroom
+        icon: mdi:bed-king
+        tap_action:
+          action: navigate
+          navigation_path: /mobile-home/lights
+        custom_fields:
+          chevron: ›
+view_layout:
+  grid-area: scenes

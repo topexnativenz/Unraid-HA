@@ -22,6 +22,8 @@
       name: Status
     - entity: input_text.gate_status_message
       name: Message
+    - type: section
+      label: Model S
     - entity: sensor.model_s_tessie_distance_to_gate
       name: Distance to gate (m)
     - entity: sensor.model_s_tessie_distance_to_home
@@ -31,7 +33,21 @@
     - entity: binary_sensor.model_s_tessie_in_gate_approach
       name: In gate approach zone
     - entity: input_boolean.model_s_was_away
+      name: Model S was away (arrival armed)
+    - type: section
+      label: Model X
+    - entity: sensor.model_x_tessie_distance_to_gate
+      name: Distance to gate (m)
+    - entity: sensor.model_x_tessie_distance_to_home
+      name: Distance to home (m)
+    - entity: binary_sensor.model_x_tessie_in_road_approach
+      name: In road approach zone
+    - entity: binary_sensor.model_x_tessie_in_gate_approach
+      name: In gate approach zone
+    - entity: input_boolean.model_x_was_away
       name: Was away (arrival armed)
+    - type: section
+      label: Shared
     - entity: input_boolean.gate_exit_in_progress
       name: Exit in progress
     - entity: zone.road_approach

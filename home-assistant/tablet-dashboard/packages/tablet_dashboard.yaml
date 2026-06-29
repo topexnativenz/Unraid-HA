@@ -1,0 +1,94 @@
+# Tablet dashboard — template sensors for status row counts.
+# Edit entity filters below if your domains differ from defaults.
+
+template:
+  - sensor:
+      - name: Tablet Lights On Count
+        unique_id: tablet_lights_on_count
+        icon: mdi:lightbulb-on
+        state: >
+          {% if is_state('input_boolean.tablet_demo_mode', 'on') %}
+            9
+          {% else %}
+            {{ states.light
+               | rejectattr('entity_id', 'search', 'group\.')
+               | selectattr('state', 'eq', 'on')
+               | list | count }}
+          {% endif %}
+
+      - name: Tablet Locks Open Count
+        unique_id: tablet_locks_open_count
+        icon: mdi:lock-open-variant
+        state: >
+          {% if is_state('input_boolean.tablet_demo_mode', 'on') %}
+            1
+          {% else %}
+            {{ states.lock
+               | selectattr('state', 'in', ['unlocked', 'open'])
+               | list | count }}
+          {% endif %}
+
+      - name: Tablet Shades Open Count
+        unique_id: tablet_shades_open_count
+        icon: mdi:blinds-open
+        state: >
+          {% if is_state('input_boolean.tablet_demo_mode', 'on') %}
+            12
+          {% else %}
+            {{ states.cover
+               | selectattr('attributes.device_class', 'defined')
+               | selectattr('attributes.device_class', 'in', ['shade', 'blind', 'curtain'])
+               | selectattr('state', 'ne', 'closed')
+               | rejectattr('state', 'eq', 'unavailable')
+               | list | count }}
+          {% endif %}
+
+      - name: Tablet Alarms Active Count
+        unique_id: tablet_alarms_active_count
+        icon: mdi:shield-alert
+        state: >
+          {% if is_state('input_boolean.tablet_demo_mode', 'on') %}
+            2
+          {% else %}
+            {{ states.alarm_control_panel
+               | selectattr('state', 'in', ['armed_home', 'armed_away', 'armed_night', 'armed_vacation', 'arming', 'triggered'])
+               | list | count }}
+          {% endif %}
+
+      - name: Tablet Occupancy On Count
+        unique_id: tablet_occupancy_on_count
+        icon: mdi:motion-sensor
+        state: >
+          {% if is_state('input_boolean.tablet_demo_mode', 'on') %}
+            15
+          {% else %}
+            {{ states.binary_sensor
+               | selectattr('attributes.device_class', 'defined')
+               | selectattr('attributes.device_class', 'in', ['occupancy', 'motion', 'presence'])
+               | selectattr('state', 'eq', 'on')
+               | list | count }}
+          {% endif %}
+
+      - name: Tablet UV Index
+        unique_id: tablet_uv_index
+        icon: mdi:weather-sunny-alert
+        state: >
+          {% if is_state('input_boolean.tablet_demo_mode', 'on') %}
+            {{ states('sensor.tablet_demo_uv_index') | default(2) }}
+          {% else %}
+            {{ state_attr('weather.forecast_home', 'uv_index') | default(2) }}
+          {% endif %}
+
+input_boolean:
+  tablet_radar_expanded:
+    name: Tablet Weather Radar Expanded
+    icon: mdi:radar
+
+input_select:
+  tablet_active_floor:
+    name: Tablet Active Floor
+    options:
+      - Upper Floor
+      - Lower Floor
+    initial: Upper Floor
+    icon: mdi:home-floor-1

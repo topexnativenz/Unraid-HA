@@ -1,0 +1,54 @@
+# Glassmorphism wall/tablet dashboard — 332 Three Mile Bush Road
+# Reference: dark tablet UI with weather, status, people, scenes, cameras, nav bar
+
+button_card_templates: !include includes/tablet_templates.yaml
+
+views:
+  - title: Home
+    path: home
+    theme: tablet_glass
+    type: panel
+    panel: true
+    cards:
+      - type: custom:layout-card
+        layout_type: custom:grid-layout
+        layout:
+          grid-template-columns: 38% 62%
+          grid-template-rows: minmax(240px, auto) auto 1fr 68px
+          grid-template-areas: |
+            "weather status"
+            "people people"
+            "scenes cameras"
+            "nav nav"
+          mediaquery:
+            "(max-width: 900px)":
+              grid-template-columns: 100%
+              grid-template-areas: |
+                "weather"
+                "status"
+                "people"
+                "scenes"
+                "cameras"
+                "nav"
+          margin: 8px
+        card_mod:
+          style: |
+            :host {
+              min-height: 100vh;
+              background: radial-gradient(1200px 600px at 10% 0%, rgba(124, 58, 237, 0.18), transparent),
+                          radial-gradient(900px 500px at 90% 10%, rgba(236, 72, 153, 0.12), transparent),
+                          radial-gradient(700px 400px at 50% 100%, rgba(59, 130, 246, 0.08), transparent),
+                          #0a0a12;
+            }
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        cards:
+          - !include includes/zone_weather.yaml
+          - !include includes/zone_status.yaml
+          - !include includes/zone_people.yaml
+          - !include includes/zone_scenes.yaml
+          - !include includes/zone_cameras.yaml
+          - !include includes/zone_nav.yaml

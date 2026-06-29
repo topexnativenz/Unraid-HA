@@ -1,0 +1,112 @@
+# Middle row: person pills + quick-access controls (demo entities)
+type: horizontal-stack
+cards:
+  - type: custom:button-card
+    template: tablet_person_pill
+    entity: sensor.tablet_demo_person_david
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 55%, #a855f7 100%)
+    custom_fields:
+      content: |
+        [[[
+          const name = entity.attributes.friendly_name || 'David';
+          const batt = entity.attributes.battery;
+          const loc = entity.attributes.location_text || 'Home';
+          const pic = entity.attributes.entity_picture;
+          const photo = pic
+            ? `<img src="${pic}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.35);"/>`
+            : `<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;">D</div>`;
+          return `<div style="display:flex;align-items:center;gap:14px;">
+            ${photo}
+            <div>
+              <div style="color:#fff;font-size:17px;font-weight:700;">${name}</div>
+              <div style="color:rgba(255,255,255,0.82);font-size:12px;margin-top:2px;">🔋 ${batt}% · ${loc}</div>
+            </div>
+          </div>`;
+        ]]]
+
+  - type: custom:button-card
+    template: tablet_person_pill
+    entity: sensor.tablet_demo_person_genna
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - background: linear-gradient(135deg, #ec4899 0%, #f43f5e 55%, #fb7185 100%)
+    custom_fields:
+      content: |
+        [[[
+          const name = entity.attributes.friendly_name || 'Genna';
+          const batt = entity.attributes.battery;
+          const loc = entity.attributes.location_text || 'Home';
+          const pic = entity.attributes.entity_picture;
+          const photo = pic
+            ? `<img src="${pic}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.35);"/>`
+            : `<div style="width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;">G</div>`;
+          return `<div style="display:flex;align-items:center;gap:14px;">
+            ${photo}
+            <div>
+              <div style="color:#fff;font-size:17px;font-weight:700;">${name}</div>
+              <div style="color:rgba(255,255,255,0.82);font-size:12px;margin-top:2px;">🔋 ${batt}% · ${loc}</div>
+            </div>
+          </div>`;
+        ]]]
+
+  - type: custom:button-card
+    template: tablet_quick_pill
+    entity: sensor.tablet_demo_vacuum
+    name: RoboVacs
+    icon: mdi:robot-vacuum
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%)
+    custom_fields:
+      sub: |
+        [[[
+          return entity.attributes.status_text || 'Housekeeper controls';
+        ]]]
+      chevron: ›
+
+  - type: custom:button-card
+    template: tablet_quick_pill
+    entity: sensor.tablet_demo_climate
+    name: Climate
+    icon: mdi:thermostat
+    tap_action:
+      action: more-info
+    styles:
+      card:
+        - background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%)
+    custom_fields:
+      sub: |
+        [[[
+          const t = entity.attributes.current_temperature ?? entity.state;
+          const u = entity.attributes.temperature_unit || entity.attributes.unit_of_measurement || '°F';
+          return t != null ? `Thermostat · ${t}${u}` : 'Thermostat controls';
+        ]]]
+      chevron: ›
+
+  - type: custom:button-card
+    template: tablet_quick_pill
+    entity: sensor.tablet_demo_media
+    name: Media
+    icon: mdi:speaker
+    tap_action:
+      action: navigate
+      navigation_path: /dashboard-music
+    styles:
+      card:
+        - background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)
+    custom_fields:
+      sub: |
+        [[[
+          return entity.attributes.status_text || 'Music control';
+        ]]]
+      chevron: ›
+view_layout:
+  grid-area: people

@@ -4,17 +4,21 @@ Deploy to Home Assistant at `http://192.168.1.239:8123`.
 
 **Strategy doc (dead zone, layers, hardware):** [`docs/gate-approach-strategy.md`](../../docs/gate-approach-strategy.md)
 
-## Arrival — Tessie only (Model S)
+## Arrival — Tessie only (Model S + Model X)
 
-| Layer | Trigger | Notes |
-|-------|---------|-------|
-| **Road Approach** | `binary_sensor.model_s_tessie_in_road_approach` | Primary — Tessie GPS on Three Mile Bush Road |
-| **Gate Approach** | `binary_sensor.model_s_tessie_in_gate_approach` | Driveway mouth |
-| **Distance** | `sensor.model_s_tessie_distance_to_home` &lt; `gate_tessie_trigger_distance_m` | Backup if zone circles drift |
+Each car has its own Tessie location poll, approach sensors, and arrival automation. Shared session/hold scripts apply to whichever car triggers first.
 
-Automation: **Gate — open on Tessie arrival** → relay 1 pulse, then `script.gate_pulse_hold_approach` until Tessie reports car parked at home.
+| Layer | Model S | Model X |
+|-------|---------|---------|
+| **Road Approach** | `binary_sensor.model_s_tessie_in_road_approach` | `binary_sensor.model_x_tessie_in_road_approach` |
+| **Gate Approach** | `binary_sensor.model_s_tessie_in_gate_approach` | `binary_sensor.model_x_tessie_in_gate_approach` |
+| **Distance** | `sensor.model_s_tessie_distance_to_home` | `sensor.model_x_tessie_distance_to_home` |
+| **Shift / speed** | `sensor.model_s_p100d_shift_state` / `_speed` | `sensor.x_shift_state` / `sensor.x_speed` |
+| **Was away** | `input_boolean.model_s_was_away` | `input_boolean.model_x_was_away` |
 
-**Departure** (unchanged): Tesla **P → R/D** → short departure hold.
+Automations: **Gate — open on Tessie arrival** (Model S) and **Gate — open on Tessie arrival (Model X)** → relay 1 pulse, then `script.gate_pulse_hold_approach` until Tessie reports car parked at home.
+
+**Departure**: Tesla **P → R/D** on either car → short departure hold.
 
 Phones are not used for gate open. Companion zones remain useful for dashboards only.
 
@@ -56,13 +60,36 @@ road_approach_radius: 450
 tessie_api_key_header: "Bearer …"
 tessie_wake_model_s_url: "https://api.tessie.com/…/wake"
 tessie_model_s_location_url: "https://api.tessie.com/…/location"
+tessie_wake_model_x_url: "https://api.tessie.com/…/wake"
+tessie_model_x_location_url: "https://api.tessie.com/…/location"
 ```
+
+If Tessie HA entity IDs differ from `sensor.tesla_model_x_shift_state` / `sensor.tesla_model_x_speed`, update `automations/gate.yaml` and `garage-doors/automations/garage.yaml` after checking **Developer tools → States**.
+
+### Getting Tessie URLs for Model X
+
+1. **API token** — [my.tessie.com → Settings → Developer](https://dash.tessie.com/settings/api) → copy any **Access Token**. One token works for **all** vehicles on the account; you do not need a separate token per car unless you want to rotate/revoke independently.
+2. **Model X VIN** — on [my.tessie.com](https://my.tessie.com), use the **vehicle switcher** (top of the dashboard). Open **Settings** for Model X; the VIN is shown there (17 characters, e.g. `5YJ…`). Alternatively: Tesla app → Model X → **Controls** → scroll to **VIN**.
+3. **URLs** — substitute the Model X VIN into the Tessie API paths ([developer.tessie.com](https://developer.tessie.com)):
+   - Location (GET): `https://api.tessie.com/<MODEL_X_VIN>/location`
+   - Wake (POST): `https://api.tessie.com/<MODEL_X_VIN>/wake`
+4. **Virtual key** — on the phone logged into the Tesla account for Model X, open [tessie.com/key](https://tessie.com/key) and complete setup so wake/location work when the car is asleep.
+5. **HA Tessie integration** — **Settings → Devices & services → Tessie** must include Model X (shift/speed entities). Re-add or reconfigure if `sensor.tesla_model_x_shift_state` is missing.
+
+### Restoring Model S in HA Tessie
+
+If Tessie shows Model S + Model X at [my.tessie.com](https://my.tessie.com) but HA only lists Model X, Energy Site, and Wall Connector:
+
+1. **Tessie account** — **Settings → Connectivity**: Tesla email must match the Tesla app. Tap **Sync** (or **Sync vehicles**). Confirm Model S is not archived (**Fleet → Archived → Unarchive**).
+2. **HA has no reconfigure** — [official docs](https://www.home-assistant.io/integrations/tessie/): remove Tessie (⋮ → Delete), then **Add integration → Tessie** with the same API token. **Do not** use **Add hub** for a second car on the same account — one hub/token discovers all active vehicles.
+3. **After re-add** — **Developer tools → States**, filter `shift`. Entity slug follows the Tesla vehicle name (Model X named `X` → `sensor.x_shift_state`). Model S may be `sensor.s_shift_state`, `sensor.model_s_shift_state`, or the old `sensor.model_s_p100d_shift_state` — copy the real IDs into repo YAML (see table above + `garage-doors/automations/garage.yaml`, `solar-dashboard/packages/solar_dashboard_ev.yaml`).
+4. **Pre-2021 Model S** — virtual key / command signing not required ([HA Tessie docs](https://www.home-assistant.io/integrations/tessie/#command-signing)); wake/location via REST still need correct VIN URLs in `secrets.yaml`.
 
 ## Notifications
 
 Gate open/close alerts use `notify.halo`. Arrival is **Tessie-only** — phones are not in the open automation.
 
-Tessie location polls every 10 s; `gate_tessie_wake_while_away` wakes the car every 5 min when `model_s_was_away` is on.
+Tessie location polls every 10 s; `gate_tessie_wake_while_away` / `gate_tessie_wake_while_away_model_x` wake each car every 5 min when its `model_*_was_away` helper is on.
 
 ## Packages
 

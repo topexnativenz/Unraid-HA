@@ -1,0 +1,16 @@
+# Overlay element injected into Floorplan (4:3) ground-floor picture-elements by deploy_casa_luna_16x9.py
+# Use type: icon (not state-icon) — state-icon requires entity and breaks the view.
+type: icon
+icon: mdi:moon-waning-crescent
+tap_action:
+  action: navigate
+  navigation_path: /g-unit-16x9/home
+style:
+  left: 4%
+  top: 4%
+  z-index: 10
+  "--mdc-icon-size": 32px
+  background: rgba(0, 0, 0, 0.55)
+  border-radius: 10px
+  padding: 6px
+  color: "#cce4ff"

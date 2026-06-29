@@ -1,0 +1,33 @@
+# Model S drive_state via Tessie /vehicles while the car is archived or missing from the HA Tessie hub.
+# Keeps legacy entity IDs used by gate/garage automations (sensor.model_s_p100d_*).
+# Remove or disable once HA Tessie exposes sensor.s_shift_state / sensor.s_speed for Model S.
+
+rest:
+  - resource: https://api.tessie.com/vehicles
+    method: GET
+    headers:
+      Authorization: !secret tessie_api_key_header
+      Content-Type: application/json
+    scan_interval: 10
+    sensor:
+      - name: Model S P100D shift state
+        unique_id: model_s_p100d_shift_state_tessie_rest
+        value_template: >-
+          {% set cars = value_json.results if value_json.results is defined else [] %}
+          {% set car = cars | selectattr('vin', 'equalto', '5YJSB7E42KF302045') | list | first %}
+          {% if car and car.last_state is defined and car.last_state.drive_state is defined %}
+            {{ car.last_state.drive_state.shift_state | default('unknown') }}
+          {% else %}
+            unknown
+          {% endif %}
+      - name: Model S P100D speed
+        unique_id: model_s_p100d_speed_tessie_rest
+        unit_of_measurement: km/h
+        value_template: >-
+          {% set cars = value_json.results if value_json.results is defined else [] %}
+          {% set car = cars | selectattr('vin', 'equalto', '5YJSB7E42KF302045') | list | first %}
+          {% if car and car.last_state is defined and car.last_state.drive_state is defined %}
+            {{ car.last_state.drive_state.speed | float(0) }}
+          {% else %}
+            0
+          {% endif %}

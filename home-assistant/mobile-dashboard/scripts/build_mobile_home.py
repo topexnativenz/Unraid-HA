@@ -306,13 +306,13 @@ def build_quick_actions() -> dict:
     cards.extend(
         [
             mushroom_garage_pulse(
-                "input_boolean.house_garage_door_open",
+                "binary_sensor.house_garage_door_sensor_door",
                 "House Garage",
                 "script.pulse_house_garage_door",
                 columns=col,
             ),
             mushroom_garage_pulse(
-                "input_boolean.main_shed_door_open",
+                "binary_sensor.contact_sensor_door",
                 "Main Shed",
                 "script.pulse_main_shed_door",
                 columns=col,

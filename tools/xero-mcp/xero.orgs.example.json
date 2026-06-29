@@ -1,0 +1,22 @@
+{
+  "default_slug": "matariki-property-group",
+  "organisations": {
+    "matariki-property-group": {
+      "label": "Property Group"
+    },
+    "matariki-traders": {
+      "label": "Traders"
+    },
+    "matariki-morningside-development": {
+      "label": "Morningside Dev"
+    },
+    "mpg-cancelled": {
+      "exclude": true,
+      "label": "DO NOT USE — duplicate MPG Cancelled org"
+    },
+    "5b20078f-bd79-4f72-b236-25683e58dc3a": {
+      "exclude": true,
+      "label": "DO NOT USE — duplicate MPG Cancelled org"
+    }
+  }
+}

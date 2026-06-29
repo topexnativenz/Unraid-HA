@@ -7,3 +7,9 @@ rest_command:
     headers:
       Authorization: !secret tessie_api_key_header
       Content-Type: application/json
+  tessie_wake_model_x:
+    url: !secret tessie_wake_model_x_url
+    method: POST
+    headers:
+      Authorization: !secret tessie_api_key_header
+      Content-Type: application/json

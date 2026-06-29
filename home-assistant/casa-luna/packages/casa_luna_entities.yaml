@@ -1,0 +1,321 @@
+# Casa Luna — scene/light helpers + dashboard template entities.
+# Wraps tablet demo input_buttons + mobile-home quick actions.
+
+input_boolean:
+  # Tracked open state until a gate contact sensor is paired (default CLOSED).
+  casa_luna_gate_open:
+    name: Casa Luna gate open (tracked)
+    icon: mdi:gate
+    initial: false
+
+input_number:
+  casa_luna_gate_open_seconds:
+    name: Casa Luna gate inferred open duration
+    min: 15
+    max: 120
+    step: 5
+    initial: 45
+    unit_of_measurement: s
+    icon: mdi:timer-sand
+
+template:
+  - binary_sensor:
+      # Gate OPEN/CLOSED for G-UNIT bottom tile.
+      # Swap GATE_CONTACT_ENTITY when Tapo/contact sensor is installed on the gate.
+      - name: Casa Luna Gate Status
+        unique_id: casa_luna_gate_status
+        device_class: door
+        icon: mdi:gate
+        state: >
+          {% set contact = 'binary_sensor.gate_contact_door' %}
+          {% if states(contact) not in ['unknown', 'unavailable', 'none', ''] %}
+            {{ is_state(contact, 'on') }}
+          {% else %}
+            {{ is_state('input_boolean.casa_luna_gate_open', 'on') }}
+          {% endif %}
+
+      # Main Shed garage door — Tapo T110 via H200 (Shed Main Door).
+      - name: Casa Luna Main Shed Garage Door
+        unique_id: casa_luna_main_shed_garage_door
+        device_class: door
+        icon: mdi:garage
+        state: >
+          {{ is_state('binary_sensor.contact_sensor_door', 'on') }}
+
+  - sensor:
+      - name: Casa Luna UniFi AP Status
+        unique_id: casa_luna_unifi_ap_status
+        icon: mdi:access-point-network
+        state: >
+          {% set ns = namespace(online=0, total=0, names=[]) %}
+          {% for ent in states.sensor | map(attribute='entity_id') | list %}
+            {% if 'unifi' in ent and ('uplink' in ent or 'state' in ent) %}
+              {% set ns.total = ns.total + 1 %}
+              {% if states(ent) | lower in ['connected', 'on', 'online', 'up'] %}
+                {% set ns.online = ns.online + 1 %}
+              {% endif %}
+              {% set ns.names = ns.names + [state_attr(ent, 'friendly_name') or ent] %}
+            {% endif %}
+          {% endfor %}
+          {% if ns.total > 0 %}
+            {{ ns.online }}/{{ ns.total }} online
+          {% else %}
+            pending UniFi integration
+          {% endif %}
+        attributes:
+          access_points: >
+            {% set ns = namespace(names=[]) %}
+            {% for ent in states.sensor | map(attribute='entity_id') | list %}
+              {% if 'unifi' in ent %}
+                {% set ns.names = ns.names + [state_attr(ent, 'friendly_name') or ent] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.names }}
+
+      - name: Casa Luna UniFi Firmware Pending
+        unique_id: casa_luna_unifi_firmware_pending
+        icon: mdi:update
+        unit_of_measurement: updates
+        state_class: measurement
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% for ent in states.update | map(attribute='entity_id') | list %}
+            {% if 'unifi' in ent and is_state(ent, 'on') %}
+              {% set ns.count = ns.count + 1 %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.count }}
+        attributes:
+          pending_entities: >
+            {% set ns = namespace(ids=[]) %}
+            {% for ent in states.update | map(attribute='entity_id') | list %}
+              {% if 'unifi' in ent and is_state(ent, 'on') %}
+                {% set ns.ids = ns.ids + [ent] %}
+              {% endif %}
+            {% endfor %}
+            {{ ns.ids }}
+
+      - name: Casa Luna Latest TV Download
+        unique_id: casa_luna_latest_tv_download
+        icon: mdi:television-play
+        state: >
+          {% set ns = namespace(found='') %}
+          {% set candidates = [
+            'sensor.sonarr_recent_series',
+            'sensor.sonarr_queue',
+            'sensor.sonarr_activity'
+          ] %}
+          {% for e in candidates %}
+            {% if states(e) not in ['unknown', 'unavailable', 'none', ''] %}
+              {% set ns.found = states(e) %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.found if ns.found else 'No Sonarr sensor' }}
+        attributes:
+          source: Sonarr
+          note: Add Sonarr HACS/REST sensor or point candidates list at live entity
+
+      - name: Casa Luna Latest Movie Download
+        unique_id: casa_luna_latest_movie_download
+        icon: mdi:movie-open
+        state: >
+          {% set ns = namespace(found='') %}
+          {% set candidates = [
+            'sensor.radarr_recent_movie',
+            'sensor.radarr_queue',
+            'sensor.radarr_activity'
+          ] %}
+          {% for e in candidates %}
+            {% if states(e) not in ['unknown', 'unavailable', 'none', ''] %}
+              {% set ns.found = states(e) %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.found if ns.found else 'No Radarr sensor' }}
+        attributes:
+          source: Radarr
+          note: Add Radarr HACS/REST sensor or point candidates list at live entity
+
+      - name: Casa Luna UniFi Summary
+        unique_id: casa_luna_unifi_summary
+        icon: mdi:access-point-network
+        state: >
+          {% set ap = states('sensor.casa_luna_unifi_ap_status') %}
+          {% set fw = states('sensor.casa_luna_unifi_firmware_pending') | int(0) %}
+          {% if fw > 0 %}
+            {{ ap }} · {{ fw }} upd
+          {% else %}
+            {{ ap }}
+          {% endif %}
+        attributes:
+          ap_status: "{{ states('sensor.casa_luna_unifi_ap_status') }}"
+          firmware_pending: "{{ states('sensor.casa_luna_unifi_firmware_pending') | int(0) }}"
+          pending_entities: "{{ state_attr('sensor.casa_luna_unifi_firmware_pending', 'pending_entities') or [] }}"
+
+      - name: Casa Luna UniFi Summary Short
+        unique_id: casa_luna_unifi_summary_short
+        icon: mdi:access-point-network
+        state: >
+          {% set ap = states('sensor.casa_luna_unifi_ap_status') %}
+          {% set fw = states('sensor.casa_luna_unifi_firmware_pending') | int(0) %}
+          {% if 'pending' in ap | lower %}
+            Pending
+          {% elif fw > 0 %}
+            {{ fw }} upd
+          {% elif '/' in ap and 'online' in ap | lower %}
+            Online
+          {% elif ap not in ['unknown', 'unavailable', 'none', ''] %}
+            OK
+          {% else %}
+            Pending
+          {% endif %}
+        attributes:
+          ap_status: "{{ states('sensor.casa_luna_unifi_ap_status') }}"
+          firmware_pending: "{{ states('sensor.casa_luna_unifi_firmware_pending') | int(0) }}"
+          pending_entities: "{{ state_attr('sensor.casa_luna_unifi_firmware_pending', 'pending_entities') or [] }}"
+
+      - name: Casa Luna Latest Download
+        unique_id: casa_luna_latest_download
+        icon: mdi:download-multiple
+        state: >
+          {% set tv = states('sensor.casa_luna_latest_tv_download') %}
+          {% set mv = states('sensor.casa_luna_latest_movie_download') %}
+          {% set bad = ['unknown', 'unavailable', 'none', '', 'No Sonarr sensor', 'No Radarr sensor'] %}
+          {% set tv_ok = tv not in bad %}
+          {% set mv_ok = mv not in bad %}
+          {% if tv_ok and mv_ok %}
+            {{ tv }} · {{ mv }}
+          {% elif tv_ok %}
+            TV: {{ tv }}
+          {% elif mv_ok %}
+            {{ mv }}
+          {% else %}
+            Awaiting *arr
+          {% endif %}
+        attributes:
+          tv: "{{ states('sensor.casa_luna_latest_tv_download') }}"
+          movie: "{{ states('sensor.casa_luna_latest_movie_download') }}"
+
+script:
+  casa_luna_goodnight:
+    alias: Casa Luna — Goodnight
+    icon: mdi:weather-night
+    sequence:
+      - action: light.turn_on
+        target:
+          entity_id: light.night_arrival
+
+  casa_luna_lights_all_on:
+    alias: Casa Luna — All lights on
+    icon: mdi:lightbulb-on
+    sequence:
+      - action: light.turn_on
+        target:
+          entity_id: light.all_lights
+
+  casa_luna_lights_all_off:
+    alias: Casa Luna — All lights off
+    icon: mdi:lightbulb-off
+    sequence:
+      - action: light.turn_off
+        target:
+          entity_id: light.all_lights
+
+  casa_luna_scene_guest:
+    alias: Casa Luna — Guest scene
+    icon: mdi:account-group
+    sequence:
+      - action: input_button.press
+        target:
+          entity_id: input_button.tablet_demo_scene_guest
+
+  casa_luna_scene_dim:
+    alias: Casa Luna — Dim scene
+    icon: mdi:brightness-4
+    sequence:
+      - action: input_button.press
+        target:
+          entity_id: input_button.tablet_demo_scene_dim
+
+  casa_luna_scene_movie:
+    alias: Casa Luna — Movie scene
+    icon: mdi:movie-open
+    sequence:
+      - action: input_button.press
+        target:
+          entity_id: input_button.tablet_demo_scene_movie
+
+  casa_luna_scene_night:
+    alias: Casa Luna — Night scene
+    icon: mdi:weather-night
+    sequence:
+      - action: input_button.press
+        target:
+          entity_id: input_button.tablet_demo_scene_night
+
+  casa_luna_scene_vacation:
+    alias: Casa Luna — Vacation scene
+    icon: mdi:airplane
+    sequence:
+      - action: input_button.press
+        target:
+          entity_id: input_button.tablet_demo_scene_vaca
+
+automation:
+  - id: casa_luna_gate_mark_open_on_pulse
+    alias: Casa Luna — mark gate open on pulse
+    description: >-
+      Until binary_sensor.gate_contact_door exists, infer OPEN from relay pulses
+      and gate scripts; base state stays CLOSED via input_boolean.casa_luna_gate_open.
+    trigger:
+      - platform: event
+        event_type: call_service
+        event_data:
+          domain: shell_command
+          service: akuvox_gate_open_relay_1
+      - platform: state
+        entity_id:
+          - script.gate_pulse_open_once
+          - script.gate_pulse_hold_approach
+          - script.gate_pulse_departure
+          - script.gate_open_tesla_when_leaving
+        to: "on"
+    action:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.casa_luna_gate_open
+
+  - id: casa_luna_gate_infer_closed
+    alias: Casa Luna — infer gate closed after pulse timeout
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: input_boolean.casa_luna_gate_open
+        to: "on"
+      - platform: state
+        entity_id: input_boolean.gate_hold_active
+        to: "off"
+      - platform: state
+        entity_id: binary_sensor.gate_arrival_passage_active
+        to: "off"
+    condition:
+      - condition: state
+        entity_id: input_boolean.casa_luna_gate_open
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.gate_hold_active
+        state: "off"
+      - condition: state
+        entity_id: binary_sensor.gate_arrival_passage_active
+        state: "off"
+    action:
+      - delay:
+          seconds: "{{ states('input_number.casa_luna_gate_open_seconds') | int(45) }}"
+      - condition: state
+        entity_id: input_boolean.gate_hold_active
+        state: "off"
+      - condition: state
+        entity_id: binary_sensor.gate_arrival_passage_active
+        state: "off"
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.casa_luna_gate_open

@@ -13,18 +13,27 @@ template:
           {% elif is_state('input_boolean.gate_hold_active', 'on') %}
             Opening — relay 1 hold active
           {% elif is_state('binary_sensor.model_s_tessie_in_gate_approach', 'on') %}
-            Tessie at gate approach
+            Tessie at gate approach (Model S)
+          {% elif is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on') %}
+            Tessie at gate approach (Model X)
           {% elif is_state('binary_sensor.model_s_tessie_in_road_approach', 'on') %}
-            Tessie on road approach
+            Tessie on road approach (Model S)
+          {% elif is_state('binary_sensor.model_x_tessie_in_road_approach', 'on') %}
+            Tessie on road approach (Model X)
           {% elif is_state('input_boolean.model_s_was_away', 'on') %}
             Model S away — Tessie armed
+          {% elif is_state('input_boolean.model_x_was_away', 'on') %}
+            Model X away — Tessie armed
           {% else %}
             Idle
           {% endif %}
         attributes:
           tessie_distance_home_m: "{{ states('sensor.model_s_tessie_distance_to_home') }}"
           tessie_distance_gate_m: "{{ states('sensor.model_s_tessie_distance_to_gate') }}"
+          tessie_model_x_distance_home_m: "{{ states('sensor.model_x_tessie_distance_to_home') }}"
+          tessie_model_x_distance_gate_m: "{{ states('sensor.model_x_tessie_distance_to_gate') }}"
           shift_state: "{{ states('sensor.model_s_p100d_shift_state') }}"
+          model_x_shift_state: "{{ states('sensor.x_shift_state') }}"
           message: "{{ states('input_text.gate_status_message') }}"
           session_active: "{{ states('input_boolean.gate_arrival_session') }}"
           hold_active: "{{ states('input_boolean.gate_hold_active') }}"

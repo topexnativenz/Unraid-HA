@@ -1,0 +1,54 @@
+# Dark glassmorphism theme for wall/tablet dashboards.
+# Apply per-dashboard: Dashboard → ⋮ → Theme → Tablet Glass
+
+tablet_glass:
+  modes:
+    dark:
+      primary-color: "#c084fc"
+      accent-color: "#f472b6"
+      dark-primary-color: "#a855f7"
+      light-primary-color: "#e9d5ff"
+
+      app-header-background-color: "rgba(8, 8, 14, 0.72)"
+      app-header-text-color: "#f8fafc"
+      primary-background-color: "#0a0a12"
+      secondary-background-color: "#12101c"
+      card-background-color: "rgba(255, 255, 255, 0.06)"
+      ha-card-background: "rgba(255, 255, 255, 0.06)"
+      ha-card-border-radius: "24px"
+      ha-card-box-shadow: "0 8px 32px rgba(0, 0, 0, 0.35)"
+      divider-color: "rgba(255, 255, 255, 0.08)"
+
+      primary-text-color: "#f8fafc"
+      secondary-text-color: "rgba(248, 250, 252, 0.72)"
+      disabled-text-color: "rgba(248, 250, 252, 0.38)"
+      text-primary-color: "#ffffff"
+
+      state-icon-color: "#f8fafc"
+      state-icon-active-color: "#fbbf24"
+      state-icon-unavailable-color: "rgba(248, 250, 252, 0.3)"
+
+      label-badge-background-color: "rgba(255, 255, 255, 0.1)"
+      label-badge-text-color: "#f8fafc"
+      label-badge-red: "#fb7185"
+      label-badge-green: "#4ade80"
+      label-badge-blue: "#60a5fa"
+      label-badge-yellow: "#fbbf24"
+
+      paper-slider-knob-color: "#c084fc"
+      paper-slider-active-color: "#a855f7"
+      paper-slider-container-color: "rgba(255, 255, 255, 0.12)"
+
+      switch-checked-color: "#a855f7"
+      switch-unchecked-color: "rgba(255, 255, 255, 0.2)"
+
+      sidebar-background-color: "rgba(8, 8, 14, 0.92)"
+      sidebar-icon-color: "rgba(248, 250, 252, 0.65)"
+      sidebar-text-color: "#f8fafc"
+      sidebar-selected-icon-color: "#f8fafc"
+      sidebar-selected-text-color: "#f8fafc"
+
+      # Custom CSS variables consumed by tablet-glass.css
+      tablet-bg-base: "#0a0a12"
+      tablet-bg-glow-purple: "rgba(124, 58, 237, 0.18)"
+      tablet-bg-glow-pink: "rgba(236, 72, 153, 0.12)"

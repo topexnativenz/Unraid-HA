@@ -1,0 +1,16 @@
+services:
+  xero-inbound:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: xero-inbound
+    restart: unless-stopped
+    ports:
+      - "8766:8766"
+    volumes:
+      - /mnt/user/appdata/xero-inbound/config:/config:rw
+    environment:
+      XERO_MCP_CONFIG_DIR: /config
+      WEBHOOK_PORT: "8766"
+      NOTIFIED_API_BASE: https://api.notified.co.nz
+      # Optional: OPENAI_API_KEY, NOTIFIED_SERVICE_JWT

@@ -35,6 +35,28 @@ script:
         target:
           entity_id: input_boolean.house_garage_door_open
 
+  open_house_garage_door:
+    alias: Open House Garage door
+    mode: single
+    sequence:
+      - condition: state
+        entity_id: binary_sensor.house_garage_door_sensor_door
+        state: "off"
+      - action: script.turn_on
+        target:
+          entity_id: script.pulse_house_garage_door
+
+  close_house_garage_door:
+    alias: Close House Garage door
+    mode: single
+    sequence:
+      - condition: state
+        entity_id: binary_sensor.house_garage_door_sensor_door
+        state: "on"
+      - action: script.turn_on
+        target:
+          entity_id: script.pulse_house_garage_door
+
   pulse_main_shed_door:
     alias: Pulse Main Shed door
     mode: single

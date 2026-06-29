@@ -5,6 +5,7 @@
   "locked_master": "home-assistant/solar-dashboard/www/solar-dashboard/backgrounds/v5/master-clear.png",
   "render_backend": "fal",
   "fal_image_model": "fal-ai/flux/dev",
+  "fal_img2img_model": "fal-ai/flux-pro/kontext",
   "deploy_script": "home-assistant/solar-dashboard/scripts/deploy_to_ha.py",
   "lovelace_yaml_paths": [
     "home-assistant/solar-dashboard/lovelace/views/solar-energy.yaml",

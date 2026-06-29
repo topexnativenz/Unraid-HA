@@ -10,6 +10,9 @@ input_boolean:
   model_s_was_away:
     name: Model S was away (Tessie arrival)
     icon: mdi:car-arrow-right
+  model_x_was_away:
+    name: Model X was away (Tessie arrival)
+    icon: mdi:car-arrow-right
   dave_was_outside:
     name: Dave phone was outside (gate arrival)
     icon: mdi:cellphone-arrow-right

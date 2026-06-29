@@ -14,7 +14,13 @@ from media_render_mcp.guardrails import (
 )
 from media_render_mcp.paths import list_version_folders, resolve_repo_path
 from media_render_mcp.publish import deploy_documentation, update_lovelace_cache_bust
-from media_render_mcp.render import plan_render_image, render_image_live, render_live_enabled
+from media_render_mcp.render import (
+    img2img_with_reference_live,
+    plan_img2img_with_reference,
+    plan_render_image,
+    render_image_live,
+    render_live_enabled,
+)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("media-render-mcp")
@@ -143,27 +149,68 @@ def img2img_with_reference(
     prompt: str,
     version_folder: str = "v8",
     strength: float = 0.65,
+    output_path: str | None = None,
     dry_run: bool = True,
 ) -> str:
-    """Image-to-image using a reference frame (stub in Phase 0)."""
+    """Image-to-image from a reference file path or URL (Fal Kontext when RENDER_LIVE=1)."""
     cfg = load_config()
-    ref = resolve_repo_path(reference_path)
+    ref = (
+        resolve_repo_path(reference_path)
+        if not reference_path.strip().startswith(("http://", "https://"))
+        else None
+    )
+    if ref is not None:
+        try:
+            assert_not_locked_master(ref, cfg, allow_master_override=False)
+        except GuardrailError as exc:
+            return _json({"error": str(exc), "blocked": True})
+
     try:
-        assert_not_locked_master(ref, cfg, allow_master_override=False)
+        if dry_run:
+            plan = plan_img2img_with_reference(
+                cfg,
+                reference_path=reference_path,
+                prompt=prompt,
+                version_folder=version_folder,
+                strength=strength,
+                output_path=output_path,
+            )
+            return _json(
+                {
+                    **plan,
+                    "dry_run": True,
+                    "hint": "Set dry_run=false and RENDER_LIVE=1 (plus FAL_KEY) to call Fal Kontext.",
+                }
+            )
+
+        if render_live_enabled():
+            result = img2img_with_reference_live(
+                cfg,
+                reference_path=reference_path,
+                prompt=prompt,
+                version_folder=version_folder,
+                strength=strength,
+                output_path=output_path,
+            )
+            return _json(result)
+
+        plan = plan_img2img_with_reference(
+            cfg,
+            reference_path=reference_path,
+            prompt=prompt,
+            version_folder=version_folder,
+            strength=strength,
+            output_path=output_path,
+        )
+        return _json(
+            {
+                **plan,
+                "error": "RENDER_LIVE not set; refusing to write without RENDER_LIVE=1.",
+                "blocked": True,
+            }
+        )
     except GuardrailError as exc:
         return _json({"error": str(exc), "blocked": True})
-
-    return _json(
-        {
-            "mode": "stub",
-            "reference_path": str(ref),
-            "prompt": prompt,
-            "version_folder": version_folder,
-            "strength": strength,
-            "dry_run": dry_run,
-            "note": "Phase 0 stub — implement Fal img2img in Phase 1.",
-        }
-    )
 
 
 @mcp.tool()
