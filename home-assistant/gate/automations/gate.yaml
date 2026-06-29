@@ -287,6 +287,92 @@
         value: Gate relay 1 pulsing — Tessie session active
   mode: single
 
+- id: gate_close_when_tesla_home_parked
+  alias: Gate — close when Tesla home and in park
+  description: >-
+    Closes the gate after Model S or Model X is in zone.home and shifts to Park.
+    Stops any arrival repulse hold first.
+  triggers:
+    - id: model_s_home_park
+      trigger: template
+      value_template: >-
+        {{ (is_state('device_tracker.model_s_p100d_location', 'home')
+            or states('sensor.model_s_tessie_distance_to_home') | float(9999) < 100)
+           and states('sensor.model_s_p100d_shift_state') | lower == 'p' }}
+      for:
+        seconds: 30
+    - id: model_x_home_park
+      trigger: template
+      value_template: >-
+        {{ (is_state('device_tracker.x_location', 'home')
+            or states('sensor.model_x_tessie_distance_to_home') | float(9999) < 100)
+           and states('sensor.x_shift_state') | lower == 'p' }}
+      for:
+        seconds: 30
+    - id: model_s_enter_home
+      trigger: zone
+      entity_id: device_tracker.model_s_p100d_location
+      zone: zone.home
+      event: enter
+    - id: model_x_enter_home
+      trigger: zone
+      entity_id: device_tracker.x_location
+      zone: zone.home
+      event: enter
+    - id: model_s_shift_park
+      trigger: state
+      entity_id: sensor.model_s_p100d_shift_state
+      to:
+        - p
+        - P
+    - id: model_x_shift_park
+      trigger: state
+      entity_id: sensor.x_shift_state
+      to:
+        - p
+        - P
+  conditions:
+    - condition: template
+      value_template: >-
+        {% if trigger.id == 'model_s_enter_home' %}
+          {{ states('sensor.model_s_p100d_shift_state') | lower == 'p' }}
+        {% elif trigger.id == 'model_x_enter_home' %}
+          {{ states('sensor.x_shift_state') | lower == 'p' }}
+        {% elif trigger.id == 'model_s_shift_park' %}
+          {{ is_state('device_tracker.model_s_p100d_location', 'home')
+             or states('sensor.model_s_tessie_distance_to_home') | float(9999) < 100 }}
+        {% elif trigger.id == 'model_x_shift_park' %}
+          {{ is_state('device_tracker.x_location', 'home')
+             or states('sensor.model_x_tessie_distance_to_home') | float(9999) < 100 }}
+        {% else %}
+          true
+        {% endif %}
+    - condition: template
+      value_template: >-
+        {{ is_state('input_boolean.casa_luna_gate_open', 'on')
+           or is_state('input_boolean.gate_arrival_session', 'on')
+           or is_state('input_boolean.gate_hold_active', 'on')
+           or is_state('binary_sensor.casa_luna_gate_status', 'on')
+           or (
+             states.input_datetime.gate_last_open.last_changed is not none
+             and (now() - states.input_datetime.gate_last_open.last_changed).total_seconds() < 1800
+           ) }}
+  actions:
+    - action: script.gate_close_relay_1
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.gate_status_message
+      data:
+        value: "Gate closed — {{ trigger.id }}"
+    - action: notify.halo
+      data:
+        title: Gate closed
+        message: "Tesla parked at home ({{ trigger.id }})."
+        data:
+          tag: gate_close
+          channel: gate
+  mode: single
+
 - id: gate_open_tesla_departure
   alias: Gate — open when Model S leaves park at home
   triggers:

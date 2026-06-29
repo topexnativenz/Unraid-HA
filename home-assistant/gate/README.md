@@ -14,6 +14,8 @@ Deploy to Home Assistant at `http://192.168.1.239:8123`.
 
 Automation: **Gate — open on Tessie arrival** → relay 1 pulse, then `script.gate_pulse_hold_approach` until Tessie reports car parked at home.
 
+**Gate — close when Tesla home and in park** → when Model S or Model X is in `zone.home` and in **Park**, runs `script.gate_close_relay_1` (Akuvox `CloseDoor` on relay 1) if the gate was recently opened or a hold session is active.
+
 **Departure** (unchanged): Tesla **P → R/D** → short departure hold.
 
 Phones are not used for gate open. Companion zones remain useful for dashboards only.
@@ -77,7 +79,7 @@ Tessie location polls every 10 s; `gate_tessie_wake_while_away` wakes the car ev
 
 ## Relays
 
-Relay **1** = pulse (automations). Relay **2** = latch (manual test only).
+Relay **1** = open pulse + CloseDoor close (automations). Relay **2** = latch (manual test only).
 
 ## Deploy
 

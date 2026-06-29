@@ -104,9 +104,14 @@ def ensure_gate_secrets(secrets: Path, gate_password: str) -> None:
         f'curl -skS --digest -u "admin:{gate_password}" '
         f'"https://192.168.1.73/fcgi/OpenDoor?action=OpenDoor&DoorNum=2"'
     )
+    close1 = (
+        f'curl -skS --digest -u "admin:{gate_password}" '
+        f'"https://192.168.1.73/fcgi/OpenDoor?action=CloseDoor&DoorNum=1"'
+    )
     for key, value in [
         ("akuvox_gate_curl_relay_1", relay1),
         ("akuvox_gate_curl_relay_2", relay2),
+        ("akuvox_gate_curl_close_relay_1", close1),
     ]:
         if f"{key}:" not in text:
             lines.append(f'{key}: {json.dumps(value)}')

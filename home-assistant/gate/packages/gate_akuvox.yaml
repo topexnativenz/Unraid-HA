@@ -1,4 +1,14 @@
-# Relay 1 = momentary pulse (shell_command in configuration.yaml). Relay 2 = latch — not used by automations.
+# Relay 1 = momentary pulse (shell_command in configuration.yaml). Relay 2 = latch — manual only.
+# Close uses rest_command below (Akuvox action=CloseDoor on relay 1).
+
+rest_command:
+  akuvox_gate_close_relay_1:
+    url: "https://192.168.1.73/fcgi/OpenDoor?action=CloseDoor&DoorNum=1"
+    method: get
+    username: admin
+    password: !secret gate_password
+    verify_ssl: false
+
 template:
   - button:
       - name: "Gate Open"
