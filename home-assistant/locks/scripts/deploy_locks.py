@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy gate packages + automations block to Home Assistant via SMB."""
+"""Deploy Schlage lock package + automations block to Home Assistant."""
 
 from __future__ import annotations
 
@@ -17,15 +17,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_HA = "http://192.168.1.239:8123"
-DEFAULT_MOUNT = "/private/tmp/ha-config-smb-gate"
-PACKAGE_FILES = (
-    "gate_akuvox.yaml",
-    "gate_automations.yaml",
-    "gate_phone.yaml",
-    "gate_approach_layers.yaml",
-    "gate_tessie_location.yaml",
-    "gate_tessie.yaml",
-)
+DEFAULT_MOUNT = "/private/tmp/ha-config-smb-locks"
+PACKAGE_FILES: tuple[str, ...] = ()
+
+MARKER_START = "# --- Locks automations (repo: home-assistant/locks) ---"
+MARKER_END = "# --- End locks automations ---"
 
 
 def get_token() -> str:
@@ -50,8 +46,8 @@ async def get_samba_creds_from_ha(host: str, token: str) -> tuple[str, str]:
             "Missing Python package 'websockets'.\n"
             "Fix one of:\n"
             "  python3 -m pip install --user websockets\n"
-            "  export HA_SAMBA_PASSWORD='…'  # HA → Settings → Add-ons → Samba share\n"
-            "  deactivate  # leave .venv, then re-run deploy script"
+            "  export HA_SAMBA_PASSWORD='…'\n"
+            "  deactivate"
         ) from exc
 
     ws_url = f"ws://{host}:8123/api/websocket"
@@ -94,37 +90,32 @@ def mount_config(host: str, user: str, password: str, mount: str) -> None:
         raise RuntimeError(f"SMB mount failed: {res.stderr.strip() or res.stdout.strip()}")
 
 
-def merge_gate_automations(text: str, auto_src: str) -> str:
-    marker_start = "# --- Gate automations (repo: home-assistant/gate) ---"
-    marker_end = "# --- End gate automations ---"
-    block = f"{marker_start}\n{auto_src.strip()}\n{marker_end}\n"
+def merge_lock_automations(text: str, auto_src: str) -> str:
+    block = f"{MARKER_START}\n{auto_src.strip()}\n{MARKER_END}\n"
 
-    if marker_start in text and marker_end in text:
-        start = text.index(marker_start)
-        end = text.index(marker_end) + len(marker_end)
+    if MARKER_START in text and MARKER_END in text:
+        start = text.index(MARKER_START)
+        end = text.index(MARKER_END) + len(MARKER_END)
         return text[:start] + block + text[end:].lstrip("\n")
 
-    # HA UI / API edits may have removed comment markers — replace by gate automation ids.
-    gate_id_markers = (
-        "- id: gate_dave_mark_outside",
-        "- id: gate_mark_exit_in_progress",
-        "- id: gate_open_on_arrival",
-    )
-    start = -1
-    for marker in gate_id_markers:
-        pos = text.find(marker)
-        if pos != -1:
-            start = pos if start == -1 else min(start, pos)
-
-    if start != -1:
-        lines = text[start:].splitlines(keepends=True)
+    marker = "- id: schlage_lock_at_9pm"
+    if marker in text:
+        lines = text[text.index(marker) :].splitlines(keepends=True)
         cut = len(lines)
         for i, line in enumerate(lines):
-            if i > 0 and line.startswith("- id: ") and not line.startswith("- id: gate_"):
+            if i > 0 and line.startswith("- id: ") and not line.startswith("- id: schlage_"):
                 cut = i
                 break
         old = "".join(lines[:cut])
         return text.replace(old, block, 1)
+
+    gate_marker = "# --- Gate automations (repo: home-assistant/gate) ---"
+    if gate_marker in text:
+        return text.replace(gate_marker, block + "\n" + gate_marker, 1)
+
+    garage_marker = "# --- Garage automations (repo: home-assistant/garage-doors) ---"
+    if garage_marker in text:
+        return text.replace(garage_marker, block + "\n" + garage_marker, 1)
 
     return text.rstrip() + "\n\n" + block
 
@@ -133,13 +124,12 @@ def deploy_files(mount: str) -> None:
     cfg = Path(mount)
     for name in PACKAGE_FILES:
         src = ROOT / "packages" / name
-        if src.exists():
-            shutil.copy2(src, cfg / "packages" / name)
-            print(f"copied {name}")
+        shutil.copy2(src, cfg / "packages" / name)
+        print(f"copied {name}")
 
     auto_path = cfg / "automations.yaml"
-    auto_src = (ROOT / "automations/gate.yaml").read_text()
-    merged = merge_gate_automations(auto_path.read_text(), auto_src)
+    auto_src = (ROOT / "automations/schlage.yaml").read_text()
+    merged = merge_lock_automations(auto_path.read_text(), auto_src)
     auto_path.write_text(merged)
     print("merged automations.yaml")
 
@@ -166,54 +156,67 @@ def api_post(ha_url: str, token: str, path: str, data: dict | None = None) -> in
         return resp.status
 
 
+def push_via_api(ha_url: str, token: str) -> None:
+    import yaml
+
+    auto = yaml.safe_load((ROOT / "automations/schlage.yaml").read_text())
+    for item in auto:
+        aid = item["id"]
+        req = urllib.request.Request(
+            f"{ha_url}/api/config/automation/config/{aid}",
+            data=json.dumps(item).encode(),
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            print(f"pushed automation {aid}: {resp.status}")
+
+
 def reload_ha(ha_url: str, token: str) -> None:
     api_post(ha_url, token, "/api/services/homeassistant/reload_core_config")
-    time.sleep(8)
-    for svc in ("input_boolean/reload", "rest_command/reload", "template/reload", "automation/reload", "script/reload"):
+    time.sleep(6)
+    for svc in ("input_text/reload", "automation/reload"):
         domain, name = svc.split("/")
         status = api_post(ha_url, token, f"/api/services/{domain}/{name}")
         print(f"reloaded {name}: {status}")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Deploy gate packages to Home Assistant")
+    parser = argparse.ArgumentParser(description="Deploy Schlage lock package to Home Assistant")
     parser.add_argument("--host", default=os.environ.get("HA_HOST", "192.168.1.239"))
     parser.add_argument("--ha-url", default=os.environ.get("HA_URL", DEFAULT_HA))
     parser.add_argument("--mount", default=os.environ.get("HA_CONFIG_MOUNT", DEFAULT_MOUNT))
+    parser.add_argument("--api-only", action="store_true", help="Skip SMB; push automation via REST API")
     args = parser.parse_args()
 
     token = get_token()
-    user, password = resolve_samba_creds(args.host, token)
 
-    try:
-        mount_config(args.host, user, password, args.mount)
-        deploy_files(args.mount)
-    finally:
-        subprocess.run(["diskutil", "umount", args.mount], capture_output=True)
+    if not args.api_only:
+        try:
+            user, password = resolve_samba_creds(args.host, token)
+            try:
+                mount_config(args.host, user, password, args.mount)
+                deploy_files(args.mount)
+            finally:
+                subprocess.run(["diskutil", "umount", args.mount], capture_output=True)
+        except RuntimeError as exc:
+            print(f"warning: SMB deploy skipped ({exc}); using API push", file=sys.stderr)
+            args.api_only = True
+
+    if args.api_only:
+        push_via_api(args.ha_url, token)
 
     check = api_post_check(args.ha_url, token)
     if check.get("result") != "valid":
-        print(
-            "error: Home Assistant config is invalid after deploy:\n"
-            f"  {check.get('errors', check)}\n"
-            "Fix the reported file, then re-run this script.",
-            file=sys.stderr,
-        )
+        print(f"error: invalid config: {check.get('errors', check)}", file=sys.stderr)
         return 1
 
     try:
         reload_ha(args.ha_url, token)
     except urllib.error.HTTPError as exc:
-        body = exc.read().decode(errors="replace")
-        print(
-            f"warning: HA reload failed ({exc.code} {body}); "
-            "files are on disk — use Settings → System → Restart or reload from UI",
-            file=sys.stderr,
-        )
-    except urllib.error.URLError as exc:
-        print(f"warning: HA reload failed ({exc}); files are on disk — reload from HA UI", file=sys.stderr)
+        print(f"warning: reload failed ({exc.code})", file=sys.stderr)
 
-    print("Gate package deploy complete.")
+    print("Locks deploy complete.")
     return 0
 
 

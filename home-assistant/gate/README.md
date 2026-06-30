@@ -9,8 +9,8 @@ Deploy to Home Assistant at `http://192.168.1.239:8123`.
 | Layer | Trigger | Notes |
 |-------|---------|-------|
 | **Road Approach** | `binary_sensor.model_s_tessie_in_road_approach` | Primary — Tessie GPS on Three Mile Bush Road |
-| **Gate Approach** | `binary_sensor.model_s_tessie_in_gate_approach` | Driveway mouth |
-| **Distance** | `sensor.model_s_tessie_distance_to_home` &lt; `gate_tessie_trigger_distance_m` | Backup if zone circles drift |
+| **Gate Approach** | `binary_sensor.model_s_tessie_in_gate_approach` | Driveway mouth / road end (~120 m) |
+| **Distance** | `sensor.model_s_tessie_distance_to_gate` &lt; `gate_tessie_trigger_distance_m` | Backup at mouth (~180 m) |
 
 Automation: **Gate — open on Tessie arrival** → relay 1 pulse, then `script.gate_pulse_hold_approach` until Tessie reports car parked at home.
 

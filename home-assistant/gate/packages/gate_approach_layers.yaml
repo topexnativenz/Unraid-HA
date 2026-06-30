@@ -2,11 +2,11 @@
 
 input_number:
   gate_tessie_trigger_distance_m:
-    name: Gate Tessie trigger distance
-    min: 150
-    max: 800
-    step: 25
-    initial: 400
+    name: Gate Tessie trigger distance (to gate mouth)
+    min: 80
+    max: 500
+    step: 10
+    initial: 180
     unit_of_measurement: m
     icon: mdi:car-connected
   gate_early_hold_seconds:
@@ -30,7 +30,7 @@ input_number:
     min: -90
     max: 90
     step: 0.00001
-    initial: -35.69166
+    initial: -35.69110
     mode: box
     icon: mdi:gate
   gate_zone_longitude:
@@ -46,7 +46,7 @@ input_number:
     min: 50
     max: 300
     step: 5
-    initial: 100
+    initial: 120
     unit_of_measurement: m
     icon: mdi:gate
   road_zone_latitude:

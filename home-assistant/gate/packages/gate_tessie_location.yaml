@@ -43,7 +43,7 @@ template:
           {% if lat in ['unknown', 'unavailable', 'none', ''] or lon in ['unknown', 'unavailable', 'none', ''] %}
             unknown
           {% else %}
-            {% set gzlat = states('input_number.gate_zone_latitude') | float(-35.69166) %}
+            {% set gzlat = states('input_number.gate_zone_latitude') | float(-35.69110) %}
             {% set gzlon = states('input_number.gate_zone_longitude') | float(174.26696) %}
             {{ (distance(lat | float(0), lon | float(0), gzlat, gzlon) * 1000) | round(0) }}
           {% endif %}
@@ -80,6 +80,6 @@ template:
         icon: mdi:car
         state: >-
           {% set dist = states('sensor.model_s_tessie_distance_to_gate') | float(9999) %}
-          {{ dist < (states('input_number.gate_zone_radius_m') | float(100)) }}
+            {{ dist < (states('input_number.gate_zone_radius_m') | float(120)) }}
         availability: >-
           {{ states('sensor.model_s_tessie_distance_to_gate') not in ['unknown', 'unavailable', 'none', ''] }}

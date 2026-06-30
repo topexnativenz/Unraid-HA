@@ -36,7 +36,7 @@ ZONE_SPECS = [
         "secret_radius": "gate_approach_radius",
         "default_lat": -35.69110,
         "default_lon": 174.2669872,
-        "default_radius": 100,
+        "default_radius": 120,
     },
     {
         "name": "Road Approach",

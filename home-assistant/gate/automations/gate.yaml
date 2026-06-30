@@ -89,7 +89,9 @@
   alias: Gate — clear blocks when Tessie reaches road approach
   triggers:
     - trigger: state
-      entity_id: binary_sensor.model_s_tessie_in_road_approach
+      entity_id:
+        - binary_sensor.model_s_tessie_in_road_approach
+        - binary_sensor.model_x_tessie_in_road_approach
       from: "off"
       to: "on"
   actions:
@@ -197,10 +199,10 @@
   mode: single
 
 - id: gate_open_on_arrival
-  alias: Gate — open on Tessie arrival
+  alias: Gate — open on Tessie arrival (Model S)
   description: >-
-    Opens relay 1 when Tessie reports road or gate approach while returning home.
-    Does not use phone location.
+    Opens relay 1 when Tessie reports road/gate approach or nears the driveway
+    mouth from the road. Does not use phone location.
   triggers:
     - id: tessie_road_on
       trigger: state
@@ -212,17 +214,17 @@
       entity_id: binary_sensor.model_s_tessie_in_gate_approach
       from: "off"
       to: "on"
-    - id: tessie_distance
+    - id: tessie_gate_distance
       trigger: template
       value_template: >-
-        {{ states('sensor.model_s_tessie_distance_to_home') | float(9999)
-           < states('input_number.gate_tessie_trigger_distance_m') | float(400)
+        {{ states('sensor.model_s_tessie_distance_to_gate') | float(9999)
+           < states('input_number.gate_tessie_trigger_distance_m') | float(180)
            and (
              is_state('input_boolean.model_s_was_away', 'on')
-             or states('sensor.model_s_tessie_distance_to_home') | float(0) > 250
+             or states('sensor.model_s_tessie_distance_to_gate') | float(0) > 300
            ) }}
       for:
-        seconds: 15
+        seconds: 10
   conditions:
     - condition: state
       entity_id: input_boolean.gate_arrival_session
@@ -232,14 +234,14 @@
         {{ not is_state('input_boolean.gate_departure_in_progress', 'on') }}
     - condition: template
       value_template: >-
-        {{ trigger.id in ['tessie_road_on', 'tessie_gate_on']
+        {{ trigger.id in ['tessie_road_on', 'tessie_gate_on', 'tessie_gate_distance']
            or is_state('input_boolean.model_s_was_away', 'on')
-           or states('sensor.model_s_tessie_distance_to_home') | float(0) > 200 }}
+           or states('sensor.model_s_tessie_distance_to_gate') | float(0) > 200 }}
     - condition: template
       value_template: >-
         {{ not (
              states('sensor.model_s_p100d_shift_state') | lower == 'r'
-             and states('sensor.model_s_tessie_distance_to_home') | float(999) < 120
+             and states('sensor.model_s_tessie_distance_to_gate') | float(999) < 80
              and states('sensor.model_s_p100d_speed') | float(0) > 1
            ) }}
   actions:
@@ -252,7 +254,7 @@
       target:
         entity_id: input_text.gate_status_message
       data:
-        value: "Opening gate — Tessie {{ trigger.id }}"
+        value: "Opening gate — Model S {{ trigger.id }}"
     - action: shell_command.akuvox_gate_open_relay_1
     - action: script.turn_on
       target:
@@ -260,7 +262,7 @@
     - action: notify.halo
       data:
         title: Gate opening
-        message: "Tessie approach ({{ trigger.id }}). Opening now."
+        message: "Model S Tessie approach ({{ trigger.id }}). Opening now."
         data:
           tag: gate_approach
           channel: gate
@@ -270,6 +272,97 @@
         entity_id:
           - input_boolean.gate_exit_in_progress
           - input_boolean.model_s_was_away
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.gate_last_open
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+    - action: input_select.select_option
+      target:
+        entity_id: input_select.gate_last_relay
+      data:
+        option: auto_approach
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.gate_status_message
+      data:
+        value: Gate relay 1 pulsing — Tessie session active
+  mode: single
+
+- id: gate_open_on_arrival_model_x
+  alias: Gate — open on Tessie arrival (Model X)
+  description: >-
+    Opens relay 1 when Tessie reports road/gate approach or nears the driveway
+    mouth from the road. Does not use phone location.
+  triggers:
+    - id: tessie_road_on
+      trigger: state
+      entity_id: binary_sensor.model_x_tessie_in_road_approach
+      from: "off"
+      to: "on"
+    - id: tessie_gate_on
+      trigger: state
+      entity_id: binary_sensor.model_x_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+    - id: tessie_gate_distance
+      trigger: template
+      value_template: >-
+        {{ states('sensor.model_x_tessie_distance_to_gate') | float(9999)
+           < states('input_number.gate_tessie_trigger_distance_m') | float(180)
+           and (
+             is_state('input_boolean.model_x_was_away', 'on')
+             or states('sensor.model_x_tessie_distance_to_gate') | float(0) > 300
+           ) }}
+      for:
+        seconds: 10
+  conditions:
+    - condition: state
+      entity_id: input_boolean.gate_arrival_session
+      state: "off"
+    - condition: template
+      value_template: >-
+        {{ not is_state('input_boolean.gate_departure_in_progress', 'on') }}
+    - condition: template
+      value_template: >-
+        {{ trigger.id in ['tessie_road_on', 'tessie_gate_on', 'tessie_gate_distance']
+           or is_state('input_boolean.model_x_was_away', 'on')
+           or states('sensor.model_x_tessie_distance_to_gate') | float(0) > 200 }}
+    - condition: template
+      value_template: >-
+        {{ not (
+             states('sensor.x_shift_state') | lower == 'r'
+             and states('sensor.model_x_tessie_distance_to_gate') | float(999) < 80
+             and states('sensor.x_speed') | float(0) > 1
+           ) }}
+  actions:
+    - action: rest_command.tessie_wake_model_x
+      continue_on_error: true
+    - action: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.gate_arrival_session
+    - action: input_text.set_value
+      target:
+        entity_id: input_text.gate_status_message
+      data:
+        value: "Opening gate — Model X {{ trigger.id }}"
+    - action: shell_command.akuvox_gate_open_relay_1
+    - action: script.turn_on
+      target:
+        entity_id: script.gate_pulse_hold_approach
+    - action: notify.halo
+      data:
+        title: Gate opening
+        message: "Model X Tessie approach ({{ trigger.id }}). Opening now."
+        data:
+          tag: gate_approach
+          channel: gate
+          importance: high
+    - action: input_boolean.turn_off
+      target:
+        entity_id:
+          - input_boolean.gate_exit_in_progress
+          - input_boolean.model_x_was_away
     - action: input_datetime.set_datetime
       target:
         entity_id: input_datetime.gate_last_open

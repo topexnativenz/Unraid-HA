@@ -1,0 +1,27 @@
+# Schlage Encode Plus — nightly lock (Pacific/Auckland).
+# Update entity_id below after Schlage integration discovers the lock
+# (Developer tools → States → filter lock.).
+
+- id: schlage_lock_at_9pm
+  alias: Schlage — lock at 9 PM
+  description: >-
+    Locks the Schlage Encode Plus every night at 21:00 if currently unlocked.
+  triggers:
+    - trigger: time
+      at: "21:00:00"
+  conditions:
+    - condition: state
+      entity_id: lock.front_door
+      state: unlocked
+  actions:
+    - action: lock.lock
+      target:
+        entity_id: lock.front_door
+    - action: notify.halo
+      data:
+        title: Schlage locked
+        message: Front door locked (9 PM schedule).
+        data:
+          tag: schlage_lock
+          channel: homeassistant
+  mode: single

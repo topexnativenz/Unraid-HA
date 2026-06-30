@@ -11,8 +11,8 @@ The Companion app does **not** need to stay open, but it **does** need to delive
 | Layer | Source | When it fires | Dead-zone safe? |
 |-------|--------|---------------|-----------------|
 | **1 — Road Approach** | Tessie enters road approach circle (450 m radius) | ~30 s GPS updates while driving | **Yes** — primary Tessie trigger |
-| **2 — Tessie distance** | `sensor.model_s_tessie_distance_to_home` &lt; 400 m | Backup if zone circle drifts | **Yes** |
-| **3 — Gate Approach** | Tessie at driveway mouth (~100 m) | Second Tessie trigger | **Yes** |
+| **2 — Tessie gate distance** | `sensor.model_s_tessie_distance_to_gate` &lt; 180 m | Backup at driveway mouth if zone circle drifts | **Yes** |
+| **3 — Gate Approach** | Tessie at driveway mouth (~120 m) | Fires when GPS reaches road end | **Yes** |
 
 All layers call `script.gate_pulse_hold_approach` (relay 1 only, repulse until passage clear or timeout).
 
@@ -20,7 +20,7 @@ All layers call `script.gate_pulse_hold_approach` (relay 1 only, repulse until p
 
 Zones are managed in **Settings → Areas & zones → Zones** (not `configuration.yaml`). Drag the circles on the map:
 
-- **Gate Approach** — driveway mouth on Three Mile Bush Road (~100 m radius).
+- **Gate Approach** — driveway mouth on Three Mile Bush Road (~**120 m** radius). Centre on the **road junction**, not down the driveway.
 - **Road Approach** — centred **upstream** on Three Mile Bush Road (~**450 m** radius). Sized for Tessie’s ~30 s position updates at 50–60 km/h (~400–500 m between pings). Drag on the HA map if the centre needs a tweak.
 
 After changing zones, re-sync zones in the **Companion app**.
@@ -28,7 +28,7 @@ After changing zones, re-sync zones in the **Companion app**.
 ### Tunables (HA UI)
 
 - `input_number.gate_early_hold_seconds` — default **300** (5 min hold through dead zone).
-- `input_number.gate_tessie_trigger_distance_m` — default **400** m from gate centre.
+- `input_number.gate_tessie_trigger_distance_m` — default **180** m from gate mouth (backup trigger).
 - `input_number.gate_hold_repulse_seconds` — relay pulse interval (default 4 s).
 
 ## Companion app (still required for Layer 1)
