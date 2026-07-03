@@ -16,7 +16,28 @@ Package: `packages/garage_doors_pulse.yaml` — deploy:
 bash /Users/topexnative/Projects/unraid-array-design/home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
 ```
 
-Red = open (boolean on), grey = closed. Each tap runs the pulse script: if the Shelly switch is already `on`, `turn_off` then `turn_on` so the relay always fires; then toggles the boolean.
+Red = open (Tapo sensor `on`), grey = closed. Icons read **Tapo contact sensors** directly; `input_boolean.*_open` is kept in sync via automations in the package.
+
+## Tapo sensor entity map
+
+Edit **`entities.yaml`** in this folder with your real Tapo contact sensor IDs (Developer Tools → States → filter `tapo` or `contact`):
+
+| Door | Tapo sensor (default placeholder) | Tracked boolean | Pulse script |
+|------|-----------------------------------|-----------------|--------------|
+| House Garage | `binary_sensor.house_garage_door_contact` | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
+| Main Shed | `binary_sensor.main_shed_door_contact` | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
+| Second Shed | `binary_sensor.second_shed_door_contact` | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
+
+Standard door sensor: **`on` = open**, **`off` = closed. If yours is reversed, set `invert: true` for that door in `entities.yaml`.
+
+After updating sensor IDs:
+
+```bash
+bash home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
+python3 home-assistant/garage-doors/scripts/sync_garage_state_from_sensors.py
+python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py --skip-assets
+python3 home-assistant/mobile-dashboard/scripts/deploy_mobile_home.py
+```
 
 ## Entity map (Mobile Home → Garage & Doors)
 

@@ -32,7 +32,7 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |
 | [Nerwyn/material-you-utilities](https://github.com/Nerwyn/material-you-utilities) | MD3 helpers (optional) |
 
-Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA.
+Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA. **Tapo sensor IDs** are configured in [`garage-doors/entities.yaml`](../garage-doors/entities.yaml) — icons show open/closed from contact sensors, not button toggles.
 
 ## Visual design (MD3 / Flux)
 

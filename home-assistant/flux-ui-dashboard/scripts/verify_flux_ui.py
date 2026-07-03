@@ -10,13 +10,18 @@ from pathlib import Path
 
 import yaml
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
+GARAGE_ENTITIES = ROOT.parent / "garage-doors" / "entities.yaml"
 DEFAULT_JSON = ROOT / "generated" / "lovelace.flux_ui.json"
 
 
 def load_entities() -> dict:
-    return yaml.safe_load(ENTITIES.read_text())
+    cfg = yaml.safe_load(ENTITIES.read_text())
+    cfg["quick_actions"]["garage"] = yaml.safe_load(GARAGE_ENTITIES.read_text()).get("doors", [])
+    return cfg
 
 
 def verify_build(path: Path) -> list[str]:
@@ -42,23 +47,26 @@ def verify_build(path: Path) -> list[str]:
     expected_lights = {x["entity"] for x in entities_cfg["favourite_lights"]}
     found_lights: set[str] = set()
     found_gate = 0
-    found_garage = 0
+    found_garage_sensors = 0
 
     blob = json.dumps(config)
     for item in entities_cfg["quick_actions"]["gate"]:
         if item["entity"] in blob:
             found_gate += 1
-    for item in entities_cfg["quick_actions"]["garage"]:
-        if item["state_entity"] in blob:
-            found_garage += 1
+    for door in entities_cfg["quick_actions"]["garage"]:
+        if door["sensor"] in blob:
+            found_garage_sensors += 1
     for light in expected_lights:
         if light in blob:
             found_lights.add(light)
 
     if found_gate != len(entities_cfg["quick_actions"]["gate"]):
         errors.append(f"Gate entities: found {found_gate}, expected {len(entities_cfg['quick_actions']['gate'])}")
-    if found_garage != len(entities_cfg["quick_actions"]["garage"]):
-        errors.append(f"Garage entities: found {found_garage}, expected {len(entities_cfg['quick_actions']['garage'])}")
+    if found_garage_sensors != len(entities_cfg["quick_actions"]["garage"]):
+        errors.append(
+            f"Garage Tapo sensors: found {found_garage_sensors}, "
+            f"expected {len(entities_cfg['quick_actions']['garage'])}"
+        )
     if found_lights != expected_lights:
         missing = expected_lights - found_lights
         errors.append(f"Missing favourite lights: {sorted(missing)}")

@@ -52,33 +52,20 @@ echo "Copied package to ${PKG_DEST}"
 
 diskutil umount "${MOUNT}" 2>/dev/null || true
 
-echo "Reloading scripts and input_boolean..."
+echo "Reloading scripts, automations, and input_boolean..."
 curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   "http://${HA_HOST}:8123/api/services/script/reload" >/dev/null
+curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  "http://${HA_HOST}:8123/api/services/automation/reload" >/dev/null
 curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   "http://${HA_HOST}:8123/api/services/input_boolean/reload" >/dev/null
 
 sleep 2
 
-sync_bool() {
-  local bool_entity="$1"
-  local switch_entity="$2"
-  local want
-  want=$(curl -sS -H "Authorization: Bearer ${TOKEN}" "http://${HA_HOST}:8123/api/states/${switch_entity}" \
-    | python3 -c "import json,sys; print('on' if json.load(sys.stdin)['state']=='on' else 'off')")
-  svc="input_boolean.turn_${want}"
-  curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    "http://${HA_HOST}:8123/api/services/${svc}" \
-    -d "{\"entity_id\":\"${bool_entity}\"}" >/dev/null
-  echo "  ${bool_entity} -> ${want} (from ${switch_entity})"
-}
-
-echo "Syncing tracked state from Shelly switches (one-time alignment):"
-sync_bool input_boolean.house_garage_door_open switch.garage_door_3
-sync_bool input_boolean.main_shed_door_open switch.garage_door_1
-sync_bool input_boolean.second_shed_door_open switch.garage_door_2
+python3 "${REPO}/home-assistant/garage-doors/scripts/sync_garage_state_from_sensors.py" \
+  --ha-url "http://${HA_HOST}:8123"
 
 echo "Done. If helpers are new, restart HA or reload all YAML once."

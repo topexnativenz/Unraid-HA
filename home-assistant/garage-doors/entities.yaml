@@ -1,0 +1,24 @@
+# Tapo contact sensors = source of truth for open/closed icons.
+# Update sensor IDs to match Developer Tools → States (filter: tapo, garage, shed, contact).
+#
+# Standard door binary_sensor: on = open, off = closed.
+# Set invert: true if your sensor reports the opposite.
+
+doors:
+  - name: House Garage
+    script: script.pulse_house_garage_door
+    tracked: input_boolean.house_garage_door_open
+    sensor: binary_sensor.house_garage_door_contact
+    invert: false
+
+  - name: Main Shed
+    script: script.pulse_main_shed_door
+    tracked: input_boolean.main_shed_door_open
+    sensor: binary_sensor.main_shed_door_contact
+    invert: false
+
+  - name: Second Shed
+    script: script.pulse_second_shed_door
+    tracked: input_boolean.second_shed_door_open
+    sensor: binary_sensor.second_shed_door_contact
+    invert: false

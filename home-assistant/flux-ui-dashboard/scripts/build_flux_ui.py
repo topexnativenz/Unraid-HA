@@ -23,10 +23,21 @@ from md3_templates import (
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
+GARAGE_DIR = ROOT.parent / "garage-doors"
+sys.path.insert(0, str(GARAGE_DIR))
+
+from garage_ui_helpers import (  # noqa: E402
+    load_garage_doors,
+    open_color_js,
+    open_icon_js,
+    open_label_js,
+)
 
 
 def load_entities() -> dict:
-    return yaml.safe_load(ENTITIES.read_text())
+    cfg = yaml.safe_load(ENTITIES.read_text())
+    cfg["quick_actions"]["garage"] = load_garage_doors()
+    return cfg
 
 
 def apply_md3_to_cards(obj: object) -> object:
@@ -132,25 +143,23 @@ def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
     }
 
 
-def garage_action(state_entity: str, name: str, script_id: str, *, columns: int = 6) -> dict:
+def garage_action(door: dict, *, columns: int = 6) -> dict:
+    sensor = door["sensor"]
+    invert = door.get("invert", False)
     return {
         "type": "custom:button-card",
         "template": "flux_action",
-        "entity": state_entity,
-        "name": name,
-        "icon": "[[[ return entity.state === 'on' ? 'mdi:garage-open' : 'mdi:garage'; ]]]",
-        "label": "[[[ return entity.state === 'on' ? 'Open' : 'Closed'; ]]]",
+        "entity": sensor,
+        "name": door["name"],
+        "icon": open_icon_js(sensor, invert=invert),
+        "label": open_label_js(sensor, invert=invert),
         "tap_action": {
             "action": "call-service",
             "service": "script.turn_on",
-            "service_data": {"entity_id": script_id},
+            "service_data": {"entity_id": door["script"]},
         },
         "styles": {
-            "icon": [
-                {
-                    "color": "[[[ return entity.state === 'on' ? '#F2B8B5' : 'var(--md-sys-color-primary)'; ]]]"
-                }
-            ]
+            "icon": [{"color": open_color_js(sensor, invert=invert)}]
         },
         "grid_options": {"columns": columns},
     }
@@ -200,11 +209,7 @@ def build_quick_actions(cfg: dict) -> dict:
     for item in cfg["quick_actions"]["gate"]:
         cards.append(lock_action(item["entity"], item["name"], columns=col))
     for item in cfg["quick_actions"]["garage"]:
-        cards.append(
-            garage_action(
-                item["state_entity"], item["name"], item["script"], columns=col
-            )
-        )
+        cards.append(garage_action(item, columns=col))
     for item in cfg["quick_actions"]["actions"]:
         cards.append(
             scene_action(

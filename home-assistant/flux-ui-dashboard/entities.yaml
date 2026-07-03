@@ -9,16 +9,7 @@ quick_actions:
       name: Gate Open
     - entity: lock.gate_intercom_gate_latch
       name: Gate Latch
-  garage:
-    - state_entity: input_boolean.house_garage_door_open
-      name: House Garage
-      script: script.pulse_house_garage_door
-    - state_entity: input_boolean.main_shed_door_open
-      name: Main Shed
-      script: script.pulse_main_shed_door
-    - state_entity: input_boolean.second_shed_door_open
-      name: Second Shed
-      script: script.pulse_second_shed_door
+  garage: []
   actions:
     - name: All Off
       subtitle: Turn off all lights
