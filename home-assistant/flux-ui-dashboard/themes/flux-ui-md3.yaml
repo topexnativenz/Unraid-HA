@@ -1,0 +1,18 @@
+flux-ui-md3:
+  # Minimal MD3 tokens for Flux UI overview (pair with Material You Theme when installed).
+  ha-card-border-radius: "28px"
+  ha-card-box-shadow: "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06)"
+  card-mod-card-border-radius: "28px"
+  primary-color: "#6750A4"
+  accent-color: "#625B71"
+  primary-background-color: "#FFFBFE"
+  secondary-background-color: "#F7F2FA"
+  primary-text-color: "#1C1B1F"
+  secondary-text-color: "#49454F"
+  divider-color: "rgba(103, 80, 164, 0.12)"
+  md-sys-color-primary: "#6750A4"
+  md-sys-color-on-primary: "#FFFFFF"
+  md-sys-color-surface: "#FFFBFE"
+  md-sys-color-surface-container: "#F3EDF7"
+  md-sys-color-on-surface: "#1C1B1F"
+  md-sys-color-outline-variant: "#CAC4D0"

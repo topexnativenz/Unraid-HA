@@ -1,0 +1,12 @@
+# Install these via HACS → Frontend before running deploy_flux_ui.py
+# https://hacs.xyz/docs/use/repositories/dashboard
+
+- piitaya/lovelace-mushroom
+- thomasloven/lovelace-card-mod
+- custom-cards/button-card
+- thomasloven/lovelace-layout-card
+- custom-cards/stack-in-card
+- Clooos/bubble-card
+- joseluis9595/lovelace-navbar-card
+- Nerwyn/material-you-theme
+- Nerwyn/material-you-utilities
