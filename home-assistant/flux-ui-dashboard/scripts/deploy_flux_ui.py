@@ -49,17 +49,27 @@ def copy_theme(mount: str) -> None:
 
 
 def copy_frontend_assets(mount: str) -> None:
-    src = ROOT / "www" / "community"
-    if not src.exists():
-        return
-    for item in src.iterdir():
-        if not item.is_dir():
-            continue
-        dst = Path(mount) / "www" / "community" / item.name
-        dst.mkdir(parents=True, exist_ok=True)
-        for js in item.glob("*.js"):
-            shutil.copy2(js, dst / js.name)
-            print(f"  copied www/community/{item.name}/{js.name}")
+    src_community = ROOT / "www" / "community"
+    if src_community.exists():
+        for item in src_community.iterdir():
+            if not item.is_dir():
+                continue
+            dst = Path(mount) / "www" / "community" / item.name
+            dst.mkdir(parents=True, exist_ok=True)
+            for js in item.glob("*.js"):
+                shutil.copy2(js, dst / js.name)
+                print(f"  copied www/community/{item.name}/{js.name}")
+
+    src_flux = ROOT / "www" / "flux-ui"
+    if src_flux.exists():
+        dst_flux = Path(mount) / "www" / "flux-ui"
+        for f in src_flux.rglob("*"):
+            if f.is_file():
+                rel = f.relative_to(src_flux)
+                target = dst_flux / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(f, target)
+                print(f"  copied www/flux-ui/{rel}")
 
 
 def write_storage(mount: str, config: dict) -> None:

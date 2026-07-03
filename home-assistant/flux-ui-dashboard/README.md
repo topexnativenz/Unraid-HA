@@ -34,6 +34,21 @@ Entity map: [`entities.yaml`](entities.yaml)
 
 Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA.
 
+## Visual design (MD3 / Flux)
+
+Phase 2 styling includes:
+
+- **Dark MD3 theme** (`flux-ui-md3`) with Material You surface tokens
+- **Wallpaper background** (`/local/flux-ui/wallpapers/dark-purple.webp`)
+- **Glass cards** — blur, tinted surfaces, 28px corners
+- **button-card templates** — greeting header, quick actions, light tiles
+- **Bottom navbar** — Flux / Mobile / Solar shortcuts (requires navbar-card HACS)
+- **Climate section** — imported from Mobile Home, glass-wrapped
+
+After deploy: open Flux UI, hard-refresh browser (Cmd+Shift+R). On iOS Companion: **Reset Frontend Cache**.
+
+Optional: install [Material You Theme](https://github.com/Nerwyn/material-you-theme) via HACS for dynamic accent colours per user.
+
 ## Deploy (E2E)
 
 From your Mac on the same LAN as HA:

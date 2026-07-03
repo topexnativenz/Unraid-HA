@@ -35,8 +35,8 @@ def verify_build(path: Path) -> list[str]:
         errors.append(f"Expected path 'overview', got {view.get('path')}")
 
     sections = view.get("sections", [])
-    if len(sections) != 4:
-        errors.append(f"Expected 4 sections, got {len(sections)}")
+    if len(sections) not in (4, 5):
+        errors.append(f"Expected 4-5 sections, got {len(sections)}")
 
     entities_cfg = load_entities()
     expected_lights = {x["entity"] for x in entities_cfg["favourite_lights"]}
@@ -66,7 +66,7 @@ def verify_build(path: Path) -> list[str]:
     if "weather.forecast_home" not in blob:
         errors.append("Missing weather.forecast_home")
 
-    for card_type in ("custom:mushroom-light-card", "custom:mushroom-lock-card", "card_mod"):
+    for card_type in ("custom:button-card", "flux_glass", "button_card_templates"):
         if card_type not in blob:
             errors.append(f"Missing {card_type}")
 
@@ -95,9 +95,9 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))
-    for needle in ("mushroom", "card-mod"):
+    for needle in ("mushroom", "card-mod", "button-card"):
         if needle not in urls:
-            errors.append(f"Lovelace resource missing: {needle}")
+            errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")
 
     return errors
 

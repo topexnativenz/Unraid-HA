@@ -1,224 +1,283 @@
 #!/usr/bin/env python3
-"""Build Flux UI Lovelace config (overview = Mobile Home Home tab entities, MD3 styling)."""
+"""Build Flux UI Lovelace config — MD3 / Flux visual language."""
 
 from __future__ import annotations
 
 import copy
 import json
+import sys
 from pathlib import Path
-from typing import Any
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from md3_templates import (
+    BUTTON_CARD_TEMPLATES,
+    GLASS_CARD_MOD,
+    TITLE_CARD_MOD,
+    VIEW_CARD_MOD,
+    wrap_glass,
+    wrap_title,
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
-
-MD3_CARD_MOD = {
-    "style": (
-        "ha-card {\n"
-        "  border-radius: 28px;\n"
-        "  background: color-mix(in srgb, var(--card-background-color) 88%, transparent);\n"
-        "  backdrop-filter: blur(12px);\n"
-        "  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.08);\n"
-        "  border: 1px solid color-mix(in srgb, var(--divider-color) 40%, transparent);\n"
-        "}\n"
-    )
-}
 
 
 def load_entities() -> dict:
     return yaml.safe_load(ENTITIES.read_text())
 
 
-def wrap_md3(card: dict) -> dict:
-    out = copy.deepcopy(card)
-    existing = out.get("card_mod") or {}
-    if isinstance(existing, dict):
-        merged = {**MD3_CARD_MOD, **existing}
-        if "style" in existing and "style" in MD3_CARD_MOD:
-            merged["style"] = MD3_CARD_MOD["style"] + existing["style"]
-        out["card_mod"] = merged
+def apply_md3_to_cards(obj: object) -> object:
+    """Recursively add glass card-mod to cards imported from Mobile Home."""
+    if isinstance(obj, list):
+        return [apply_md3_to_cards(x) for x in obj]
+    if not isinstance(obj, dict):
+        return obj
+
+    out = {k: apply_md3_to_cards(v) for k, v in obj.items()}
+
+    if out.get("type") and out["type"] != "grid":
+        existing = out.get("card_mod") or {}
+        if isinstance(existing, dict):
+            style = GLASS_CARD_MOD["style"]
+            if "style" in existing:
+                style = style + existing["style"]
+            out["card_mod"] = {"style": style}
+        elif "mushroom-title-card" in str(out.get("type", "")):
+            out["card_mod"] = TITLE_CARD_MOD
+
     return out
 
 
-def mushroom_light(entity: str, *, name: str | None = None, columns: int = 6, compact: bool = False) -> dict:
+def section_title(title: str, subtitle: str = "") -> dict:
     card: dict = {
-        "type": "custom:mushroom-light-card",
-        "entity": entity,
-        "fill_container": True,
-        "show_brightness_control": not compact,
-        "collapsible_controls": compact,
-        "use_light_color": True,
-        "grid_options": {"columns": columns},
+        "type": "custom:mushroom-title-card",
+        "title": title,
+        "grid_options": {"columns": 12},
     }
-    if name:
-        card["name"] = name
-    if compact:
-        card["layout"] = "horizontal"
-    return wrap_md3(card)
+    if subtitle:
+        card["subtitle"] = subtitle
+    return wrap_title(card)
 
 
-def mushroom_lock(entity: str, name: str, *, columns: int = 6) -> dict:
-    return wrap_md3(
+def greeting_card(weather_entity: str) -> dict:
+    return {
+        "type": "custom:button-card",
+        "template": "flux_greeting",
+        "entity": weather_entity,
+        "name": (
+            "[[[\n"
+            "  const h = new Date().getHours();\n"
+            "  let g = 'Morning';\n"
+            "  if (h >= 22 || h < 5) g = 'Night';\n"
+            "  else if (h >= 18) g = 'Evening';\n"
+            "  else if (h >= 12) g = 'Afternoon';\n"
+            "  return `${g}, ${user.name}!`;\n"
+            "]]]"
+        ),
+        "label": (
+            "[[[\n"
+            "  const cond = entity.attributes?.condition || states[entity.entity_id]?.state || '';\n"
+            "  const temp = entity.attributes?.temperature;\n"
+            "  return temp != null ? `${cond} · ${temp}°` : String(cond);\n"
+            "]]]"
+        ),
+        "grid_options": {"columns": 12},
+    }
+
+
+def weather_chips(weather_entity: str) -> dict:
+    return wrap_glass(
         {
-            "type": "custom:mushroom-lock-card",
-            "entity": entity,
-            "name": name,
-            "fill_container": True,
-            "grid_options": {"columns": columns},
+            "type": "custom:mushroom-chips-card",
+            "alignment": "center",
+            "chips": [
+                {
+                    "type": "weather",
+                    "entity": weather_entity,
+                    "show_conditions": True,
+                    "show_temperature": True,
+                },
+                {
+                    "type": "template",
+                    "content": "{{ now().strftime('%-I:%M %p') }}",
+                    "icon": "mdi:clock-outline",
+                    "icon_color": "primary",
+                },
+            ],
+            "grid_options": {"columns": 12},
         }
     )
 
 
-def mushroom_garage_pulse(
-    state_entity: str, label: str, script_id: str, *, columns: int = 6
-) -> dict:
-    return wrap_md3(
-        {
-            "type": "custom:mushroom-template-card",
-            "entity": state_entity,
-            "primary": label,
-            "fill_container": True,
-            "icon": "{{ 'mdi:garage-open' if is_state(entity, 'on') else 'mdi:garage' }}",
-            "icon_color": "{{ 'red' if is_state(entity, 'on') else 'grey' }}",
-            "tap_action": {
-                "action": "call-service",
-                "service": "script.turn_on",
-                "target": {"entity_id": script_id},
-            },
-            "grid_options": {"columns": columns},
-        }
-    )
-
-
-def mushroom_action(
-    primary: str,
-    secondary: str,
-    icon: str,
-    *,
-    icon_color: str = "grey",
-    columns: int = 6,
-    tap_action: dict,
-) -> dict:
-    return wrap_md3(
-        {
-            "type": "custom:mushroom-template-card",
-            "primary": primary,
-            "secondary": secondary,
-            "icon": icon,
-            "icon_color": icon_color,
-            "layout": "horizontal",
-            "fill_container": True,
-            "tap_action": tap_action,
-            "grid_options": {"columns": columns},
-        }
-    )
-
-
-def build_header(weather_entity: str) -> dict:
+def build_hero(weather_entity: str) -> dict:
     return {
         "type": "grid",
-        "cards": [
-            wrap_md3(
+        "cards": [greeting_card(weather_entity), weather_chips(weather_entity)],
+    }
+
+
+def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
+    return {
+        "type": "custom:button-card",
+        "template": "flux_action",
+        "entity": entity,
+        "name": name,
+        "icon": "mdi:gate",
+        "label": "[[[ return entity.state === 'locked' ? 'Locked' : 'Unlocked'; ]]]",
+        "tap_action": {"action": "toggle"},
+        "grid_options": {"columns": columns},
+    }
+
+
+def garage_action(state_entity: str, name: str, script_id: str, *, columns: int = 6) -> dict:
+    return {
+        "type": "custom:button-card",
+        "template": "flux_action",
+        "entity": state_entity,
+        "name": name,
+        "icon": "[[[ return entity.state === 'on' ? 'mdi:garage-open' : 'mdi:garage'; ]]]",
+        "label": "[[[ return entity.state === 'on' ? 'Open' : 'Closed'; ]]]",
+        "tap_action": {
+            "action": "call-service",
+            "service": "script.turn_on",
+            "service_data": {"entity_id": script_id},
+        },
+        "styles": {
+            "icon": [
                 {
-                    "type": "custom:mushroom-template-card",
-                    "primary": "{{ now().strftime('%A') }}",
-                    "secondary": "{{ now().strftime('%d %B · %H:%M') }}",
-                    "icon": "mdi:home-assistant",
-                    "icon_color": "primary",
-                    "layout": "horizontal",
-                    "fill_container": True,
-                    "grid_options": {"columns": 12},
+                    "color": "[[[ return entity.state === 'on' ? '#F2B8B5' : 'var(--md-sys-color-primary)'; ]]]"
                 }
-            ),
-            wrap_md3(
-                {
-                    "type": "custom:mushroom-entity-card",
-                    "entity": weather_entity,
-                    "name": "Weather",
-                    "layout": "horizontal",
-                    "fill_container": True,
-                    "grid_options": {"columns": 12},
-                }
-            ),
-        ],
+            ]
+        },
+        "grid_options": {"columns": columns},
+    }
+
+
+def scene_action(
+    name: str, subtitle: str, icon: str, service: str, target: str, *, columns: int = 6
+) -> dict:
+    return {
+        "type": "custom:button-card",
+        "template": "flux_action",
+        "name": name,
+        "label": subtitle,
+        "icon": icon,
+        "tap_action": {
+            "action": "perform-action",
+            "perform_action": service,
+            "target": {"entity_id": target},
+        },
+        "grid_options": {"columns": columns},
+    }
+
+
+def light_tile(entity: str, name: str, *, columns: int = 6) -> dict:
+    return {
+        "type": "custom:button-card",
+        "template": "flux_light",
+        "entity": entity,
+        "name": name,
+        "icon": "mdi:lightbulb",
+        "label": (
+            "[[[\n"
+            "  if (entity.state !== 'on') return 'Off';\n"
+            "  const b = entity.attributes.brightness;\n"
+            "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
+            "]]]"
+        ),
+        "tap_action": {"action": "toggle"},
+        "hold_action": {"action": "more-info"},
+        "grid_options": {"columns": columns},
     }
 
 
 def build_quick_actions(cfg: dict) -> dict:
     col = 6
-    cards: list[dict] = [
-        wrap_md3(
-            {
-                "type": "custom:mushroom-title-card",
-                "title": "Quick Actions",
-                "subtitle": "Tap to control",
-                "grid_options": {"columns": 12},
-            }
-        )
-    ]
+    cards: list[dict] = [section_title("Quick Actions", "Tap to control")]
     for item in cfg["quick_actions"]["gate"]:
-        cards.append(mushroom_lock(item["entity"], item["name"], columns=col))
+        cards.append(lock_action(item["entity"], item["name"], columns=col))
     for item in cfg["quick_actions"]["garage"]:
         cards.append(
-            mushroom_garage_pulse(
+            garage_action(
                 item["state_entity"], item["name"], item["script"], columns=col
             )
         )
     for item in cfg["quick_actions"]["actions"]:
         cards.append(
-            mushroom_action(
+            scene_action(
                 item["name"],
                 item["subtitle"],
                 item["icon"],
-                icon_color=item.get("icon_color", "grey"),
+                item["service"],
+                item["target"],
                 columns=col,
-                tap_action={
-                    "action": "perform-action",
-                    "perform_action": item["service"],
-                    "target": {"entity_id": item["target"]},
-                },
             )
         )
     return {"type": "grid", "cards": cards}
 
 
 def build_favourite_lights(cfg: dict) -> dict:
-    cards: list[dict] = [
-        wrap_md3(
-            {
-                "type": "custom:mushroom-title-card",
-                "title": "Favourite lights",
-                "subtitle": "Most used",
-                "grid_options": {"columns": 12},
-            }
-        )
-    ]
+    cards: list[dict] = [section_title("Favourite lights", "Most used")]
     for item in cfg["favourite_lights"]:
-        cards.append(
-            mushroom_light(item["entity"], name=item["name"], columns=6, compact=True)
-        )
+        cards.append(light_tile(item["entity"], item["name"], columns=6))
     return {"type": "grid", "cards": cards}
 
 
-def climate_fallback_section(weather_entity: str) -> dict:
-    """Used when Mobile Home climate section cannot be read from HA storage."""
+def build_navbar() -> dict:
     return {
         "type": "grid",
         "cards": [
-            wrap_md3(
-                {
-                    "type": "custom:mushroom-title-card",
-                    "title": "Climate",
-                    "subtitle": "Add climate chips from Mobile Home via deploy",
-                    "grid_options": {"columns": 12},
-                }
-            ),
-            wrap_md3(
+            {
+                "type": "custom:navbar-card",
+                "routes": [
+                    {
+                        "url": "/flux-ui/overview",
+                        "icon": "mdi:view-dashboard-variant",
+                        "label": "Flux",
+                    },
+                    {
+                        "url": "/mobile-home/home",
+                        "icon": "mdi:cellphone",
+                        "label": "Mobile",
+                    },
+                    {
+                        "url": "/solar-dashboard",
+                        "icon": "mdi:solar-power",
+                        "label": "Solar",
+                    },
+                ],
+                "mobile": {"show_labels": True},
+                "styles": {
+                    "card": [
+                        {
+                            "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent)"
+                        },
+                        {"backdrop-filter": "blur(20px)"},
+                        {"border-radius": "999px"},
+                        {"margin": "0 12px 12px"},
+                        {"border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent)"},
+                    ]
+                },
+                "grid_options": {"columns": 12},
+            }
+        ],
+    }
+
+
+def climate_fallback_section(weather_entity: str) -> dict:
+    return {
+        "type": "grid",
+        "cards": [
+            section_title("Climate", "Live conditions"),
+            wrap_glass(
                 {
                     "type": "custom:mushroom-entity-card",
                     "entity": weather_entity,
                     "name": "Forecast",
+                    "layout": "horizontal",
                     "fill_container": True,
                     "grid_options": {"columns": 12},
                 }
@@ -230,10 +289,15 @@ def climate_fallback_section(weather_entity: str) -> dict:
 def build_config(*, climate_section: dict | None = None) -> dict:
     cfg = load_entities()
     weather = cfg.get("weather", "weather.forecast_home")
-    climate = climate_section if climate_section else climate_fallback_section(weather)
+    climate = (
+        apply_md3_to_cards(climate_section)
+        if climate_section
+        else climate_fallback_section(weather)
+    )
 
     return {
         "title": "Flux UI",
+        "button_card_templates": copy.deepcopy(BUTTON_CARD_TEMPLATES),
         "views": [
             {
                 "title": "Overview",
@@ -242,11 +306,13 @@ def build_config(*, climate_section: dict | None = None) -> dict:
                 "type": "sections",
                 "max_columns": 2,
                 "theme": "flux-ui-md3",
+                "card_mod": VIEW_CARD_MOD,
                 "sections": [
-                    build_header(weather),
+                    build_hero(weather),
                     climate,
                     build_quick_actions(cfg),
                     build_favourite_lights(cfg),
+                    build_navbar(),
                 ],
             }
         ],
@@ -254,7 +320,6 @@ def build_config(*, climate_section: dict | None = None) -> dict:
 
 
 def extract_climate_from_mobile_home(config: dict) -> dict | None:
-    """Return first section from Mobile Home Home view (climate chips/graph)."""
     for view in config.get("views", []):
         if view.get("path") == "home" and view.get("sections"):
             return copy.deepcopy(view["sections"][0])
@@ -265,11 +330,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--mobile-home-storage",
-        type=Path,
-        help="Path to .storage/lovelace.mobile_home for climate section import",
-    )
+    parser.add_argument("--mobile-home-storage", type=Path)
     parser.add_argument(
         "--output",
         type=Path,
@@ -286,7 +347,12 @@ def main() -> None:
 
     config = build_config(climate_section=climate_section)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"version": 1, "minor_version": 1, "key": "lovelace.flux_ui", "data": {"config": config}}
+    payload = {
+        "version": 1,
+        "minor_version": 1,
+        "key": "lovelace.flux_ui",
+        "data": {"config": config},
+    }
     args.output.write_text(json.dumps(payload, indent=2))
     print(f"Wrote {args.output} ({len(config['views'][0]['sections'])} overview sections)")
 
