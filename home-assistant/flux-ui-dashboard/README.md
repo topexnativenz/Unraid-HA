@@ -34,37 +34,34 @@ Entity map: [`entities.yaml`](entities.yaml)
 
 Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA.
 
-## Deploy
+## Deploy (E2E)
 
-From your Mac (same network as HA):
+From your Mac on the same LAN as HA:
 
 ```bash
-pip install pyyaml websockets
+# Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
+export HA_TOKEN="your-long-lived-token"   # optional if mcp.json exists
+export HA_URL="http://192.168.1.239:8123" # optional
 
+bash home-assistant/flux-ui-dashboard/scripts/setup_e2e.sh
+```
+
+One-shot script: downloads Mushroom + card-mod JS → builds overview → verifies entities → mounts Samba → copies theme/www/storage → registers dashboard via WebSocket → live verify.
+
+Manual steps:
+
+```bash
+pip install -r home-assistant/flux-ui-dashboard/requirements.txt
 python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py
 ```
 
-This will:
-
-1. Mount HA config via Samba (optional — imports climate section from Mobile Home)
-2. Copy `themes/flux-ui-md3.yaml` to `/config/themes/`
-3. Register Lovelace resources + create `flux-ui` dashboard if missing
-4. Push overview config via WebSocket (`lovelace/config/save`)
-
 Open: **http://192.168.1.239:8123/flux-ui/overview**
 
-### Build only (no HA)
+### Offline / build only
 
 ```bash
-python3 home-assistant/flux-ui-dashboard/scripts/build_flux_ui.py \
-  --output home-assistant/flux-ui-dashboard/generated/lovelace.flux_ui.json
-```
-
-With Mobile Home climate import:
-
-```bash
-python3 home-assistant/flux-ui-dashboard/scripts/build_flux_ui.py \
-  --mobile-home-storage /path/to/.storage/lovelace.mobile_home
+python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py --offline-ok
+python3 home-assistant/flux-ui-dashboard/scripts/verify_flux_ui.py
 ```
 
 ## iOS / default dashboard
