@@ -51,7 +51,7 @@ One-shot script: downloads Mushroom + card-mod JS → builds overview → verifi
 Manual steps:
 
 ```bash
-pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+python3 -m pip install -r home-assistant/flux-ui-dashboard/requirements.txt
 python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py
 ```
 

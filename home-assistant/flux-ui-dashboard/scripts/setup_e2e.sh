@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT/.."
 
 echo "==> Installing Python deps"
-pip install -q -r "$ROOT/requirements.txt"
+python3 -m pip install -q -r "$ROOT/requirements.txt"
 
 echo "==> Downloading bundled Mushroom + card-mod JS"
 python3 "$ROOT/scripts/install_frontend_assets.py"
