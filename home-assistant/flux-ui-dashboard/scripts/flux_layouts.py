@@ -189,7 +189,7 @@ _ROOM_SENSOR_COLUMN = (
     "      </div>`;\n"
     "  });\n"
     "  while (cells.length < 4) cells.push(stub());\n"
-    "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100%;min-height:88px;padding:2px 0;gap:2px;\">${cells.join('')}</div>`;\n"
+    "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:2px 0;gap:8px;\">${cells.join('')}</div>`;\n"
     "]]]"
 )
 
