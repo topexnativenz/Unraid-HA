@@ -100,7 +100,7 @@ def build_home_status_section(cfg: dict) -> dict:
 
 
 def _flux_slim_light_card(*, entity: str | None = None, name: str | None = None, columns: int = 12) -> dict:
-    """Single-row dimmer: icon, name, and slider in one sleek MD3 pill."""
+    """Label overlaid on full-width dimmer track — tap toggles, drag to dim."""
     card: dict = {
         "type": "custom:mushroom-light-card",
         "fill_container": True,
@@ -108,13 +108,14 @@ def _flux_slim_light_card(*, entity: str | None = None, name: str | None = None,
         "show_brightness_control": True,
         "show_color_control": False,
         "collapsible_controls": False,
-        "use_light_color": True,
+        "use_light_color": False,
         "grid_options": {"columns": columns},
     }
     if entity:
         card["entity"] = entity
     if name:
         card["name"] = name
+        card["primary"] = name
     return wrap_flux_light_card(card)
 
 
