@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from flux_navbar import room_navigation_path
 from md3_templates import wrap_glass, wrap_title
 
 _LIGHT_LABEL = (
@@ -145,36 +146,12 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
             "info": _ROOM_INFO_HTML,
             "sensors": _ROOM_SENSOR_COLUMN,
         },
-        "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
+        "tap_action": {"action": "navigate", "navigation_path": room_navigation_path(room["path"])},
         "grid_options": {"columns": columns},
     }
     if triggers:
         card["triggers_update"] = triggers
     return card
-
-
-def _find_sensor_js(kind: str) -> str:
-    var = "tempId" if kind == "temp" else "humidId"
-    explicit = "variables.temperature_entity" if kind == "temp" else "variables.humidity_entity"
-    dc = "temperature" if kind == "temp" else "humidity"
-    suffix = "°C" if kind == "temp" else "%"
-    return (
-        f"  let {var} = {explicit};\n"
-        f"  if (!{var} || !states[{var}] || ['unavailable','unknown'].includes(states[{var}].state)) {{\n"
-        f"    const keywords = (variables.keywords || []).map(k => k.toLowerCase());\n"
-        f"    for (const [eid, st] of Object.entries(states)) {{\n"
-        f"      if (!eid.startsWith('sensor.')) continue;\n"
-        f"      const cls = st.attributes?.device_class || '';\n"
-        f"      const hay = (eid + ' ' + (st.attributes?.friendly_name || '')).toLowerCase();\n"
-        f"      if (cls !== '{dc}' && !hay.includes('{dc}')) continue;\n"
-        f"      if (keywords.some(k => hay.includes(k))) {{ {var} = eid; break; }}\n"
-        f"    }}\n"
-        f"  }}\n"
-        f"  if ({var} && states[{var}] && !['unavailable','unknown'].includes(states[{var}].state)) {{\n"
-        f"    const v = parseFloat(states[{var}].state);\n"
-        f"    parts.push(Number.isFinite(v) ? v.toFixed(1) + '{suffix}' : states[{var}].state + '{suffix}');\n"
-        f"  }}\n"
-    )
 
 
 _ROOM_LABEL = (

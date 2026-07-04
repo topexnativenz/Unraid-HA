@@ -57,11 +57,17 @@ def main() -> int:
         issues.append("Room cards should pass sensor_slots variable")
     if '"info"' not in rooms_text:
         issues.append("Room cards should use stacked info custom field for title + subtitle")
+    if "/flux-ui/room-" not in rooms_text:
+        issues.append("Room index cards should navigate to /flux-ui/room-{slug} paths")
 
-    room_views = [v for v in blob["views"] if v.get("path", "").startswith("room/")]
+    room_views = [v for v in blob["views"] if v.get("path", "").startswith("room-")]
     if room_views:
-        living = next((v for v in room_views if v["path"] == "room/living"), room_views[0])
+        living = next((v for v in room_views if v["path"] == "room-living"), room_views[0])
         living_text = json.dumps(living)
+        if not living.get("subview"):
+            issues.append("Room detail views should be subviews")
+        if living.get("back_path") != "/flux-ui/rooms":
+            issues.append("Room detail views should back_path to /flux-ui/rooms")
         if '"title": "Lights"' not in living_text:
             issues.append("Room detail missing Lights section title")
         if '"template": "flux_light"' not in living_text:
@@ -70,7 +76,7 @@ def main() -> int:
             issues.append("Room detail missing status/subnav chips")
         if "flux_feature" not in living_text:
             issues.append("Room detail missing feature action row")
-        if "/flux-ui/room/" not in living_text:
+        if "/flux-ui/room-living" not in living_text:
             issues.append("Room detail missing navigation from room index")
 
     # Home status chips must use Jinja2, not button-card JS

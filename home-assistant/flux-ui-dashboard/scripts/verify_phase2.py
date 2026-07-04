@@ -46,7 +46,7 @@ def check_build() -> list[str]:
         issues.append("Wallpaper path missing from view card_mod")
     if "flux_hero" not in blob:
         issues.append("Missing flux_hero template usage")
-    room_paths = [p for p in paths if p.startswith("room/")]
+    room_paths = [p for p in paths if p.startswith("room-")]
     if len(room_paths) < 3:
         issues.append(f"Expected room detail views, found {len(room_paths)}")
     return issues

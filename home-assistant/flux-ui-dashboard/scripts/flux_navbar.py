@@ -6,6 +6,16 @@ from md3_templates import GLASS_CARD_MOD
 
 URL_PREFIX = "/flux-ui"
 
+
+def room_view_path(room_slug: str) -> str:
+    """Lovelace view path for a room detail page (no slashes — HA requirement)."""
+    return f"room-{room_slug}"
+
+
+def room_navigation_path(room_slug: str) -> str:
+    """Full browser path to a room detail view on the Flux UI dashboard."""
+    return f"{URL_PREFIX}/{room_view_path(room_slug)}"
+
 # ElementZoom-style navbar CSS (blur pill, slide-up).
 NAVBAR_STYLES = """
 .navbar-card {
@@ -44,6 +54,10 @@ def flux_routes() -> list[dict]:
             "label": "Rooms",
             "icon": "mdi:sofa-outline",
             "icon_selected": "mdi:sofa",
+            "selected": (
+                "[[[ return window.location.pathname === '/flux-ui/rooms' "
+                "|| window.location.pathname.startsWith('/flux-ui/room-'); ]]]"
+            ),
         },
         {
             "url": f"{URL_PREFIX}/scenes",

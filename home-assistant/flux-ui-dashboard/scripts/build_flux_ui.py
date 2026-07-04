@@ -22,7 +22,7 @@ from md3_templates import (
     wrap_glass,
     wrap_title,
 )
-from flux_navbar import navbar_section
+from flux_navbar import URL_PREFIX, navbar_section, room_view_path
 from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
@@ -81,8 +81,10 @@ def flux_view(
     icon: str,
     sections: list[dict],
     use_navbar_card: bool,
+    subview: bool = False,
+    back_path: str | None = None,
 ) -> dict:
-    return {
+    view: dict = {
         "title": title,
         "icon": icon,
         "path": path,
@@ -92,6 +94,11 @@ def flux_view(
         "card_mod": VIEW_CARD_MOD,
         "sections": sections + [navbar_section(use_navbar_card=use_navbar_card)],
     }
+    if subview:
+        view["subview"] = True
+    if back_path:
+        view["back_path"] = back_path
+    return view
 
 
 def apply_md3_to_cards(obj: object) -> object:
@@ -462,10 +469,12 @@ def build_config(
         views.append(
             flux_view(
                 title=room["name"],
-                path=f"room/{room['path']}",
+                path=room_view_path(room["path"]),
                 icon=room.get("icon", "mdi:home-outline"),
                 sections=[build_room_detail(room)],
                 use_navbar_card=use_navbar_card,
+                subview=True,
+                back_path=f"{URL_PREFIX}/rooms",
             )
         )
 

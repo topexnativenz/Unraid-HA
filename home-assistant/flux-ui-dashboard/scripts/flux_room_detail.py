@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
+from flux_navbar import room_navigation_path
 from md3_templates import wrap_glass, wrap_title
 
 DEFAULT_FEATURES: list[dict] = [
@@ -142,14 +143,14 @@ def build_room_subnav(room: dict) -> dict:
                     "icon": "mdi:home",
                     "content": "Room",
                     "icon_color": "pink",
-                    "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{path}"},
+                    "tap_action": {"action": "navigate", "navigation_path": room_navigation_path(path)},
                 },
                 {
                     "type": "template",
                     "icon": "mdi:view-grid",
                     "content": "Grid",
                     "icon_color": "disabled",
-                    "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{path}"},
+                    "tap_action": {"action": "navigate", "navigation_path": room_navigation_path(path)},
                 },
                 {
                     "type": "template",
