@@ -113,7 +113,24 @@ def build_config(mobile_storage: Path | None) -> dict:
         cmd.extend(["--mobile-home-storage", str(mobile_storage)])
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
-    return raw["data"]["config"]
+    config = raw["data"]["config"]
+    sections = len(config["views"][0].get("sections", []))
+    if sections != 5:
+        print(
+            f"\nERROR: Built {sections} sections — MD3 requires 5.\n"
+            "Your repo is stale (git pull likely failed). Run:\n"
+            "  bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh\n",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    if "flux_greeting" not in json.dumps(config):
+        print(
+            "\nERROR: Build missing MD3 button-card templates.\n"
+            "Pull latest: git stash && git pull origin cursor/flux-ui-md3-dashboard-bf3a\n",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    return config
 
 
 async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
@@ -216,6 +233,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     print(f"Flux UI deployed at {args.ha_url}/{URL_PATH}/overview")
     print("Mobile Home unchanged. Profile → theme: flux-ui-md3 (optional).")
+    print("Hard-refresh browser (Cmd+Shift+R) if cards still look like Mushroom.")
     return 0
 
 

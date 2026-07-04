@@ -10,8 +10,6 @@ from pathlib import Path
 
 import yaml
 
-import yaml
-
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
 GARAGE_ENTITIES = ROOT.parent / "garage-doors" / "entities.yaml"
@@ -40,8 +38,19 @@ def verify_build(path: Path) -> list[str]:
         errors.append(f"Expected path 'overview', got {view.get('path')}")
 
     sections = view.get("sections", [])
-    if len(sections) not in (4, 5):
-        errors.append(f"Expected 4-5 sections, got {len(sections)}")
+    if len(sections) != 5:
+        errors.append(
+            f"Expected 5 MD3 overview sections, got {len(sections)} "
+            "(4 = old Mushroom build — run: git stash && git pull origin cursor/flux-ui-md3-dashboard-bf3a)"
+        )
+
+    if view.get("theme") != "flux-ui-md3":
+        errors.append(f"Expected theme 'flux-ui-md3', got {view.get('theme')!r}")
+
+    templates = config.get("button_card_templates") or {}
+    for name in ("flux_glass", "flux_action", "flux_greeting", "flux_light"):
+        if name not in templates:
+            errors.append(f"Missing button_card template: {name}")
 
     entities_cfg = load_entities()
     expected_lights = {x["entity"] for x in entities_cfg["favourite_lights"]}
@@ -74,9 +83,20 @@ def verify_build(path: Path) -> list[str]:
     if "weather.forecast_home" not in blob:
         errors.append("Missing weather.forecast_home")
 
-    for card_type in ("custom:button-card", "flux_glass", "button_card_templates"):
+    for card_type in ("custom:button-card", "flux_greeting", "custom:navbar-card"):
         if card_type not in blob:
             errors.append(f"Missing {card_type}")
+
+    stale_mushroom = (
+        "custom:mushroom-lock-card",
+        "custom:mushroom-template-card",
+        "custom:mushroom-light-card",
+    )
+    for card_type in stale_mushroom:
+        if card_type in blob:
+            errors.append(
+                f"Stale Mushroom card {card_type} — pull latest branch and redeploy"
+            )
 
     return errors
 
@@ -98,8 +118,21 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
     views = cfg["result"].get("views", [])
     if not views:
         errors.append("flux-ui has no views")
-    elif views[0].get("path") != "overview":
-        errors.append(f"First view path is {views[0].get('path')}, expected overview")
+    else:
+        view = views[0]
+        if view.get("path") != "overview":
+            errors.append(f"First view path is {view.get('path')}, expected overview")
+        sections = view.get("sections", [])
+        if len(sections) != 5:
+            errors.append(
+                f"Live dashboard has {len(sections)} sections (need 5 MD3). "
+                "Pull latest code and redeploy."
+            )
+        if view.get("theme") != "flux-ui-md3":
+            errors.append(f"Live theme is {view.get('theme')!r}, expected flux-ui-md3")
+        live_blob = json.dumps(cfg["result"])
+        if "flux_greeting" not in live_blob:
+            errors.append("Live config missing flux_greeting (old Mushroom build still active)")
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))

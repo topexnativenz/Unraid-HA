@@ -54,10 +54,21 @@ Optional: install [Material You Theme](https://github.com/Nerwyn/material-you-th
 From your Mac on the same LAN as HA:
 
 ```bash
+cd /Users/topexnative/Projects/unraid-array-design
+
+# Recommended: stash local edits, pull MD3 branch, deploy
+bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
+```
+
+Or manually:
+
+```bash
 # Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
 export HA_TOKEN="your-long-lived-token"   # optional if mcp.json exists
 export HA_URL="http://192.168.1.239:8123" # optional
 
+git stash
+git pull origin cursor/flux-ui-md3-dashboard-bf3a
 bash home-assistant/flux-ui-dashboard/scripts/setup_e2e.sh
 ```
 
@@ -94,7 +105,11 @@ Flux UI is **not** set as default. Mobile Home remains the primary phone dashboa
 
 | Issue | Fix |
 |-------|-----|
+| Still Mushroom cards / no MD3 | `git pull` failed — run `update_and_deploy.sh` (see above). Deploy log must show `sections=5`, not `4`. |
+| `git pull` blocked by local changes | `git stash` then pull, or use `update_and_deploy.sh` |
+| Wrong dashboard open | URL must be `/flux-ui/overview`, not `/mobile-home/home` |
 | `custom:mushroom-*` errors | Install Mushroom via HACS; hard-refresh browser |
 | Climate shows fallback | Run deploy with SMB mount so Mobile Home storage is readable |
 | Dashboard not in sidebar | Re-run deploy (creates `flux-ui` via API) |
 | Garage buttons no-op | Deploy garage pulse package |
+| Styling unchanged after deploy | Hard-refresh (Cmd+Shift+R); iOS Companion → Reset Frontend Cache |
