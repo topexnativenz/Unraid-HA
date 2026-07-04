@@ -13,6 +13,13 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from flux_layouts import build_lights_grid_section, build_rooms_index_section
+from flux_view_builders import (
+    build_cameras_view,
+    build_lights_view,
+    build_room_camera_page,
+    build_room_grid_page,
+    build_scenes_view,
+)
 from flux_room_detail import build_room_detail_page
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
@@ -22,7 +29,13 @@ from md3_templates import (
     wrap_glass,
     wrap_title,
 )
-from flux_navbar import URL_PREFIX, navbar_section, room_view_path
+from flux_navbar import (
+    URL_PREFIX,
+    navbar_section,
+    room_camera_view_path,
+    room_grid_view_path,
+    room_view_path,
+)
 from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
@@ -35,6 +48,9 @@ ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
 ROOMS = ROOT / "rooms.yaml"
 ROOM_SENSORS = ROOT / "room_sensors.yaml"
+SCENES = ROOT / "scenes.yaml"
+CAMERAS = ROOT / "cameras.yaml"
+LIGHT_GROUPS = ROOT / "light_groups.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
@@ -71,6 +87,11 @@ def load_entities() -> dict:
         cfg["context"] = yaml.safe_load(CONTEXT.read_text())
     else:
         cfg["context"] = {}
+    cfg["scenes_config"] = yaml.safe_load(SCENES.read_text()) if SCENES.exists() else {}
+    cfg["cameras_config"] = yaml.safe_load(CAMERAS.read_text()) if CAMERAS.exists() else {}
+    cfg["light_groups"] = (
+        yaml.safe_load(LIGHT_GROUPS.read_text()).get("groups", []) if LIGHT_GROUPS.exists() else []
+    )
     return cfg
 
 
@@ -280,62 +301,6 @@ def build_rooms_index(cfg: dict) -> dict:
     return build_rooms_index_section(cfg.get("rooms", []))
 
 
-def build_scenes_view(cfg: dict) -> dict:
-    cards: list[dict] = [section_title("Scenes", "Quick lighting")]
-    for item in cfg["quick_actions"]["actions"]:
-        cards.append(
-            scene_action(
-                item["name"],
-                item["subtitle"],
-                item["icon"],
-                item["service"],
-                item["target"],
-                columns=6,
-            )
-        )
-    cards.append(
-        scene_action(
-            "All lights",
-            "Toggle whole home",
-            "mdi:lightbulb-group",
-            "homeassistant.toggle",
-            "light.all_lights",
-            columns=6,
-        )
-    )
-    return {"type": "grid", "cards": cards}
-
-
-def build_lights_view(cfg: dict, *, use_auto_entities: bool = False) -> dict:
-    if not use_auto_entities:
-        return build_lights_grid_section("Lights", "All areas", cfg["favourite_lights"])
-    active = build_active_lights_section(cfg)
-    favourites = build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
-    return {"type": "grid", "cards": active["cards"] + favourites["cards"]}
-
-
-def build_cameras_view(camera_section: dict | None) -> dict:
-    if camera_section:
-        return apply_md3_to_cards(camera_section)
-    return {
-        "type": "grid",
-        "cards": [
-            section_title("Cameras", "Live feeds"),
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": (
-                        "No camera section imported yet.\n\n"
-                        "Deploy with SMB mount so Mobile Home cameras are copied, "
-                        "or add camera entities in a future update."
-                    ),
-                    "grid_options": {"columns": 12},
-                }
-            ),
-        ],
-    }
-
-
 def extract_section_from_mobile_home(config: dict, *, path: str | None = None, title: str | None = None) -> dict | None:
     for view in config.get("views", []):
         if path and view.get("path") == path and view.get("sections"):
@@ -446,7 +411,7 @@ def build_config(
             title="Scenes",
             path="scenes",
             icon="mdi:layers",
-            sections=[build_scenes_view(cfg)],
+            sections=[build_scenes_view(cfg, use_auto_entities=use_auto_entities)],
             use_navbar_card=use_navbar_card,
         ),
         flux_view(
@@ -460,21 +425,52 @@ def build_config(
             title="Cameras",
             path="cameras",
             icon="mdi:cctv",
-            sections=[build_cameras_view(camera_section)],
+            sections=[
+                build_cameras_view(
+                    cfg,
+                    camera_section,
+                    use_auto_entities=use_auto_entities,
+                    apply_md3=apply_md3_to_cards,
+                )
+            ],
             use_navbar_card=use_navbar_card,
         ),
     ]
 
     for room in cfg.get("rooms", []):
+        slug = room["path"]
+        back = f"{URL_PREFIX}/rooms"
         views.append(
             flux_view(
                 title=room["name"],
-                path=room_view_path(room["path"]),
+                path=room_view_path(slug),
                 icon=room.get("icon", "mdi:home-outline"),
                 sections=[build_room_detail(room)],
                 use_navbar_card=use_navbar_card,
                 subview=True,
-                back_path=f"{URL_PREFIX}/rooms",
+                back_path=back,
+            )
+        )
+        views.append(
+            flux_view(
+                title=f"{room.get('card_name') or room['name']} — Grid",
+                path=room_grid_view_path(slug),
+                icon="mdi:view-grid",
+                sections=[build_room_grid_page(room, active_tab="grid")],
+                use_navbar_card=use_navbar_card,
+                subview=True,
+                back_path=back,
+            )
+        )
+        views.append(
+            flux_view(
+                title=f"{room.get('card_name') or room['name']} — Camera",
+                path=room_camera_view_path(slug),
+                icon="mdi:cctv",
+                sections=[build_room_camera_page(room, cfg, active_tab="camera")],
+                use_navbar_card=use_navbar_card,
+                subview=True,
+                back_path=back,
             )
         )
 

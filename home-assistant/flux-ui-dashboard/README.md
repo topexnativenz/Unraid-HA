@@ -14,9 +14,9 @@ Overview extends Mobile Home with live home intelligence:
 | Doors open | Conditional when any Tapo garage sensor is open |
 | Climate | Copied from Mobile Home storage on deploy |
 | Quick Actions | Gate locks, garage pulse, All Off, Goodnight |
-| Favourite lights | Slim dimmer row — tap toggles, drag slider to dim |
+| Favourite lights | 2-col `flux_light` tiles — tap toggles, hold for more-info |
 
-Config: [`context.yaml`](context.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
+Config: [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml), [`scenes.yaml`](scenes.yaml), [`cameras.yaml`](cameras.yaml), [`light_groups.yaml`](light_groups.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
 Entity map: [`entities.yaml`](entities.yaml)
 
@@ -136,7 +136,7 @@ Temporary debug (show header): `python3 .../build_flux_ui.py --no-kiosk`
 python3 home-assistant/flux-ui-dashboard/scripts/verify_phase3.py
 ```
 
-Expect `(11 views, 9 overview sections)` and deploy log `phase3=True`.
+Expect `(23 views, 8 overview sections)` and deploy log `phase3=True`.
 
 ## Roadmap
 
@@ -146,7 +146,7 @@ See [`ROADMAP.md`](ROADMAP.md) — Phase 4: camera overlay, media layout, tablet
 
 | Issue | Fix |
 |-------|-----|
-| Still Mushroom cards / no MD3 | `git pull` failed — run `update_and_deploy.sh`. Deploy log must show `overview_sections=9`, `phase3=True`. |
+| Still Mushroom cards / no MD3 | `git pull` failed — run `update_and_deploy.sh`. Deploy log must show `overview_sections=8`, `phase3=True`. |
 | `git pull` blocked by local changes | `git stash` then pull, or use `update_and_deploy.sh` |
 | Wrong dashboard open | URL must be `/flux-ui/overview`, not `/mobile-home/home` |
 | `custom:mushroom-*` errors | Install Mushroom via HACS; hard-refresh browser |

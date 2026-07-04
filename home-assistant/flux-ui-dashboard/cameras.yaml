@@ -1,0 +1,14 @@
+# Flux UI Cameras — global feeds and optional room assignment.
+# room: matches rooms.yaml path slug (e.g. entry, garage, living)
+
+cameras: []
+# Example (Eufy / generic camera entities):
+#   - entity: camera.driveway
+#     name: Driveway
+#     room: garage
+#   - entity: camera.front_door
+#     name: Front door
+#     room: entry
+
+# When true and auto-entities is installed, append all camera.* entities not listed above.
+auto_discover: true

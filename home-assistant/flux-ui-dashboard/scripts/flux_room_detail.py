@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
-from flux_navbar import room_navigation_path
+from flux_navbar import (
+    room_camera_navigation_path,
+    room_grid_navigation_path,
+    room_navigation_path,
+)
 from md3_templates import wrap_glass, wrap_title
 
 DEFAULT_FEATURES: list[dict] = [
@@ -122,8 +126,8 @@ def build_room_features_row(room: dict) -> dict:
     }
 
 
-def build_room_subnav(room: dict) -> dict:
-    """Room / Lights / Camera sub-navigation chips."""
+def build_room_subnav(room: dict, *, active: str = "room") -> dict:
+    """Room / Grid / Camera sub-navigation chips."""
     path = room["path"]
     active_mod = {
         "style": (
@@ -133,37 +137,31 @@ def build_room_subnav(room: dict) -> dict:
             "}\n"
         )
     }
-    return wrap_glass(
-        {
-            "type": "custom:mushroom-chips-card",
-            "alignment": "start",
-            "chips": [
-                {
-                    "type": "template",
-                    "icon": "mdi:home",
-                    "content": "Room",
-                    "icon_color": "pink",
-                    "tap_action": {"action": "navigate", "navigation_path": room_navigation_path(path)},
-                },
-                {
-                    "type": "template",
-                    "icon": "mdi:view-grid",
-                    "content": "Grid",
-                    "icon_color": "disabled",
-                    "tap_action": {"action": "navigate", "navigation_path": room_navigation_path(path)},
-                },
-                {
-                    "type": "template",
-                    "icon": "mdi:cctv",
-                    "content": "Camera",
-                    "icon_color": "disabled",
-                    "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/cameras"},
-                },
-            ],
-            "grid_options": {"columns": 12},
-            "card_mod": active_mod,
+
+    def chip(content: str, icon: str, nav_path: str, tab: str) -> dict:
+        is_active = active == tab
+        return {
+            "type": "template",
+            "icon": icon,
+            "content": content,
+            "icon_color": "pink" if is_active else "disabled",
+            "tap_action": {"action": "navigate", "navigation_path": nav_path},
         }
-    )
+
+    chips = [
+        chip("Room", "mdi:home", room_navigation_path(path), "room"),
+        chip("Grid", "mdi:view-grid", room_grid_navigation_path(path), "grid"),
+        chip("Camera", "mdi:cctv", room_camera_navigation_path(path), "camera"),
+    ]
+    nav_card: dict = {
+        "type": "custom:mushroom-chips-card",
+        "alignment": "start",
+        "chips": chips,
+        "grid_options": {"columns": 12},
+    }
+    if active == "room":
+        nav_card["card_mod"] = active_mod
+    return wrap_glass(nav_card)
 
 
 def _lights_on_count_jinja(entities: list[str]) -> tuple[str, str]:
@@ -254,7 +252,7 @@ def build_room_detail_page(room: dict) -> dict:
         },
         build_room_status_chips_auto(room),
         build_room_features_row(room),
-        build_room_subnav(room),
+        build_room_subnav(room, active="room"),
     ]
     groups = build_room_light_groups(room)
     if groups:

@@ -10,6 +10,8 @@
 #
 # light_groups: quick shortcuts on room detail (reference FAB menu)
 # features: optional quick actions row (defaults to Presence / Movie / Adaptive stubs)
+# cameras: optional per-room camera feeds on room Camera subview
+#   - {entity: camera.front_door, name: Front door}
 # occupancy_entity / temperature_entity / humidity_entity: live status chips on room detail
 
 rooms:

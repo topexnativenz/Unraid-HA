@@ -82,6 +82,10 @@ def main() -> int:
             issues.append("Room detail missing feature action row")
         if "/flux-ui/room-living" not in living_text:
             issues.append("Room detail missing navigation from room index")
+        if "room-living-grid" not in living_text:
+            issues.append("Room detail subnav should link to grid subview")
+        if "room-living-camera" not in living_text:
+            issues.append("Room detail subnav should link to camera subview")
 
     # Home status chips must use Jinja2, not button-card JS
     for section in overview["sections"]:
