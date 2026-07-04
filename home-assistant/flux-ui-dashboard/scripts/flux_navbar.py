@@ -91,8 +91,13 @@ def flux_routes() -> list[dict]:
                     "url": "/mobile-home/tesla",
                 },
                 {
+                    "icon": "mdi:account-circle-outline",
+                    "label": "Profile",
+                    "url": "/profile",
+                },
+                {
                     "icon": "mdi:cog-outline",
-                    "label": "Settings",
+                    "label": "HA Settings",
                     "url": "/config/dashboard",
                 },
             ],

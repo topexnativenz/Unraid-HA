@@ -98,6 +98,32 @@ python3 home-assistant/flux-ui-dashboard/scripts/verify_flux_ui.py
 
 Flux UI is **not** set as default. Mobile Home remains the primary phone dashboard. To try Flux UI on iPhone: **Profile → Dashboard → Flux UI**.
 
+## Kiosk mode (hide HA header)
+
+The Flux FB post hides the top **Overview** bar on phone. That requires **kiosk-mode** (HACS: [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode)), not card-mod alone. Deploy adds:
+
+```yaml
+kiosk_mode:
+  mobile_settings:
+    hide_header: true
+```
+
+If you still see the header, install kiosk-mode in HACS → Frontend, then redeploy.
+
+### How to reach settings when the header is hidden
+
+| What you need | How |
+|---------------|-----|
+| **Theme, account, default dashboard** | **More → Profile** in the bottom nav, or **swipe from the left edge** to open the HA sidebar → Profile |
+| **HA admin / integrations** | **More → HA Settings** |
+| **Other dashboards** (Mobile Home, Solar) | **More** menu, or sidebar |
+| **Companion app settings** (sensors, location, notifications) | Leave the dashboard: iOS **Settings → Home Assistant**, or open sidebar → Companion app settings link at bottom of Profile |
+| **Emergency exit** | More → Mobile Home (full HA chrome returns on that dashboard) |
+
+We **only hide the header**, not the sidebar — same as ElementZoom Flux. Swipe from the left edge still opens the drawer.
+
+Temporary debug (show header): `python3 .../build_flux_ui.py --no-kiosk`
+
 ## Roadmap
 
 - [ ] Tablet dashboard + shared YAML partials (Flux architecture)

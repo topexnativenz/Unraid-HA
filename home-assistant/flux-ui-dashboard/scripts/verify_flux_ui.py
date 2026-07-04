@@ -112,6 +112,11 @@ def verify_build(path: Path) -> list[str]:
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
 
+    if "kiosk_mode" not in blob or "hide_header" not in blob:
+        errors.append(
+            "Missing kiosk_mode mobile hide_header — install maykar/kiosk-mode via HACS"
+        )
+
     stale_mushroom = (
         "custom:mushroom-lock-card",
         "custom:mushroom-template-card",

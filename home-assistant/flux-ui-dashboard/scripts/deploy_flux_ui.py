@@ -112,13 +112,26 @@ async def has_navbar_resource(token: str, ha_url: str) -> bool:
     return "navbar-card" in urls or "lovelace-navbar-card" in urls
 
 
-def build_config(mobile_storage: Path | None, *, use_navbar_card: bool = True) -> dict:
+async def has_kiosk_resource(token: str, ha_url: str) -> bool:
+    listed = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
+    urls = " ".join(r.get("url", "") for r in listed.get("result", []))
+    return "kiosk-mode" in urls
+
+
+def build_config(
+    mobile_storage: Path | None,
+    *,
+    use_navbar_card: bool = True,
+    use_kiosk: bool = True,
+) -> dict:
     out = ROOT / "generated" / "lovelace.flux_ui.json"
     cmd = ["python3", str(BUILD), "--output", str(out)]
     if mobile_storage and mobile_storage.exists():
         cmd.extend(["--mobile-home-storage", str(mobile_storage)])
     if not use_navbar_card:
         cmd.append("--no-navbar-card")
+    if not use_kiosk:
+        cmd.append("--no-kiosk")
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
@@ -207,18 +220,30 @@ async def deploy_async(args: argparse.Namespace) -> int:
         print("SMB skipped (HA offline — cannot fetch Samba credentials)")
 
     use_navbar = False
+    use_kiosk = False
     if token and ha_up:
         try:
             use_navbar = await has_navbar_resource(token, args.ha_url)
+            use_kiosk = await has_kiosk_resource(token, args.ha_url)
             if not use_navbar:
                 print(
                     "navbar-card not installed — using mushroom chip nav fallback.\n"
                     "  HACS → joseluis9595/lovelace-navbar-card for Flux pill nav."
                 )
+            if not use_kiosk:
+                print(
+                    "kiosk-mode not installed — HA header will stay visible on mobile.\n"
+                    "  HACS → maykar/kiosk-mode then redeploy."
+                )
         except Exception:
             use_navbar = False
+            use_kiosk = False
 
-    config = build_config(mobile_storage, use_navbar_card=use_navbar)
+    config = build_config(
+        mobile_storage,
+        use_navbar_card=use_navbar,
+        use_kiosk=use_kiosk,
+    )
 
     if mounted:
         write_storage(args.mount, config)

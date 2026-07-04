@@ -50,10 +50,6 @@ VIEW_CARD_MOD = {
         "hui-view-sections {\n"
         "  padding-bottom: 88px;\n"
         "}\n"
-        "@media (max-width: 800px) {\n"
-        "  app-toolbar, ha-menu-button { display: none !important; }\n"
-        "  .header { display: none !important; }\n"
-        "}\n"
     )
 }
 

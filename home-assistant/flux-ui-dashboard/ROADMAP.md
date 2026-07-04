@@ -11,7 +11,7 @@ Phase 2 (current): Flux navbar + multi-view dashboard
 | ✅ | **Navbar on every view** — same pill nav as FB post |
 | ⬜ | HACS: navbar-card (required for pill + popups) |
 | ⬜ | Material You Theme |
-| ⬜ | Kiosk mode (hide HA header) |
+| ⬜ | Kiosk mode HACS installed (hides header on phone) |
 | ⬜ | bubble-card light popups |
 
 Install HACS cards then redeploy:

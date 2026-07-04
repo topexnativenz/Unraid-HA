@@ -21,6 +21,7 @@ from md3_templates import (
     wrap_title,
 )
 from flux_navbar import navbar_section
+from kiosk_config import KIOSK_MODE
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
@@ -371,6 +372,7 @@ def build_config(
     climate_section: dict | None = None,
     camera_section: dict | None = None,
     use_navbar_card: bool = True,
+    use_kiosk: bool = True,
 ) -> dict:
     cfg = load_entities()
     weather = cfg.get("weather", "weather.forecast_home")
@@ -434,11 +436,14 @@ def build_config(
             )
         )
 
-    return {
+    out: dict = {
         "title": "Flux UI",
         "button_card_templates": copy.deepcopy(BUTTON_CARD_TEMPLATES),
         "views": views,
     }
+    if use_kiosk:
+        out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)
+    return out
 
 
 def main() -> None:
@@ -455,6 +460,11 @@ def main() -> None:
         "--no-navbar-card",
         action="store_true",
         help="Use mushroom chip nav fallback (navbar-card HACS not installed)",
+    )
+    parser.add_argument(
+        "--no-kiosk",
+        action="store_true",
+        help="Do not hide HA header (debug / before kiosk-mode HACS installed)",
     )
     args = parser.parse_args()
 
@@ -474,6 +484,7 @@ def main() -> None:
         climate_section=climate_section,
         camera_section=camera_section,
         use_navbar_card=not args.no_navbar_card,
+        use_kiosk=not args.no_kiosk,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
