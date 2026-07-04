@@ -49,6 +49,8 @@ def main() -> int:
         issues.append("Rooms index should use flux_room cards")
     if '"columns": 2' not in rooms_text:
         issues.append("Rooms index should use inner 2-column grid like light tiles")
+    if '"height": "118px"' not in json.dumps(templates.get("flux_room", {})):
+        issues.append("flux_room template should use fixed 118px card height")
     if "custom_fields" not in rooms_text or "status" not in rooms_text:
         issues.append("Room cards should include status indicator custom field")
 

@@ -1,17 +1,20 @@
 # Flux UI room groups — lights per area (mirrors Mobile Home Lights tab groups).
 #
-# Optional per-room fields for reference-style room cards:
-#   temperature_entity: sensor.xxx   — shown as "18.3°C" on the card
-#   humidity_entity: sensor.xxx      — shown as "60.0%" on the card
-#   indicators:                      — right-edge status dots (defaults to room lights)
-#     - {entity: light.kitchen}
-#     - {entity: binary_sensor.motion, color_on: '#B388FF'}
+# card_name: shorter label on room index cards (avoids truncation)
+# keywords: used to auto-match Tapo temp/humidity/motion sensors at runtime
+# temperature_entity / humidity_entity: optional explicit overrides
+# indicators: right-edge status icons (max 4 shown; padded to equal card height)
+#
+# Run on your Mac to auto-map Tapo sensors from live HA:
+#   python3 home-assistant/flux-ui-dashboard/scripts/discover_room_sensors.py
 
 rooms:
   - name: Kitchen & dining
+    card_name: Kitchen
     path: kitchen
     icon: mdi:stove
     subtitle: Kitchen, dining, bar
+    keywords: [kitchen, dining, bar, breakfast, stove]
     lights:
       - {entity: light.kitchen, name: Kitchen}
       - {entity: light.dining_room, name: Kitchen dining}
@@ -20,13 +23,11 @@ rooms:
       - {entity: light.breakfast_high, name: Breakfast}
 
   - name: Living & media
+    card_name: Living
     path: living
     icon: mdi:sofa
     subtitle: Lounges and media room
-    # Optional status chips (ElementZoom reference layout) — add entities as available
-    # status_chips:
-    #   - {content: "Occupied", icon: mdi:account, icon_color: purple}
-    #   - {content: "{{ states('sensor.living_temperature') }}°C", icon: mdi:thermometer, entity: sensor.living_temperature}
+    keywords: [living, lounge, media, atrium, sofa]
     lights:
       - {entity: light.living_center, name: Living}
       - {entity: light.main_atrium, name: Main area}
@@ -34,33 +35,46 @@ rooms:
       - {entity: light.media_room, name: Media room}
 
   - name: Entry & arrival
+    card_name: Entry
     path: entry
     icon: mdi:door-open
     subtitle: Front door and path
+    keywords: [entry, arrival, front door, outside entry]
     lights:
       - {entity: light.entry_centre, name: Entry}
       - {entity: light.night_arrival, name: Night arrival}
       - {entity: light.outside_entry, name: Outside entry}
 
   - name: Master bedroom
+    card_name: Master
     path: master-bedroom
     icon: mdi:bed-king-outline
     subtitle: Bedroom lights
+    keywords: [master, bedroom, bed]
     lights:
       - {entity: light.master_bedroom, name: Master bedroom}
 
   - name: Hall & stairs
+    card_name: Hall
     path: hall
     icon: mdi:stairs
     subtitle: Footlights and passages
+    keywords: [hall, stair, footlight, passage]
     lights:
       - {entity: light.main_footlights, name: Hall footlights}
       - {entity: light.stair_footlights, name: Stair footlights}
 
   - name: Garage & exterior
+    card_name: Garage
     path: garage
     icon: mdi:garage
     subtitle: Garage and outside
+    keywords: [garage, shed, exterior, outside garage]
+    indicators:
+      - {entity: binary_sensor.house_garage_door_contact, color_on: '#F2B8B5', icon: mdi:garage-open}
+      - {entity: binary_sensor.main_shed_door_contact, color_on: '#F2B8B5', icon: mdi:garage-open}
+      - {entity: binary_sensor.second_shed_door_contact, color_on: '#F2B8B5', icon: mdi:garage-open}
+      - {entity: light.garage, color_on: '#FFD54F', icon: mdi:lightbulb-on}
     lights:
       - {entity: light.garage, name: Garage}
       - {entity: light.outside_garage, name: Outside garage}

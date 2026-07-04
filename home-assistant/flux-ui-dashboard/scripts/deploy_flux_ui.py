@@ -27,6 +27,7 @@ from ha_common import (
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
+DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
 VERIFY = ROOT / "scripts" / "verify_flux_ui.py"
@@ -270,6 +271,13 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_navbar = False
             use_auto_entities = True
             use_kiosk = True
+
+    if ha_up and token and not args.offline:
+        print("Discovering Tapo / climate sensors for room cards…")
+        subprocess.run(
+            ["python3", str(DISCOVER_ROOMS), "--ha-url", args.ha_url, "--token", token],
+            check=False,
+        )
 
     config = build_config(
         mobile_storage,

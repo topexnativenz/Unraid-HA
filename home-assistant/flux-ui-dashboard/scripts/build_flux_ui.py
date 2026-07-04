@@ -38,6 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
 ROOMS = ROOT / "rooms.yaml"
+ROOM_SENSORS = ROOT / "room_sensors.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
@@ -53,7 +54,21 @@ def load_entities() -> dict:
     cfg = yaml.safe_load(ENTITIES.read_text())
     cfg["quick_actions"]["garage"] = load_garage_doors()
     if ROOMS.exists():
-        cfg["rooms"] = yaml.safe_load(ROOMS.read_text()).get("rooms", [])
+        rooms = yaml.safe_load(ROOMS.read_text()).get("rooms", [])
+        if ROOM_SENSORS.exists():
+            overrides = yaml.safe_load(ROOM_SENSORS.read_text()).get("overrides") or {}
+            merged: list[dict] = []
+            for room in rooms:
+                out = dict(room)
+                extra = overrides.get(room["path"], {})
+                for key, value in extra.items():
+                    if key == "indicators" and room.get("indicators"):
+                        continue
+                    out[key] = value
+                merged.append(out)
+            cfg["rooms"] = merged
+        else:
+            cfg["rooms"] = rooms
     else:
         cfg["rooms"] = []
     if CONTEXT.exists():

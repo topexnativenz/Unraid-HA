@@ -47,11 +47,11 @@ def build_rooms_index_section(rooms: list[dict]) -> dict:
 
 
 def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
-    """Reference room card: icon, name, temp/humidity label, status dots on right."""
+    """Reference room card: icon, name, temp/humidity label, status strip on right."""
     lights = [light["entity"] for light in room.get("lights", [])]
     indicators = room.get("indicators")
     if not indicators:
-        indicators = [{"entity": entity} for entity in lights[:6]]
+        indicators = [{"entity": entity} for entity in lights[:4]]
 
     triggers = list(lights)
     for key in ("temperature_entity", "humidity_entity"):
@@ -66,11 +66,13 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
     card: dict = {
         "type": "custom:button-card",
         "template": "flux_room",
-        "name": room["name"],
+        "show_icon": True,
+        "name": room.get("card_name") or room["name"],
         "icon": room.get("icon", "mdi:home-outline"),
         "label": _ROOM_LABEL,
         "variables": {
             "subtitle": room.get("subtitle", ""),
+            "keywords": room.get("keywords") or [],
             "lights": lights,
             "indicators": indicators,
             "temperature_entity": room.get("temperature_entity"),
@@ -80,41 +82,62 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
         "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
         "grid_options": {"columns": columns},
     }
-    if lights:
-        card["entity"] = lights[0]
     if triggers:
         card["triggers_update"] = triggers
     return card
 
 
+def _find_sensor_js(kind: str) -> str:
+    var = "tempId" if kind == "temp" else "humidId"
+    explicit = "variables.temperature_entity" if kind == "temp" else "variables.humidity_entity"
+    dc = "temperature" if kind == "temp" else "humidity"
+    suffix = "°C" if kind == "temp" else "%"
+    return (
+        f"  let {var} = {explicit};\n"
+        f"  if (!{var} || !states[{var}] || ['unavailable','unknown'].includes(states[{var}].state)) {{\n"
+        f"    const keywords = (variables.keywords || []).map(k => k.toLowerCase());\n"
+        f"    for (const [eid, st] of Object.entries(states)) {{\n"
+        f"      if (!eid.startsWith('sensor.')) continue;\n"
+        f"      const cls = st.attributes?.device_class || '';\n"
+        f"      const hay = (eid + ' ' + (st.attributes?.friendly_name || '')).toLowerCase();\n"
+        f"      if (cls !== '{dc}' && !hay.includes('{dc}')) continue;\n"
+        f"      if (keywords.some(k => hay.includes(k))) {{ {var} = eid; break; }}\n"
+        f"    }}\n"
+        f"  }}\n"
+        f"  if ({var} && states[{var}] && !['unavailable','unknown'].includes(states[{var}].state)) {{\n"
+        f"    const v = parseFloat(states[{var}].state);\n"
+        f"    parts.push(Number.isFinite(v) ? v.toFixed(1) + '{suffix}' : states[{var}].state + '{suffix}');\n"
+        f"  }}\n"
+    )
+
+
 _ROOM_LABEL = (
     "[[[\n"
-    "  const t = variables.temperature_entity;\n"
-    "  const h = variables.humidity_entity;\n"
     "  const parts = [];\n"
-    "  if (t && states[t] && !['unavailable', 'unknown'].includes(states[t].state)) {\n"
-    "    const v = parseFloat(states[t].state);\n"
-    "    parts.push(Number.isFinite(v) ? v.toFixed(1) + '°C' : states[t].state + '°C');\n"
-    "  }\n"
-    "  if (h && states[h] && !['unavailable', 'unknown'].includes(states[h].state)) {\n"
-    "    const v = parseFloat(states[h].state);\n"
-    "    parts.push(Number.isFinite(v) ? v.toFixed(1) + '%' : states[h].state + '%');\n"
-    "  }\n"
-    "  if (parts.length) return parts.join(' · ');\n"
+    + _find_sensor_js("temp")
+    + _find_sensor_js("humid")
+    + "  if (parts.length) return parts.join(' · ');\n"
     "  return variables.subtitle || '';\n"
     "]]]"
 )
 
 _ROOM_STATUS_HTML = (
     "[[[\n"
-    "  const items = variables.indicators || [];\n"
-    "  if (!items.length) return '';\n"
-    "  const dots = items.slice(0, 6).map(item => {\n"
+    "  const maxDots = 4;\n"
+    "  const items = (variables.indicators || []).slice(0, maxDots);\n"
+    "  while (items.length < maxDots) items.push({});\n"
+    "  const dots = items.map(item => {\n"
+    "    if (!item.entity) {\n"
+    "      return '<div style=\"width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.08);margin:4px 0\"></div>';\n"
+    "    }\n"
     "    const st = states[item.entity];\n"
-    "    const on = st && ['on', 'home', 'open'].includes(st.state);\n"
+    "    const on = st && ['on','home','open','heat','cool'].includes(st.state);\n"
     "    const color = on ? (item.color_on || '#FFD54F') : 'rgba(255,255,255,0.14)';\n"
-    "    const glow = on ? 'box-shadow:0 0 8px rgba(255,213,79,0.45);' : '';\n"
-    "    return `<div style=\"width:8px;height:8px;border-radius:50%;background:${color};margin:5px 0;${glow}\"></div>`;\n"
+    "    const glow = on ? 'box-shadow:0 0 7px rgba(255,213,79,0.4);' : '';\n"
+    "    if (item.icon) {\n"
+    "      return `<ha-icon icon=\"${item.icon}\" style=\"color:${color};width:13px;height:13px;margin:3px 0;${glow}\"></ha-icon>`;\n"
+    "    }\n"
+    "    return `<div style=\"width:7px;height:7px;border-radius:50%;background:${color};margin:4px 0;${glow}\"></div>`;\n"
     "  }).join('');\n"
     "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%\">${dots}</div>`;\n"
     "]]]"
