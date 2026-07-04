@@ -106,11 +106,19 @@ def write_storage(mount: str, config: dict) -> None:
             print("  registered flux-ui in lovelace_dashboards")
 
 
-def build_config(mobile_storage: Path | None) -> dict:
+async def has_navbar_resource(token: str, ha_url: str) -> bool:
+    listed = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
+    urls = " ".join(r.get("url", "") for r in listed.get("result", []))
+    return "navbar-card" in urls or "lovelace-navbar-card" in urls
+
+
+def build_config(mobile_storage: Path | None, *, use_navbar_card: bool = True) -> dict:
     out = ROOT / "generated" / "lovelace.flux_ui.json"
     cmd = ["python3", str(BUILD), "--output", str(out)]
     if mobile_storage and mobile_storage.exists():
         cmd.extend(["--mobile-home-storage", str(mobile_storage)])
+    if not use_navbar_card:
+        cmd.append("--no-navbar-card")
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
@@ -123,7 +131,7 @@ def build_config(mobile_storage: Path | None) -> dict:
             file=sys.stderr,
         )
         raise SystemExit(1)
-    if "flux_greeting" not in json.dumps(config):
+    if "flux_greeting" not in json.dumps(config) and "flux_hero" not in json.dumps(config):
         print(
             "\nERROR: Build missing MD3 button-card templates.\n"
             "Pull latest: git stash && git pull origin cursor/flux-ui-md3-dashboard-bf3a\n",
@@ -198,7 +206,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
     elif not args.skip_mount and not ha_up:
         print("SMB skipped (HA offline — cannot fetch Samba credentials)")
 
-    config = build_config(mobile_storage)
+    use_navbar = False
+    if token and ha_up:
+        try:
+            use_navbar = await has_navbar_resource(token, args.ha_url)
+            if not use_navbar:
+                print(
+                    "navbar-card not installed — using mushroom chip nav fallback.\n"
+                    "  HACS → joseluis9595/lovelace-navbar-card for Flux pill nav."
+                )
+        except Exception:
+            use_navbar = False
+
+    config = build_config(mobile_storage, use_navbar_card=use_navbar)
 
     if mounted:
         write_storage(args.mount, config)

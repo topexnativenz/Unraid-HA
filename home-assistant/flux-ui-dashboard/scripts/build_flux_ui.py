@@ -73,11 +73,13 @@ def section_title(title: str, subtitle: str = "") -> dict:
     return wrap_title(card)
 
 
-def greeting_card(weather_entity: str) -> dict:
+def hero_card(weather_entity: str) -> dict:
+    """Single Flux-style hero: weather icon + greeting + conditions (no duplicate chips)."""
     return {
         "type": "custom:button-card",
-        "template": "flux_greeting",
+        "template": "flux_hero",
         "entity": weather_entity,
+        "icon": "[[[ return entity.attributes?.condition ? `weather-${entity.attributes.condition}` : 'mdi:weather-partly-cloudy'; ]]]",
         "name": (
             "[[[\n"
             "  const h = new Date().getHours();\n"
@@ -90,44 +92,19 @@ def greeting_card(weather_entity: str) -> dict:
         ),
         "label": (
             "[[[\n"
-            "  const cond = entity.attributes?.condition || states[entity.entity_id]?.state || '';\n"
+            "  const cond = entity.attributes?.friendly_name || entity.attributes?.condition || '';\n"
             "  const temp = entity.attributes?.temperature;\n"
-            "  return temp != null ? `${cond} · ${temp}°` : String(cond);\n"
+            "  const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});\n"
+            "  const wx = temp != null ? `${cond} · ${temp}°` : String(cond);\n"
+            "  return `${wx} · ${time}`;\n"
             "]]]"
         ),
         "grid_options": {"columns": 12},
     }
 
 
-def weather_chips(weather_entity: str) -> dict:
-    return wrap_glass(
-        {
-            "type": "custom:mushroom-chips-card",
-            "alignment": "center",
-            "chips": [
-                {
-                    "type": "weather",
-                    "entity": weather_entity,
-                    "show_conditions": True,
-                    "show_temperature": True,
-                },
-                {
-                    "type": "template",
-                    "content": "{{ now().strftime('%-I:%M %p') }}",
-                    "icon": "mdi:clock-outline",
-                    "icon_color": "primary",
-                },
-            ],
-            "grid_options": {"columns": 12},
-        }
-    )
-
-
 def build_hero(weather_entity: str) -> dict:
-    return {
-        "type": "grid",
-        "cards": [greeting_card(weather_entity), weather_chips(weather_entity)],
-    }
+    return {"type": "grid", "cards": [hero_card(weather_entity)]}
 
 
 def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
@@ -231,45 +208,56 @@ def build_favourite_lights(cfg: dict) -> dict:
     return {"type": "grid", "cards": cards}
 
 
-def build_navbar() -> dict:
-    return {
-        "type": "grid",
-        "cards": [
-            {
-                "type": "custom:navbar-card",
-                "routes": [
-                    {
-                        "url": "/flux-ui/overview",
-                        "icon": "mdi:view-dashboard-variant",
-                        "label": "Flux",
-                    },
-                    {
-                        "url": "/mobile-home/home",
-                        "icon": "mdi:cellphone",
-                        "label": "Mobile",
-                    },
-                    {
-                        "url": "/solar-dashboard",
-                        "icon": "mdi:solar-power",
-                        "label": "Solar",
-                    },
-                ],
-                "mobile": {"show_labels": True},
-                "styles": {
-                    "card": [
-                        {
-                            "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent)"
-                        },
-                        {"backdrop-filter": "blur(20px)"},
-                        {"border-radius": "999px"},
-                        {"margin": "0 12px 12px"},
-                        {"border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent)"},
-                    ]
+def build_navbar(*, use_navbar_card: bool = True) -> dict:
+    if use_navbar_card:
+        nav = {
+            "type": "custom:navbar-card",
+            "routes": [
+                {"url": "/flux-ui/overview", "icon": "mdi:view-dashboard-variant", "label": "Flux"},
+                {"url": "/mobile-home/home", "icon": "mdi:cellphone", "label": "Mobile"},
+                {"url": "/solar-dashboard", "icon": "mdi:solar-power", "label": "Solar"},
+            ],
+            "mobile": {"show_labels": True},
+            "styles": {
+                "card": [
+                    {"background": "color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent)"},
+                    {"backdrop-filter": "blur(20px)"},
+                    {"border-radius": "999px"},
+                    {"margin": "0 12px 12px"},
+                    {"border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent)"},
+                ]
+            },
+        }
+    else:
+        # Fallback when navbar-card HACS plugin is not installed (avoids Configuration error).
+        nav = {
+            "type": "custom:mushroom-chips-card",
+            "alignment": "center",
+            "chips": [
+                {
+                    "type": "template",
+                    "icon": "mdi:view-dashboard-variant",
+                    "icon_color": "primary",
+                    "content": "Flux",
+                    "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/overview"},
                 },
-                "grid_options": {"columns": 12},
-            }
-        ],
-    }
+                {
+                    "type": "template",
+                    "icon": "mdi:cellphone",
+                    "content": "Mobile",
+                    "tap_action": {"action": "navigate", "navigation_path": "/mobile-home/home"},
+                },
+                {
+                    "type": "template",
+                    "icon": "mdi:solar-power",
+                    "content": "Solar",
+                    "tap_action": {"action": "navigate", "navigation_path": "/solar-dashboard"},
+                },
+            ],
+            "card_mod": GLASS_CARD_MOD,
+        }
+    nav["grid_options"] = {"columns": 12}
+    return {"type": "grid", "cards": [nav]}
 
 
 def climate_fallback_section(weather_entity: str) -> dict:
@@ -291,7 +279,11 @@ def climate_fallback_section(weather_entity: str) -> dict:
     }
 
 
-def build_config(*, climate_section: dict | None = None) -> dict:
+def build_config(
+    *,
+    climate_section: dict | None = None,
+    use_navbar_card: bool = True,
+) -> dict:
     cfg = load_entities()
     weather = cfg.get("weather", "weather.forecast_home")
     climate = (
@@ -317,7 +309,7 @@ def build_config(*, climate_section: dict | None = None) -> dict:
                     climate,
                     build_quick_actions(cfg),
                     build_favourite_lights(cfg),
-                    build_navbar(),
+                    build_navbar(use_navbar_card=use_navbar_card),
                 ],
             }
         ],
@@ -341,6 +333,11 @@ def main() -> None:
         type=Path,
         default=ROOT / "generated" / "lovelace.flux_ui.json",
     )
+    parser.add_argument(
+        "--no-navbar-card",
+        action="store_true",
+        help="Use mushroom chip nav fallback (navbar-card HACS not installed)",
+    )
     args = parser.parse_args()
 
     climate_section = None
@@ -350,7 +347,10 @@ def main() -> None:
         if climate_section:
             print("Imported climate section from Mobile Home")
 
-    config = build_config(climate_section=climate_section)
+    config = build_config(
+        climate_section=climate_section,
+        use_navbar_card=not args.no_navbar_card,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,

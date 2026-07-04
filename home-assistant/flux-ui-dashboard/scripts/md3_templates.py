@@ -45,9 +45,14 @@ VIEW_CARD_MOD = {
         "  background: transparent !important;\n"
         "  max-width: 920px;\n"
         "  margin: 0 auto;\n"
+        "  padding-top: 8px;\n"
         "}\n"
         "hui-view-sections {\n"
         "  padding-bottom: 88px;\n"
+        "}\n"
+        "@media (max-width: 800px) {\n"
+        "  app-toolbar, ha-menu-button { display: none !important; }\n"
+        "  .header { display: none !important; }\n"
         "}\n"
     )
 }
@@ -142,6 +147,38 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"color": "var(--md-sys-color-on-surface-variant)"},
                 {"justify-self": "start"},
             ],
+        },
+    },
+    "flux_hero": {
+        "template": "flux_glass",
+        "show_icon": True,
+        "show_label": True,
+        "show_state": False,
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i n' 'i l'"},
+                {"grid-template-columns": "56px 1fr"},
+                {"grid-template-rows": "min-content min-content"},
+            ],
+            "img_cell": [
+                {"background-color": "rgba(208, 188, 255, 0.18)"},
+                {"border-radius": "18px"},
+                {"width": "56px"},
+                {"height": "56px"},
+            ],
+            "icon": [{"width": "32px"}, {"color": "var(--md-sys-color-primary)"}],
+            "name": [
+                {"font-size": "24px"},
+                {"font-weight": "700"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+            ],
+            "label": [
+                {"font-size": "13px"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+                {"justify-self": "start"},
+            ],
+            "card": [{"padding": "18px 20px"}],
         },
     },
 }

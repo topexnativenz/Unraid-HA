@@ -48,9 +48,11 @@ def verify_build(path: Path) -> list[str]:
         errors.append(f"Expected theme 'flux-ui-md3', got {view.get('theme')!r}")
 
     templates = config.get("button_card_templates") or {}
-    for name in ("flux_glass", "flux_action", "flux_greeting", "flux_light"):
+    for name in ("flux_glass", "flux_action", "flux_light"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
+    if "flux_hero" not in templates and "flux_greeting" not in templates:
+        errors.append("Missing flux_hero or flux_greeting template")
 
     entities_cfg = load_entities()
     expected_lights = {x["entity"] for x in entities_cfg["favourite_lights"]}
@@ -83,9 +85,12 @@ def verify_build(path: Path) -> list[str]:
     if "weather.forecast_home" not in blob:
         errors.append("Missing weather.forecast_home")
 
-    for card_type in ("custom:button-card", "flux_greeting", "custom:navbar-card"):
+    for card_type in ("custom:button-card", "flux_hero"):
         if card_type not in blob:
             errors.append(f"Missing {card_type}")
+
+    if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
+        errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
 
     stale_mushroom = (
         "custom:mushroom-lock-card",
@@ -131,8 +136,8 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
         if view.get("theme") != "flux-ui-md3":
             errors.append(f"Live theme is {view.get('theme')!r}, expected flux-ui-md3")
         live_blob = json.dumps(cfg["result"])
-        if "flux_greeting" not in live_blob:
-            errors.append("Live config missing flux_greeting (old Mushroom build still active)")
+        if "flux_greeting" not in live_blob and "flux_hero" not in live_blob:
+            errors.append("Live config missing flux hero (old build still active)")
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))
