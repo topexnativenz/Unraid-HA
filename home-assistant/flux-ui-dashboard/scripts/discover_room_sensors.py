@@ -90,13 +90,24 @@ def _indicator_candidates(states: list[dict], keywords: list[str], limit: int = 
     out: list[dict] = []
     seen: set[str] = set()
 
-    def add(entity_id: str, *, color_on: str = "#FFD54F", icon: str | None = None) -> None:
+    def add(
+        entity_id: str,
+        *,
+        color_on: str = "#FFD54F",
+        color_off: str | None = None,
+        icon: str | None = None,
+        icon_closed: str | None = None,
+    ) -> None:
         if entity_id in seen or len(out) >= limit:
             return
         seen.add(entity_id)
         item: dict = {"entity": entity_id, "color_on": color_on}
+        if color_off:
+            item["color_off"] = color_off
         if icon:
             item["icon"] = icon
+        if icon_closed:
+            item["icon_closed"] = icon_closed
         out.append(item)
 
     temp = _best_match(states, keywords, domain="sensor", classes=TEMP_CLASSES | {"temperature"})
@@ -113,9 +124,15 @@ def _indicator_candidates(states: list[dict], keywords: list[str], limit: int = 
         if eid.startswith("binary_sensor."):
             dc = str((state.get("attributes") or {}).get("device_class", ""))
             if dc in MOTION_CLASSES or "motion" in eid or "occupancy" in eid:
-                add(eid, color_on="#B388FF", icon="mdi:motion-sensor")
+                add(eid, color_on="#B388FF", icon="mdi:motion-sensor", icon_closed="mdi:motion-sensor-off")
             elif dc in CONTACT_CLASSES or "contact" in eid or "door" in eid:
-                add(eid, color_on="#F2B8B5", icon="mdi:door-open")
+                add(
+                    eid,
+                    color_on="#F2B8B5",
+                    color_off="#81C784",
+                    icon="mdi:garage-open",
+                    icon_closed="mdi:garage",
+                )
         elif eid.startswith("sensor."):
             dc = str((state.get("attributes") or {}).get("device_class", ""))
             if dc in TEMP_CLASSES:

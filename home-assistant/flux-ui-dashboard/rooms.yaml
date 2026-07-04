@@ -4,7 +4,8 @@
 # keywords: used to auto-match Tapo temp/humidity/motion sensors at runtime
 # temperature_entity / humidity_entity: optional explicit overrides
 # indicators: up to 4 right-column sensor slots (empty slots show stub circles)
-#   - {entity: binary_sensor.xxx, icon: mdi:garage-open, color_on: '#F2B8B5'}
+#   - {entity: binary_sensor.xxx, icon: mdi:garage-open, icon_closed: mdi:garage,
+#      color_on: '#F2B8B5', color_off: '#81C784'}
 #   - omit indicators to show 4 stubs until sensors are mapped for that room
 #
 # light_groups: quick shortcuts on room detail (reference FAB menu)
@@ -79,10 +80,10 @@ rooms:
     subtitle: Garage and outside
     keywords: [garage, shed, exterior, outside garage]
     indicators:
-      - {entity: binary_sensor.house_garage_door_contact, color_on: '#F2B8B5', icon: mdi:garage-open}
-      - {entity: binary_sensor.main_shed_door_contact, color_on: '#F2B8B5', icon: mdi:garage-open}
-      - {entity: binary_sensor.second_shed_door_contact, color_on: '#F2B8B5', icon: mdi:garage-open}
-      - {entity: light.garage, color_on: '#FFD54F', icon: mdi:lightbulb-on}
+      - {entity: binary_sensor.house_garage_door_contact, color_on: '#F2B8B5', color_off: '#81C784', icon: mdi:garage-open, icon_closed: mdi:garage}
+      - {entity: binary_sensor.main_shed_door_contact, color_on: '#F2B8B5', color_off: '#81C784', icon: mdi:garage-open, icon_closed: mdi:garage}
+      - {entity: binary_sensor.second_shed_door_contact, color_on: '#F2B8B5', color_off: '#81C784', icon: mdi:garage-open, icon_closed: mdi:garage}
+      - {entity: light.garage, color_on: '#FFD54F', color_off: 'rgba(255,255,255,0.08)', icon: mdi:lightbulb-on, icon_closed: mdi:lightbulb-outline}
     lights:
       - {entity: light.garage, name: Garage}
       - {entity: light.outside_garage, name: Outside garage}

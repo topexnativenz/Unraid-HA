@@ -171,11 +171,13 @@ BUTTON_CARD_TEMPLATES: dict = {
             "grid": [
                 {"grid-template-areas": "'info sensors'"},
                 {"grid-template-columns": "1fr 36px"},
-                {"grid-template-rows": "min-content"},
+                {"grid-template-rows": "1fr"},
                 {"column-gap": "8px"},
-                {"align-items": "start"},
-                {"align-content": "start"},
+                {"align-items": "stretch"},
+                {"align-content": "stretch"},
                 {"justify-content": "start"},
+                {"height": "100%"},
+                {"min-height": "0"},
             ],
             "custom_fields": {
                 "info": [
@@ -200,11 +202,13 @@ BUTTON_CARD_TEMPLATES: dict = {
                 "sensors": [
                     {"grid-area": "sensors"},
                     {"justify-self": "center"},
-                    {"align-self": "start"},
+                    {"align-self": "stretch"},
                     {"width": "32px"},
                     {"min-width": "32px"},
-                    {"height": "auto"},
+                    {"height": "100%"},
+                    {"min-height": "0"},
                     {"padding-top": "0"},
+                    {"padding-bottom": "0"},
                     {"z-index": "2"},
                 ],
             },
@@ -217,7 +221,7 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"max-height": "148px"},
                 {"box-sizing": "border-box"},
                 {"display": "flex"},
-                {"align-items": "flex-start"},
+                {"align-items": "stretch"},
             ],
         },
         "state": [

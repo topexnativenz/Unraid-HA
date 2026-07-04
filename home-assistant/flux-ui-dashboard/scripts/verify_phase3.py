@@ -51,6 +51,10 @@ def main() -> int:
         issues.append("Rooms index should use inner 2-column grid like light tiles")
     if '"height": "148px"' not in json.dumps(templates.get("flux_room", {})):
         issues.append("flux_room template should use fixed 148px card height")
+    if '"align-self": "stretch"' not in json.dumps(templates.get("flux_room", {})):
+        issues.append("flux_room sensor column should stretch full card height")
+    if "justify-content:space-between" not in rooms_text.replace(" ", ""):
+        issues.append("Room sensor column should evenly space indicators top-to-bottom")
     if "custom_fields" not in rooms_text or "sensors" not in rooms_text:
         issues.append("Room cards should include 4-slot sensor column custom field")
     if "sensor_slots" not in rooms_text:
