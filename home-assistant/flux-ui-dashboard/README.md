@@ -56,11 +56,15 @@ From your Mac on the same LAN as HA:
 ```bash
 cd /Users/topexnative/Projects/unraid-array-design
 
-# Recommended: stash local edits, pull MD3 branch, deploy
-bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
+# Full pipeline: garage → Flux UI MD3 → Mobile Home
+bash home-assistant/scripts/run_all_e2e.sh
 ```
 
-Or manually:
+Or pull latest MD3 branch first:
+
+```bash
+bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
+```
 
 ```bash
 # Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
