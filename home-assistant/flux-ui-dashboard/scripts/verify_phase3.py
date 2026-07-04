@@ -66,6 +66,12 @@ def main() -> int:
             issues.append("Room detail missing Lights section title")
         if '"template": "flux_light"' not in living_text:
             issues.append("Room detail lights should use flux_light tiles")
+        if "mushroom-chips-card" not in living_text:
+            issues.append("Room detail missing status/subnav chips")
+        if "flux_feature" not in living_text:
+            issues.append("Room detail missing feature action row")
+        if "/flux-ui/room/" not in living_text:
+            issues.append("Room detail missing navigation from room index")
 
     # Home status chips must use Jinja2, not button-card JS
     for section in overview["sections"]:

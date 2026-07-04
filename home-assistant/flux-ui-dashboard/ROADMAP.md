@@ -15,7 +15,7 @@ Context-aware overview + ElementZoom reference layouts.
 | **Active now** | `auto-entities` — 2-col `flux_light` tiles for lights currently on |
 | **Doors open** | Conditional section when any Tapo garage sensor is open |
 | **Rooms index** | Large `flux_room` cards — temp/humidity label, light status dots, 2-col grid |
-| **Room detail** | Status chips + 2-col light toggle tiles (tap toggle, hold more-info) |
+| **Room detail** | Status chips, feature row, sub-nav tabs, light count badge, 2-col lights |
 | **Favourite lights** | Same 2-col `flux_light` grid as room detail |
 
 Config: [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml)

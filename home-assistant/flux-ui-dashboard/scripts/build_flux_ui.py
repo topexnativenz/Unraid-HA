@@ -12,12 +12,8 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from flux_layouts import (
-    build_lights_grid_section,
-    build_room_lights_section,
-    build_room_status_chips,
-    build_rooms_index_section,
-)
+from flux_layouts import build_lights_grid_section, build_rooms_index_section
+from flux_room_detail import build_room_detail_page
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
     GLASS_CARD_MOD,
@@ -244,13 +240,7 @@ def build_favourite_lights(cfg: dict) -> dict:
 
 
 def build_room_detail(room: dict) -> dict:
-    cards: list[dict] = [section_title(room["name"], room.get("subtitle", ""))]
-    status = build_room_status_chips(room)
-    if status:
-        cards.append(status)
-    if room.get("lights"):
-        cards.append(build_room_lights_section(room))
-    return {"type": "grid", "cards": cards}
+    return build_room_detail_page(room)
 
 
 def build_overview_sections(

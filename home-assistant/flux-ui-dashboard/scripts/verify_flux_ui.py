@@ -67,7 +67,7 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Navbar fallback missing: {label}")
 
     templates = config.get("button_card_templates") or {}
-    for name in ("flux_glass", "flux_action", "flux_light", "flux_room"):
+    for name in ("flux_glass", "flux_action", "flux_light", "flux_room", "flux_feature"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
     if "flux_hero" not in templates and "flux_greeting" not in templates:

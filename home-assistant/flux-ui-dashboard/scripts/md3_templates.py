@@ -266,6 +266,39 @@ BUTTON_CARD_TEMPLATES: dict = {
             },
         ],
     },
+    "flux_feature": {
+        "template": "flux_glass",
+        "show_icon": True,
+        "show_label": True,
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i' 'n' 'l'"},
+                {"grid-template-columns": "1fr"},
+                {"grid-template-rows": "min-content min-content min-content"},
+                {"justify-items": "center"},
+                {"row-gap": "4px"},
+            ],
+            "img_cell": [
+                {"background-color": "rgba(208, 188, 255, 0.16)"},
+                {"border-radius": "14px"},
+                {"width": "44px"},
+                {"height": "44px"},
+            ],
+            "icon": [{"width": "24px"}, {"color": "var(--md-sys-color-primary)"}],
+            "name": [
+                {"font-size": "11px"},
+                {"font-weight": "600"},
+                {"text-align": "center"},
+                {"color": "var(--md-sys-color-on-surface)"},
+            ],
+            "label": [
+                {"font-size": "10px"},
+                {"text-align": "center"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+            ],
+            "card": [{"padding": "10px 6px", "min-height": "88px"}],
+        },
+    },
     "flux_greeting": {
         "show_icon": False,
         "show_label": True,

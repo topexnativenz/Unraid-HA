@@ -7,8 +7,9 @@
 #   - {entity: binary_sensor.xxx, icon: mdi:garage-open, color_on: '#F2B8B5'}
 #   - omit indicators to show 4 stubs until sensors are mapped for that room
 #
-# Run on your Mac to auto-map Tapo sensors from live HA:
-#   python3 home-assistant/flux-ui-dashboard/scripts/discover_room_sensors.py
+# light_groups: quick shortcuts on room detail (reference FAB menu)
+# features: optional quick actions row (defaults to Presence / Movie / Adaptive stubs)
+# occupancy_entity / temperature_entity / humidity_entity: live status chips on room detail
 
 rooms:
   - name: Kitchen & dining
@@ -30,6 +31,11 @@ rooms:
     icon: mdi:sofa
     subtitle: Lounges and media room
     keywords: [living, lounge, media, atrium, sofa]
+    light_groups:
+      - {name: Main Lights, icon: mdi:lightbulb-group, entity: light.main_atrium}
+      - {name: Living, icon: mdi:sofa, entity: light.living_center}
+      - {name: Media, icon: mdi:television, entity: light.media_room}
+      - {name: White lounge, icon: mdi:lightbulb, entity: light.white_lounge}
     lights:
       - {entity: light.living_center, name: Living}
       - {entity: light.main_atrium, name: Main area}
