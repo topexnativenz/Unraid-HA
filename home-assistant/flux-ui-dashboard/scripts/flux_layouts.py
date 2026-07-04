@@ -52,11 +52,26 @@ def flux_light_auto_entities_options(*, columns: int = 6) -> dict:
     }
 
 
+def _lights_tile_grid(lights: list[dict]) -> dict:
+    """Inner 2-column grid — same structure as Active now auto-entities card."""
+    return {
+        "type": "grid",
+        "columns": 2,
+        "square": False,
+        "cards": [flux_light_tile(item["entity"], item["name"], columns=6) for item in lights],
+        "grid_options": {"columns": 12},
+    }
+
+
 def build_lights_grid_section(title: str, subtitle: str, lights: list[dict]) -> dict:
-    """2-column light grid matching Flux room detail / presets layout."""
-    cards: list[dict] = [_title(title, subtitle)]
-    cards.extend(flux_light_tile(item["entity"], item["name"], columns=6) for item in lights)
-    return {"type": "grid", "cards": cards}
+    """2-column light grid matching Flux room detail / Active now layout."""
+    return {
+        "type": "grid",
+        "cards": [
+            _title(title, subtitle),
+            wrap_glass(_lights_tile_grid(lights)),
+        ],
+    }
 
 
 def build_room_status_chips(room: dict) -> dict | None:
@@ -88,9 +103,11 @@ def build_room_status_chips(room: dict) -> dict | None:
 
 def build_room_lights_section(room: dict) -> dict:
     """Room detail lights block — reference: titled 2-col grid of toggle tiles."""
-    cards: list[dict] = [_title("Lights", "")]
-    cards.extend(
-        flux_light_tile(light["entity"], light["name"], columns=6)
-        for light in room.get("lights", [])
-    )
-    return {"type": "grid", "cards": cards}
+    lights = room.get("lights", [])
+    return {
+        "type": "grid",
+        "cards": [
+            _title("Lights", ""),
+            wrap_glass(_lights_tile_grid(lights)),
+        ],
+    }

@@ -28,6 +28,8 @@ def main() -> int:
         issues.append("Favourite lights should use flux_light template tiles")
     if '"columns": 6' not in fav_section:
         issues.append("Favourite lights should use 2-column grid (columns: 6)")
+    if '"columns": 2' not in fav_section:
+        issues.append("Favourite lights should use inner 2-column grid like Active now")
     if "custom:mod-card" in fav_section:
         issues.append("Favourite lights should not use mod-card slider rows")
     if "show_brightness_control" in fav_section:
