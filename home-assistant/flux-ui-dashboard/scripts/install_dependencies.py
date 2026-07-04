@@ -25,6 +25,7 @@ FRONTEND_RESOURCES: list[tuple[str, str]] = [
     ("bubble-card", "/hacsfiles/bubble-card/bubble-card.js"),
     ("navbar-card", "/hacsfiles/lovelace-navbar-card/navbar-card.js"),
     ("kiosk-mode", "/hacsfiles/kiosk-mode/kiosk-mode.js"),
+    ("kiosk-mode-alt", "/hacsfiles/lovelace-kiosk-mode/kiosk-mode.js"),
 ]
 
 
@@ -67,6 +68,9 @@ async def ensure_resources(token: str, ha_url: str) -> None:
         print("WARNING: mushroom and/or card-mod still missing after resource registration")
     else:
         print("Core overview resources: mushroom + card-mod OK")
+
+    if any("kiosk-mode" in u for u in existing_urls) or created:
+        print("Kiosk mode resource: OK (header hide will work on Flux UI dashboard)")
 
 
 async def ensure_dashboard(token: str, ha_url: str) -> None:

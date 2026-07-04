@@ -162,9 +162,15 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
             errors.append("Live config missing flux hero")
         if '"label": "Rooms"' not in live_blob:
             errors.append("Live navbar missing Rooms route (old Flux/Mobile/Solar nav)")
+        if "kiosk_mode" not in live_blob or "hide_header" not in live_blob:
+            errors.append(
+                "Live config missing kiosk_mode — redeploy after kiosk-mode resource registered"
+            )
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))
+    if "kiosk-mode" not in urls and "kiosk_mode" not in urls:
+        errors.append("Lovelace resource missing: kiosk-mode (HACS downloaded ≠ registered)")
     for needle in ("mushroom", "card-mod", "button-card"):
         if needle not in urls:
             errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")

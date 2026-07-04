@@ -115,7 +115,16 @@ async def has_navbar_resource(token: str, ha_url: str) -> bool:
 async def has_kiosk_resource(token: str, ha_url: str) -> bool:
     listed = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in listed.get("result", []))
-    return "kiosk-mode" in urls
+    return "kiosk-mode" in urls or "kiosk_mode" in urls
+
+
+async def ensure_frontend_resources(token: str, ha_url: str) -> None:
+    """Register Lovelace JS modules before building (HACS download ≠ resource registered)."""
+    print("Registering Lovelace frontend resources (navbar, kiosk-mode, …)")
+    subprocess.run(
+        ["python3", str(INSTALL), "--ha-url", ha_url, "--token", token],
+        check=True,
+    )
 
 
 def build_config(
@@ -135,7 +144,8 @@ def build_config(
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
-    sections = len(config["views"][0].get("sections", []))
+    overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
+    sections = len(overview.get("sections", []))
     if sections != 5:
         print(
             f"\nERROR: Built {sections} sections — MD3 requires 5.\n"
@@ -150,6 +160,9 @@ def build_config(
             "Pull latest: git stash && git pull origin cursor/flux-ui-md3-dashboard-bf3a\n",
             file=sys.stderr,
         )
+        raise SystemExit(1)
+    if use_kiosk and "kiosk_mode" not in config:
+        print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
         raise SystemExit(1)
     return config
 
@@ -169,8 +182,13 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
         [{"type": "lovelace/config", "url_path": URL_PATH, "force": True}],
     )
     views = verify[0]["result"]["views"]
-    sections = views[0].get("sections", [])
-    print(f"Live flux-ui: {[(v['title'], v['path']) for v in views]} sections={len(sections)}")
+    overview = next((v for v in views if v.get("path") == "overview"), views[0])
+    sections = overview.get("sections", [])
+    has_kiosk = "kiosk_mode" in verify[0]["result"]
+    print(
+        f"Live flux-ui: {[(v['title'], v['path']) for v in views]} "
+        f"overview_sections={len(sections)} kiosk_mode={has_kiosk}"
+    )
 
 
 async def deploy_async(args: argparse.Namespace) -> int:
@@ -219,25 +237,31 @@ async def deploy_async(args: argparse.Namespace) -> int:
     elif not args.skip_mount and not ha_up:
         print("SMB skipped (HA offline — cannot fetch Samba credentials)")
 
+    # Register HACS frontend modules BEFORE build (kiosk-mode must be a Lovelace resource).
+    if token and ha_up and not args.offline:
+        await ensure_frontend_resources(token, args.ha_url)
+
     use_navbar = False
-    use_kiosk = False
+    use_kiosk = True
     if token and ha_up:
         try:
             use_navbar = await has_navbar_resource(token, args.ha_url)
             use_kiosk = await has_kiosk_resource(token, args.ha_url)
             if not use_navbar:
                 print(
-                    "navbar-card not installed — using mushroom chip nav fallback.\n"
-                    "  HACS → joseluis9595/lovelace-navbar-card for Flux pill nav."
+                    "navbar-card not in Lovelace resources — using mushroom chip nav fallback.\n"
+                    "  HACS → joseluis9595/lovelace-navbar-card"
                 )
             if not use_kiosk:
                 print(
-                    "kiosk-mode not installed — HA header will stay visible on mobile.\n"
-                    "  HACS → maykar/kiosk-mode then redeploy."
+                    "WARNING: kiosk-mode not in Lovelace resources yet.\n"
+                    "  Open HACS → Kiosk Mode → ensure it is enabled for Lovelace.\n"
+                    "  Still embedding kiosk_mode in dashboard config — redeploy after reload."
                 )
+                use_kiosk = True
         except Exception:
             use_navbar = False
-            use_kiosk = False
+            use_kiosk = True
 
     config = build_config(
         mobile_storage,
@@ -262,10 +286,6 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     assert token is not None
 
-    subprocess.run(
-        ["python3", str(INSTALL), "--ha-url", args.ha_url, "--token", token],
-        check=True,
-    )
     await save_dashboard(token, args.ha_url, config)
 
     subprocess.run(
@@ -277,8 +297,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
         unmount(args.mount)
 
     print(f"Flux UI deployed at {args.ha_url}/{URL_PATH}/overview")
-    print("Mobile Home unchanged. Profile → theme: flux-ui-md3 (optional).")
-    print("Hard-refresh browser (Cmd+Shift+R) if cards still look like Mushroom.")
+    print("Kiosk mode: mobile header hidden on Flux UI (swipe left for sidebar, More → Profile).")
+    print("Hard-refresh or reset Companion frontend cache if header still visible.")
     return 0
 
 
