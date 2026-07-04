@@ -283,6 +283,7 @@ def build_overview_sections(
     sections: list[dict] = [
         build_hero(weather),
         build_home_status_section(cfg),
+        build_quick_actions(cfg),
     ]
     if use_auto_entities:
         sections.append(build_active_lights_section(cfg))
@@ -292,7 +293,6 @@ def build_overview_sections(
     sections.extend(
         [
             climate,
-            build_quick_actions(cfg),
             build_favourite_lights(cfg, use_bubble=use_bubble),
         ]
     )

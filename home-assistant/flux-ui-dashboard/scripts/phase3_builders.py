@@ -16,43 +16,70 @@ def _title(title: str, subtitle: str = "") -> dict:
     return wrap_title(card)
 
 
+def _jinja_lights_chip(lights_entity: str) -> tuple[str, str]:
+    """Return (content, icon_color) Jinja templates for lights status chip."""
+    content = (
+        "{% set n = states.light | selectattr('state', 'eq', 'on') | list | count %}\n"
+        "{% if n > 0 %}\n"
+        "{{ n }} light{% if n != 1 %}s{% endif %} on\n"
+        "{% else %}\n"
+        "Lights off\n"
+        "{% endif %}"
+    )
+    icon_color = (
+        "{% set n = states.light | selectattr('state', 'eq', 'on') | list | count %}\n"
+        "{% if n > 0 %}amber{% else %}disabled{% endif %}"
+    )
+    return content, icon_color
+
+
+def _jinja_garage_chip(sensors: list[str]) -> tuple[str, str]:
+    """Return (content, icon_color) Jinja templates for garage status chip."""
+    if not sensors:
+        return "Garage closed", "disabled"
+    parts = " + ".join(f"(1 if is_state('{s}', 'on') else 0)" for s in sensors)
+    content = (
+        f"{{% set open = {parts} %}}\n"
+        "{% if open > 0 %}\n"
+        "{{ open }} door{% if open != 1 %}s{% endif %} open\n"
+        "{% else %}\n"
+        "Garage closed\n"
+        "{% endif %}"
+    )
+    icon_color = (
+        f"{{% set open = {parts} %}}\n"
+        "{% if open > 0 %}red{% else %}green{% endif %}"
+    )
+    return content, icon_color
+
+
 def build_home_status_section(cfg: dict) -> dict:
     """Status chips: lights on + open garage doors (always visible, counts update live)."""
     hs = cfg.get("context", {}).get("home_status", {})
     lights_entity = hs.get("lights_on", "light.all_lights")
     garage = cfg.get("quick_actions", {}).get("garage", [])
 
+    lights_content, lights_color = _jinja_lights_chip(lights_entity)
     chips: list[dict] = [
         {
             "type": "template",
+            "entity": lights_entity,
             "icon": "mdi:lightbulb-on",
-            "icon_color": "amber",
-            "content": (
-                "[[[\n"
-                f"  const e = states['{lights_entity}'];\n"
-                "  if (!e || e.state !== 'on') return 'Lights off';\n"
-                "  const n = Object.values(states).filter(s => s.entity_id.startsWith('light.') && s.state === 'on').length;\n"
-                "  return n + ' lights on';\n"
-                "]]]"
-            ),
+            "icon_color": lights_color,
+            "content": lights_content,
             "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/lights"},
         },
     ]
 
     if garage:
-        sensors_js = ", ".join(f"'{d['sensor']}'" for d in garage)
+        sensors = [d["sensor"] for d in garage]
+        garage_content, garage_color = _jinja_garage_chip(sensors)
         chips.append(
             {
                 "type": "template",
                 "icon": "mdi:garage-alert",
-                "icon_color": "red",
-                "content": (
-                    "[[[\n"
-                    f"  const ids = [{sensors_js}];\n"
-                    "  const open = ids.filter(id => states[id]?.state === 'on').length;\n"
-                    "  return open ? open + ' door' + (open > 1 ? 's' : '') + ' open' : 'Garage closed';\n"
-                    "]]]"
-                ),
+                "icon_color": garage_color,
+                "content": garage_content,
             }
         )
 

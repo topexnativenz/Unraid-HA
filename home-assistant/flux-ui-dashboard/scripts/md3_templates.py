@@ -96,15 +96,38 @@ BUTTON_CARD_TEMPLATES: dict = {
     "flux_light": {
         "template": "flux_glass",
         "show_label": True,
+        "icon": "[[[ return entity.state === 'on' ? 'mdi:lightbulb-on' : 'mdi:lightbulb-outline'; ]]]",
         "state": [
             {
-                "operator": "template",
-                "value": "[[[ return entity.state === 'on'; ]]]",
+                "value": "on",
                 "styles": {
+                    "card": [
+                        {
+                            "background": (
+                                "color-mix(in srgb, var(--md-sys-color-primary-container) 42%, "
+                                "var(--md-sys-color-surface-container) 58%)"
+                            )
+                        },
+                        {
+                            "border": (
+                                "1px solid color-mix(in srgb, var(--md-sys-color-primary) 55%, transparent)"
+                            )
+                        },
+                    ],
                     "icon": [{"color": "var(--md-sys-color-primary)"}],
-                    "img_cell": [{"background-color": "rgba(208, 188, 255, 0.22)"}],
+                    "img_cell": [{"background-color": "rgba(208, 188, 255, 0.38)"}],
+                    "name": [{"color": "var(--md-sys-color-on-surface)"}, {"font-weight": "700"}],
+                    "label": [{"color": "var(--md-sys-color-primary)"}, {"font-weight": "600"}],
                 },
-            }
+            },
+            {
+                "value": "off",
+                "styles": {
+                    "icon": [{"color": "var(--md-sys-color-on-surface-variant)"}],
+                    "img_cell": [{"background-color": "rgba(147, 143, 153, 0.18)"}],
+                    "label": [{"color": "var(--md-sys-color-on-surface-variant)"}],
+                },
+            },
         ],
         "styles": {
             "grid": [

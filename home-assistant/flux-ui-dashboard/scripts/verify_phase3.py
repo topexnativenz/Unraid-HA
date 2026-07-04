@@ -28,6 +28,14 @@ def main() -> int:
         issues.append("Missing conditional open garage section")
 
     overview = next(v for v in blob["views"] if v["path"] == "overview")
+    # Home status chips must use Jinja2, not button-card JS
+    for section in overview["sections"]:
+        section_text = json.dumps(section)
+        if "Home status" in section_text and "mushroom-chips-card" in section_text:
+            if "[[[" in section_text:
+                issues.append("Home status chips use button-card JS — need Jinja2 templates")
+            break
+
     if len(overview["sections"]) < 6:
         issues.append(f"Overview has {len(overview['sections'])} sections, need >= 6")
 
