@@ -14,7 +14,7 @@ Context-aware overview + ElementZoom reference layouts.
 | **Home status** | Live chips: lights on count, garage door state |
 | **Active now** | `auto-entities` — 2-col `flux_light` tiles for lights currently on |
 | **Doors open** | Conditional section when any Tapo garage sensor is open |
-| **Rooms index** | Large `flux_room` cards in 2-column grid |
+| **Rooms index** | Large `flux_room` cards — temp/humidity label, light status dots, 2-col grid |
 | **Room detail** | Status chips + 2-col light toggle tiles (tap toggle, hold more-info) |
 | **Favourite lights** | Same 2-col `flux_light` grid as room detail |
 

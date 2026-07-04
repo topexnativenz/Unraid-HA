@@ -1,5 +1,11 @@
 # Flux UI room groups — lights per area (mirrors Mobile Home Lights tab groups).
-# Extend with covers, climate, sensors per room in Phase 3.
+#
+# Optional per-room fields for reference-style room cards:
+#   temperature_entity: sensor.xxx   — shown as "18.3°C" on the card
+#   humidity_entity: sensor.xxx      — shown as "60.0%" on the card
+#   indicators:                      — right-edge status dots (defaults to room lights)
+#     - {entity: light.kitchen}
+#     - {entity: binary_sensor.motion, color_on: '#B388FF'}
 
 rooms:
   - name: Kitchen & dining

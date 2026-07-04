@@ -167,13 +167,14 @@ BUTTON_CARD_TEMPLATES: dict = {
         "show_label": True,
         "styles": {
             "grid": [
-                {"grid-template-areas": "'i n' 'i l'"},
-                {"grid-template-columns": "56px 1fr"},
+                {"grid-template-areas": "'i n s' 'i l s'"},
+                {"grid-template-columns": "56px 1fr auto"},
                 {"grid-template-rows": "min-content min-content"},
+                {"column-gap": "12px"},
             ],
             "img_cell": [
                 {"background-color": "rgba(208, 188, 255, 0.22)"},
-                {"border-radius": "18px"},
+                {"border-radius": "20px"},
                 {"width": "56px"},
                 {"height": "56px"},
             ],
@@ -183,15 +184,56 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"font-size": "16px"},
                 {"justify-self": "start"},
                 {"text-align": "left"},
+                {"align-self": "end"},
             ],
             "label": [
                 {"font-size": "12px"},
                 {"color": "var(--md-sys-color-on-surface-variant)"},
                 {"justify-self": "start"},
                 {"text-align": "left"},
+                {"align-self": "start"},
+                {"margin-top": "2px"},
             ],
-            "card": [{"padding": "16px 18px", "min-height": "92px"}],
+            "custom_fields": {
+                "status": [
+                    {"justify-self": "center"},
+                    {"align-self": "center"},
+                    {"width": "16px"},
+                    {"min-width": "16px"},
+                ],
+            },
+            "card": [
+                {"padding": "18px 14px 18px 18px"},
+                {"min-height": "112px"},
+            ],
         },
+        "state": [
+            {
+                "operator": "template",
+                "value": (
+                    "[[[ return (variables.lights || []).some("
+                    "e => states[e]?.state === 'on'); ]]]"
+                ),
+                "styles": {
+                    "card": [
+                        {
+                            "background": (
+                                "color-mix(in srgb, var(--md-sys-color-surface-container) "
+                                "72%, rgba(255, 193, 7, 0.08))"
+                            )
+                        },
+                        {"border": "1px solid rgba(255, 193, 7, 0.38)"},
+                        {
+                            "box-shadow": (
+                                "0 0 20px rgba(255, 193, 7, 0.14), "
+                                "0 4px 24px rgba(0, 0, 0, 0.28)"
+                            )
+                        },
+                    ],
+                    "img_cell": [{"background-color": "rgba(255, 193, 7, 0.28)"}],
+                },
+            },
+        ],
     },
     "flux_greeting": {
         "show_icon": False,

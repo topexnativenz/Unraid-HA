@@ -47,6 +47,10 @@ def main() -> int:
     rooms_text = json.dumps(rooms_view)
     if '"template": "flux_room"' not in rooms_text:
         issues.append("Rooms index should use flux_room cards")
+    if '"columns": 2' not in rooms_text:
+        issues.append("Rooms index should use inner 2-column grid like light tiles")
+    if "custom_fields" not in rooms_text or "status" not in rooms_text:
+        issues.append("Room cards should include status indicator custom field")
 
     room_views = [v for v in blob["views"] if v.get("path", "").startswith("room/")]
     if room_views:

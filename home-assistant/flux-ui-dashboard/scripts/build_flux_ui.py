@@ -16,6 +16,7 @@ from flux_layouts import (
     build_lights_grid_section,
     build_room_lights_section,
     build_room_status_chips,
+    build_rooms_index_section,
 )
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
@@ -263,24 +264,8 @@ def build_overview_sections(
     return sections
 
 
-def room_tile(room: dict, *, columns: int = 6) -> dict:
-    return {
-        "type": "custom:button-card",
-        "template": "flux_room",
-        "name": room["name"],
-        "label": room.get("subtitle", ""),
-        "icon": room.get("icon", "mdi:home-outline"),
-        "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
-        "grid_options": {"columns": columns},
-    }
-
-
 def build_rooms_index(cfg: dict) -> dict:
-    cards: list[dict] = [section_title("Rooms", "Choose an area")]
-    for room in cfg.get("rooms", []):
-        cards.append(room_tile(room, columns=6))
-    return {"type": "grid", "cards": cards}
-
+    return build_rooms_index_section(cfg.get("rooms", []))
 
 
 def build_scenes_view(cfg: dict) -> dict:
