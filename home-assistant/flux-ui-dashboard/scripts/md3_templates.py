@@ -102,30 +102,35 @@ BUTTON_CARD_TEMPLATES: dict = {
                 "value": "on",
                 "styles": {
                     "card": [
-                        {
-                            "background": (
-                                "color-mix(in srgb, var(--md-sys-color-primary-container) 42%, "
-                                "var(--md-sys-color-surface-container) 58%)"
-                            )
-                        },
-                        {
-                            "border": (
-                                "1px solid color-mix(in srgb, var(--md-sys-color-primary) 55%, transparent)"
-                            )
-                        },
+                        {"background": "rgba(255, 193, 7, 0.22)"},
+                        {"border": "1px solid rgba(255, 193, 7, 0.72)"},
+                        {"box-shadow": "0 0 18px rgba(255, 193, 7, 0.28), 0 4px 16px rgba(0, 0, 0, 0.22)"},
                     ],
-                    "icon": [{"color": "var(--md-sys-color-primary)"}],
-                    "img_cell": [{"background-color": "rgba(208, 188, 255, 0.38)"}],
-                    "name": [{"color": "var(--md-sys-color-on-surface)"}, {"font-weight": "700"}],
-                    "label": [{"color": "var(--md-sys-color-primary)"}, {"font-weight": "600"}],
+                    "icon": [{"color": "#FFD54F"}],
+                    "img_cell": [
+                        {"background-color": "rgba(255, 193, 7, 0.45)"},
+                        {"box-shadow": "0 0 12px rgba(255, 193, 7, 0.35)"},
+                    ],
+                    "name": [{"color": "#FFF8E1"}, {"font-weight": "700"}],
+                    "label": [{"color": "#FFD54F"}, {"font-weight": "700"}],
                 },
             },
             {
                 "value": "off",
                 "styles": {
-                    "icon": [{"color": "var(--md-sys-color-on-surface-variant)"}],
-                    "img_cell": [{"background-color": "rgba(147, 143, 153, 0.18)"}],
-                    "label": [{"color": "var(--md-sys-color-on-surface-variant)"}],
+                    "card": [
+                        {
+                            "background": (
+                                "color-mix(in srgb, var(--md-sys-color-surface-container) 62%, transparent)"
+                            )
+                        },
+                        {"border": "1px solid rgba(147, 143, 153, 0.28)"},
+                        {"box-shadow": "none"},
+                    ],
+                    "icon": [{"color": "#6B6770"}],
+                    "img_cell": [{"background-color": "rgba(60, 56, 65, 0.55)"}],
+                    "name": [{"color": "var(--md-sys-color-on-surface-variant)"}, {"font-weight": "500"}],
+                    "label": [{"color": "#6B6770"}, {"font-weight": "500"}],
                 },
             },
         ],
@@ -135,13 +140,14 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"grid-template-columns": "44px 1fr auto"},
             ],
             "img_cell": [
-                {"background-color": "rgba(147, 143, 153, 0.18)"},
+                {"background-color": "rgba(60, 56, 65, 0.55)"},
                 {"border-radius": "14px"},
                 {"width": "44px"},
                 {"height": "44px"},
             ],
-            "icon": [{"width": "22px"}, {"color": "var(--md-sys-color-on-surface-variant)"}],
-            "label": [{"font-weight": "500"}, {"font-size": "13px"}],
+            "icon": [{"width": "22px"}, {"color": "#6B6770"}],
+            "label": [{"font-weight": "500"}, {"font-size": "13px"}, {"color": "#6B6770"}],
+            "name": [{"color": "var(--md-sys-color-on-surface-variant)"}],
         },
     },
     "flux_greeting": {
