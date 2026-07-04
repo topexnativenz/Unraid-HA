@@ -12,9 +12,13 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from flux_layouts import (
+    build_lights_grid_section,
+    build_room_lights_section,
+    build_room_status_chips,
+)
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
-    FLUX_LIGHTS_LIST_MOD,
     GLASS_CARD_MOD,
     TITLE_CARD_MOD,
     VIEW_CARD_MOD,
@@ -26,9 +30,7 @@ from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
     build_home_status_section,
-    build_lights_list_section,
     build_open_garage_section,
-    light_control_tile,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -200,26 +202,6 @@ def scene_action(
     }
 
 
-def light_tile(entity: str, name: str, *, columns: int = 6) -> dict:
-    return {
-        "type": "custom:button-card",
-        "template": "flux_light",
-        "entity": entity,
-        "name": name,
-        "icon": "mdi:lightbulb",
-        "label": (
-            "[[[\n"
-            "  if (entity.state !== 'on') return 'Off';\n"
-            "  const b = entity.attributes.brightness;\n"
-            "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
-            "]]]"
-        ),
-        "tap_action": {"action": "toggle"},
-        "hold_action": {"action": "more-info"},
-        "grid_options": {"columns": columns},
-    }
-
-
 def build_quick_actions(cfg: dict) -> dict:
     col = 6
     cards: list[dict] = [section_title("Quick Actions", "Tap to control")]
@@ -242,34 +224,16 @@ def build_quick_actions(cfg: dict) -> dict:
 
 
 def build_favourite_lights(cfg: dict) -> dict:
-    return build_lights_list_section("Favourite lights", "Most used", cfg["favourite_lights"])
+    return build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
 
 
 def build_room_detail(room: dict) -> dict:
-    cards: list[dict] = [
-        section_title(room["name"], room.get("subtitle", "")),
-        {
-            "type": "custom:button-card",
-            "template": "flux_action",
-            "name": "Back to Rooms",
-            "icon": "mdi:arrow-left",
-            "label": "All areas",
-            "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/rooms"},
-            "grid_options": {"columns": 12},
-        },
-    ]
-    light_rows = [light_control_tile(light["entity"], light["name"]) for light in room.get("lights", [])]
-    if light_rows:
-        cards.append(
-            {
-                "type": "grid",
-                "columns": 1,
-                "square": False,
-                "cards": light_rows,
-                "grid_options": {"columns": 12},
-                "card_mod": FLUX_LIGHTS_LIST_MOD,
-            }
-        )
+    cards: list[dict] = [section_title(room["name"], room.get("subtitle", ""))]
+    status = build_room_status_chips(room)
+    if status:
+        cards.append(status)
+    if room.get("lights"):
+        cards.append(build_room_lights_section(room))
     return {"type": "grid", "cards": cards}
 
 
@@ -299,14 +263,14 @@ def build_overview_sections(
     return sections
 
 
-def room_tile(name: str, icon: str, subtitle: str, path: str, *, columns: int = 6) -> dict:
+def room_tile(room: dict, *, columns: int = 6) -> dict:
     return {
         "type": "custom:button-card",
-        "template": "flux_action",
-        "name": name,
-        "label": subtitle,
-        "icon": icon,
-        "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{path}"},
+        "template": "flux_room",
+        "name": room["name"],
+        "label": room.get("subtitle", ""),
+        "icon": room.get("icon", "mdi:home-outline"),
+        "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
         "grid_options": {"columns": columns},
     }
 
@@ -314,15 +278,7 @@ def room_tile(name: str, icon: str, subtitle: str, path: str, *, columns: int = 
 def build_rooms_index(cfg: dict) -> dict:
     cards: list[dict] = [section_title("Rooms", "Choose an area")]
     for room in cfg.get("rooms", []):
-        cards.append(
-            room_tile(
-                room["name"],
-                room.get("icon", "mdi:home-outline"),
-                room.get("subtitle", ""),
-                room["path"],
-                columns=6,
-            )
-        )
+        cards.append(room_tile(room, columns=6))
     return {"type": "grid", "cards": cards}
 
 
@@ -355,9 +311,9 @@ def build_scenes_view(cfg: dict) -> dict:
 
 def build_lights_view(cfg: dict, *, use_auto_entities: bool = False) -> dict:
     if not use_auto_entities:
-        return build_lights_list_section("Lights", "All areas", cfg["favourite_lights"])
+        return build_lights_grid_section("Lights", "All areas", cfg["favourite_lights"])
     active = build_active_lights_section(cfg)
-    favourites = build_lights_list_section("Favourite lights", "Most used", cfg["favourite_lights"])
+    favourites = build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
     return {"type": "grid", "cards": active["cards"] + favourites["cards"]}
 
 

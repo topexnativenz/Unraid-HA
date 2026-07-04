@@ -17,6 +17,10 @@ rooms:
     path: living
     icon: mdi:sofa
     subtitle: Lounges and media room
+    # Optional status chips (ElementZoom reference layout) — add entities as available
+    # status_chips:
+    #   - {content: "Occupied", icon: mdi:account, icon_color: purple}
+    #   - {content: "{{ states('sensor.living_temperature') }}°C", icon: mdi:thermometer, entity: sensor.living_temperature}
     lights:
       - {entity: light.living_center, name: Living}
       - {entity: light.main_atrium, name: Main area}

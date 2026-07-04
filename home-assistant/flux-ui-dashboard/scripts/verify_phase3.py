@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 3 verification — context-aware overview + inline light dimmers."""
+"""Phase 3 verification — context-aware overview + Flux reference light tiles."""
 
 from __future__ import annotations
 
@@ -24,18 +24,37 @@ def main() -> int:
         issues.append("Missing auto-entities active lights")
     overview = next(v for v in blob["views"] if v["path"] == "overview")
     fav_section = json.dumps(next(s for s in overview["sections"] if "Favourite lights" in json.dumps(s)))
-    if '"columns": 1' not in fav_section:
-        issues.append("Favourite lights should use single-column list layout")
-    if "custom:mod-card" not in text and "Favourite lights" in text:
-        issues.append("Favourite lights should use mod-card label+slider rows")
-    if "custom:button-card" not in text or "show_brightness_control" not in text:
-        issues.append("Missing label button or brightness slider on light rows")
+    if '"template": "flux_light"' not in fav_section:
+        issues.append("Favourite lights should use flux_light template tiles")
+    if '"columns": 6' not in fav_section:
+        issues.append("Favourite lights should use 2-column grid (columns: 6)")
+    if "custom:mod-card" in fav_section:
+        issues.append("Favourite lights should not use mod-card slider rows")
+    if "show_brightness_control" in fav_section:
+        issues.append("Favourite lights should not embed mushroom sliders")
     if '"action": "navigate"' in text and "#light-" in text:
         issues.append("Light tiles still navigate to bubble popups")
     if "Doors open" not in text:
         issues.append("Missing conditional open garage section")
 
-    overview = next(v for v in blob["views"] if v["path"] == "overview")
+    templates = blob.get("button_card_templates") or {}
+    if "flux_room" not in templates:
+        issues.append("Missing flux_room button-card template")
+
+    rooms_view = next(v for v in blob["views"] if v["path"] == "rooms")
+    rooms_text = json.dumps(rooms_view)
+    if '"template": "flux_room"' not in rooms_text:
+        issues.append("Rooms index should use flux_room cards")
+
+    room_views = [v for v in blob["views"] if v.get("path", "").startswith("room/")]
+    if room_views:
+        living = next((v for v in room_views if v["path"] == "room/living"), room_views[0])
+        living_text = json.dumps(living)
+        if '"title": "Lights"' not in living_text:
+            issues.append("Room detail missing Lights section title")
+        if '"template": "flux_light"' not in living_text:
+            issues.append("Room detail lights should use flux_light tiles")
+
     # Home status chips must use Jinja2, not button-card JS
     for section in overview["sections"]:
         section_text = json.dumps(section)

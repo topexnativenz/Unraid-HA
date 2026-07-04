@@ -192,7 +192,7 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     overview = next((v for v in views if v.get("path") == "overview"), views[0])
     sections = overview.get("sections", [])
     has_kiosk = "kiosk_mode" in verify[0]["result"]
-    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) and "show_brightness_control" in json.dumps(
+    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) and '"template": "flux_light"' in json.dumps(
         verify[0]["result"]
     )
     print(

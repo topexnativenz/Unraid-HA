@@ -2,14 +2,8 @@
 
 from __future__ import annotations
 
-from md3_templates import (
-    FLUX_LIGHTS_LIST_MOD,
-    FLUX_MUSHROOM_ACTIVE_MOD,
-    FLUX_MUSHROOM_SLIDER_MOD,
-    wrap_flux_light_row,
-    wrap_glass,
-    wrap_title,
-)
+from flux_layouts import flux_light_auto_entities_options
+from md3_templates import wrap_glass, wrap_title
 
 
 def _title(title: str, subtitle: str = "") -> dict:
@@ -106,98 +100,6 @@ def build_home_status_section(cfg: dict) -> dict:
     }
 
 
-def light_control_tile(entity: str, name: str, *, columns: int = 12) -> dict:
-    """Left: labelled toggle button. Right: brightness slider. One sleek row."""
-    row = {
-        "type": "grid",
-        "columns": 12,
-        "square": False,
-        "cards": [
-            {
-                "type": "custom:button-card",
-                "template": "flux_light",
-                "entity": entity,
-                "name": name,
-                "show_label": False,
-                "tap_action": {"action": "toggle"},
-                "double_tap_action": {"action": "more-info"},
-                "styles": {
-                    "card": [
-                        {"border-radius": "0"},
-                        {"box-shadow": "none"},
-                        {"border": "none"},
-                        {"background": "transparent"},
-                        {"padding": "10px 8px 10px 12px"},
-                    ],
-                    "grid": [
-                        {"grid-template-areas": "'i n'"},
-                        {"grid-template-columns": "36px 1fr"},
-                    ],
-                    "name": [
-                        {"font-size": "14px"},
-                        {"font-weight": "700"},
-                        {"justify-self": "start"},
-                        {"text-align": "left"},
-                        {"white-space": "nowrap"},
-                        {"overflow": "hidden"},
-                        {"text-overflow": "ellipsis"},
-                    ],
-                },
-                "grid_options": {"columns": 5},
-            },
-            {
-                "type": "custom:mushroom-light-card",
-                "entity": entity,
-                "layout": "horizontal",
-                "show_brightness_control": True,
-                "show_color_control": False,
-                "collapsible_controls": False,
-                "use_light_color": False,
-                "fill_container": True,
-                "grid_options": {"columns": 7},
-                "card_mod": FLUX_MUSHROOM_SLIDER_MOD,
-            },
-        ],
-    }
-    wrapped = wrap_flux_light_row(row, entity=entity)
-    wrapped["grid_options"] = {"columns": columns}
-    return wrapped
-
-
-def light_control_auto_entities_options() -> dict:
-    """Active now: native mushroom row (friendly name + slider)."""
-    return {
-        "type": "custom:mushroom-light-card",
-        "fill_container": True,
-        "layout": "horizontal",
-        "show_brightness_control": True,
-        "show_color_control": False,
-        "collapsible_controls": False,
-        "use_light_color": False,
-        "grid_options": {"columns": 12},
-        "card_mod": FLUX_MUSHROOM_ACTIVE_MOD,
-    }
-
-
-def build_lights_list_section(title: str, subtitle: str, lights: list[dict]) -> dict:
-    """Single-column stack of label + slider rows."""
-    rows = [light_control_tile(item["entity"], item["name"]) for item in lights]
-    return {
-        "type": "grid",
-        "cards": [
-            _title(title, subtitle),
-            {
-                "type": "grid",
-                "columns": 1,
-                "square": False,
-                "cards": rows,
-                "grid_options": {"columns": 12},
-                "card_mod": FLUX_LIGHTS_LIST_MOD,
-            },
-        ],
-    }
-
-
 def build_active_lights_section(cfg: dict) -> dict:
     """auto-entities: only lights that are on (section hidden when empty)."""
     active = cfg.get("context", {}).get("active_lights", {})
@@ -208,7 +110,7 @@ def build_active_lights_section(cfg: dict) -> dict:
     filter_include: dict = {
         "domain": domain,
         "state": state,
-        "options": light_control_auto_entities_options(),
+        "options": flux_light_auto_entities_options(columns=6),
     }
 
     card: dict = {
@@ -216,7 +118,7 @@ def build_active_lights_section(cfg: dict) -> dict:
         "card": {
             "type": "grid",
             "square": False,
-            "columns": 1,
+            "columns": 2,
         },
         "card_param": "cards",
         "show_empty": False,

@@ -67,7 +67,7 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Navbar fallback missing: {label}")
 
     templates = config.get("button_card_templates") or {}
-    for name in ("flux_glass", "flux_action", "flux_light"):
+    for name in ("flux_glass", "flux_action", "flux_light", "flux_room"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
     if "flux_hero" not in templates and "flux_greeting" not in templates:
@@ -118,14 +118,19 @@ def verify_build(path: Path) -> list[str]:
             "Missing kiosk_mode mobile hide_header — install maykar/kiosk-mode via HACS"
         )
 
+    if '"template": "flux_room"' not in blob:
+        errors.append("Missing flux_room cards on Rooms view")
+
+    if '"template": "flux_light"' not in blob:
+        errors.append("Missing flux_light toggle tiles")
+
+    if "show_brightness_control" in blob:
+        errors.append("Embedded mushroom sliders found — use flux_light tiles (tap/hold for dimmer)")
+
     stale_mushroom = (
         "custom:mushroom-lock-card",
         "custom:mushroom-template-card",
     )
-    if "show_brightness_control" not in blob:
-        errors.append("Missing brightness slider on light controls")
-    if "custom:mod-card" not in blob:
-        errors.append("Missing mod-card light rows (label + slider split)")
 
     for card_type in stale_mushroom:
         if card_type in blob:
