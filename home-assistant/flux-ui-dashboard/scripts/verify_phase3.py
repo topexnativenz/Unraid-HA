@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 3 verification — context-aware overview + bubble popups."""
+"""Phase 3 verification — context-aware overview + inline light dimmers."""
 
 from __future__ import annotations
 
@@ -22,8 +22,12 @@ def main() -> int:
         issues.append("Missing home status section")
     if "custom:auto-entities" not in text:
         issues.append("Missing auto-entities active lights")
-    if "custom:bubble-card" not in text:
-        issues.append("Missing bubble-card light popups")
+    if "flux_light_dimmer" not in text:
+        issues.append("Missing flux_light_dimmer template (inline toggle + slider)")
+    if "show_brightness_control" not in text:
+        issues.append("Missing inline brightness slider on light buttons")
+    if '"action": "navigate"' in text and "#light-" in text:
+        issues.append("Light tiles still navigate to bubble popups")
     if "Doors open" not in text:
         issues.append("Missing conditional open garage section")
 
@@ -47,7 +51,7 @@ def main() -> int:
 
     print(f"Phase 3 verification OK ({len(overview['sections'])} overview sections)")
     print("Deploy: bash home-assistant/scripts/run_all_e2e.sh")
-    print("HACS required: auto-entities, bubble-card")
+    print("HACS required: auto-entities")
     return 0
 
 

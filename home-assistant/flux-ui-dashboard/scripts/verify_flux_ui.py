@@ -67,7 +67,7 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Navbar fallback missing: {label}")
 
     templates = config.get("button_card_templates") or {}
-    for name in ("flux_glass", "flux_action", "flux_light"):
+    for name in ("flux_glass", "flux_action", "flux_light", "flux_light_dimmer"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
     if "flux_hero" not in templates and "flux_greeting" not in templates:
@@ -122,8 +122,9 @@ def verify_build(path: Path) -> list[str]:
         "custom:mushroom-lock-card",
         "custom:mushroom-template-card",
     )
-    if "custom:bubble-card" not in blob:
-        stale_mushroom = stale_mushroom + ("custom:mushroom-light-card",)
+    if "show_brightness_control" not in blob:
+        errors.append("Missing inline brightness sliders on light buttons")
+
     for card_type in stale_mushroom:
         if card_type in blob:
             errors.append(

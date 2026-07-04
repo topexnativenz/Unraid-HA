@@ -99,6 +99,38 @@ def build_home_status_section(cfg: dict) -> dict:
     }
 
 
+_LIGHT_LABEL = (
+    "[[[\n"
+    "  if (entity.state !== 'on') return 'Off';\n"
+    "  const b = entity.attributes.brightness;\n"
+    "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
+    "]]]"
+)
+
+
+def light_control_tile(entity: str, name: str, *, columns: int = 6) -> dict:
+    """Toggle on tap + inline brightness slider when the light is on."""
+    return {
+        "type": "custom:button-card",
+        "template": "flux_light_dimmer",
+        "entity": entity,
+        "name": name,
+        "icon": "mdi:lightbulb",
+        "label": _LIGHT_LABEL,
+        "grid_options": {"columns": columns},
+    }
+
+
+def light_control_auto_entities_options() -> dict:
+    """auto-entities card options — entity/name injected per match."""
+    return {
+        "type": "custom:button-card",
+        "template": "flux_light_dimmer",
+        "icon": "mdi:lightbulb",
+        "label": _LIGHT_LABEL,
+    }
+
+
 def build_active_lights_section(cfg: dict) -> dict:
     """auto-entities: only lights that are on (section hidden when empty)."""
     active = cfg.get("context", {}).get("active_lights", {})
@@ -109,20 +141,7 @@ def build_active_lights_section(cfg: dict) -> dict:
     filter_include: dict = {
         "domain": domain,
         "state": state,
-        "options": {
-            "type": "custom:button-card",
-            "template": "flux_light",
-            "icon": "mdi:lightbulb",
-            "label": (
-                "[[[\n"
-                "  if (entity.state !== 'on') return 'Off';\n"
-                "  const b = entity.attributes.brightness;\n"
-                "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
-                "]]]"
-            ),
-            "tap_action": {"action": "toggle"},
-            "hold_action": {"action": "more-info"},
-        },
+        "options": light_control_auto_entities_options(),
     }
 
     card: dict = {

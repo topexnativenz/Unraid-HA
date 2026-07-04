@@ -150,6 +150,103 @@ BUTTON_CARD_TEMPLATES: dict = {
             "name": [{"color": "var(--md-sys-color-on-surface-variant)"}],
         },
     },
+    "flux_light_dimmer": {
+        "template": "flux_light",
+        "tap_action": {"action": "toggle"},
+        "double_tap_action": {"action": "more-info"},
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i n l' 'dimmer dimmer dimmer'"},
+                {"grid-template-columns": "44px 1fr auto"},
+                {"grid-template-rows": "min-content auto"},
+            ],
+            "custom_fields": {
+                "dimmer": [
+                    {"grid-area": "dimmer"},
+                    {"width": "100%"},
+                    {"padding": "6px 0 2px 0"},
+                ],
+            },
+        },
+        "custom_fields": {
+            "dimmer": {
+                "card": {
+                    "type": "custom:mushroom-light-card",
+                    "entity": "[[[ return entity.entity_id ]]]",
+                    "fill_container": True,
+                    "layout": "horizontal",
+                    "show_brightness_control": True,
+                    "show_color_control": False,
+                    "collapsible_controls": False,
+                    "use_light_color": True,
+                    "card_mod": {
+                        "style": (
+                            "ha-card {\n"
+                            "  background: transparent !important;\n"
+                            "  box-shadow: none !important;\n"
+                            "  border: none !important;\n"
+                            "  padding: 0 !important;\n"
+                            "  margin: 0 !important;\n"
+                            "}\n"
+                            "mushroom-shape-icon,\n"
+                            ".header,\n"
+                            ".primary,\n"
+                            ".secondary,\n"
+                            "mushroom-state-info {\n"
+                            "  display: none !important;\n"
+                            "}\n"
+                            "mushroom-light-brightness-control {\n"
+                            "  padding: 0 !important;\n"
+                            "}\n"
+                        )
+                    },
+                },
+            },
+        },
+        "state": [
+            {
+                "value": "on",
+                "styles": {
+                    "card": [
+                        {"background": "rgba(255, 193, 7, 0.22)"},
+                        {"border": "1px solid rgba(255, 193, 7, 0.72)"},
+                        {"box-shadow": "0 0 18px rgba(255, 193, 7, 0.28), 0 4px 16px rgba(0, 0, 0, 0.22)"},
+                    ],
+                    "icon": [{"color": "#FFD54F"}],
+                    "img_cell": [
+                        {"background-color": "rgba(255, 193, 7, 0.45)"},
+                        {"box-shadow": "0 0 12px rgba(255, 193, 7, 0.35)"},
+                    ],
+                    "name": [{"color": "#FFF8E1"}, {"font-weight": "700"}],
+                    "label": [{"color": "#FFD54F"}, {"font-weight": "700"}],
+                    "custom_fields": {
+                        "dimmer": [{"display": "block"}],
+                    },
+                },
+            },
+            {
+                "value": "off",
+                "styles": {
+                    "card": [
+                        {
+                            "background": (
+                                "color-mix(in srgb, var(--md-sys-color-surface-container) 62%, transparent)"
+                            )
+                        },
+                        {"border": "1px solid rgba(147, 143, 153, 0.28)"},
+                        {"box-shadow": "none"},
+                    ],
+                    "icon": [{"color": "#6B6770"}],
+                    "img_cell": [{"background-color": "rgba(60, 56, 65, 0.55)"}],
+                    "name": [{"color": "var(--md-sys-color-on-surface-variant)"}, {"font-weight": "500"}],
+                    "label": [{"color": "#6B6770"}, {"font-weight": "500"}],
+                    "custom_fields": {
+                        "dimmer": [{"display": "none"}],
+                    },
+                },
+            },
+        ],
+    },
     "flux_greeting": {
         "show_icon": False,
         "show_label": True,

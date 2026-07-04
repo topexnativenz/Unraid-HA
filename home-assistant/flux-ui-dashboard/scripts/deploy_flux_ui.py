@@ -138,7 +138,6 @@ def build_config(
     *,
     use_navbar_card: bool = True,
     use_kiosk: bool = True,
-    use_bubble: bool = True,
     use_auto_entities: bool = True,
 ) -> dict:
     out = ROOT / "generated" / "lovelace.flux_ui.json"
@@ -149,8 +148,6 @@ def build_config(
         cmd.append("--no-navbar-card")
     if not use_kiosk:
         cmd.append("--no-kiosk")
-    if not use_bubble:
-        cmd.append("--no-bubble")
     if not use_auto_entities:
         cmd.append("--no-auto-entities")
     subprocess.run(cmd, check=True)
@@ -195,7 +192,7 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     overview = next((v for v in views if v.get("path") == "overview"), views[0])
     sections = overview.get("sections", [])
     has_kiosk = "kiosk_mode" in verify[0]["result"]
-    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) or "bubble-card" in json.dumps(
+    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) and "flux_light_dimmer" in json.dumps(
         verify[0]["result"]
     )
     print(
@@ -256,19 +253,14 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     use_navbar = False
     use_kiosk = True
-    use_bubble = True
     use_auto_entities = True
     if token and ha_up:
         try:
             use_navbar = await has_navbar_resource(token, args.ha_url)
             use_kiosk = await has_kiosk_resource(token, args.ha_url) or True
-            use_bubble = await has_resource(token, args.ha_url, "bubble-card")
             use_auto_entities = await has_resource(token, args.ha_url, "auto-entities")
             if not use_navbar:
                 print("navbar-card not in resources — mushroom chip nav fallback.")
-            if not use_bubble:
-                print("bubble-card not in resources — light tiles toggle instead of popups.")
-                print("  HACS → Clooos/bubble-card")
             if not use_auto_entities:
                 print("auto-entities not in resources — skipping Active now section.")
                 print("  HACS → thomasloven/lovelace-auto-entities")
@@ -276,7 +268,6 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 print("WARNING: kiosk-mode resource missing (config still embedded).")
         except Exception:
             use_navbar = False
-            use_bubble = True
             use_auto_entities = True
             use_kiosk = True
 
@@ -284,7 +275,6 @@ async def deploy_async(args: argparse.Namespace) -> int:
         mobile_storage,
         use_navbar_card=use_navbar,
         use_kiosk=use_kiosk,
-        use_bubble=use_bubble,
         use_auto_entities=use_auto_entities,
     )
 

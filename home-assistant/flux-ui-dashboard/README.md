@@ -14,7 +14,7 @@ Overview extends Mobile Home with live home intelligence:
 | Doors open | Conditional when any Tapo garage sensor is open |
 | Climate | Copied from Mobile Home storage on deploy |
 | Quick Actions | Gate locks, garage pulse, All Off, Goodnight |
-| Favourite lights | Tap → bubble slider popup (bubble-card) |
+| Favourite lights | Tap to toggle; inline brightness slider when on |
 
 Config: [`context.yaml`](context.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
@@ -33,7 +33,6 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [thomasloven/lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Future tablet layout |
 | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Card stacking |
 | [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active now lights section |
-| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Light slider popups |
 | [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav |
 | [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode) | Hide HA header on mobile |
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |

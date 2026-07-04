@@ -19,5 +19,5 @@ active_lights:
 # Garage open alerts use garage-doors/entities.yaml Tapo sensors automatically.
 
 bubble_popups:
-  enabled: true
-  # Favourite + room lights open bubble slider popups when bubble-card HACS installed.
+  enabled: false
+  # Legacy bubble-card popups — replaced by inline dimmer on light buttons.

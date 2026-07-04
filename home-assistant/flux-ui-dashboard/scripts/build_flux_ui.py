@@ -24,11 +24,9 @@ from flux_navbar import navbar_section
 from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
-    build_bubble_popups_section,
     build_home_status_section,
     build_open_garage_section,
-    collect_bubble_lights,
-    light_tile_bubble,
+    light_control_tile,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -241,17 +239,14 @@ def build_quick_actions(cfg: dict) -> dict:
     return {"type": "grid", "cards": cards}
 
 
-def build_favourite_lights(cfg: dict, *, use_bubble: bool = False) -> dict:
+def build_favourite_lights(cfg: dict) -> dict:
     cards: list[dict] = [section_title("Favourite lights", "Most used")]
     for item in cfg["favourite_lights"]:
-        if use_bubble:
-            cards.append(light_tile_bubble(item["entity"], item["name"], columns=6))
-        else:
-            cards.append(light_tile(item["entity"], item["name"], columns=6))
+        cards.append(light_control_tile(item["entity"], item["name"], columns=6))
     return {"type": "grid", "cards": cards}
 
 
-def build_room_detail(room: dict, *, use_bubble: bool = False) -> dict:
+def build_room_detail(room: dict) -> dict:
     cards: list[dict] = [
         section_title(room["name"], room.get("subtitle", "")),
         {
@@ -265,10 +260,7 @@ def build_room_detail(room: dict, *, use_bubble: bool = False) -> dict:
         },
     ]
     for light in room.get("lights", []):
-        if use_bubble:
-            cards.append(light_tile_bubble(light["entity"], light["name"], columns=6))
-        else:
-            cards.append(light_tile(light["entity"], light["name"], columns=6))
+        cards.append(light_control_tile(light["entity"], light["name"], columns=6))
     return {"type": "grid", "cards": cards}
 
 
@@ -277,7 +269,6 @@ def build_overview_sections(
     weather: str,
     climate: dict,
     *,
-    use_bubble: bool,
     use_auto_entities: bool,
 ) -> list[dict]:
     sections: list[dict] = [
@@ -293,11 +284,9 @@ def build_overview_sections(
     sections.extend(
         [
             climate,
-            build_favourite_lights(cfg, use_bubble=use_bubble),
+            build_favourite_lights(cfg),
         ]
     )
-    if use_bubble and cfg.get("context", {}).get("bubble_popups", {}).get("enabled", True):
-        sections.append(build_bubble_popups_section(collect_bubble_lights(cfg)))
     return sections
 
 
@@ -355,16 +344,13 @@ def build_scenes_view(cfg: dict) -> dict:
     return {"type": "grid", "cards": cards}
 
 
-def build_lights_view(cfg: dict, *, use_bubble: bool = False, use_auto_entities: bool = False) -> dict:
+def build_lights_view(cfg: dict, *, use_auto_entities: bool = False) -> dict:
     cards: list[dict] = [section_title("Lights", "All areas")]
     if use_auto_entities:
         active = build_active_lights_section(cfg)
         cards.extend(active["cards"][1:] if len(active["cards"]) > 1 else [])
     for item in cfg["favourite_lights"]:
-        if use_bubble:
-            cards.append(light_tile_bubble(item["entity"], item["name"], columns=6))
-        else:
-            cards.append(light_tile(item["entity"], item["name"], columns=6))
+        cards.append(light_control_tile(item["entity"], item["name"], columns=6))
     return {"type": "grid", "cards": cards}
 
 
@@ -431,7 +417,6 @@ def build_config(
     camera_section: dict | None = None,
     use_navbar_card: bool = True,
     use_kiosk: bool = True,
-    use_bubble: bool = True,
     use_auto_entities: bool = True,
 ) -> dict:
     cfg = load_entities()
@@ -446,7 +431,6 @@ def build_config(
         cfg,
         weather,
         climate,
-        use_bubble=use_bubble,
         use_auto_entities=use_auto_entities,
     )
 
@@ -476,7 +460,7 @@ def build_config(
             title="Lights",
             path="lights",
             icon="mdi:lightbulb-group",
-            sections=[build_lights_view(cfg, use_bubble=use_bubble, use_auto_entities=use_auto_entities)],
+            sections=[build_lights_view(cfg, use_auto_entities=use_auto_entities)],
             use_navbar_card=use_navbar_card,
         ),
         flux_view(
@@ -494,7 +478,7 @@ def build_config(
                 title=room["name"],
                 path=f"room/{room['path']}",
                 icon=room.get("icon", "mdi:home-outline"),
-                sections=[build_room_detail(room, use_bubble=use_bubble)],
+                sections=[build_room_detail(room)],
                 use_navbar_card=use_navbar_card,
             )
         )
@@ -530,11 +514,6 @@ def main() -> None:
         help="Do not hide HA header (debug / before kiosk-mode HACS installed)",
     )
     parser.add_argument(
-        "--no-bubble",
-        action="store_true",
-        help="Disable bubble-card light popups",
-    )
-    parser.add_argument(
         "--no-auto-entities",
         action="store_true",
         help="Disable auto-entities active lights section",
@@ -558,7 +537,6 @@ def main() -> None:
         camera_section=camera_section,
         use_navbar_card=not args.no_navbar_card,
         use_kiosk=not args.no_kiosk,
-        use_bubble=not args.no_bubble,
         use_auto_entities=not args.no_auto_entities,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
