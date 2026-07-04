@@ -30,22 +30,43 @@ def verify_build(path: Path) -> list[str]:
     raw = json.loads(path.read_text())
     config = raw["data"]["config"]
     views = config.get("views", [])
-    if len(views) != 1:
-        errors.append(f"Expected 1 view, got {len(views)}")
+    paths = {v.get("path") for v in views}
+    for required in ("overview", "rooms", "scenes", "cameras", "lights"):
+        if required not in paths:
+            errors.append(f"Missing view: {required}")
 
-    view = views[0]
-    if view.get("path") != "overview":
-        errors.append(f"Expected path 'overview', got {view.get('path')}")
+    overview = next((v for v in views if v.get("path") == "overview"), None)
+    if not overview:
+        errors.append("Missing overview view")
+        return errors
 
-    sections = view.get("sections", [])
+    sections = overview.get("sections", [])
     if len(sections) != 5:
         errors.append(
-            f"Expected 5 MD3 overview sections, got {len(sections)} "
-            "(4 = old Mushroom build — run: git stash && git pull origin cursor/flux-ui-md3-dashboard-bf3a)"
+            f"Expected 5 overview sections (incl. navbar), got {len(sections)}"
         )
 
-    if view.get("theme") != "flux-ui-md3":
-        errors.append(f"Expected theme 'flux-ui-md3', got {view.get('theme')!r}")
+    if overview.get("theme") != "flux-ui-md3":
+        errors.append(f"Expected theme 'flux-ui-md3', got {overview.get('theme')!r}")
+
+    for view in views:
+        if view.get("theme") != "flux-ui-md3":
+            errors.append(f"View {view.get('path')} missing flux-ui-md3 theme")
+        sections = view.get("sections") or []
+        if sections:
+            tail = json.dumps(sections[-1])
+            if "navbar-card" not in tail and "mushroom-chips-card" not in tail:
+                errors.append(f"View {view.get('path')} missing navbar section")
+
+    blob = json.dumps(config)
+    if "custom:navbar-card" in blob:
+        for label in ('"label": "Home"', '"label": "Rooms"', '"label": "Camera"', '"label": "More"'):
+            if label not in blob:
+                errors.append(f"Flux navbar missing route: {label}")
+    elif "custom:mushroom-chips-card" in blob:
+        for label in ("Home", "Rooms", "Scenes", "Camera"):
+            if label not in blob:
+                errors.append(f"Navbar fallback missing: {label}")
 
     templates = config.get("button_card_templates") or {}
     for name in ("flux_glass", "flux_action", "flux_light"):
@@ -60,7 +81,6 @@ def verify_build(path: Path) -> list[str]:
     found_gate = 0
     found_garage_sensors = 0
 
-    blob = json.dumps(config)
     for item in entities_cfg["quick_actions"]["gate"]:
         if item["entity"] in blob:
             found_gate += 1
@@ -124,20 +144,19 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
     if not views:
         errors.append("flux-ui has no views")
     else:
-        view = views[0]
-        if view.get("path") != "overview":
-            errors.append(f"First view path is {view.get('path')}, expected overview")
-        sections = view.get("sections", [])
+        paths = {v.get("path") for v in views}
+        for required in ("overview", "rooms", "scenes", "cameras"):
+            if required not in paths:
+                errors.append(f"Live flux-ui missing view: {required}")
+        overview = next((v for v in views if v.get("path") == "overview"), views[0])
+        sections = overview.get("sections", [])
         if len(sections) != 5:
-            errors.append(
-                f"Live dashboard has {len(sections)} sections (need 5 MD3). "
-                "Pull latest code and redeploy."
-            )
-        if view.get("theme") != "flux-ui-md3":
-            errors.append(f"Live theme is {view.get('theme')!r}, expected flux-ui-md3")
+            errors.append(f"Live overview has {len(sections)} sections (need 5)")
         live_blob = json.dumps(cfg["result"])
-        if "flux_greeting" not in live_blob and "flux_hero" not in live_blob:
-            errors.append("Live config missing flux hero (old build still active)")
+        if "flux_hero" not in live_blob and "flux_greeting" not in live_blob:
+            errors.append("Live config missing flux hero")
+        if '"label": "Rooms"' not in live_blob:
+            errors.append("Live navbar missing Rooms route (old Flux/Mobile/Solar nav)")
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))

@@ -2,33 +2,33 @@
 
 Phase 1 (done): parallel overview with your Mobile Home entities, MD3 theme, button-card tiles, glass styling.
 
-Phase 2 (next — visual polish): what makes it look like the FB post without rebuilding the whole framework.
+Phase 2 (current): Flux navbar + multi-view dashboard
 
-| Step | What | Why it matters |
-|------|------|----------------|
-| 2a | Install HACS cards (see below) | Fixes Configuration error, enables pill nav + popups |
-| 2b | Material You Theme | Dynamic accent colours per user — core Flux look |
-| 2b | Kiosk Mode | Hide HA header/sidebar on phone for app-like UI |
-| 2c | Redeploy after HACS | navbar-card, bubble-card, layout-card registered |
-| 2d | Profile → theme `flux-ui-md3` | Purple wallpaper + MD3 tokens on all cards |
+| Done | Item |
+|------|------|
+| ✅ | **Flux navbar** — Home, Rooms, Scenes, Camera, More (matches ElementZoom) |
+| ✅ | **Views** — overview, rooms, scenes, lights, cameras + room detail pages |
+| ✅ | **Navbar on every view** — same pill nav as FB post |
+| ⬜ | HACS: navbar-card (required for pill + popups) |
+| ⬜ | Material You Theme |
+| ⬜ | Kiosk mode (hide HA header) |
+| ⬜ | bubble-card light popups |
 
-### HACS to install now (biggest visual jump)
-
-1. [navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) — floating pill bottom nav (fixes red Configuration error)
-2. [Material You Theme](https://github.com/Nerwyn/material-you-theme) — Material You colours
-3. [bubble-card](https://github.com/Clooos/bubble-card) — light/scene popups with sliders
-4. [layout-card](https://github.com/thomasloven/lovelace-layout-card) — tablet multi-column layouts
-5. [kiosk-mode](https://github.com/maykar/kiosk-mode) — hide chrome on `/flux-ui/*`
-
-Then redeploy:
+Install HACS cards then redeploy:
 
 ```bash
 bash home-assistant/scripts/run_all_e2e.sh
 ```
 
+Verify Phase 2:
+
+```bash
+python3 home-assistant/flux-ui-dashboard/scripts/verify_phase2.py
+```
+
 ---
 
-Phase 3 (Flux framework features): what the full ElementZoom repo adds beyond styling.
+Phase 2 (visual polish — remaining):
 
 - **Context-aware overview** — open doors/windows, active lights, running appliances appear only when relevant
 - **Live camera overlays** — garage motion shows camera + timer inline

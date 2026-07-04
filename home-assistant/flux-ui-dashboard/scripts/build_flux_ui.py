@@ -20,9 +20,11 @@ from md3_templates import (
     wrap_glass,
     wrap_title,
 )
+from flux_navbar import navbar_section
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
+ROOMS = ROOT / "rooms.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
@@ -37,7 +39,31 @@ from garage_ui_helpers import (  # noqa: E402
 def load_entities() -> dict:
     cfg = yaml.safe_load(ENTITIES.read_text())
     cfg["quick_actions"]["garage"] = load_garage_doors()
+    if ROOMS.exists():
+        cfg["rooms"] = yaml.safe_load(ROOMS.read_text()).get("rooms", [])
+    else:
+        cfg["rooms"] = []
     return cfg
+
+
+def flux_view(
+    *,
+    title: str,
+    path: str,
+    icon: str,
+    sections: list[dict],
+    use_navbar_card: bool,
+) -> dict:
+    return {
+        "title": title,
+        "icon": icon,
+        "path": path,
+        "type": "sections",
+        "max_columns": 2,
+        "theme": "flux-ui-md3",
+        "card_mod": VIEW_CARD_MOD,
+        "sections": sections + [navbar_section(use_navbar_card=use_navbar_card)],
+    }
 
 
 def apply_md3_to_cards(obj: object) -> object:
@@ -208,56 +234,113 @@ def build_favourite_lights(cfg: dict) -> dict:
     return {"type": "grid", "cards": cards}
 
 
-def build_navbar(*, use_navbar_card: bool = True) -> dict:
-    if use_navbar_card:
-        nav = {
-            "type": "custom:navbar-card",
-            "routes": [
-                {"url": "/flux-ui/overview", "icon": "mdi:view-dashboard-variant", "label": "Flux"},
-                {"url": "/mobile-home/home", "icon": "mdi:cellphone", "label": "Mobile"},
-                {"url": "/solar-dashboard", "icon": "mdi:solar-power", "label": "Solar"},
-            ],
-            "mobile": {"show_labels": True},
-            "styles": {
-                "card": [
-                    {"background": "color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent)"},
-                    {"backdrop-filter": "blur(20px)"},
-                    {"border-radius": "999px"},
-                    {"margin": "0 12px 12px"},
-                    {"border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent)"},
-                ]
-            },
-        }
-    else:
-        # Fallback when navbar-card HACS plugin is not installed (avoids Configuration error).
-        nav = {
-            "type": "custom:mushroom-chips-card",
-            "alignment": "center",
-            "chips": [
+def room_tile(name: str, icon: str, subtitle: str, path: str, *, columns: int = 6) -> dict:
+    return {
+        "type": "custom:button-card",
+        "template": "flux_action",
+        "name": name,
+        "label": subtitle,
+        "icon": icon,
+        "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{path}"},
+        "grid_options": {"columns": columns},
+    }
+
+
+def build_rooms_index(cfg: dict) -> dict:
+    cards: list[dict] = [section_title("Rooms", "Choose an area")]
+    for room in cfg.get("rooms", []):
+        cards.append(
+            room_tile(
+                room["name"],
+                room.get("icon", "mdi:home-outline"),
+                room.get("subtitle", ""),
+                room["path"],
+                columns=6,
+            )
+        )
+    return {"type": "grid", "cards": cards}
+
+
+def build_room_detail(room: dict) -> dict:
+    cards: list[dict] = [
+        section_title(room["name"], room.get("subtitle", "")),
+        {
+            "type": "custom:button-card",
+            "template": "flux_action",
+            "name": "Back to Rooms",
+            "icon": "mdi:arrow-left",
+            "label": "All areas",
+            "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/rooms"},
+            "grid_options": {"columns": 12},
+        },
+    ]
+    for light in room.get("lights", []):
+        cards.append(light_tile(light["entity"], light["name"], columns=6))
+    return {"type": "grid", "cards": cards}
+
+
+def build_scenes_view(cfg: dict) -> dict:
+    cards: list[dict] = [section_title("Scenes", "Quick lighting")]
+    for item in cfg["quick_actions"]["actions"]:
+        cards.append(
+            scene_action(
+                item["name"],
+                item["subtitle"],
+                item["icon"],
+                item["service"],
+                item["target"],
+                columns=6,
+            )
+        )
+    cards.append(
+        scene_action(
+            "All lights",
+            "Toggle whole home",
+            "mdi:lightbulb-group",
+            "homeassistant.toggle",
+            "light.all_lights",
+            columns=6,
+        )
+    )
+    return {"type": "grid", "cards": cards}
+
+
+def build_lights_view(cfg: dict) -> dict:
+    return build_favourite_lights(cfg)
+
+
+def build_cameras_view(camera_section: dict | None) -> dict:
+    if camera_section:
+        return apply_md3_to_cards(camera_section)
+    return {
+        "type": "grid",
+        "cards": [
+            section_title("Cameras", "Live feeds"),
+            wrap_glass(
                 {
-                    "type": "template",
-                    "icon": "mdi:view-dashboard-variant",
-                    "icon_color": "primary",
-                    "content": "Flux",
-                    "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/overview"},
-                },
-                {
-                    "type": "template",
-                    "icon": "mdi:cellphone",
-                    "content": "Mobile",
-                    "tap_action": {"action": "navigate", "navigation_path": "/mobile-home/home"},
-                },
-                {
-                    "type": "template",
-                    "icon": "mdi:solar-power",
-                    "content": "Solar",
-                    "tap_action": {"action": "navigate", "navigation_path": "/solar-dashboard"},
-                },
-            ],
-            "card_mod": GLASS_CARD_MOD,
-        }
-    nav["grid_options"] = {"columns": 12}
-    return {"type": "grid", "cards": [nav]}
+                    "type": "markdown",
+                    "content": (
+                        "No camera section imported yet.\n\n"
+                        "Deploy with SMB mount so Mobile Home cameras are copied, "
+                        "or add camera entities in a future update."
+                    ),
+                    "grid_options": {"columns": 12},
+                }
+            ),
+        ],
+    }
+
+
+def extract_section_from_mobile_home(config: dict, *, path: str | None = None, title: str | None = None) -> dict | None:
+    for view in config.get("views", []):
+        if path and view.get("path") == path and view.get("sections"):
+            return copy.deepcopy(view["sections"][0])
+        if title and view.get("sections"):
+            for section in view["sections"]:
+                for card in section.get("cards", []):
+                    if card.get("type") == "custom:mushroom-title-card" and card.get("title") == title:
+                        return copy.deepcopy(section)
+    return None
 
 
 def climate_fallback_section(weather_entity: str) -> dict:
@@ -279,9 +362,14 @@ def climate_fallback_section(weather_entity: str) -> dict:
     }
 
 
+def extract_climate_from_mobile_home(config: dict) -> dict | None:
+    return extract_section_from_mobile_home(config, path="home")
+
+
 def build_config(
     *,
     climate_section: dict | None = None,
+    camera_section: dict | None = None,
     use_navbar_card: bool = True,
 ) -> dict:
     cfg = load_entities()
@@ -292,35 +380,65 @@ def build_config(
         else climate_fallback_section(weather)
     )
 
+    views: list[dict] = [
+        flux_view(
+            title="Overview",
+            path="overview",
+            icon="mdi:home",
+            sections=[
+                build_hero(weather),
+                climate,
+                build_quick_actions(cfg),
+                build_favourite_lights(cfg),
+            ],
+            use_navbar_card=use_navbar_card,
+        ),
+        flux_view(
+            title="Rooms",
+            path="rooms",
+            icon="mdi:sofa",
+            sections=[build_rooms_index(cfg)],
+            use_navbar_card=use_navbar_card,
+        ),
+        flux_view(
+            title="Scenes",
+            path="scenes",
+            icon="mdi:layers",
+            sections=[build_scenes_view(cfg)],
+            use_navbar_card=use_navbar_card,
+        ),
+        flux_view(
+            title="Lights",
+            path="lights",
+            icon="mdi:lightbulb-group",
+            sections=[build_lights_view(cfg)],
+            use_navbar_card=use_navbar_card,
+        ),
+        flux_view(
+            title="Cameras",
+            path="cameras",
+            icon="mdi:cctv",
+            sections=[build_cameras_view(camera_section)],
+            use_navbar_card=use_navbar_card,
+        ),
+    ]
+
+    for room in cfg.get("rooms", []):
+        views.append(
+            flux_view(
+                title=room["name"],
+                path=f"room/{room['path']}",
+                icon=room.get("icon", "mdi:home-outline"),
+                sections=[build_room_detail(room)],
+                use_navbar_card=use_navbar_card,
+            )
+        )
+
     return {
         "title": "Flux UI",
         "button_card_templates": copy.deepcopy(BUTTON_CARD_TEMPLATES),
-        "views": [
-            {
-                "title": "Overview",
-                "icon": "mdi:view-dashboard-variant",
-                "path": "overview",
-                "type": "sections",
-                "max_columns": 2,
-                "theme": "flux-ui-md3",
-                "card_mod": VIEW_CARD_MOD,
-                "sections": [
-                    build_hero(weather),
-                    climate,
-                    build_quick_actions(cfg),
-                    build_favourite_lights(cfg),
-                    build_navbar(use_navbar_card=use_navbar_card),
-                ],
-            }
-        ],
+        "views": views,
     }
-
-
-def extract_climate_from_mobile_home(config: dict) -> dict | None:
-    for view in config.get("views", []):
-        if view.get("path") == "home" and view.get("sections"):
-            return copy.deepcopy(view["sections"][0])
-    return None
 
 
 def main() -> None:
@@ -341,14 +459,20 @@ def main() -> None:
     args = parser.parse_args()
 
     climate_section = None
+    camera_section = None
     if args.mobile_home_storage and args.mobile_home_storage.exists():
         raw = json.loads(args.mobile_home_storage.read_text())
-        climate_section = extract_climate_from_mobile_home(raw["data"]["config"])
+        mobile_cfg = raw["data"]["config"]
+        climate_section = extract_climate_from_mobile_home(mobile_cfg)
         if climate_section:
             print("Imported climate section from Mobile Home")
+        camera_section = extract_section_from_mobile_home(mobile_cfg, path="cameras")
+        if camera_section:
+            print("Imported cameras section from Mobile Home")
 
     config = build_config(
         climate_section=climate_section,
+        camera_section=camera_section,
         use_navbar_card=not args.no_navbar_card,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -359,7 +483,11 @@ def main() -> None:
         "data": {"config": config},
     }
     args.output.write_text(json.dumps(payload, indent=2))
-    print(f"Wrote {args.output} ({len(config['views'][0]['sections'])} overview sections)")
+    overview = next(v for v in config["views"] if v["path"] == "overview")
+    print(
+        f"Wrote {args.output} ({len(config['views'])} views, "
+        f"{len(overview['sections'])} overview sections)"
+    )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,56 @@
+# Flux UI room groups — lights per area (mirrors Mobile Home Lights tab groups).
+# Extend with covers, climate, sensors per room in Phase 3.
+
+rooms:
+  - name: Kitchen & dining
+    path: kitchen
+    icon: mdi:stove
+    subtitle: Kitchen, dining, bar
+    lights:
+      - {entity: light.kitchen, name: Kitchen}
+      - {entity: light.dining_room, name: Kitchen dining}
+      - {entity: light.dining_centre, name: Dining centre}
+      - {entity: light.bar, name: Bar}
+      - {entity: light.breakfast_high, name: Breakfast}
+
+  - name: Living & media
+    path: living
+    icon: mdi:sofa
+    subtitle: Lounges and media room
+    lights:
+      - {entity: light.living_center, name: Living}
+      - {entity: light.main_atrium, name: Main area}
+      - {entity: light.white_lounge, name: White lounge}
+      - {entity: light.media_room, name: Media room}
+
+  - name: Entry & arrival
+    path: entry
+    icon: mdi:door-open
+    subtitle: Front door and path
+    lights:
+      - {entity: light.entry_centre, name: Entry}
+      - {entity: light.night_arrival, name: Night arrival}
+      - {entity: light.outside_entry, name: Outside entry}
+
+  - name: Master bedroom
+    path: master-bedroom
+    icon: mdi:bed-king-outline
+    subtitle: Bedroom lights
+    lights:
+      - {entity: light.master_bedroom, name: Master bedroom}
+
+  - name: Hall & stairs
+    path: hall
+    icon: mdi:stairs
+    subtitle: Footlights and passages
+    lights:
+      - {entity: light.main_footlights, name: Hall footlights}
+      - {entity: light.stair_footlights, name: Stair footlights}
+
+  - name: Garage & exterior
+    path: garage
+    icon: mdi:garage
+    subtitle: Garage and outside
+    lights:
+      - {entity: light.garage, name: Garage}
+      - {entity: light.outside_garage, name: Outside garage}
