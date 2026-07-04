@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
+    FLUX_LIGHTS_LIST_MOD,
     GLASS_CARD_MOD,
     TITLE_CARD_MOD,
     VIEW_CARD_MOD,
@@ -25,6 +26,7 @@ from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
     build_home_status_section,
+    build_lights_list_section,
     build_open_garage_section,
     light_control_tile,
 )
@@ -240,10 +242,7 @@ def build_quick_actions(cfg: dict) -> dict:
 
 
 def build_favourite_lights(cfg: dict) -> dict:
-    cards: list[dict] = [section_title("Favourite lights", "Most used")]
-    for item in cfg["favourite_lights"]:
-        cards.append(light_control_tile(item["entity"], item["name"]))
-    return {"type": "grid", "cards": cards}
+    return build_lights_list_section("Favourite lights", "Most used", cfg["favourite_lights"])
 
 
 def build_room_detail(room: dict) -> dict:
@@ -259,8 +258,18 @@ def build_room_detail(room: dict) -> dict:
             "grid_options": {"columns": 12},
         },
     ]
-    for light in room.get("lights", []):
-        cards.append(light_control_tile(light["entity"], light["name"]))
+    light_rows = [light_control_tile(light["entity"], light["name"]) for light in room.get("lights", [])]
+    if light_rows:
+        cards.append(
+            {
+                "type": "grid",
+                "columns": 1,
+                "square": False,
+                "cards": light_rows,
+                "grid_options": {"columns": 12},
+                "card_mod": FLUX_LIGHTS_LIST_MOD,
+            }
+        )
     return {"type": "grid", "cards": cards}
 
 
@@ -345,13 +354,11 @@ def build_scenes_view(cfg: dict) -> dict:
 
 
 def build_lights_view(cfg: dict, *, use_auto_entities: bool = False) -> dict:
-    cards: list[dict] = [section_title("Lights", "All areas")]
-    if use_auto_entities:
-        active = build_active_lights_section(cfg)
-        cards.extend(active["cards"][1:] if len(active["cards"]) > 1 else [])
-    for item in cfg["favourite_lights"]:
-        cards.append(light_control_tile(item["entity"], item["name"]))
-    return {"type": "grid", "cards": cards}
+    if not use_auto_entities:
+        return build_lights_list_section("Lights", "All areas", cfg["favourite_lights"])
+    active = build_active_lights_section(cfg)
+    favourites = build_lights_list_section("Favourite lights", "Most used", cfg["favourite_lights"])
+    return {"type": "grid", "cards": active["cards"] + favourites["cards"]}
 
 
 def build_cameras_view(camera_section: dict | None) -> dict:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from md3_templates import GLASS_CARD_MOD, wrap_flux_light_card, wrap_glass, wrap_title
+from md3_templates import FLUX_LIGHTS_LIST_MOD, wrap_flux_light_card, wrap_glass, wrap_title
 
 
 def _title(title: str, subtitle: str = "") -> dict:
@@ -121,6 +121,25 @@ def _flux_slim_light_card(*, entity: str | None = None, name: str | None = None,
 def light_control_tile(entity: str, name: str, *, columns: int = 12) -> dict:
     """Whole card is the dimmer — tap toggles, drag slider to dim."""
     return _flux_slim_light_card(entity=entity, name=name, columns=columns)
+
+
+def build_lights_list_section(title: str, subtitle: str, lights: list[dict]) -> dict:
+    """Single-column stack of fixed-height dimmer rows (no staggered 2-col grid)."""
+    rows = [light_control_tile(item["entity"], item["name"]) for item in lights]
+    return {
+        "type": "grid",
+        "cards": [
+            _title(title, subtitle),
+            {
+                "type": "grid",
+                "columns": 1,
+                "square": False,
+                "cards": rows,
+                "grid_options": {"columns": 12},
+                "card_mod": FLUX_LIGHTS_LIST_MOD,
+            },
+        ],
+    }
 
 
 def light_control_auto_entities_options() -> dict:

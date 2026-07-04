@@ -22,8 +22,10 @@ def main() -> int:
         issues.append("Missing home status section")
     if "custom:auto-entities" not in text:
         issues.append("Missing auto-entities active lights")
-    if "custom:stack-in-card" in text and "flux_light" in text:
-        issues.append("Chunky stack-in-card light controls — use slim dimmer rows")
+    overview = next(v for v in blob["views"] if v["path"] == "overview")
+    fav_section = json.dumps(next(s for s in overview["sections"] if "Favourite lights" in json.dumps(s)))
+    if '"columns": 1' not in fav_section:
+        issues.append("Favourite lights should use single-column list layout")
     if "custom:mushroom-light-card" not in text:
         issues.append("Missing mushroom-light-card dimmer rows")
     if "show_brightness_control" not in text:
