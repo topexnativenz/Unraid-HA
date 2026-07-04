@@ -124,8 +124,8 @@ def verify_build(path: Path) -> list[str]:
     )
     if "show_brightness_control" not in blob:
         errors.append("Missing brightness slider on light controls")
-    if "custom:stack-in-card" in blob and "mushroom-light-card" in blob:
-        errors.append("Chunky stack-in-card light layout — redeploy slim dimmer rows")
+    if "custom:mod-card" not in blob:
+        errors.append("Missing mod-card light rows (label + slider split)")
 
     for card_type in stale_mushroom:
         if card_type in blob:

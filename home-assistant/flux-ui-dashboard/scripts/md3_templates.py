@@ -209,108 +209,76 @@ BUTTON_CARD_TEMPLATES: dict = {
 }
 
 
-FLUX_SLIM_LIGHT_MOD = {
+FLUX_LIGHT_ROW_MOD = {
     "style": (
         "ha-card {\n"
         "  border-radius: 20px;\n"
-        "  padding: 0 !important;\n"
-        "  min-height: 52px !important;\n"
-        "  max-height: 52px !important;\n"
-        "  overflow: hidden;\n"
         "  backdrop-filter: blur(18px) saturate(140%);\n"
         "  -webkit-backdrop-filter: blur(18px) saturate(140%);\n"
-        "}\n"
-        "mushroom-light-control {\n"
-        "  display: grid !important;\n"
-        "  grid-template-columns: 44px 1fr;\n"
-        "  grid-template-rows: 52px;\n"
-        "  align-items: center !important;\n"
-        "  width: 100% !important;\n"
-        "  height: 52px !important;\n"
-        "  position: relative !important;\n"
-        "}\n"
-        "mushroom-light-brightness-control {\n"
-        "  grid-column: 1 / -1 !important;\n"
-        "  grid-row: 1 !important;\n"
-        "  position: absolute !important;\n"
-        "  inset: 0 !important;\n"
-        "  width: 100% !important;\n"
-        "  height: 52px !important;\n"
-        "  margin: 0 !important;\n"
-        "  padding: 0 14px 0 48px !important;\n"
-        "  z-index: 1 !important;\n"
-        "  display: flex !important;\n"
-        "  align-items: center !important;\n"
-        "  box-sizing: border-box !important;\n"
-        "}\n"
-        "mushroom-light-brightness-control mushroom-slider {\n"
-        "  width: 100% !important;\n"
-        "  height: 6px !important;\n"
-        "  --bg-color: rgba(255, 255, 255, 0.14) !important;\n"
-        "  --main-color: rgba(255, 193, 7, 0.92) !important;\n"
-        "  border-radius: 999px !important;\n"
-        "}\n"
-        "mushroom-shape-icon {\n"
-        "  grid-column: 1 !important;\n"
-        "  grid-row: 1 !important;\n"
-        "  z-index: 3 !important;\n"
-        "  margin-left: 10px !important;\n"
-        "  --icon-size: 20px !important;\n"
-        "  --shape-size: 32px !important;\n"
-        "  flex: none !important;\n"
-        "}\n"
-        "mushroom-light-info,\n"
-        ".container {\n"
-        "  grid-column: 1 / -1 !important;\n"
-        "  grid-row: 1 !important;\n"
-        "  z-index: 2 !important;\n"
-        "  position: relative !important;\n"
-        "  display: flex !important;\n"
-        "  align-items: center !important;\n"
-        "  height: 52px !important;\n"
-        "  padding: 0 14px 0 48px !important;\n"
-        "  pointer-events: none !important;\n"
-        "  min-width: 0 !important;\n"
-        "  box-sizing: border-box !important;\n"
-        "}\n"
-        ".primary {\n"
-        "  display: block !important;\n"
-        "  visibility: visible !important;\n"
-        "  opacity: 1 !important;\n"
-        "  font-size: 14px !important;\n"
-        "  font-weight: 700 !important;\n"
-        "  line-height: 1.2 !important;\n"
-        "  white-space: nowrap !important;\n"
-        "  overflow: hidden !important;\n"
-        "  text-overflow: ellipsis !important;\n"
-        "  max-width: 100% !important;\n"
-        "  color: #FFF8E1 !important;\n"
-        "  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.35) !important;\n"
-        "}\n"
-        ".secondary,\n"
-        "mushroom-state-info {\n"
-        "  display: none !important;\n"
+        "  padding: 0 !important;\n"
+        "  overflow: hidden;\n"
+        "  box-shadow: none !important;\n"
         "}\n"
         "{% if is_state(config.entity, 'on') %}\n"
         "ha-card {\n"
         "  background: rgba(255, 193, 7, 0.12) !important;\n"
         "  border: 1px solid rgba(255, 193, 7, 0.48) !important;\n"
-        "  box-shadow: none !important;\n"
         "}\n"
         "{% else %}\n"
         "ha-card {\n"
-        "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent) !important;\n"
+        "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 58%, transparent) !important;\n"
         "  border: 1px solid rgba(147, 143, 153, 0.24) !important;\n"
+        "}\n"
+        "{% endif %}\n"
+    )
+}
+
+FLUX_MUSHROOM_SLIDER_MOD = {
+    "style": (
+        "ha-card {\n"
+        "  background: transparent !important;\n"
         "  box-shadow: none !important;\n"
+        "  border: none !important;\n"
+        "  padding: 10px 14px 10px 0 !important;\n"
+        "}\n"
+        "mushroom-shape-icon {\n"
+        "  display: none !important;\n"
+        "}\n"
+        ".primary,\n"
+        ".secondary,\n"
+        "mushroom-state-info {\n"
+        "  display: none !important;\n"
+        "}\n"
+        "mushroom-light-brightness-control {\n"
+        "  width: 100% !important;\n"
         "}\n"
         "mushroom-light-brightness-control mushroom-slider {\n"
-        "  --main-color: rgba(147, 143, 153, 0.45) !important;\n"
-        "  opacity: 0.55 !important;\n"
-        "  pointer-events: none !important;\n"
+        "  --bg-color: rgba(255, 255, 255, 0.16) !important;\n"
+        "  --main-color: rgba(255, 193, 7, 0.95) !important;\n"
+        "  height: 6px !important;\n"
+        "  border-radius: 999px !important;\n"
         "}\n"
-        ".primary {\n"
-        "  color: #E8E4ED !important;\n"
-        "  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75) !important;\n"
+    )
+}
+
+FLUX_MUSHROOM_ACTIVE_MOD = {
+    "style": (
+        "ha-card {\n"
+        "  border-radius: 20px;\n"
+        "  backdrop-filter: blur(18px) saturate(140%);\n"
+        "  -webkit-backdrop-filter: blur(18px) saturate(140%);\n"
+        "  padding: 8px 14px !important;\n"
+        "  box-shadow: none !important;\n"
+        "}\n"
+        "{% if is_state(config.entity, 'on') %}\n"
+        "ha-card {\n"
+        "  background: rgba(255, 193, 7, 0.12) !important;\n"
+        "  border: 1px solid rgba(255, 193, 7, 0.48) !important;\n"
+        "}\n"
+        "{% else %}\n"
+        "ha-card {\n"
+        "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 58%, transparent) !important;\n"
+        "  border: 1px solid rgba(147, 143, 153, 0.24) !important;\n"
         "}\n"
         "{% endif %}\n"
     )
@@ -334,10 +302,14 @@ FLUX_LIGHTS_LIST_MOD = {
 }
 
 
-def wrap_flux_light_card(card: dict) -> dict:
-    card = dict(card)
-    card["card_mod"] = FLUX_SLIM_LIGHT_MOD
-    return card
+def wrap_flux_light_row(card: dict, *, entity: str) -> dict:
+    """mod-card wrapper so row styling can use entity state in card_mod."""
+    return {
+        "type": "custom:mod-card",
+        "entity": entity,
+        "card_mod": FLUX_LIGHT_ROW_MOD,
+        "card": card,
+    }
 
 
 def wrap_glass(card: dict) -> dict:

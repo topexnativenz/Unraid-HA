@@ -26,10 +26,10 @@ def main() -> int:
     fav_section = json.dumps(next(s for s in overview["sections"] if "Favourite lights" in json.dumps(s)))
     if '"columns": 1' not in fav_section:
         issues.append("Favourite lights should use single-column list layout")
-    if "custom:mushroom-light-card" not in text:
-        issues.append("Missing mushroom-light-card dimmer rows")
-    if "show_brightness_control" not in text:
-        issues.append("Missing brightness slider on light controls")
+    if "custom:mod-card" not in text and "Favourite lights" in text:
+        issues.append("Favourite lights should use mod-card label+slider rows")
+    if "custom:button-card" not in text or "show_brightness_control" not in text:
+        issues.append("Missing label button or brightness slider on light rows")
     if '"action": "navigate"' in text and "#light-" in text:
         issues.append("Light tiles still navigate to bubble popups")
     if "Doors open" not in text:
