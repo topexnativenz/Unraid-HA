@@ -88,11 +88,13 @@ async def deploy_async(args: argparse.Namespace) -> int:
     for svc in ("script.reload", "automation.reload", "input_boolean.reload"):
         ha_post(token, args.ha_url, svc)
 
-    subprocess.run(
+    sync = subprocess.run(
         ["python3", str(SYNC), "--ha-url", args.ha_url, "--token", token],
-        check=True,
+        check=False,
     )
-    print("Garage doors pulse package deployed and sensor state synced.")
+    if sync.returncode != 0:
+        print("Warning: sensor sync had errors (dashboard deploy can continue).")
+    print("Garage doors pulse package deployed.")
     return 0
 
 

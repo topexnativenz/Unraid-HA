@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -32,13 +33,18 @@ def get_token(explicit: str | None) -> str:
     raise SystemExit("No HA token")
 
 
-def ha_state(token: str, ha_url: str, entity_id: str) -> str:
+def ha_state(token: str, ha_url: str, entity_id: str) -> str | None:
     req = urllib.request.Request(
         f"{ha_url}/api/states/{entity_id}",
         headers={"Authorization": f"Bearer {token}"},
     )
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read())["state"]
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return json.loads(resp.read())["state"]
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
 
 
 def is_open(state: str, *, invert: bool) -> bool:
@@ -47,8 +53,15 @@ def is_open(state: str, *, invert: bool) -> bool:
     return state == "off" if invert else state == "on"
 
 
-def sync_bool(token: str, ha_url: str, tracked: str, sensor: str, invert: bool) -> None:
+def sync_bool(token: str, ha_url: str, name: str, tracked: str, sensor: str, invert: bool) -> bool:
     state = ha_state(token, ha_url, sensor)
+    if state is None:
+        print(
+            f"  SKIP {name}: {sensor} not found in HA (404).\n"
+            f"       Update home-assistant/garage-doors/entities.yaml with your Tapo sensor ID."
+        )
+        return False
+
     want_on = is_open(state, invert=invert)
     svc = "input_boolean.turn_on" if want_on else "input_boolean.turn_off"
     req = urllib.request.Request(
@@ -59,7 +72,8 @@ def sync_bool(token: str, ha_url: str, tracked: str, sensor: str, invert: bool) 
     )
     with urllib.request.urlopen(req):
         pass
-    print(f"  {tracked} -> {'on' if want_on else 'off'} (from {sensor}={state})")
+    print(f"  OK   {name}: {tracked} -> {'on' if want_on else 'off'} (from {sensor}={state})")
+    return True
 
 
 def main() -> int:
@@ -71,8 +85,28 @@ def main() -> int:
     token = get_token(args.token)
     doors = yaml.safe_load(ENTITIES.read_text()).get("doors", [])
     print("Syncing tracked state from Tapo sensors:")
+    ok = 0
+    skipped = 0
     for door in doors:
-        sync_bool(token, args.ha_url, door["tracked"], door["sensor"], door.get("invert", False))
+        if sync_bool(
+            token,
+            args.ha_url,
+            door["name"],
+            door["tracked"],
+            door["sensor"],
+            door.get("invert", False),
+        ):
+            ok += 1
+        else:
+            skipped += 1
+
+    if skipped:
+        print(
+            f"\nWarning: {skipped} sensor(s) missing — garage icons may be wrong until "
+            "entities.yaml is updated."
+        )
+        print("Run: python3 home-assistant/garage-doors/scripts/list_garage_sensors.py")
+    print(f"Synced {ok}/{len(doors)} doors.")
     return 0
 
 
