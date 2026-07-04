@@ -55,8 +55,8 @@ def main() -> int:
         issues.append("Room cards should include 4-slot sensor column custom field")
     if "sensor_slots" not in rooms_text:
         issues.append("Room cards should pass sensor_slots variable")
-    if '"stub": true' not in rooms_text and '"stub": True' not in rooms_text:
-        issues.append("Rooms without sensors should include stub slots")
+    if '"info"' not in rooms_text:
+        issues.append("Room cards should use stacked info custom field for title + subtitle")
 
     room_views = [v for v in blob["views"] if v.get("path", "").startswith("room/")]
     if room_views:

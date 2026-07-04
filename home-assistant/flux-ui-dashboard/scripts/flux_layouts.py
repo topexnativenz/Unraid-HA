@@ -65,6 +65,50 @@ def _sensor_slots(room: dict) -> list[dict]:
     return slots
 
 
+def _find_sensor_js(kind: str) -> str:
+    var = "tempId" if kind == "temp" else "humidId"
+    explicit = "variables.temperature_entity" if kind == "temp" else "variables.humidity_entity"
+    dc = "temperature" if kind == "temp" else "humidity"
+    suffix = "°C" if kind == "temp" else "%"
+    return (
+        f"  let {var} = {explicit};\n"
+        f"  if (!{var} || !states[{var}] || ['unavailable','unknown'].includes(states[{var}].state)) {{\n"
+        f"    const keywords = (variables.keywords || []).map(k => k.toLowerCase());\n"
+        f"    for (const [eid, st] of Object.entries(states)) {{\n"
+        f"      if (!eid.startsWith('sensor.')) continue;\n"
+        f"      const cls = st.attributes?.device_class || '';\n"
+        f"      const hay = (eid + ' ' + (st.attributes?.friendly_name || '')).toLowerCase();\n"
+        f"      if (cls !== '{dc}' && !hay.includes('{dc}')) continue;\n"
+        f"      if (keywords.some(k => hay.includes(k))) {{ {var} = eid; break; }}\n"
+        f"    }}\n"
+        f"  }}\n"
+        f"  if ({var} && states[{var}] && !['unavailable','unknown'].includes(states[{var}].state)) {{\n"
+        f"    const v = parseFloat(states[{var}].state);\n"
+        f"    parts.push(Number.isFinite(v) ? v.toFixed(1) + '{suffix}' : states[{var}].state + '{suffix}');\n"
+        f"  }}\n"
+    )
+
+
+_ROOM_SUBTITLE_JS = (
+    "  const parts = [];\n"
+    + _find_sensor_js("temp")
+    + _find_sensor_js("humid")
+    + "  const sub = parts.length ? parts.join(' / ') : (variables.subtitle || '');\n"
+)
+
+_ROOM_INFO_HTML = (
+    "[[[\n"
+    "  const title = variables.card_name || '';\n"
+    + _ROOM_SUBTITLE_JS
+    + "  return `\n"
+    "    <div style=\"position:relative;z-index:2;text-align:left;line-height:1.2;max-width:100%;\">\n"
+    "      <div style=\"font-weight:700;font-size:15px;color:var(--md-sys-color-on-surface);word-break:break-word;\">${title}</div>\n"
+    "      <div style=\"font-size:11px;color:var(--md-sys-color-on-surface-variant);margin-top:2px;word-break:break-word;\">${sub}</div>\n"
+    "    </div>`;\n"
+    "]]]"
+)
+
+
 def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
     """Reference room card: name top-left, large bg icon bottom-left, 4 sensor slots right."""
     lights = [light["entity"] for light in room.get("lights", [])]
@@ -81,13 +125,13 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
             triggers.append(entity)
 
     room_icon = room.get("icon", "mdi:home-outline")
+    card_name = room.get("card_name") or room["name"]
     card: dict = {
         "type": "custom:button-card",
         "template": "flux_room",
         "show_icon": False,
-        "name": room.get("card_name") or room["name"],
-        "label": _ROOM_LABEL,
         "variables": {
+            "card_name": card_name,
             "subtitle": room.get("subtitle", ""),
             "keywords": room.get("keywords") or [],
             "lights": lights,
@@ -98,6 +142,7 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
         },
         "custom_fields": {
             "bg": _ROOM_BG_ICON,
+            "info": _ROOM_INFO_HTML,
             "sensors": _ROOM_SENSOR_COLUMN,
         },
         "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
