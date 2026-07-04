@@ -1,0 +1,245 @@
+"""Phase 3 — context-aware overview sections (Flux home intelligence)."""
+
+from __future__ import annotations
+
+from md3_templates import GLASS_CARD_MOD, wrap_glass, wrap_title
+
+
+def _title(title: str, subtitle: str = "") -> dict:
+    card: dict = {
+        "type": "custom:mushroom-title-card",
+        "title": title,
+        "grid_options": {"columns": 12},
+    }
+    if subtitle:
+        card["subtitle"] = subtitle
+    return wrap_title(card)
+
+
+def build_home_status_section(cfg: dict) -> dict:
+    """Status chips: lights on + open garage doors (always visible, counts update live)."""
+    hs = cfg.get("context", {}).get("home_status", {})
+    lights_entity = hs.get("lights_on", "light.all_lights")
+    garage = cfg.get("quick_actions", {}).get("garage", [])
+
+    chips: list[dict] = [
+        {
+            "type": "template",
+            "icon": "mdi:lightbulb-on",
+            "icon_color": "amber",
+            "content": (
+                "[[[\n"
+                f"  const e = states['{lights_entity}'];\n"
+                "  if (!e || e.state !== 'on') return 'Lights off';\n"
+                "  const n = Object.values(states).filter(s => s.entity_id.startsWith('light.') && s.state === 'on').length;\n"
+                "  return n + ' lights on';\n"
+                "]]]"
+            ),
+            "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/lights"},
+        },
+    ]
+
+    if garage:
+        sensors_js = ", ".join(f"'{d['sensor']}'" for d in garage)
+        chips.append(
+            {
+                "type": "template",
+                "icon": "mdi:garage-alert",
+                "icon_color": "red",
+                "content": (
+                    "[[[\n"
+                    f"  const ids = [{sensors_js}];\n"
+                    "  const open = ids.filter(id => states[id]?.state === 'on').length;\n"
+                    "  return open ? open + ' door' + (open > 1 ? 's' : '') + ' open' : 'Garage closed';\n"
+                    "]]]"
+                ),
+            }
+        )
+
+    return {
+        "type": "grid",
+        "cards": [
+            _title("Home status", "Live"),
+            wrap_glass(
+                {
+                    "type": "custom:mushroom-chips-card",
+                    "alignment": "start",
+                    "chips": chips,
+                    "grid_options": {"columns": 12},
+                }
+            ),
+        ],
+    }
+
+
+def build_active_lights_section(cfg: dict) -> dict:
+    """auto-entities: only lights that are on (section hidden when empty)."""
+    active = cfg.get("context", {}).get("active_lights", {})
+    domain = active.get("domain", "light")
+    state = active.get("state", "on")
+    exclude = active.get("exclude", [])
+
+    filter_include: dict = {
+        "domain": domain,
+        "state": state,
+        "options": {
+            "type": "custom:button-card",
+            "template": "flux_light",
+            "icon": "mdi:lightbulb",
+            "label": (
+                "[[[\n"
+                "  if (entity.state !== 'on') return 'Off';\n"
+                "  const b = entity.attributes.brightness;\n"
+                "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
+                "]]]"
+            ),
+            "tap_action": {"action": "toggle"},
+            "hold_action": {"action": "more-info"},
+        },
+    }
+
+    card: dict = {
+        "type": "custom:auto-entities",
+        "card": {
+            "type": "grid",
+            "square": False,
+            "columns": 2,
+        },
+        "card_param": "cards",
+        "show_empty": False,
+        "filter": {
+            "include": [filter_include],
+            "exclude": [{"entity_id": e} for e in exclude],
+        },
+        "sort": {"method": "friendly_name"},
+    }
+
+    return {
+        "type": "grid",
+        "cards": [
+            _title("Active now", "Lights on"),
+            wrap_glass({**card, "grid_options": {"columns": 12}}),
+        ],
+    }
+
+
+def build_open_garage_section(cfg: dict) -> dict | None:
+    """Conditional section when any garage door contact is open."""
+    garage = cfg.get("quick_actions", {}).get("garage", [])
+    if not garage:
+        return None
+
+    checks = " or ".join(f"is_state('{d['sensor']}', 'on')" for d in garage)
+    cards = [_title("Doors open", "Check before leaving")]
+    for door in garage:
+        sensor = door["sensor"]
+        cards.append(
+            {
+                "type": "custom:button-card",
+                "template": "flux_action",
+                "entity": sensor,
+                "name": door["name"],
+                "icon": "mdi:garage-open",
+                "label": "Open",
+                "styles": {"icon": [{"color": "#F2B8B5"}]},
+                "tap_action": {
+                    "action": "call-service",
+                    "service": "script.turn_on",
+                    "service_data": {"entity_id": door["script"]},
+                },
+                "grid_options": {"columns": 6},
+            }
+        )
+
+    return {
+        "type": "grid",
+        "cards": [
+            {
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "condition": "template",
+                        "value_template": f"{{{{ {checks} }}}}",
+                    }
+                ],
+                "card": {"type": "grid", "cards": cards},
+            }
+        ],
+    }
+
+
+def bubble_popup_card(entity: str, name: str) -> dict:
+    """Bubble pop-up with mushroom light slider (Flux-style)."""
+    slug = entity.replace(".", "-")
+    return {
+        "type": "custom:bubble-card",
+        "card_type": "pop-up",
+        "hash": f"#light-{slug}",
+        "name": name,
+        "icon": "mdi:lightbulb",
+        "entity": entity,
+        "button_type": "name",
+        "bg_blur": "14",
+        "bg_opacity": "88",
+        "styles": (
+            "#root { max-height: 100% !important; }\n"
+            ".bubble-pop-up-container { padding-bottom: 48px !important; }\n"
+        ),
+        "cards": [
+            {
+                "type": "custom:mushroom-light-card",
+                "entity": entity,
+                "name": name,
+                "fill_container": True,
+                "show_brightness_control": True,
+                "show_color_control": True,
+                "collapsible_controls": False,
+                "use_light_color": True,
+            }
+        ],
+    }
+
+
+def light_tile_bubble(entity: str, name: str, *, columns: int = 6) -> dict:
+    slug = entity.replace(".", "-")
+    return {
+        "type": "custom:button-card",
+        "template": "flux_light",
+        "entity": entity,
+        "name": name,
+        "icon": "mdi:lightbulb",
+        "label": (
+            "[[[\n"
+            "  if (entity.state !== 'on') return 'Off';\n"
+            "  const b = entity.attributes.brightness;\n"
+            "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
+            "]]]"
+        ),
+        "tap_action": {"action": "navigate", "navigation_path": f"#light-{slug}"},
+        "hold_action": {"action": "toggle"},
+        "grid_options": {"columns": columns},
+    }
+
+
+def build_bubble_popups_section(lights: list[dict]) -> dict:
+    """Hidden pop-up anchors (triggered by light tile hash navigation)."""
+    cards = [bubble_popup_card(item["entity"], item["name"]) for item in lights]
+    return {
+        "type": "grid",
+        "cards": cards,
+    }
+
+
+def collect_bubble_lights(cfg: dict) -> list[dict]:
+    seen: set[str] = set()
+    out: list[dict] = []
+    for item in cfg.get("favourite_lights", []):
+        if item["entity"] not in seen:
+            seen.add(item["entity"])
+            out.append(item)
+    for room in cfg.get("rooms", []):
+        for light in room.get("lights", []):
+            if light["entity"] not in seen:
+                seen.add(light["entity"])
+                out.append(light)
+    return out

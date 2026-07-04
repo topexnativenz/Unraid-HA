@@ -40,11 +40,9 @@ def verify_build(path: Path) -> list[str]:
         errors.append("Missing overview view")
         return errors
 
-    sections = overview.get("sections", [])
-    if len(sections) != 5:
-        errors.append(
-            f"Expected 5 overview sections (incl. navbar), got {len(sections)}"
-        )
+    overview_sections = overview.get("sections", [])
+    if len(overview_sections) < 6:
+        errors.append(f"Expected at least 6 overview sections (Phase 3), got {len(overview_sections)}")
 
     if overview.get("theme") != "flux-ui-md3":
         errors.append(f"Expected theme 'flux-ui-md3', got {overview.get('theme')!r}")
@@ -102,6 +100,9 @@ def verify_build(path: Path) -> list[str]:
         missing = expected_lights - found_lights
         errors.append(f"Missing favourite lights: {sorted(missing)}")
 
+    if "Home status" not in blob:
+        errors.append("Missing Phase 3 home status section")
+
     if "weather.forecast_home" not in blob:
         errors.append("Missing weather.forecast_home")
 
@@ -120,8 +121,9 @@ def verify_build(path: Path) -> list[str]:
     stale_mushroom = (
         "custom:mushroom-lock-card",
         "custom:mushroom-template-card",
-        "custom:mushroom-light-card",
     )
+    if "custom:bubble-card" not in blob:
+        stale_mushroom = stale_mushroom + ("custom:mushroom-light-card",)
     for card_type in stale_mushroom:
         if card_type in blob:
             errors.append(
@@ -155,8 +157,8 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
                 errors.append(f"Live flux-ui missing view: {required}")
         overview = next((v for v in views if v.get("path") == "overview"), views[0])
         sections = overview.get("sections", [])
-        if len(sections) != 5:
-            errors.append(f"Live overview has {len(sections)} sections (need 5)")
+        if len(sections) < 6:
+            errors.append(f"Live overview has {len(sections)} sections (Phase 3 needs >= 6)")
         live_blob = json.dumps(cfg["result"])
         if "flux_hero" not in live_blob and "flux_greeting" not in live_blob:
             errors.append("Live config missing flux hero")

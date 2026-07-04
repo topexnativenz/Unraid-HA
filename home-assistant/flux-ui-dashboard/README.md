@@ -2,16 +2,21 @@
 
 Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard). Installed **alongside** Mobile Home; does not modify `mobile-home` or its default panel settings.
 
-## Phase 1 (current): Overview
+## Phase 3 (current): Context-aware overview
 
-Overview mirrors the **Mobile Home → Home** tab:
+Overview extends Mobile Home with live home intelligence:
 
-| Section | Mobile Home entities |
-|---------|---------------------|
-| Header | Date/time + `weather.forecast_home` |
-| Climate | Copied from live Mobile Home storage on deploy |
-| Quick Actions | Gate locks, 3× garage pulse, All Off, Goodnight |
-| Favourite lights | Same 8 lights as `TOP_FIVE` in `build_mobile_home.py` |
+| Section | Description |
+|---------|-------------|
+| Hero | Greeting + `weather.forecast_home` |
+| Home status | Live chips: lights on count, garage state |
+| Active now | `auto-entities` — only lights currently on |
+| Doors open | Conditional when any Tapo garage sensor is open |
+| Climate | Copied from Mobile Home storage on deploy |
+| Quick Actions | Gate locks, garage pulse, All Off, Goodnight |
+| Favourite lights | Tap → bubble slider popup (bubble-card) |
+
+Config: [`context.yaml`](context.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
 Entity map: [`entities.yaml`](entities.yaml)
 
@@ -27,8 +32,10 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [custom-cards/button-card](https://github.com/custom-cards/button-card) | Future Flux views |
 | [thomasloven/lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Future tablet layout |
 | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Card stacking |
-| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Popups (phase 2) |
-| [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav (phase 2) |
+| [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active now lights section |
+| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Light slider popups |
+| [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav |
+| [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode) | Hide HA header on mobile |
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |
 | [Nerwyn/material-you-utilities](https://github.com/Nerwyn/material-you-utilities) | MD3 helpers (optional) |
 
@@ -36,14 +43,14 @@ Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/package
 
 ## Visual design (MD3 / Flux)
 
-Phase 2 styling includes:
+MD3 styling includes:
 
 - **Dark MD3 theme** (`flux-ui-md3`) with Material You surface tokens
 - **Wallpaper background** (`/local/flux-ui/wallpapers/dark-purple.webp`)
 - **Glass cards** — blur, tinted surfaces, 28px corners
-- **button-card templates** — greeting header, quick actions, light tiles
-- **Bottom navbar** — Flux / Mobile / Solar shortcuts (requires navbar-card HACS)
-- **Climate section** — imported from Mobile Home, glass-wrapped
+- **button-card templates** — hero, quick actions, light tiles
+- **Bottom navbar** — Home / Rooms / Scenes / Camera / More (navbar-card HACS)
+- **Kiosk mode** — hides HA header on mobile
 
 After deploy: open Flux UI, hard-refresh browser (Cmd+Shift+R). On iOS Companion: **Reset Frontend Cache**.
 
@@ -124,18 +131,23 @@ We **only hide the header**, not the sidebar — same as ElementZoom Flux. Swipe
 
 Temporary debug (show header): `python3 .../build_flux_ui.py --no-kiosk`
 
+## Verify Phase 3
+
+```bash
+python3 home-assistant/flux-ui-dashboard/scripts/verify_phase3.py
+```
+
+Expect `(11 views, 9 overview sections)` and deploy log `phase3=True`.
+
 ## Roadmap
 
-- [ ] Tablet dashboard + shared YAML partials (Flux architecture)
-- [ ] Rooms, cameras, Tesla tabs
-- [ ] Material You dynamic colours per user
-- [ ] Kiosk mode for wall tablet
+See [`ROADMAP.md`](ROADMAP.md) — Phase 4: camera overlay, media layout, tablet dashboard.
 
 ## Troubleshooting
 
 | Issue | Fix |
 |-------|-----|
-| Still Mushroom cards / no MD3 | `git pull` failed — run `update_and_deploy.sh` (see above). Deploy log must show `sections=5`, not `4`. |
+| Still Mushroom cards / no MD3 | `git pull` failed — run `update_and_deploy.sh`. Deploy log must show `overview_sections=9`, `phase3=True`. |
 | `git pull` blocked by local changes | `git stash` then pull, or use `update_and_deploy.sh` |
 | Wrong dashboard open | URL must be `/flux-ui/overview`, not `/mobile-home/home` |
 | `custom:mushroom-*` errors | Install Mushroom via HACS; hard-refresh browser |

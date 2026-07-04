@@ -106,16 +106,22 @@ def write_storage(mount: str, config: dict) -> None:
             print("  registered flux-ui in lovelace_dashboards")
 
 
-async def has_navbar_resource(token: str, ha_url: str) -> bool:
+async def has_resource(token: str, ha_url: str, needle: str) -> bool:
     listed = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in listed.get("result", []))
-    return "navbar-card" in urls or "lovelace-navbar-card" in urls
+    return needle in urls
+
+
+async def has_navbar_resource(token: str, ha_url: str) -> bool:
+    return await has_resource(token, ha_url, "navbar-card") or await has_resource(
+        token, ha_url, "lovelace-navbar-card"
+    )
 
 
 async def has_kiosk_resource(token: str, ha_url: str) -> bool:
-    listed = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
-    urls = " ".join(r.get("url", "") for r in listed.get("result", []))
-    return "kiosk-mode" in urls or "kiosk_mode" in urls
+    return await has_resource(token, ha_url, "kiosk-mode") or await has_resource(
+        token, ha_url, "kiosk_mode"
+    )
 
 
 async def ensure_frontend_resources(token: str, ha_url: str) -> None:
@@ -132,6 +138,8 @@ def build_config(
     *,
     use_navbar_card: bool = True,
     use_kiosk: bool = True,
+    use_bubble: bool = True,
+    use_auto_entities: bool = True,
 ) -> dict:
     out = ROOT / "generated" / "lovelace.flux_ui.json"
     cmd = ["python3", str(BUILD), "--output", str(out)]
@@ -141,25 +149,27 @@ def build_config(
         cmd.append("--no-navbar-card")
     if not use_kiosk:
         cmd.append("--no-kiosk")
+    if not use_bubble:
+        cmd.append("--no-bubble")
+    if not use_auto_entities:
+        cmd.append("--no-auto-entities")
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
+    blob = json.dumps(config)
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
     sections = len(overview.get("sections", []))
-    if sections != 5:
+    if sections < 6:
         print(
-            f"\nERROR: Built {sections} sections — MD3 requires 5.\n"
-            "Your repo is stale (git pull likely failed). Run:\n"
-            "  bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh\n",
+            f"\nERROR: Built {sections} overview sections — Phase 3 expects at least 6.\n",
             file=sys.stderr,
         )
         raise SystemExit(1)
-    if "flux_greeting" not in json.dumps(config) and "flux_hero" not in json.dumps(config):
-        print(
-            "\nERROR: Build missing MD3 button-card templates.\n"
-            "Pull latest: git stash && git pull origin cursor/flux-ui-md3-dashboard-bf3a\n",
-            file=sys.stderr,
-        )
+    if "flux_hero" not in blob:
+        print("\nERROR: Build missing flux_hero.", file=sys.stderr)
+        raise SystemExit(1)
+    if "Home status" not in blob:
+        print("\nERROR: Build missing Phase 3 home status section.", file=sys.stderr)
         raise SystemExit(1)
     if use_kiosk and "kiosk_mode" not in config:
         print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
@@ -185,9 +195,12 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     overview = next((v for v in views if v.get("path") == "overview"), views[0])
     sections = overview.get("sections", [])
     has_kiosk = "kiosk_mode" in verify[0]["result"]
+    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) or "bubble-card" in json.dumps(
+        verify[0]["result"]
+    )
     print(
         f"Live flux-ui: {[(v['title'], v['path']) for v in views]} "
-        f"overview_sections={len(sections)} kiosk_mode={has_kiosk}"
+        f"overview_sections={len(sections)} kiosk={has_kiosk} phase3={phase3}"
     )
 
 
@@ -243,30 +256,36 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     use_navbar = False
     use_kiosk = True
+    use_bubble = True
+    use_auto_entities = True
     if token and ha_up:
         try:
             use_navbar = await has_navbar_resource(token, args.ha_url)
-            use_kiosk = await has_kiosk_resource(token, args.ha_url)
+            use_kiosk = await has_kiosk_resource(token, args.ha_url) or True
+            use_bubble = await has_resource(token, args.ha_url, "bubble-card")
+            use_auto_entities = await has_resource(token, args.ha_url, "auto-entities")
             if not use_navbar:
-                print(
-                    "navbar-card not in Lovelace resources — using mushroom chip nav fallback.\n"
-                    "  HACS → joseluis9595/lovelace-navbar-card"
-                )
-            if not use_kiosk:
-                print(
-                    "WARNING: kiosk-mode not in Lovelace resources yet.\n"
-                    "  Open HACS → Kiosk Mode → ensure it is enabled for Lovelace.\n"
-                    "  Still embedding kiosk_mode in dashboard config — redeploy after reload."
-                )
-                use_kiosk = True
+                print("navbar-card not in resources — mushroom chip nav fallback.")
+            if not use_bubble:
+                print("bubble-card not in resources — light tiles toggle instead of popups.")
+                print("  HACS → Clooos/bubble-card")
+            if not use_auto_entities:
+                print("auto-entities not in resources — skipping Active now section.")
+                print("  HACS → thomasloven/lovelace-auto-entities")
+            if not await has_kiosk_resource(token, args.ha_url):
+                print("WARNING: kiosk-mode resource missing (config still embedded).")
         except Exception:
             use_navbar = False
+            use_bubble = True
+            use_auto_entities = True
             use_kiosk = True
 
     config = build_config(
         mobile_storage,
         use_navbar_card=use_navbar,
         use_kiosk=use_kiosk,
+        use_bubble=use_bubble,
+        use_auto_entities=use_auto_entities,
     )
 
     if mounted:
