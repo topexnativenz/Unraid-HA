@@ -3,7 +3,9 @@
 # card_name: shorter label on room index cards (avoids truncation)
 # keywords: used to auto-match Tapo temp/humidity/motion sensors at runtime
 # temperature_entity / humidity_entity: optional explicit overrides
-# indicators: right-edge status icons (max 4 shown; padded to equal card height)
+# indicators: up to 4 right-column sensor slots (empty slots show stub circles)
+#   - {entity: binary_sensor.xxx, icon: mdi:garage-open, color_on: '#F2B8B5'}
+#   - omit indicators to show 4 stubs until sensors are mapped for that room
 #
 # Run on your Mac to auto-map Tapo sensors from live HA:
 #   python3 home-assistant/flux-ui-dashboard/scripts/discover_room_sensors.py

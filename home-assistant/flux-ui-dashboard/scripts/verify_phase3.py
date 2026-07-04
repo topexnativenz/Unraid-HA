@@ -51,10 +51,12 @@ def main() -> int:
         issues.append("Rooms index should use inner 2-column grid like light tiles")
     if '"height": "118px"' not in json.dumps(templates.get("flux_room", {})):
         issues.append("flux_room template should use fixed 118px card height")
-    if "custom_fields" not in rooms_text or "status" not in rooms_text:
-        issues.append("Room cards should include status indicator custom field")
-    if '"bg"' not in rooms_text:
-        issues.append("Room cards should include large background icon custom field")
+    if "custom_fields" not in rooms_text or "sensors" not in rooms_text:
+        issues.append("Room cards should include 4-slot sensor column custom field")
+    if "sensor_slots" not in rooms_text:
+        issues.append("Room cards should pass sensor_slots variable")
+    if '"stub": true' not in rooms_text and '"stub": True' not in rooms_text:
+        issues.append("Rooms without sensors should include stub slots")
 
     room_views = [v for v in blob["views"] if v.get("path", "").startswith("room/")]
     if room_views:

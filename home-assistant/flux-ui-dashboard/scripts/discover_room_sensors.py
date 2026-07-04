@@ -99,6 +99,13 @@ def _indicator_candidates(states: list[dict], keywords: list[str], limit: int = 
             item["icon"] = icon
         out.append(item)
 
+    temp = _best_match(states, keywords, domain="sensor", classes=TEMP_CLASSES | {"temperature"})
+    humid = _best_match(states, keywords, domain="sensor", classes=HUMIDITY_CLASSES | {"humidity"})
+    if temp:
+        add(temp, color_on="#80DEEA", icon="mdi:thermometer")
+    if humid:
+        add(humid, color_on="#81C784", icon="mdi:water-percent")
+
     for state in sorted(states, key=lambda s: -_score(s, keywords)):
         eid = state["entity_id"]
         if _score(state, keywords) <= 0:

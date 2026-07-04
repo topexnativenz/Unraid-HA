@@ -54,19 +54,28 @@ _ROOM_BG_ICON = (
 )
 
 
+SENSOR_SLOT_COUNT = 4
+
+
+def _sensor_slots(room: dict) -> list[dict]:
+    """Build exactly 4 right-column sensor slots; pad with stubs when unconfigured."""
+    slots: list[dict] = [dict(item) for item in (room.get("indicators") or [])[:SENSOR_SLOT_COUNT]]
+    while len(slots) < SENSOR_SLOT_COUNT:
+        slots.append({"stub": True})
+    return slots
+
+
 def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
-    """Reference room card: name top-left, large bg icon bottom-left, status strip right."""
+    """Reference room card: name top-left, large bg icon bottom-left, 4 sensor slots right."""
     lights = [light["entity"] for light in room.get("lights", [])]
-    indicators = room.get("indicators")
-    if not indicators:
-        indicators = [{"entity": entity} for entity in lights[:4]]
+    slots = _sensor_slots(room)
 
     triggers = list(lights)
     for key in ("temperature_entity", "humidity_entity"):
         entity = room.get(key)
         if entity and entity not in triggers:
             triggers.append(entity)
-    for item in indicators:
+    for item in slots:
         entity = item.get("entity")
         if entity and entity not in triggers:
             triggers.append(entity)
@@ -82,14 +91,14 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
             "subtitle": room.get("subtitle", ""),
             "keywords": room.get("keywords") or [],
             "lights": lights,
-            "indicators": indicators,
+            "sensor_slots": slots,
             "room_icon": room_icon,
             "temperature_entity": room.get("temperature_entity"),
             "humidity_entity": room.get("humidity_entity"),
         },
         "custom_fields": {
             "bg": _ROOM_BG_ICON,
-            "status": _ROOM_STATUS_HTML,
+            "sensors": _ROOM_SENSOR_COLUMN,
         },
         "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
         "grid_options": {"columns": columns},
@@ -133,25 +142,54 @@ _ROOM_LABEL = (
     "]]]"
 )
 
-_ROOM_STATUS_HTML = (
+_ROOM_SENSOR_COLUMN = (
     "[[[\n"
-    "  const maxDots = 4;\n"
-    "  const items = (variables.indicators || []).slice(0, maxDots);\n"
-    "  while (items.length < maxDots) items.push({});\n"
-    "  const dots = items.map(item => {\n"
-    "    if (!item.entity) {\n"
-    "      return '<div style=\"width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.08);margin:4px 0\"></div>';\n"
+    "  const slots = variables.sensor_slots || [];\n"
+    "  const pill = (inner) => `\n"
+    "    <div style=\"width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">${inner}</div>`;\n"
+    "  const stub = () => pill(`\n"
+    "    <div style=\"width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;\">\n"
+    "      <div style=\"width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.14)\"></div>\n"
+    "    </div>`);\n"
+    "  const iconFor = (eid, st) => {\n"
+    "    if (!eid || !st) return 'mdi:circle-small';\n"
+    "    const dc = st.attributes?.device_class || '';\n"
+    "    if (eid.startsWith('binary_sensor.')) {\n"
+    "      if (['motion','occupancy','presence'].includes(dc) || eid.includes('motion')) return 'mdi:motion-sensor';\n"
+    "      if (['door','garage_door','opening','window'].includes(dc) || eid.includes('door') || eid.includes('contact')) return 'mdi:door';\n"
+    "      return 'mdi:checkbox-blank-circle';\n"
     "    }\n"
+    "    if (eid.startsWith('light.')) return st.state === 'on' ? 'mdi:lightbulb-on' : 'mdi:lightbulb-outline';\n"
+    "    if (eid.startsWith('sensor.')) {\n"
+    "      if (dc === 'temperature' || eid.includes('temp')) return 'mdi:thermometer';\n"
+    "      if (dc === 'humidity' || eid.includes('humid')) return 'mdi:water-percent';\n"
+    "    }\n"
+    "    return 'mdi:circle-small';\n"
+    "  };\n"
+    "  const isActive = (eid, st) => {\n"
+    "    if (!eid || !st) return false;\n"
+    "    if (['unavailable','unknown'].includes(st.state)) return false;\n"
+    "    if (eid.startsWith('binary_sensor.')) return ['on','open','home'].includes(st.state);\n"
+    "    if (eid.startsWith('light.')) return st.state === 'on';\n"
+    "    if (eid.startsWith('sensor.')) return st.state !== '';\n"
+    "    return false;\n"
+    "  };\n"
+    "  const cells = slots.slice(0, 4).map(item => {\n"
+    "    if (item.stub || !item.entity) return stub();\n"
     "    const st = states[item.entity];\n"
-    "    const on = st && ['on','home','open','heat','cool'].includes(st.state);\n"
-    "    const color = on ? (item.color_on || '#FFD54F') : 'rgba(255,255,255,0.14)';\n"
-    "    const glow = on ? 'box-shadow:0 0 7px rgba(255,213,79,0.4);' : '';\n"
-    "    if (item.icon) {\n"
-    "      return `<ha-icon icon=\"${item.icon}\" style=\"color:${color};width:13px;height:13px;margin:3px 0;${glow}\"></ha-icon>`;\n"
-    "    }\n"
-    "    return `<div style=\"width:7px;height:7px;border-radius:50%;background:${color};margin:4px 0;${glow}\"></div>`;\n"
-    "  }).join('');\n"
-    "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%\">${dots}</div>`;\n"
+    "    const active = isActive(item.entity, st);\n"
+    "    const icon = item.icon || iconFor(item.entity, st);\n"
+    "    const bg = active ? (item.color_on || '#FFD54F') : 'rgba(255,255,255,0.07)';\n"
+    "    const border = active ? 'none' : '1px solid rgba(255,255,255,0.12)';\n"
+    "    const glow = active ? 'box-shadow:0 0 10px rgba(255,213,79,0.5);' : '';\n"
+    "    const fg = active ? '#1c1b1f' : 'rgba(255,255,255,0.38)';\n"
+    "    return `\n"
+    "      <div style=\"width:24px;height:24px;border-radius:50%;background:${bg};border:${border};${glow}display:flex;align-items:center;justify-content:center;\">\n"
+    "        <ha-icon icon=\"${icon}\" style=\"width:13px;height:13px;color:${fg};\"></ha-icon>\n"
+    "      </div>`;\n"
+    "  });\n"
+    "  while (cells.length < 4) cells.push(stub());\n"
+    "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:space-evenly;height:100%;min-height:88px;padding:2px 0;gap:2px;\">${cells.join('')}</div>`;\n"
     "]]]"
 )
 

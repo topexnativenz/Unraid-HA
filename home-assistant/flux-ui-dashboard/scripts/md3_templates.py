@@ -168,10 +168,10 @@ BUTTON_CARD_TEMPLATES: dict = {
         "show_label": True,
         "styles": {
             "grid": [
-                {"grid-template-areas": "'n s' 'l s'"},
-                {"grid-template-columns": "1fr auto"},
+                {"grid-template-areas": "'n sensors' 'l sensors'"},
+                {"grid-template-columns": "1fr 32px"},
                 {"grid-template-rows": "auto auto"},
-                {"column-gap": "8px"},
+                {"column-gap": "6px"},
                 {"align-items": "start"},
             ],
             "name": [
@@ -216,13 +216,14 @@ BUTTON_CARD_TEMPLATES: dict = {
                     {"align-items": "flex-end"},
                     {"justify-content": "flex-start"},
                 ],
-                "status": [
+                "sensors": [
+                    {"grid-area": "sensors"},
                     {"justify-self": "center"},
-                    {"align-self": "center"},
-                    {"width": "14px"},
-                    {"min-width": "14px"},
+                    {"align-self": "stretch"},
+                    {"width": "28px"},
+                    {"min-width": "28px"},
+                    {"height": "100%"},
                     {"z-index": "2"},
-                    {"grid-row": "span 2"},
                 ],
             },
             "card": [
