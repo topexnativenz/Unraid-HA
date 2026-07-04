@@ -14,7 +14,7 @@ Overview extends Mobile Home with live home intelligence:
 | Doors open | Conditional when any Tapo garage sensor is open |
 | Climate | Copied from Mobile Home storage on deploy |
 | Quick Actions | Gate locks, garage pulse, All Off, Goodnight |
-| Favourite lights | Tap to toggle; inline brightness slider when on |
+| Favourite lights | Slim dimmer row — tap toggles, drag slider to dim |
 
 Config: [`context.yaml`](context.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 

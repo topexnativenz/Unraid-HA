@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from md3_templates import GLASS_CARD_MOD, wrap_glass, wrap_title
+from md3_templates import GLASS_CARD_MOD, wrap_flux_light_card, wrap_glass, wrap_title
 
 
 def _title(title: str, subtitle: str = "") -> dict:
@@ -99,95 +99,33 @@ def build_home_status_section(cfg: dict) -> dict:
     }
 
 
-_LIGHT_LABEL = (
-    "[[[\n"
-    "  if (entity.state !== 'on') return 'Off';\n"
-    "  const b = entity.attributes.brightness;\n"
-    "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
-    "]]]"
-)
-
-_DIMMER_SLIDER_STYLE = (
-    "ha-card {\n"
-    "  background: transparent !important;\n"
-    "  box-shadow: none !important;\n"
-    "  border: none !important;\n"
-    "  padding: 0 8px 8px !important;\n"
-    "  margin: 0 !important;\n"
-    "}\n"
-    "mushroom-shape-icon,\n"
-    "mushroom-state-info,\n"
-    ".header,\n"
-    ".primary,\n"
-    ".secondary {\n"
-    "  display: none !important;\n"
-    "}\n"
-    "mushroom-light-brightness-control {\n"
-    "  padding: 0 !important;\n"
-    "}\n"
-)
-
-
-def _inline_dimmer_slider(entity: str) -> dict:
-    return {
+def _flux_slim_light_card(*, entity: str | None = None, name: str | None = None, columns: int = 12) -> dict:
+    """Single-row dimmer: icon, name, and slider in one sleek MD3 pill."""
+    card: dict = {
         "type": "custom:mushroom-light-card",
-        "entity": entity,
         "fill_container": True,
         "layout": "horizontal",
         "show_brightness_control": True,
         "show_color_control": False,
         "collapsible_controls": False,
         "use_light_color": True,
-        "card_mod": {"style": _DIMMER_SLIDER_STYLE},
+        "grid_options": {"columns": columns},
     }
+    if entity:
+        card["entity"] = entity
+    if name:
+        card["name"] = name
+    return wrap_flux_light_card(card)
 
 
-def light_control_tile(entity: str, name: str, *, columns: int = 6) -> dict:
-    """Toggle on tap + inline brightness slider when the light is on."""
-    return wrap_glass(
-        {
-            "type": "custom:stack-in-card",
-            "keep": {
-                "background": False,
-                "box_shadow": False,
-                "margin": False,
-                "outer_padding": False,
-            },
-            "cards": [
-                {
-                    "type": "custom:button-card",
-                    "template": "flux_light",
-                    "entity": entity,
-                    "name": name,
-                    "icon": "mdi:lightbulb",
-                    "label": _LIGHT_LABEL,
-                    "tap_action": {"action": "toggle"},
-                    "double_tap_action": {"action": "more-info"},
-                },
-                {
-                    "type": "conditional",
-                    "conditions": [{"entity": entity, "state": "on"}],
-                    "card": _inline_dimmer_slider(entity),
-                },
-            ],
-            "grid_options": {"columns": columns},
-        }
-    )
+def light_control_tile(entity: str, name: str, *, columns: int = 12) -> dict:
+    """Whole card is the dimmer — tap toggles, drag slider to dim."""
+    return _flux_slim_light_card(entity=entity, name=name, columns=columns)
 
 
 def light_control_auto_entities_options() -> dict:
-    """auto-entities: mushroom light card (toggle + slider, entity injected per match)."""
-    return {
-        "type": "custom:mushroom-light-card",
-        "fill_container": True,
-        "layout": "horizontal",
-        "show_brightness_control": True,
-        "show_color_control": False,
-        "collapsible_controls": False,
-        "use_light_color": True,
-        "grid_options": {"columns": 6},
-        "card_mod": GLASS_CARD_MOD,
-    }
+    """auto-entities: slim dimmer row per light (entity/name injected per match)."""
+    return _flux_slim_light_card(columns=12)
 
 
 def build_active_lights_section(cfg: dict) -> dict:
@@ -208,7 +146,7 @@ def build_active_lights_section(cfg: dict) -> dict:
         "card": {
             "type": "grid",
             "square": False,
-            "columns": 2,
+            "columns": 1,
         },
         "card_param": "cards",
         "show_empty": False,

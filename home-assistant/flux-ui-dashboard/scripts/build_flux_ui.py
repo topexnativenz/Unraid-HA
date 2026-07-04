@@ -242,7 +242,7 @@ def build_quick_actions(cfg: dict) -> dict:
 def build_favourite_lights(cfg: dict) -> dict:
     cards: list[dict] = [section_title("Favourite lights", "Most used")]
     for item in cfg["favourite_lights"]:
-        cards.append(light_control_tile(item["entity"], item["name"], columns=6))
+        cards.append(light_control_tile(item["entity"], item["name"]))
     return {"type": "grid", "cards": cards}
 
 
@@ -260,7 +260,7 @@ def build_room_detail(room: dict) -> dict:
         },
     ]
     for light in room.get("lights", []):
-        cards.append(light_control_tile(light["entity"], light["name"], columns=6))
+        cards.append(light_control_tile(light["entity"], light["name"]))
     return {"type": "grid", "cards": cards}
 
 
@@ -350,7 +350,7 @@ def build_lights_view(cfg: dict, *, use_auto_entities: bool = False) -> dict:
         active = build_active_lights_section(cfg)
         cards.extend(active["cards"][1:] if len(active["cards"]) > 1 else [])
     for item in cfg["favourite_lights"]:
-        cards.append(light_control_tile(item["entity"], item["name"], columns=6))
+        cards.append(light_control_tile(item["entity"], item["name"]))
     return {"type": "grid", "cards": cards}
 
 
