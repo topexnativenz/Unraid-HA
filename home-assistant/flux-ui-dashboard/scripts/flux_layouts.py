@@ -46,8 +46,16 @@ def build_rooms_index_section(rooms: list[dict]) -> dict:
     }
 
 
+_ROOM_BG_ICON = (
+    "[[[\n"
+    "  const icon = variables.room_icon || 'mdi:home-outline';\n"
+    "  return `<ha-icon icon=\"${icon}\" style=\"width:68px;height:68px;opacity:0.22;color:var(--md-sys-color-on-surface);\"></ha-icon>`;\n"
+    "]]]"
+)
+
+
 def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
-    """Reference room card: icon, name, temp/humidity label, status strip on right."""
+    """Reference room card: name top-left, large bg icon bottom-left, status strip right."""
     lights = [light["entity"] for light in room.get("lights", [])]
     indicators = room.get("indicators")
     if not indicators:
@@ -63,22 +71,26 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
         if entity and entity not in triggers:
             triggers.append(entity)
 
+    room_icon = room.get("icon", "mdi:home-outline")
     card: dict = {
         "type": "custom:button-card",
         "template": "flux_room",
-        "show_icon": True,
+        "show_icon": False,
         "name": room.get("card_name") or room["name"],
-        "icon": room.get("icon", "mdi:home-outline"),
         "label": _ROOM_LABEL,
         "variables": {
             "subtitle": room.get("subtitle", ""),
             "keywords": room.get("keywords") or [],
             "lights": lights,
             "indicators": indicators,
+            "room_icon": room_icon,
             "temperature_entity": room.get("temperature_entity"),
             "humidity_entity": room.get("humidity_entity"),
         },
-        "custom_fields": {"status": _ROOM_STATUS_HTML},
+        "custom_fields": {
+            "bg": _ROOM_BG_ICON,
+            "status": _ROOM_STATUS_HTML,
+        },
         "tap_action": {"action": "navigate", "navigation_path": f"/flux-ui/room/{room['path']}"},
         "grid_options": {"columns": columns},
     }
@@ -116,7 +128,7 @@ _ROOM_LABEL = (
     "  const parts = [];\n"
     + _find_sensor_js("temp")
     + _find_sensor_js("humid")
-    + "  if (parts.length) return parts.join(' · ');\n"
+    + "  if (parts.length) return parts.join(' / ');\n"
     "  return variables.subtitle || '';\n"
     "]]]"
 )

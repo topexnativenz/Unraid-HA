@@ -53,6 +53,8 @@ def main() -> int:
         issues.append("flux_room template should use fixed 118px card height")
     if "custom_fields" not in rooms_text or "status" not in rooms_text:
         issues.append("Room cards should include status indicator custom field")
+    if '"bg"' not in rooms_text:
+        issues.append("Room cards should include large background icon custom field")
 
     room_views = [v for v in blob["views"] if v.get("path", "").startswith("room/")]
     if room_views:
