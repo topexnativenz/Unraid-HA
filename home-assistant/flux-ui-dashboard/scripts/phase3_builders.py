@@ -107,27 +107,86 @@ _LIGHT_LABEL = (
     "]]]"
 )
 
+_DIMMER_SLIDER_STYLE = (
+    "ha-card {\n"
+    "  background: transparent !important;\n"
+    "  box-shadow: none !important;\n"
+    "  border: none !important;\n"
+    "  padding: 0 8px 8px !important;\n"
+    "  margin: 0 !important;\n"
+    "}\n"
+    "mushroom-shape-icon,\n"
+    "mushroom-state-info,\n"
+    ".header,\n"
+    ".primary,\n"
+    ".secondary {\n"
+    "  display: none !important;\n"
+    "}\n"
+    "mushroom-light-brightness-control {\n"
+    "  padding: 0 !important;\n"
+    "}\n"
+)
 
-def light_control_tile(entity: str, name: str, *, columns: int = 6) -> dict:
-    """Toggle on tap + inline brightness slider when the light is on."""
+
+def _inline_dimmer_slider(entity: str) -> dict:
     return {
-        "type": "custom:button-card",
-        "template": "flux_light_dimmer",
+        "type": "custom:mushroom-light-card",
         "entity": entity,
-        "name": name,
-        "icon": "mdi:lightbulb",
-        "label": _LIGHT_LABEL,
-        "grid_options": {"columns": columns},
+        "fill_container": True,
+        "layout": "horizontal",
+        "show_brightness_control": True,
+        "show_color_control": False,
+        "collapsible_controls": False,
+        "use_light_color": True,
+        "card_mod": {"style": _DIMMER_SLIDER_STYLE},
     }
 
 
+def light_control_tile(entity: str, name: str, *, columns: int = 6) -> dict:
+    """Toggle on tap + inline brightness slider when the light is on."""
+    return wrap_glass(
+        {
+            "type": "custom:stack-in-card",
+            "keep": {
+                "background": False,
+                "box_shadow": False,
+                "margin": False,
+                "outer_padding": False,
+            },
+            "cards": [
+                {
+                    "type": "custom:button-card",
+                    "template": "flux_light",
+                    "entity": entity,
+                    "name": name,
+                    "icon": "mdi:lightbulb",
+                    "label": _LIGHT_LABEL,
+                    "tap_action": {"action": "toggle"},
+                    "double_tap_action": {"action": "more-info"},
+                },
+                {
+                    "type": "conditional",
+                    "conditions": [{"entity": entity, "state": "on"}],
+                    "card": _inline_dimmer_slider(entity),
+                },
+            ],
+            "grid_options": {"columns": columns},
+        }
+    )
+
+
 def light_control_auto_entities_options() -> dict:
-    """auto-entities card options — entity/name injected per match."""
+    """auto-entities: mushroom light card (toggle + slider, entity injected per match)."""
     return {
-        "type": "custom:button-card",
-        "template": "flux_light_dimmer",
-        "icon": "mdi:lightbulb",
-        "label": _LIGHT_LABEL,
+        "type": "custom:mushroom-light-card",
+        "fill_container": True,
+        "layout": "horizontal",
+        "show_brightness_control": True,
+        "show_color_control": False,
+        "collapsible_controls": False,
+        "use_light_color": True,
+        "grid_options": {"columns": 6},
+        "card_mod": GLASS_CARD_MOD,
     }
 
 

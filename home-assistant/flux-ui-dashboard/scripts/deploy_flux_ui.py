@@ -192,8 +192,9 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     overview = next((v for v in views if v.get("path") == "overview"), views[0])
     sections = overview.get("sections", [])
     has_kiosk = "kiosk_mode" in verify[0]["result"]
-    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) and "flux_light_dimmer" in json.dumps(
-        verify[0]["result"]
+    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) and (
+        "stack-in-card" in json.dumps(verify[0]["result"])
+        or "show_brightness_control" in json.dumps(verify[0]["result"])
     )
     print(
         f"Live flux-ui: {[(v['title'], v['path']) for v in views]} "

@@ -22,8 +22,10 @@ def main() -> int:
         issues.append("Missing home status section")
     if "custom:auto-entities" not in text:
         issues.append("Missing auto-entities active lights")
-    if "flux_light_dimmer" not in text:
-        issues.append("Missing flux_light_dimmer template (inline toggle + slider)")
+    if "flux_light_dimmer" in text:
+        issues.append("flux_light_dimmer removed — use stack-in-card light controls")
+    if "stack-in-card" not in text and "custom:mushroom-light-card" not in text:
+        issues.append("Missing inline light dimmer controls")
     if "show_brightness_control" not in text:
         issues.append("Missing inline brightness slider on light buttons")
     if '"action": "navigate"' in text and "#light-" in text:

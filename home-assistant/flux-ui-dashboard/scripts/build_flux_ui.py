@@ -388,6 +388,43 @@ def extract_section_from_mobile_home(config: dict, *, path: str | None = None, t
     return None
 
 
+def sanitize_climate_section(section: dict) -> dict | None:
+    """Strip Mobile Home chip/header duplicates — hero already shows time and weather."""
+    skip_types = {"custom:mushroom-chips-card", "custom:mushroom-title-card"}
+    cards: list[dict] = []
+    for card in section.get("cards", []):
+        if card.get("type") in skip_types:
+            continue
+        cards.append(card)
+    if not cards:
+        return None
+    return {"type": "grid", "cards": cards}
+
+
+def extract_climate_from_mobile_home(config: dict) -> dict | None:
+    """Climate entity cards only (no clock/temp chips — those duplicate the Flux hero)."""
+    section = extract_section_from_mobile_home(config, path="home")
+    if not section:
+        section = extract_section_from_mobile_home(config, title="Climate")
+    if not section:
+        return None
+    cleaned = sanitize_climate_section(section)
+    if not cleaned:
+        return None
+    return {
+        "type": "grid",
+        "cards": [
+            section_title("Climate", "Live conditions"),
+            *[
+                wrap_glass({**card, "grid_options": card.get("grid_options") or {"columns": 12}})
+                if card.get("type") != "grid"
+                else apply_md3_to_cards(card)
+                for card in cleaned["cards"]
+            ],
+        ],
+    }
+
+
 def climate_fallback_section(weather_entity: str) -> dict:
     return {
         "type": "grid",
@@ -405,10 +442,6 @@ def climate_fallback_section(weather_entity: str) -> dict:
             ),
         ],
     }
-
-
-def extract_climate_from_mobile_home(config: dict) -> dict | None:
-    return extract_section_from_mobile_home(config, path="home")
 
 
 def build_config(
