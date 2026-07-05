@@ -374,14 +374,14 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
             {
                 "id": "flux_ui_media_player_sync",
                 "alias": "Flux UI sync media player to active Sonos zone",
-                "description": "Keep input_select on the Sonos zone that is playing or paused.",
+                "description": "Keep input_select on the Sonos zone that is actively playing.",
                 "mode": "queued",
                 "max": 10,
                 "trigger": [
                     {
                         "platform": "state",
                         "entity_id": entities,
-                        "to": ["playing", "paused"],
+                        "to": ["playing"],
                     }
                 ],
                 "action": [{"choose": choose}],

@@ -60,9 +60,67 @@ def media_player_active(cfg: dict) -> bool:
     return len(enabled_players(cfg)) > 0
 
 
-def _player_show_jinja() -> str:
-    """Show every configured zone in the carousel (idle zones use speaker icon)."""
-    return "[[[ return true; ]]]"
+def _is_music_entity_jinja(entity: str) -> str:
+    """Jinja expression: true when media_player content looks like music, not TV."""
+    return (
+        "{% set _t = state_attr('" + entity + "', 'media_content_type') | default('') | lower %}"
+        "{% set _app = state_attr('" + entity + "', 'app_name') | default('') | lower %}"
+        "{% set _artist = state_attr('" + entity + "', 'media_artist') | default('') %}"
+        "{% set _series = state_attr('" + entity + "', 'media_series_title') | default('') %}"
+        "{{ _t in ['music', 'artist', 'album', 'playlist', 'podcast', 'track', 'genre'] "
+        "or (_artist and _t not in ['video', 'tvshow', 'movie', 'channel', 'episode']) "
+        "or (_artist and not _series) "
+        "or (_t not in ['video', 'tvshow', 'movie', 'channel', 'episode'] "
+        "and 'tv' not in _app and 'hdmi' not in _app and not _series) }}"
+    )
+
+
+def _any_music_playing_jinja(players: list[dict]) -> str:
+    parts = [
+        f"(is_state('{p['entity']}', 'playing') and ({_is_music_entity_jinja(p['entity'])}))"
+        for p in players
+    ]
+    return "(" + " or ".join(parts) + ")" if parts else "false"
+
+
+def _player_visible_expr(players: list[dict], entity: str) -> str:
+    """Jinja boolean expr: actively playing and visible (music beats TV)."""
+    any_music = _any_music_playing_jinja(players)
+    is_music = _is_music_entity_jinja(entity)
+    return f"is_state('{entity}', 'playing') and (not ({any_music}) or ({is_music}))"
+
+
+def _player_visible_template(players: list[dict], entity: str) -> str:
+    """Show only actively playing zones; hide TV when any music zone is playing."""
+    return "{{ " + _player_visible_expr(players, entity) + " }}"
+
+
+def _player_show_jinja(players: list[dict], entity: str) -> str:
+    """Navbar carousel: only actively playing Sonos zones (music beats TV)."""
+    entities_js = json.dumps([p["entity"] for p in players])
+    return (
+        "[[[ "
+        f"const ALL = {entities_js}; "
+        "const isMusic = (a) => {"
+        "  if (!a) return false;"
+        "  const t = String(a.media_content_type || '').toLowerCase();"
+        "  const app = String(a.app_name || '').toLowerCase();"
+        "  if (['music','artist','album','playlist','podcast','track','genre'].includes(t)) return true;"
+        "  if (['video','tvshow','movie','channel','episode'].includes(t)) return false;"
+        "  if (app.includes('tv') || app.includes('hdmi')) return false;"
+        "  if (a.media_artist && !a.media_series_title) return true;"
+        "  if (a.media_series_title && !a.media_artist) return false;"
+        "  return !!a.media_artist || !a.media_series_title;"
+        "};"
+        f"const e = {entity!r}; "
+        "const s = states[e]; "
+        "if (!s || s.state !== 'playing') return false;"
+        "const playing = ALL.filter((id) => states[id]?.state === 'playing');"
+        "const anyMusic = playing.some((id) => isMusic(states[id]?.attributes));"
+        "if (anyMusic && !isMusic(s.attributes)) return false;"
+        "return true; "
+        "]]]"
+    )
 
 
 def _navbar_player_title_js(entity: str, zone_name: str) -> str:
@@ -162,7 +220,7 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         name = player["name"]
         entry: dict[str, Any] = {
             "entity": entity,
-            "show": _player_show_jinja(),
+            "show": _player_show_jinja(players, entity),
             "title": _navbar_player_title_js(entity, name),
             "subtitle": _navbar_player_subtitle_js(entity, name),
             **_navbar_player_actions(name),
@@ -179,15 +237,48 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
     }
 
 
-def _zone_nav_chip(icon: str, script_entity: str) -> dict:
+def _visible_zone_cycle_jinja(players: list[dict], step: int) -> str:
+    """input_select option for next/prev — only actively playing zones (music over TV)."""
+    blocks = []
+    for p in players:
+        e, n = p["entity"], p["name"]
+        vis = _player_visible_expr(players, e)
+        blocks.append(f"{{% if {vis} %}}{{% set ns.zones = ns.zones + ['{n}'] %}}{{% endif %}}")
+    body = "\n".join(blocks)
+    step_expr = f"(i + {step}) % (ns.zones | length)"
+    return (
+        "{% set ns = namespace(zones=[]) %}\n"
+        + body
+        + "\n{% set cur = states('"
+        + MEDIA_SELECT_ENTITY
+        + "') %}"
+        "{% set i = ns.zones.index(cur) if cur in ns.zones else 0 %}"
+        "{% if ns.zones | length > 0 %}"
+        "{{ ns.zones[" + step_expr + "] }}"
+        "{% else %}{{ cur }}{% endif %}"
+    )
+
+
+def _multiple_visible_playing_jinja(players: list[dict]) -> str:
+    parts = [f"(1 if ({_player_visible_expr(players, p['entity'])}) else 0)" for p in players]
+    return "{{ " + " + ".join(parts) + " > 1 }}"
+
+
+def _zone_nav_chip(icon: str, script_entity: str, players: list[dict]) -> dict:
     return {
-        "type": "template",
-        "icon": icon,
-        "icon_color": "primary",
-        "content": "",
-        "tap_action": {
-            "action": "call-service",
-            "service": script_entity,
+        "type": "conditional",
+        "conditions": [
+            {"condition": "template", "value_template": _multiple_visible_playing_jinja(players)},
+        ],
+        "card": {
+            "type": "custom:mushroom-template-card",
+            "icon": icon,
+            "icon_color": "primary",
+            "tap_action": {
+                "action": "call-service",
+                "service": script_entity,
+            },
+            "card_mod": {"style": "ha-card { box-shadow: none; background: transparent; }"},
         },
     }
 
@@ -195,27 +286,43 @@ def _zone_nav_chip(icon: str, script_entity: str) -> dict:
 def _player_selector_chips(players: list[dict]) -> dict:
     chips: list[dict] = []
     if len(players) > 1:
-        chips.append(_zone_nav_chip("mdi:chevron-left", ZONE_PREV_SCRIPT))
+        chips.append(_zone_nav_chip("mdi:chevron-left", ZONE_PREV_SCRIPT, players))
     for player in players:
+        entity = player["entity"]
         name = player["name"]
         chips.append(
             {
-                "type": "template",
-                "icon": player.get("icon", "mdi:speaker"),
-                "content": name,
-                "tap_action": _select_zone_action(name),
-                "icon_color": (
-                    "{{ 'primary' if is_state('" + MEDIA_SELECT_ENTITY + "', '" + name + "') else 'grey' }}"
-                ),
+                "type": "conditional",
+                "conditions": [
+                    {
+                        "condition": "template",
+                        "value_template": _player_visible_template(players, entity),
+                    }
+                ],
+                "card": {
+                    "type": "custom:mushroom-chips-card",
+                    "alignment": "center",
+                    "chips": [
+                        {
+                            "type": "template",
+                            "icon": player.get("icon", "mdi:speaker"),
+                            "content": name,
+                            "tap_action": _select_zone_action(name),
+                            "icon_color": (
+                                "{{ 'primary' if is_state('"
+                                + MEDIA_SELECT_ENTITY
+                                + "', '"
+                                + name
+                                + "') else 'grey' }}"
+                            ),
+                        }
+                    ],
+                },
             }
         )
     if len(players) > 1:
-        chips.append(_zone_nav_chip("mdi:chevron-right", ZONE_NEXT_SCRIPT))
-    return {
-        "type": "custom:mushroom-chips-card",
-        "alignment": "center",
-        "chips": chips,
-    }
+        chips.append(_zone_nav_chip("mdi:chevron-right", ZONE_NEXT_SCRIPT, players))
+    return {"type": "vertical-stack", "cards": chips}
 
 
 def _mushroom_player_card(entity: str, name: str) -> dict:
@@ -231,7 +338,7 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
     }
 
 
-def _player_panel(player: dict, *, use_mediocre: bool) -> dict:
+def _player_panel(player: dict, players: list[dict], *, use_mediocre: bool) -> dict:
     entity = player["entity"]
     name = player["name"]
     card = _mediocre_player_card(entity, name) if use_mediocre else _mushroom_player_card(entity, name)
@@ -239,10 +346,14 @@ def _player_panel(player: dict, *, use_mediocre: bool) -> dict:
         "type": "conditional",
         "conditions": [
             {
+                "condition": "template",
+                "value_template": _player_visible_template(players, entity),
+            },
+            {
                 "condition": "state",
                 "entity": MEDIA_SELECT_ENTITY,
                 "state": name,
-            }
+            },
         ],
         "card": card,
     }
@@ -256,7 +367,7 @@ def build_music_player_popup(cfg: dict, *, use_mediocre: bool = True) -> dict | 
 
     popup_cards: list[dict] = [
         _player_selector_chips(players),
-        *[_player_panel(p, use_mediocre=use_mediocre) for p in players],
+        *[_player_panel(p, players, use_mediocre=use_mediocre) for p in players],
     ]
 
     return {
@@ -316,18 +427,7 @@ def media_zone_scripts(options: list[str]) -> dict:
                 {
                     "service": "input_select.select_option",
                     "target": {"entity_id": MEDIA_SELECT_ENTITY},
-                    "data": {
-                        "option": (
-                            "{% set opts = "
-                            + opt_yaml
-                            + " %}"
-                            "{% set cur = states('"
-                            + MEDIA_SELECT_ENTITY
-                            + "') %}"
-                            "{% set i = opts.index(cur) if cur in opts else 0 %}"
-                            "{{ opts[(i + 1) % (opts | length)] }}"
-                        ),
-                    },
+                    "data": {"option": _visible_zone_cycle_jinja(players, 1)},
                 }
             ],
         },
@@ -338,18 +438,7 @@ def media_zone_scripts(options: list[str]) -> dict:
                 {
                     "service": "input_select.select_option",
                     "target": {"entity_id": MEDIA_SELECT_ENTITY},
-                    "data": {
-                        "option": (
-                            "{% set opts = "
-                            + opt_yaml
-                            + " %}"
-                            "{% set cur = states('"
-                            + MEDIA_SELECT_ENTITY
-                            + "') %}"
-                            "{% set i = opts.index(cur) if cur in opts else 0 %}"
-                            "{{ opts[(i - 1) % (opts | length)] }}"
-                        ),
-                    },
+                    "data": {"option": _visible_zone_cycle_jinja(players, -1)},
                 }
             ],
         },
@@ -368,14 +457,41 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
         return False
 
     zone_names = [p["name"] for p in players]
-    zones_js = json.dumps(zone_names)
+    players_js = json.dumps([{"entity": p["entity"], "name": p["name"]} for p in players])
 
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(
         f"""\
 // Generated by build_flux_ui.py — syncs Sonos zone swipes to input_select + popup artwork.
 (function () {{
-  const ZONE_ORDER = {zones_js};
+  const ALL_PLAYERS = {players_js};
+
+  function isMusic(attrs) {{
+    if (!attrs) return false;
+    const t = String(attrs.media_content_type || '').toLowerCase();
+    const app = String(attrs.app_name || '').toLowerCase();
+    if (['music','artist','album','playlist','podcast','track','genre'].includes(t)) return true;
+    if (['video','tvshow','movie','channel','episode'].includes(t)) return false;
+    if (app.includes('tv') || app.includes('hdmi')) return false;
+    if (attrs.media_artist && !attrs.media_series_title) return true;
+    if (attrs.media_series_title && !attrs.media_artist) return false;
+    return !!attrs.media_artist || !attrs.media_series_title;
+  }}
+
+  function visiblePlayers() {{
+    const h = hass();
+    if (!h) return [];
+    const playing = ALL_PLAYERS.filter((p) => h.states[p.entity]?.state === 'playing');
+    if (!playing.length) return [];
+    const anyMusic = playing.some((p) => isMusic(h.states[p.entity]?.attributes));
+    if (anyMusic) return playing.filter((p) => isMusic(h.states[p.entity]?.attributes));
+    return playing;
+  }}
+
+  function visibleZoneNames() {{
+    return visiblePlayers().map((p) => p.name);
+  }}
+
   let lastZone = null;
   let debounce = null;
 
@@ -402,6 +518,7 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
   }}
 
   function activeCarouselIndex() {{
+    const zones = visibleZoneNames();
     const tracks = deepQueryAll('.media-player-track');
     for (const track of tracks) {{
       const t = track.style?.transform || '';
@@ -415,9 +532,9 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
   }}
 
   function activeZoneTitle() {{
+    const zones = visibleZoneNames();
     const idx = activeCarouselIndex();
-    if (idx >= 0 && idx < ZONE_ORDER.length) return ZONE_ORDER[idx];
-    // Do not read .media-player-title — it shows track names, not zone names.
+    if (idx >= 0 && idx < zones.length) return zones[idx];
     return null;
   }}
 
