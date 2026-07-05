@@ -34,7 +34,9 @@ from md3_templates import (
 from flux_media_player import (
     build_music_player_popup_section,
     build_navbar_media_player,
+    extra_module_urls,
     media_player_active,
+    write_carousel_sync_js,
 )
 from flux_navbar import (
     URL_PREFIX,
@@ -510,6 +512,10 @@ def build_config(
         out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)
     # Bottom navbar handles view changes; keep horizontal swipes for media carousel.
     out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
+    modules = extra_module_urls(cfg)
+    if modules:
+        out["extra_module_url"] = modules
+        write_carousel_sync_js(cfg, ROOT / "www" / "flux-ui" / "carousel-sync.js")
     return out
 
 

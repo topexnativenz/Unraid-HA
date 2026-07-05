@@ -185,6 +185,10 @@ def verify_build(path: Path) -> list[str]:
                 )
         if SELECT_ZONE_SCRIPT not in overview_blob:
             errors.append("Music player missing zone select script action in navbar/popup")
+        if "/local/flux-ui/carousel-sync.js" not in blob:
+            errors.append(
+                "Missing carousel-sync.js module — Sonos swipe will not sync popup artwork"
+            )
         swipe_nav = config.get("swipe_nav") or {}
         if swipe_nav.get("enable") is not False:
             errors.append(

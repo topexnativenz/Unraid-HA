@@ -435,7 +435,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
     if token and ha_up and not args.offline:
         await ensure_frontend_resources(token, args.ha_url)
 
-    use_navbar = False
+    use_navbar = True
     use_kiosk = True
     use_auto_entities = True
     use_simple_tabs = True

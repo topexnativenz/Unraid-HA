@@ -301,7 +301,8 @@ def write_media_players(players: list[dict], default_entity: str | None) -> None
         "# Names refresh from HA friendly_name on each --apply (set pin_name: true to keep a custom label).\n"
         "#\n"
         "# Apple Music and Spotify stream through Sonos in HA — each speaker is a media_player entity.\n"
-        "# Tap mini player to select zone; hold to open full player. Swipe then tap to sync artwork.\n\n"
+        "# Tap mini player to select zone; swipe carousel to switch zones (artwork syncs via carousel-sync.js).\n"
+        "# Hold to open full player popup.\n\n"
     )
     MEDIA_PLAYERS.write_text(header + yaml.safe_dump(cfg, sort_keys=False, default_flow_style=False))
 
