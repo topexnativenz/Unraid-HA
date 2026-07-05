@@ -186,9 +186,10 @@ def verify_build(path: Path) -> list[str]:
         if needle not in overview_blob:
             errors.append(f"Weather panel missing ElementZoom component: {needle}")
 
-    if "sensor.flux_ui_hourly_forecast_full" not in blob:
+    if "forecast_hourly" not in overview_blob and "sensor.flux_ui_hourly_forecast_full" not in blob:
         errors.append(
-            "Missing flux_ui weather template sensors — deploy packages/flux_ui_weather.yaml"
+            "Weather charts must read MetService forecast_hourly on the weather entity "
+            "(or flux_ui template sensors as fallback)"
         )
 
     media_cfg = load_media_players()
