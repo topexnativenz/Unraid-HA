@@ -20,8 +20,8 @@ def main() -> int:
 
     if "Home status" not in text:
         issues.append("Missing home status section")
-    has_native_tabs = "flux_overview_tab" in text
     has_simple_tabs = "custom:simple-tabs" in text
+    has_native_tabs = "input_select.flux_ui_overview_tab" in text and not has_simple_tabs
     if not has_native_tabs and not has_simple_tabs:
         issues.append(
             "Missing ElementZoom Home/Events/Active tabs — "

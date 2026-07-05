@@ -272,7 +272,7 @@ def build_overview_sections(
                 home_tab_cards=home_tab_cards,
                 use_auto_entities=use_auto_entities,
                 use_calendar_pro=use_calendar_pro,
-                use_simple_tabs=use_simple_tabs and tab_engine(cfg) == "simple-tabs",
+                use_simple_tabs=use_simple_tabs and tab_engine(cfg) in ("simple-tabs", "auto"),
             )
         )
         return sections

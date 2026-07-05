@@ -121,7 +121,11 @@ def verify_build(path: Path) -> list[str]:
             "Missing ElementZoom overview tabs — expected flux_overview_tab (native) or custom:simple-tabs"
         )
 
-    if "input_select.flux_ui_overview_tab" not in blob and "flux_overview_tab" in blob:
+    if (
+        "custom:simple-tabs" not in blob
+        and "input_select.flux_ui_overview_tab" not in blob
+        and '"template": "flux_overview_tab"' in blob
+    ):
         errors.append(
             "Native tabs use input_select.flux_ui_overview_tab — deploy packages/flux_ui_overview.yaml"
         )

@@ -206,6 +206,17 @@ async def reload_core_config(token: str, ha_url: str) -> None:
         print("  reloaded HA core config (packages/input_select)")
 
 
+async def wait_for_entity(token: str, ha_url: str, entity_id: str, *, attempts: int = 5) -> bool:
+    import asyncio
+
+    for i in range(attempts):
+        if await entity_exists(token, ha_url, entity_id):
+            return True
+        if i < attempts - 1:
+            await asyncio.sleep(2)
+    return False
+
+
 async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
     res = await ws_call(token, ha_url, [{"type": "get_states"}])
     if not res[0].get("success"):
@@ -261,15 +272,14 @@ def build_config(
         print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
         raise SystemExit(1)
     fp = config_fingerprint(config)
-    if fp["has_simple_tabs"] and not fp["has_native_tabs"]:
-        print(
-            "\nERROR: Built legacy simple-tabs layout — pull branch "
-            "cursor/overview-home-events-active-tabs-bf3a (native tab bar fix).\n",
-            file=sys.stderr,
-        )
+    if not fp["has_native_tabs"] and not fp["has_simple_tabs"]:
+        print("\nERROR: Built config missing overview tabs.", file=sys.stderr)
         raise SystemExit(1)
-    if not fp["has_native_tabs"]:
-        print("\nERROR: Built config missing flux_overview_tab native tabs.", file=sys.stderr)
+    if fp["has_simple_tabs"] and not fp["has_native_tabs"]:
+        print_fingerprint(config, label="Built config (simple-tabs)")
+        return config
+    if fp["has_simple_tabs"] and fp["has_native_tabs"]:
+        print("\nERROR: Built config has both simple-tabs and native tabs.", file=sys.stderr)
         raise SystemExit(1)
     if "_flux_ui" in blob:
         print("\nERROR: Built config contains invalid _flux_ui root key.", file=sys.stderr)
@@ -308,17 +318,14 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     )
     print_fingerprint(live_config, label="Live config")
 
-    if "flux_overview_tab" not in live_blob:
+    if "flux_overview_tab" not in live_blob and "custom:simple-tabs" not in live_blob:
         raise RuntimeError(
-            "Live flux-ui still missing native tab bar (flux_overview_tab). "
-            "Hard-refresh did not apply — check you deployed from branch "
-            "cursor/overview-home-events-active-tabs-bf3a and merge PR #2."
+            "Live flux-ui missing overview tabs (expected custom:simple-tabs or flux_overview_tab)."
         )
     if "custom:simple-tabs" in live_blob and "flux_overview_tab" not in live_blob:
-        raise RuntimeError(
-            "Live flux-ui still uses legacy custom:simple-tabs. "
-            "Pull latest cursor/overview-home-events-active-tabs-bf3a and redeploy."
-        )
+        print("  Live tabs engine: simple-tabs (ElementZoom)")
+    elif "flux_overview_tab" in live_blob:
+        print("  Live tabs engine: native")
     if "_flux_ui" in live_blob:
         raise RuntimeError("Live config contains invalid _flux_ui key — rebuild and redeploy.")
 
@@ -336,11 +343,6 @@ async def deploy_async(args: argparse.Namespace) -> int:
             .strip()
         )
         print(f"Deploy source: {git_branch} @ {git_head}")
-        if "overview-home-events-active" not in git_branch and git_head:
-            print(
-                "WARNING: Deploy branch may not include native tab layout fix. "
-                "Use cursor/overview-home-events-active-tabs-bf3a or merge PR #2."
-            )
     except Exception:
         pass
 
@@ -381,10 +383,12 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 copy_frontend_assets(args.mount)
                 if token and ha_up and not args.offline:
                     await reload_core_config(token, args.ha_url)
-                    if not await entity_exists(token, args.ha_url, OVERVIEW_TAB_ENTITY):
+                    if await wait_for_entity(token, args.ha_url, OVERVIEW_TAB_ENTITY):
+                        print(f"  loaded {OVERVIEW_TAB_ENTITY}")
+                    else:
                         print(
-                            f"  WARNING: {OVERVIEW_TAB_ENTITY} not loaded — "
-                            "ensure configuration.yaml includes packages: !include_dir_named packages"
+                            f"  NOTE: {OVERVIEW_TAB_ENTITY} not loaded (OK when using simple-tabs engine). "
+                            "Native tab fallback needs packages in configuration.yaml."
                         )
                 mobile_storage = Path(args.mount) / ".storage" / MOBILE_STORAGE
                 if not mobile_storage.exists():

@@ -135,24 +135,29 @@ def _native_tab_bar(cfg: dict) -> dict:
 
 def _tab_panel(label: str, cards: list[dict], *, visible_jinja: str | None = None) -> dict:
     panel = tab_panel_stack(*cards) if len(cards) > 1 else grid_to_vertical_stack(cards[0])
+    # grid_options on conditional cards causes "Configuration error" in sections view —
+    # wrap the panel in a full-width grid inside the conditional instead.
+    panel_full: dict[str, Any] = {
+        "type": "grid",
+        "cards": [panel],
+        "grid_options": {"columns": 12},
+    }
     wrapped: dict[str, Any] = {
         "type": "conditional",
         "conditions": [_tab_is_active(label)],
-        "card": panel,
-        "grid_options": {"columns": 12},
+        "card": panel_full,
     }
     if visible_jinja:
         wrapped = {
             "type": "conditional",
             "conditions": [{"condition": "template", "value_template": visible_jinja}],
             "card": wrapped,
-            "grid_options": {"columns": 12},
         }
     return wrapped
 
 
 def _simple_tabs_shell(tabs: list[dict]) -> dict:
-    """Optional HACS simple-tabs engine (ElementZoom original)."""
+    """ElementZoom-style full-width tab bar — https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"""
     return {
         "type": "custom:simple-tabs",
         "pre-load": False,
@@ -161,15 +166,34 @@ def _simple_tabs_shell(tabs: list[dict]) -> dict:
         "bar_padding": "6px 8px",
         "bar_border_radius": "28px",
         "bar_border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 35%, transparent)",
+        "bar_background": "transparent",
         "tabs_gap": "8px",
-        "button_padding": "18px 12px",
+        "button_padding": "14px 10px",
+        "button_background": "color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent)",
         "button_active_background": "var(--md-sys-color-primary)",
         "button_active_text_color": "var(--md-sys-color-on-primary)",
         "button_text_color": "var(--primary-text-color)",
         "button_border_color": "transparent",
+        "button_hover_border_color": "transparent",
         "haptic_feedback": True,
         "enable_swipe": True,
         "hide_inactive_tab_titles": False,
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  width: 100% !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  margin: 0 !important;\n"
+                "  padding: 0 !important;\n"
+                "}\n"
+                "simple-tabs {\n"
+                "  width: 100% !important;\n"
+                "  display: block !important;\n"
+                "}\n"
+            )
+        },
         "tabs": tabs,
     }
 
@@ -344,42 +368,42 @@ def build_overview_tabs_section(
     use_simple_tabs: bool = True,
 ) -> dict:
     engine = tab_engine(cfg)
-    if engine == "native" or not use_simple_tabs:
-        return build_native_tabs_section(
-            cfg,
-            home_tab_cards=home_tab_cards,
-            use_auto_entities=use_auto_entities,
-            use_calendar_pro=use_calendar_pro,
-        )
-
-    tabs: list[dict] = [
-        {"title": "Home", "icon": "mdi:home", "cards": [grid_to_vertical_stack(c) for c in home_tab_cards]},
-        {
-            "title": "Events",
-            "icon": "mdi:calendar",
-            "cards": build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro),
-        },
-    ]
-    active_cards = build_active_tab_cards(cfg, use_auto_entities=use_auto_entities)
-    if active_cards:
-        tabs.append(
+    use_hacs = use_simple_tabs and engine in ("simple-tabs", "auto")
+    if use_hacs:
+        tabs: list[dict] = [
+            {"title": "Home", "icon": "mdi:home", "cards": home_tab_cards},
             {
-                "title": "Active",
-                "icon": "mdi:play-circle",
-                "conditions": [{"template": _active_tab_visibility_jinja(cfg)}],
-                "cards": active_cards,
-            }
-        )
+                "title": "Events",
+                "icon": "mdi:calendar",
+                "cards": build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro),
+            },
+        ]
+        active_cards = build_active_tab_cards(cfg, use_auto_entities=use_auto_entities)
+        if active_cards:
+            tabs.append(
+                {
+                    "title": "Active",
+                    "icon": "mdi:play-circle",
+                    "conditions": [{"template": _active_tab_visibility_jinja(cfg)}],
+                    "cards": active_cards,
+                }
+            )
+        return {
+            "type": "grid",
+            "cards": [
+                {
+                    **_simple_tabs_shell(tabs),
+                    "grid_options": {"columns": 12},
+                }
+            ],
+        }
 
-    return {
-        "type": "grid",
-        "cards": [
-            {
-                **_simple_tabs_shell(tabs),
-                "grid_options": {"columns": 12},
-            }
-        ],
-    }
+    return build_native_tabs_section(
+        cfg,
+        home_tab_cards=home_tab_cards,
+        use_auto_entities=use_auto_entities,
+        use_calendar_pro=use_calendar_pro,
+    )
 
 
 def build_quick_actions_tab(cfg: dict, section_title_fn) -> dict:
