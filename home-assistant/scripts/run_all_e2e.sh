@@ -7,6 +7,9 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 GIT_ROOT="$(cd "$REPO/.." && pwd)"
 cd "$REPO"
 
+# shellcheck source=deploy_git_helpers.sh
+source "$(dirname "$0")/deploy_git_helpers.sh"
+
 FLUX="$REPO/flux-ui-dashboard"
 GARAGE="$REPO/garage-doors"
 MOBILE="$REPO/mobile-dashboard"
@@ -44,18 +47,20 @@ if [[ "$CLOUD_MODE" != true ]] && git rev-parse --git-dir >/dev/null 2>&1; then
   if [[ -n "${BRANCH}" ]]; then
     echo ""
     echo "==> Syncing git ($BRANCH)"
+    reset_flux_deploy_generated_files "$GIT_ROOT" "$REPO"
     git fetch origin "$BRANCH" 2>/dev/null || git fetch origin 2>/dev/null || true
     BEHIND="$(git rev-list --count "HEAD..origin/${BRANCH}" 2>/dev/null || echo 0)"
     if [[ "${BEHIND}" != "0" ]]; then
       echo "    Branch is ${BEHIND} commit(s) behind origin/${BRANCH} — pulling with autostash"
       if ! git pull --rebase --autostash origin "$BRANCH"; then
         echo ""
-        echo "ERROR: git pull failed — fix conflicts, then re-run E2E."
-        echo "  If garage-doors/entities.yaml has local edits from an old deploy, run:"
-        echo "    git checkout -- home-assistant/garage-doors/entities.yaml"
-        echo "    git pull --rebase --autostash"
-        exit 1
+        echo "ERROR: git pull failed — resetting deploy-generated files and retrying once"
+        reset_flux_deploy_generated_files "$GIT_ROOT" "$REPO"
+        git rebase --abort 2>/dev/null || true
+        git merge --abort 2>/dev/null || true
+        git pull --rebase origin "$BRANCH"
       fi
+      reset_flux_deploy_generated_files "$GIT_ROOT" "$REPO"
     else
       echo "    Up to date with origin/${BRANCH}"
     fi

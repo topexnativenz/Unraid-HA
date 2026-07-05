@@ -15,6 +15,9 @@ HA_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 GIT_ROOT="$(cd "$HA_DIR/.." && pwd)"
 cd "$GIT_ROOT"
 
+# shellcheck source=deploy_git_helpers.sh
+source "$(dirname "$0")/deploy_git_helpers.sh"
+
 GARAGE_ENTITIES="$HA_DIR/garage-doors/entities.yaml"
 GARAGE_LOCAL="$HA_DIR/garage-doors/entities.local.yaml"
 RESTART_HA=false
@@ -53,11 +56,22 @@ if ! git -C "$GIT_ROOT" diff --quiet HEAD -- "$GARAGE_ENTITIES" 2>/dev/null; the
   git -C "$GIT_ROOT" checkout -- "$GARAGE_ENTITIES"
 fi
 
+reset_flux_deploy_generated_files "$GIT_ROOT" "$HA_DIR"
+
 git -C "$GIT_ROOT" fetch origin "$BRANCH" 2>/dev/null || git -C "$GIT_ROOT" fetch origin
 BEHIND="$(git -C "$GIT_ROOT" rev-list --count "HEAD..origin/${BRANCH}" 2>/dev/null || echo 0)"
 if [[ "${BEHIND}" != "0" ]]; then
   echo "    Pulling ${BEHIND} commit(s)"
-  git -C "$GIT_ROOT" pull --rebase --autostash origin "$BRANCH"
+  if ! git -C "$GIT_ROOT" pull --rebase --autostash origin "$BRANCH"; then
+    echo ""
+    echo "ERROR: git pull failed — resetting deploy-generated files and retrying once"
+    reset_flux_deploy_generated_files "$GIT_ROOT" "$HA_DIR"
+    git -C "$GIT_ROOT" rebase --abort 2>/dev/null || true
+    git -C "$GIT_ROOT" merge --abort 2>/dev/null || true
+    git -C "$GIT_ROOT" pull --rebase origin "$BRANCH"
+  fi
+  # Autostash apply can leave conflict markers in generated files.
+  reset_flux_deploy_generated_files "$GIT_ROOT" "$HA_DIR"
 else
   echo "    Up to date"
 fi

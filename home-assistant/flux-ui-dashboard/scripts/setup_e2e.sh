@@ -24,6 +24,16 @@ if [[ ! -f "$ROOT/packages/flux_ui_rooms.yaml" ]]; then
   exit 1
 fi
 
+for f in media_players.yaml packages/flux_ui_media.yaml www/flux-ui/carousel-sync.js; do
+  if [[ -f "$ROOT/$f" ]] && grep -q '^<<<<<<< ' "$ROOT/$f" 2>/dev/null; then
+    echo ""
+    echo "ERROR: Git conflict markers in flux-ui-dashboard/$f"
+    echo "  git checkout -- home-assistant/flux-ui-dashboard/$f"
+    echo "  bash home-assistant/scripts/deploy_mac.sh"
+    exit 1
+  fi
+done
+
 python3 "$ROOT/scripts/build_flux_ui.py" \
   --output "$ROOT/generated/lovelace.flux_ui.json"
 
