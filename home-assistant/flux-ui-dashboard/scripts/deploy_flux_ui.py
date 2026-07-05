@@ -37,6 +37,17 @@ STORAGE_KEY = "lovelace.flux_ui"
 MOBILE_STORAGE = "lovelace.mobile_home"
 
 
+def copy_packages(mount: str) -> None:
+    src = ROOT / "packages"
+    if not src.exists():
+        return
+    dst_root = Path(mount) / "packages"
+    dst_root.mkdir(parents=True, exist_ok=True)
+    for pkg in src.glob("*.yaml"):
+        shutil.copy2(pkg, dst_root / pkg.name)
+        print(f"  copied packages/{pkg.name}")
+
+
 def copy_theme(mount: str) -> None:
     dst = Path(mount) / "themes" / "flux-ui-md3.yaml"
     dst.parent.mkdir(parents=True, exist_ok=True)
@@ -154,8 +165,6 @@ def build_config(
         cmd.append("--no-kiosk")
     if not use_auto_entities:
         cmd.append("--no-auto-entities")
-    if not use_simple_tabs:
-        cmd.append("--no-simple-tabs")
     if not use_calendar_pro:
         cmd.append("--no-calendar-pro")
     subprocess.run(cmd, check=True)
@@ -164,7 +173,7 @@ def build_config(
     blob = json.dumps(config)
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
     sections = len(overview.get("sections", []))
-    min_sections = 3 if use_simple_tabs else 6
+    min_sections = 3 if ("custom:simple-tabs" in blob or "flux_overview_tab" in blob) else 6
     if sections < min_sections:
         print(
             f"\nERROR: Built {sections} overview sections — expected at least {min_sections}.\n",
@@ -177,8 +186,9 @@ def build_config(
     if "Home status" not in blob:
         print("\nERROR: Build missing Phase 3 home status section.", file=sys.stderr)
         raise SystemExit(1)
-    if use_simple_tabs and "custom:simple-tabs" not in blob:
-        print("\nERROR: Build missing ElementZoom simple-tabs overview filter.", file=sys.stderr)
+    has_tabs = "custom:simple-tabs" in blob or "flux_overview_tab" in blob
+    if not has_tabs:
+        print("\nERROR: Build missing ElementZoom overview tabs.", file=sys.stderr)
         raise SystemExit(1)
     if use_kiosk and "kiosk_mode" not in config:
         print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
@@ -247,6 +257,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             mounted = mount_config(args.host, user, pw, args.mount)
             if mounted:
                 copy_theme(args.mount)
+                copy_packages(args.mount)
                 copy_frontend_assets(args.mount)
                 mobile_storage = Path(args.mount) / ".storage" / MOBILE_STORAGE
                 if not mobile_storage.exists():
@@ -281,8 +292,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 print("auto-entities not in resources — Active tab will omit live lights.")
                 print("  HACS → thomasloven/lovelace-auto-entities")
             if not use_simple_tabs:
-                print("simple-tabs not in resources — vertical overview fallback.")
-                print("  HACS → agoberg85/home-assistant-simple-tabs (ElementZoom reference)")
+                print("simple-tabs not in resources — using native full-width tab bar (default).")
+                print("  Optional HACS → agoberg85/home-assistant-simple-tabs for swipe tabs")
             if not use_calendar_pro:
                 print("calendar-card-pro not in resources — Events tab uses mushroom fallback.")
                 print("  HACS → alexpfau/calendar-card-pro (ElementZoom reference)")

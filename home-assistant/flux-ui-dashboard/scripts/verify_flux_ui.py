@@ -43,13 +43,19 @@ def verify_build(path: Path) -> list[str]:
     overview_sections = overview.get("sections", [])
     blob = json.dumps(config)
     if len(overview_sections) < 6:
-        if "custom:simple-tabs" not in blob and len(overview_sections) < 6:
+        has_native_tabs = "flux_overview_tab" in blob or "input_select.flux_ui_overview_tab" in blob
+        has_simple_tabs = "custom:simple-tabs" in blob
+        if not has_native_tabs and not has_simple_tabs and len(overview_sections) < 6:
             errors.append(
                 f"Expected at least 6 overview sections (vertical layout), got {len(overview_sections)}"
             )
-        elif "custom:simple-tabs" in blob and len(overview_sections) < 3:
+        elif has_simple_tabs and len(overview_sections) < 3:
             errors.append(
                 f"Expected at least 3 overview sections with tabs layout, got {len(overview_sections)}"
+            )
+        elif has_native_tabs and len(overview_sections) < 3:
+            errors.append(
+                f"Expected at least 3 overview sections with native tabs, got {len(overview_sections)}"
             )
 
     if overview.get("theme") != "flux-ui-md3":
@@ -74,7 +80,7 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Navbar fallback missing: {label}")
 
     templates = config.get("button_card_templates") or {}
-    for name in ("flux_glass", "flux_action", "flux_light", "flux_room", "flux_feature"):
+    for name in ("flux_glass", "flux_action", "flux_light", "flux_room", "flux_feature", "flux_overview_tab"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
     if "flux_hero" not in templates and "flux_greeting" not in templates:
@@ -110,10 +116,14 @@ def verify_build(path: Path) -> list[str]:
     if "Home status" not in blob:
         errors.append("Missing Phase 3 home status section")
 
-    if "custom:simple-tabs" not in blob:
+    if "custom:simple-tabs" not in blob and "flux_overview_tab" not in blob:
         errors.append(
-            "Missing ElementZoom overview tabs (custom:simple-tabs) — "
-            "install agoberg85/home-assistant-simple-tabs via HACS"
+            "Missing ElementZoom overview tabs — expected flux_overview_tab (native) or custom:simple-tabs"
+        )
+
+    if "input_select.flux_ui_overview_tab" not in blob and "flux_overview_tab" in blob:
+        errors.append(
+            "Native tabs use input_select.flux_ui_overview_tab — deploy packages/flux_ui_overview.yaml"
         )
 
     if "weather.forecast_home" not in blob:

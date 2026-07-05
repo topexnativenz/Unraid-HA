@@ -20,15 +20,21 @@ def main() -> int:
 
     if "Home status" not in text:
         issues.append("Missing home status section")
-    if "custom:simple-tabs" not in text:
+    has_native_tabs = "flux_overview_tab" in text
+    has_simple_tabs = "custom:simple-tabs" in text
+    if not has_native_tabs and not has_simple_tabs:
         issues.append(
             "Missing ElementZoom Home/Events/Active tabs — "
             "see https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"
         )
-    if '"title": "Home"' not in text or '"title": "Events"' not in text:
+    if has_simple_tabs and ('"title": "Home"' not in text or '"title": "Events"' not in text):
         issues.append("simple-tabs missing Home or Events tab titles")
-    if '"title": "Active"' not in text:
+    if has_native_tabs and "input_select.flux_ui_overview_tab" not in text:
+        issues.append("Native tabs missing input_select.flux_ui_overview_tab entity")
+    if has_simple_tabs and '"title": "Active"' not in text:
         issues.append("simple-tabs missing Active tab (ElementZoom reference)")
+    if has_native_tabs and '"name": "Active"' not in text:
+        issues.append("Native tabs missing Active tab button")
     if "custom:auto-entities" not in text:
         issues.append("Missing auto-entities active lights (Active tab or fallback)")
     overview = next(v for v in blob["views"] if v["path"] == "overview")
@@ -38,8 +44,6 @@ def main() -> int:
     fav_section = overview_text
     if '"template": "flux_light"' not in fav_section:
         issues.append("Favourite lights should use flux_light template tiles")
-    if '"columns": 6' not in fav_section:
-        issues.append("Favourite lights should use 2-column grid (columns: 6)")
     if '"columns": 2' not in fav_section:
         issues.append("Favourite lights should use inner 2-column grid like Active now")
     if "custom:mod-card" in fav_section:
@@ -51,7 +55,7 @@ def main() -> int:
     if "Doors open" not in text:
         issues.append("Missing conditional open garage section (Active tab)")
 
-    tabs_present = "custom:simple-tabs" in text
+    tabs_present = has_native_tabs or has_simple_tabs
     if tabs_present:
         if "Active now" not in text:
             issues.append("Active tab should include Active now lights section")
@@ -123,8 +127,8 @@ def main() -> int:
             break
 
     if len(overview["sections"]) < 6:
-        if "custom:simple-tabs" not in text:
-            issues.append(f"Overview has {len(overview['sections'])} sections, need >= 6 (or simple-tabs)")
+        if not tabs_present:
+            issues.append(f"Overview has {len(overview['sections'])} sections, need >= 6 (or tabs layout)")
         elif len(overview["sections"]) < 3:
             issues.append(f"Overview has {len(overview['sections'])} sections, need >= 3 with tabs layout")
 
@@ -136,7 +140,7 @@ def main() -> int:
 
     print(f"Phase 3 verification OK ({len(overview['sections'])} overview sections)")
     print("Deploy: bash home-assistant/scripts/run_all_e2e.sh")
-    print("HACS required: auto-entities, simple-tabs (optional: calendar-card-pro for Events timeline)")
+    print("HACS required: auto-entities (optional: calendar-card-pro, simple-tabs for swipe tabs)")
     return 0
 
 

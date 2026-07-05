@@ -1,8 +1,10 @@
 """Overview Home / Events / Active filter tabs (ElementZoom Flux UI pattern).
 
-Reference implementation:
-  https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
-  dashboard/mobile/views/01-overview.yaml — custom:simple-tabs (Home, Events, Active)
+Reference: https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
+  dashboard/mobile/views/01-overview.yaml
+
+Uses a full-width 3-column tab bar (native engine) so pills span the screen edge-to-edge.
+Optional engine: simple-tabs (HACS) for swipe — see overview_tabs.yaml.
 """
 
 from __future__ import annotations
@@ -11,7 +13,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from md3_templates import wrap_glass
+from flux_action_builders import garage_action, lock_action, scene_action
+from flux_tab_layout import (
+    grid_to_vertical_stack,
+    strip_grid_options,
+    tab_panel_stack,
+    tab_section_from_grid,
+    tab_two_column_grid,
+)
+from md3_templates import wrap_title
 
 GARAGE_DIR = Path(__file__).resolve().parents[2] / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
@@ -20,6 +30,7 @@ from garage_ui_helpers import jinja_door_open_expr  # noqa: E402
 from phase3_builders import build_active_lights_section, build_open_garage_section
 
 ELEMENTZOOM_REF = "https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"
+OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
 
 
 def _tabs_cfg(cfg: dict) -> dict:
@@ -30,8 +41,11 @@ def tabs_enabled(cfg: dict) -> bool:
     return bool(_tabs_cfg(cfg).get("enabled", True))
 
 
+def tab_engine(cfg: dict) -> str:
+    return _tabs_cfg(cfg).get("engine", "native")
+
+
 def _active_tab_visibility_jinja(cfg: dict) -> str:
-    """ElementZoom Active tab — visible when anything is on/open."""
     parts = ["(states.light | selectattr('state', 'eq', 'on') | list | count) > 0"]
     for door in cfg.get("quick_actions", {}).get("garage", []):
         parts.append(jinja_door_open_expr(door["sensor"], invert=door.get("invert", False)))
@@ -43,14 +57,88 @@ def _active_tab_visibility_jinja(cfg: dict) -> str:
     return "{{ " + " or ".join(parts) + " }}"
 
 
+def _tab_button(label: str, icon: str) -> dict:
+    """Full-width tab pill — one third of the tab bar grid."""
+    return {
+        "type": "custom:button-card",
+        "template": "flux_overview_tab",
+        "entity": OVERVIEW_TAB_ENTITY,
+        "name": label,
+        "icon": icon,
+        "variables": {"tab_option": label},
+        "tap_action": {
+            "action": "call-service",
+            "service": "input_select.select_option",
+            "service_data": {"entity_id": OVERVIEW_TAB_ENTITY, "option": label},
+        },
+        "triggers_update": "all",
+    }
+
+
+def _native_tab_bar(cfg: dict) -> dict:
+    """Edge-to-edge tab row — ElementZoom Home / Events / Active."""
+    tabs = [
+        _tab_button("Home", "mdi:home"),
+        _tab_button("Events", "mdi:calendar"),
+        _tab_button("Active", "mdi:play-circle"),
+    ]
+    return {
+        "type": "grid",
+        "columns": 3,
+        "square": False,
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  margin: 0 !important;\n"
+                "  padding: 0 !important;\n"
+                "}\n"
+                "#root {\n"
+                "  gap: 6px !important;\n"
+                "  width: 100% !important;\n"
+                "}\n"
+            )
+        },
+        "cards": tabs,
+    }
+
+
+def _tab_panel(label: str, cards: list[dict], *, visible_jinja: str | None = None) -> dict:
+    panel = tab_panel_stack(*cards) if len(cards) > 1 else grid_to_vertical_stack(cards[0])
+    wrapped: dict[str, Any] = {
+        "type": "conditional",
+        "conditions": [
+            {"condition": "state", "entity": OVERVIEW_TAB_ENTITY, "state": label},
+        ],
+        "card": panel,
+    }
+    if visible_jinja:
+        wrapped = {
+            "type": "conditional",
+            "conditions": [{"condition": "template", "value_template": visible_jinja}],
+            "card": wrapped,
+        }
+    return wrapped
+
+
 def _simple_tabs_shell(tabs: list[dict]) -> dict:
-    """MD3 pill tabs — matches ElementZoom simple-tabs styling."""
+    """Optional HACS simple-tabs engine (ElementZoom original)."""
     return {
         "type": "custom:simple-tabs",
         "pre-load": False,
-        "active-background": "var(--md-sys-color-primary)",
-        "active-text-color": "var(--md-sys-color-on-primary)",
-        "text-color": "var(--primary-text-color)",
+        "tabs_alignment": "start",
+        "card_padding": "0",
+        "bar_padding": "6px 8px",
+        "bar_border_radius": "28px",
+        "bar_border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 35%, transparent)",
+        "tabs_gap": "8px",
+        "button_padding": "18px 12px",
+        "button_active_background": "var(--md-sys-color-primary)",
+        "button_active_text_color": "var(--md-sys-color-on-primary)",
+        "button_text_color": "var(--primary-text-color)",
+        "button_border_color": "transparent",
         "haptic_feedback": True,
         "enable_swipe": True,
         "hide_inactive_tab_titles": False,
@@ -113,13 +201,14 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
             }
         ]
 
-    # Fallback when calendar-card-pro is not installed
     fallback: list[dict] = [
-        {
-            "type": "custom:mushroom-title-card",
-            "title": "Events",
-            "subtitle": "Install calendar-card-pro via HACS for ElementZoom timeline view",
-        }
+        wrap_title(
+            {
+                "type": "custom:mushroom-title-card",
+                "title": "Events",
+                "subtitle": "Install calendar-card-pro via HACS for ElementZoom timeline view",
+            }
+        )
     ]
     for cal in calendars:
         fallback.append(
@@ -132,67 +221,84 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
                 "tap_action": {"action": "more-info"},
             }
         )
-    return [{"type": "grid", "cards": fallback}]
+    return [{"type": "vertical-stack", "cards": fallback}]
 
 
 def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool) -> list[dict]:
-    """Active tab content — lights on, doors open (ElementZoom Active tab)."""
     cards: list[dict] = []
     if use_auto_entities:
         cards.append(build_active_lights_section(cfg))
     open_garage = build_open_garage_section(cfg)
     if open_garage:
         cards.append(open_garage)
-
     active_cfg = _tabs_cfg(cfg).get("active", {})
     for group in active_cfg.get("groups", []):
         entity = group.get("entity")
-        if not entity:
-            continue
-        cards.append(_active_group_section(group))
-
+        if entity:
+            cards.append(_active_group_section(group))
     return cards
 
 
 def _active_group_section(group: dict) -> dict:
-    """Optional active category (fans, switches, etc.) — ElementZoom count_active pattern."""
     from flux_layouts import flux_light_auto_entities_options
+    from phase3_builders import _title
 
     entity = group["entity"]
     state = group.get("state", "on")
     title = group.get("title", entity.split(".")[-1].replace("_", " ").title())
-    icon = group.get("icon", "mdi:flash")
     is_light = entity.startswith("light.")
-
-    options: dict[str, Any]
-    if is_light:
-        options = flux_light_auto_entities_options(columns=6)
-    else:
-        options = {
+    options: dict[str, Any] = (
+        flux_light_auto_entities_options(columns=6)
+        if is_light
+        else {
             "type": "custom:button-card",
             "template": "flux_action",
             "tap_action": {"action": "toggle"},
-            "grid_options": {"columns": 6},
         }
-
+    )
     auto_card: dict = {
         "type": "custom:auto-entities",
-        "card": {"type": "grid", "square": False, "columns": 2},
+        "card": {"type": "grid", "columns": 2, "square": False},
         "card_param": "cards",
         "show_empty": False,
-        "filter": {
-            "include": [{"group": entity, "state": state, "options": options}],
-        },
+        "filter": {"include": [{"group": entity, "state": state, "options": options}]},
         "sort": {"method": "friendly_name"},
     }
+    return {
+        "type": "vertical-stack",
+        "cards": [_title(title, "Currently active"), auto_card],
+    }
 
-    from phase3_builders import _title
+
+def build_native_tabs_section(
+    cfg: dict,
+    *,
+    home_tab_cards: list[dict],
+    use_auto_entities: bool,
+    use_calendar_pro: bool,
+) -> dict:
+    """Full-width tab bar + conditional panels (ElementZoom layout)."""
+    active_jinja = _active_tab_visibility_jinja(cfg)
+    active_cards = build_active_tab_cards(cfg, use_auto_entities=use_auto_entities)
+
+    stack_cards: list[dict] = [
+        _native_tab_bar(cfg),
+        _tab_panel("Home", home_tab_cards),
+        _tab_panel("Events", build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)),
+    ]
+    if active_cards:
+        stack_cards.append(
+            _tab_panel("Active", active_cards, visible_jinja=active_jinja),
+        )
 
     return {
         "type": "grid",
         "cards": [
-            _title(title, "Currently active"),
-            wrap_glass({**auto_card, "grid_options": {"columns": 12}}),
+            {
+                "type": "vertical-stack",
+                "cards": stack_cards,
+                "grid_options": {"columns": 12},
+            }
         ],
     }
 
@@ -203,21 +309,25 @@ def build_overview_tabs_section(
     home_tab_cards: list[dict],
     use_auto_entities: bool,
     use_calendar_pro: bool,
+    use_simple_tabs: bool = True,
 ) -> dict:
-    """Wrap overview body in ElementZoom Home / Events / Active simple-tabs."""
+    engine = tab_engine(cfg)
+    if engine == "native" or not use_simple_tabs:
+        return build_native_tabs_section(
+            cfg,
+            home_tab_cards=home_tab_cards,
+            use_auto_entities=use_auto_entities,
+            use_calendar_pro=use_calendar_pro,
+        )
+
     tabs: list[dict] = [
-        {
-            "title": "Home",
-            "icon": "mdi:home",
-            "cards": home_tab_cards,
-        },
+        {"title": "Home", "icon": "mdi:home", "cards": [grid_to_vertical_stack(c) for c in home_tab_cards]},
         {
             "title": "Events",
             "icon": "mdi:calendar",
             "cards": build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro),
         },
     ]
-
     active_cards = build_active_tab_cards(cfg, use_auto_entities=use_auto_entities)
     if active_cards:
         tabs.append(
@@ -232,11 +342,40 @@ def build_overview_tabs_section(
     return {
         "type": "grid",
         "cards": [
-            wrap_glass(
-                {
-                    **_simple_tabs_shell(tabs),
-                    "grid_options": {"columns": 12},
-                }
-            ),
+            {
+                **_simple_tabs_shell(tabs),
+                "grid_options": {"columns": 12},
+            }
+        ],
+    }
+
+
+def build_quick_actions_tab(cfg: dict, section_title_fn) -> dict:
+    """Quick Actions for tab panels — full-width 2-column grid, readable labels."""
+    buttons: list[dict] = []
+    for item in cfg["quick_actions"]["gate"]:
+        buttons.append(strip_grid_options(lock_action(item["entity"], item["name"], columns=6)))
+    for item in cfg["quick_actions"]["garage"]:
+        buttons.append(strip_grid_options(garage_action(item, columns=6)))
+    for item in cfg["quick_actions"]["actions"]:
+        buttons.append(
+            strip_grid_options(
+                scene_action(
+                    item["name"],
+                    item["subtitle"],
+                    item["icon"],
+                    item["service"],
+                    item["target"],
+                    columns=6,
+                )
+            )
+        )
+    title = section_title_fn("Quick Actions", "Tap to control")
+    title.pop("grid_options", None)
+    return {
+        "type": "vertical-stack",
+        "cards": [
+            title,
+            tab_two_column_grid(buttons),
         ],
     }

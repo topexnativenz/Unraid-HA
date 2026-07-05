@@ -12,6 +12,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from flux_action_builders import garage_action, lock_action, scene_action
 from flux_layouts import build_lights_grid_section, build_rooms_index_section
 from flux_view_builders import (
     build_cameras_view,
@@ -42,7 +43,13 @@ from phase3_builders import (
     build_home_status_section,
     build_open_garage_section,
 )
-from flux_overview_tabs import build_overview_tabs_section, tabs_enabled
+from flux_overview_tabs import (
+    build_overview_tabs_section,
+    build_quick_actions_tab,
+    tabs_enabled,
+    tab_engine,
+)
+from flux_tab_layout import tab_section_from_grid
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
@@ -56,9 +63,7 @@ LIGHT_GROUPS = ROOT / "light_groups.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
-from flux_door_builders import flux_door_tile
 from garage_ui_helpers import indicator_from_door, load_garage_doors  # noqa: E402
-
 
 def _sync_garage_room_indicators(rooms: list[dict], doors: list[dict]) -> None:
     """Keep garage room card indicators in sync with garage-doors/entities.yaml."""
@@ -209,42 +214,6 @@ def build_hero(weather_entity: str) -> dict:
     return {"type": "grid", "cards": [hero_card(weather_entity)]}
 
 
-def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
-    return {
-        "type": "custom:button-card",
-        "template": "flux_action",
-        "entity": entity,
-        "name": name,
-        "icon": "mdi:gate",
-        "label": "[[[ return entity.state === 'locked' ? 'Locked' : 'Unlocked'; ]]]",
-        "tap_action": {"action": "toggle"},
-        "grid_options": {"columns": columns},
-    }
-
-
-def garage_action(door: dict, *, columns: int = 6) -> dict:
-    """Quick action — flux_door tile bound to Tapo contact sensor."""
-    return flux_door_tile(door, columns=columns)
-
-
-def scene_action(
-    name: str, subtitle: str, icon: str, service: str, target: str, *, columns: int = 6
-) -> dict:
-    return {
-        "type": "custom:button-card",
-        "template": "flux_action",
-        "name": name,
-        "label": subtitle,
-        "icon": icon,
-        "tap_action": {
-            "action": "perform-action",
-            "perform_action": service,
-            "target": {"entity_id": target},
-        },
-        "grid_options": {"columns": columns},
-    }
-
-
 def build_quick_actions(cfg: dict) -> dict:
     col = 6
     cards: list[dict] = [section_title("Quick Actions", "Tap to control")]
@@ -291,18 +260,19 @@ def build_overview_sections(
     ]
 
     home_tab_cards: list[dict] = [
-        build_quick_actions(cfg),
-        climate,
-        build_favourite_lights(cfg),
+        build_quick_actions_tab(cfg, section_title),
+        tab_section_from_grid(climate),
+        tab_section_from_grid(build_favourite_lights(cfg)),
     ]
 
-    if use_simple_tabs and tabs_enabled(cfg):
+    if tabs_enabled(cfg):
         sections.append(
             build_overview_tabs_section(
                 cfg,
                 home_tab_cards=home_tab_cards,
                 use_auto_entities=use_auto_entities,
                 use_calendar_pro=use_calendar_pro,
+                use_simple_tabs=use_simple_tabs and tab_engine(cfg) == "simple-tabs",
             )
         )
         return sections

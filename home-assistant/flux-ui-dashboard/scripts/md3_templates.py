@@ -46,6 +46,8 @@ VIEW_CARD_MOD = {
         "  max-width: 920px;\n"
         "  margin: 0 auto;\n"
         "  padding-top: 8px;\n"
+        "  padding-left: 8px;\n"
+        "  padding-right: 8px;\n"
         "}\n"
         "@keyframes flux-door-pulse {\n"
         "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"
@@ -73,7 +75,11 @@ BUTTON_CARD_TEMPLATES: dict = {
             "icon": [{"color": "var(--md-sys-color-primary)"}, {"width": "28px"}],
             "name": [
                 {"font-weight": "600"},
-                {"font-size": "15px"},
+                {"font-size": "14px"},
+                {"white-space": "normal"},
+                {"line-height": "1.25"},
+                {"overflow": "visible"},
+                {"text-overflow": "clip"},
                 {"color": "var(--md-sys-color-on-surface)"},
             ],
             "label": [{"color": "var(--md-sys-color-on-surface-variant)"}, {"font-size": "12px"}],
@@ -95,7 +101,63 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"height": "48px"},
             ],
             "icon": [{"width": "26px"}, {"color": "var(--md-sys-color-primary)"}],
+            "name": [
+                {"font-weight": "600"},
+                {"font-size": "13px"},
+                {"white-space": "normal"},
+                {"line-height": "1.25"},
+                {"overflow": "visible"},
+                {"text-overflow": "clip"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+            ],
+            "label": [{"justify-self": "start"}, {"text-align": "left"}],
         },
+    },
+    "flux_overview_tab": {
+        "show_icon": True,
+        "show_label": True,
+        "show_state": False,
+        "styles": {
+            "card": [
+                {"border-radius": "24px"},
+                {"padding": "18px 10px"},
+                {"min-height": "56px"},
+                {"width": "100%"},
+                {"background": "color-mix(in srgb, var(--md-sys-color-surface-container) 65%, transparent)"},
+                {"border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 40%, transparent)"},
+                {"box-shadow": "none"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'i n'"},
+                {"grid-template-columns": "min-content 1fr"},
+                {"column-gap": "6px"},
+                {"justify-items": "center"},
+            ],
+            "icon": [{"width": "22px"}, {"color": "var(--md-sys-color-on-surface-variant)"}],
+            "name": [
+                {"font-weight": "600"},
+                {"font-size": "14px"},
+                {"justify-self": "center"},
+                {"text-align": "center"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+            ],
+        },
+        "state": [
+            {
+                "operator": "template",
+                "value": "[[[ return entity?.state === variables.tab_option ]]]",
+                "styles": {
+                    "card": [
+                        {"background": "var(--md-sys-color-primary)"},
+                        {"border": "1px solid var(--md-sys-color-primary)"},
+                        {"box-shadow": "0 2px 12px rgba(208, 188, 255, 0.35)"},
+                    ],
+                    "icon": [{"color": "var(--md-sys-color-on-primary)"}],
+                    "name": [{"color": "var(--md-sys-color-on-primary)"}, {"font-weight": "700"}],
+                },
+            },
+        ],
     },
     "flux_light": {
         "template": "flux_glass",
@@ -376,6 +438,10 @@ BUTTON_CARD_TEMPLATES: dict = {
             "name": [
                 {"font-weight": "700"},
                 {"font-size": "14px"},
+                {"white-space": "normal"},
+                {"line-height": "1.25"},
+                {"overflow": "visible"},
+                {"text-overflow": "clip"},
                 {"justify-self": "start"},
                 {"text-align": "left"},
                 {"color": "var(--md-sys-color-on-surface)"},

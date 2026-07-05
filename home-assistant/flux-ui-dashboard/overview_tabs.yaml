@@ -3,6 +3,8 @@
 #   dashboard/mobile/views/01-overview.yaml (custom:simple-tabs)
 
 enabled: true
+# native = full-width tab bar (no HACS). simple-tabs = HACS swipe tabs (optional).
+engine: native
 
 events:
   # calendar-card-pro timeline (ElementZoom Events tab)
