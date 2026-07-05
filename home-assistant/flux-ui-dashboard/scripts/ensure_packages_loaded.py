@@ -89,7 +89,7 @@ async def _sync_sonos_zone_names(token: str, ha_url: str) -> None:
     """Ensure input_select.flux_ui_media_player options match media_players.yaml."""
     import yaml
 
-    from discover_sonos import sync_input_select_options
+    from discover_sonos import sync_input_select_options_async
 
     if not MEDIA_PLAYERS.exists():
         return
@@ -98,7 +98,7 @@ async def _sync_sonos_zone_names(token: str, ha_url: str) -> None:
     if not players:
         return
     print("  Syncing Sonos zone names to input_select.flux_ui_media_player…")
-    for line in sync_input_select_options(token, ha_url, players):
+    for line in await sync_input_select_options_async(token, ha_url, players):
         print(f"    {line}")
 
 

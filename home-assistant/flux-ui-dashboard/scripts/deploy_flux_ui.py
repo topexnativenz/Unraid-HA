@@ -271,12 +271,12 @@ async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
 
 async def _sync_sonos_input_select(token: str, ha_url: str) -> None:
     """Push live input_select options to match media_players.yaml after package reload."""
-    from discover_sonos import load_media_config, sync_input_select_options
+    from discover_sonos import load_media_config, sync_input_select_options_async
 
     players = load_media_config().get("players", [])
     if not players:
         return
-    notes = sync_input_select_options(token, ha_url, players)
+    notes = await sync_input_select_options_async(token, ha_url, players)
     for line in notes:
         print(f"  {line}")
 
