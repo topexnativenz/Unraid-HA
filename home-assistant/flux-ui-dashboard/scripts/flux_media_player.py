@@ -7,8 +7,6 @@ Reference: ElementZoom Flux UI 01-overview.yaml
 
 from __future__ import annotations
 
-import json
-
 from typing import Any
 
 MUSIC_PLAYER_HASH = "#music-player"
@@ -28,6 +26,15 @@ BUBBLE_POPUP_STYLES = """\
   padding-bottom: 64px !important;
 }
 """
+
+# Sonos / HA media_player attributes that may carry album art (checked by discover_sonos --audit-artwork).
+ARTWORK_ATTRS = (
+    "entity_picture",
+    "entity_picture_local",
+    "album_art",
+    "album_art_url",
+    "artwork_url",
+)
 
 
 def _media_cfg(cfg: dict) -> dict:
@@ -53,31 +60,46 @@ def _player_show_jinja(entity: str) -> str:
     )
 
 
-def _active_entity_js(players: list[dict]) -> str:
-    """Prefer a playing/paused Sonos zone; fall back to input_select choice."""
-    entries = ",\n    ".join(
-        f"{{ name: {json.dumps(p['name'])}, entity: {json.dumps(p['entity'])} }}"
-        for p in players
-    )
-    return (
-        "[[[\n"
-        "  const players = [\n    "
-        + entries
-        + "\n  ];\n"
-        f"  const sel = states['{MEDIA_SELECT_ENTITY}']?.state;\n"
-        "  const active = (entity) => {\n"
-        "    const st = states[entity]?.state;\n"
-        "    return st && ['playing', 'paused'].includes(st);\n"
-        "  };\n"
-        "  for (const p of players) {\n"
-        "    if (p.name === sel) return p.entity;\n"
-        "  }\n"
-        "  for (const p of players) {\n"
-        "    if (active(p.entity)) return p.entity;\n"
-        "  }\n"
-        "  return players[0]?.entity;\n"
-        "]]]"
-    )
+def _album_art_picture(entity: str) -> dict:
+    """Explicit album art — picture-entity reads entity_picture from Sonos when playing."""
+    return {
+        "type": "picture-entity",
+        "entity": entity,
+        "show_name": False,
+        "show_state": False,
+        "aspect_ratio": "1",
+        "tap_action": {"action": "more-info"},
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  border-radius: 20px !important;\n"
+                "  overflow: hidden !important;\n"
+                "  aspect-ratio: 1 !important;\n"
+                "  max-width: min(320px, 72vw) !important;\n"
+                "  margin: 0 auto 8px auto !important;\n"
+                "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 60%, transparent) !important;\n"
+                "}\n"
+                "img {\n"
+                "  object-fit: cover !important;\n"
+                "  width: 100% !important;\n"
+                "  height: 100% !important;\n"
+                "}\n"
+            )
+        },
+    }
+
+
+def _mediocre_player_card(entity: str) -> dict:
+    return {
+        "type": "custom:mediocre-massive-media-player-card",
+        "entity_id": entity,
+        "mode": "panel",
+        "use_art_colors": True,
+        "options": {
+            "show_volume_step_buttons": True,
+            "show_source": True,
+        },
+    }
 
 
 def build_navbar_media_player(cfg: dict) -> dict | None:
@@ -137,19 +159,6 @@ def _player_selector_chips(players: list[dict]) -> dict:
     }
 
 
-def _mediocre_player_card(players: list[dict]) -> dict:
-    return {
-        "type": "custom:mediocre-massive-media-player-card",
-        "entity_id": _active_entity_js(players),
-        "mode": "panel",
-        "use_art_colors": True,
-        "options": {
-            "show_volume_step_buttons": True,
-            "show_source": True,
-        },
-    }
-
-
 def _mushroom_player_card(entity: str, name: str) -> dict:
     return {
         "type": "custom:mushroom-media-player-card",
@@ -163,13 +172,10 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
     }
 
 
-def _player_panel(player: dict, *, use_mediocre: bool, all_players: list[dict]) -> dict:
+def _player_panel(player: dict, *, use_mediocre: bool) -> dict:
     entity = player["entity"]
     name = player["name"]
-    if use_mediocre:
-        card = _mediocre_player_card(all_players)
-    else:
-        card = _mushroom_player_card(entity, name)
+    card = _mediocre_player_card(entity) if use_mediocre else _mushroom_player_card(entity, name)
     return {
         "type": "conditional",
         "conditions": [
@@ -189,16 +195,10 @@ def build_music_player_popup(cfg: dict, *, use_mediocre: bool = True) -> dict | 
     if not players:
         return None
 
-    if use_mediocre:
-        popup_cards: list[dict] = [
-            _player_selector_chips(players),
-            _mediocre_player_card(players),
-        ]
-    else:
-        popup_cards = [
-            _player_selector_chips(players),
-            *[_player_panel(p, use_mediocre=False, all_players=players) for p in players],
-        ]
+    popup_cards: list[dict] = [
+        _player_selector_chips(players),
+        *[_player_panel(p, use_mediocre=use_mediocre) for p in players],
+    ]
 
     return {
         "type": "custom:bubble-card",

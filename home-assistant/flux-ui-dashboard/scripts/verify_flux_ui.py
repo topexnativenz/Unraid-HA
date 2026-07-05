@@ -174,6 +174,15 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Missing input_select.flux_ui_media_player — deploy packages/flux_ui_media.yaml"
             )
+        if "[[[ const players" in overview_blob or "_active_entity_js" in overview_blob:
+            errors.append(
+                "Music player popup uses unsupported JS entity_id template — use per-zone conditional cards"
+            )
+        if "custom:mediocre-massive-media-player-card" in overview_blob:
+            if overview_blob.count('"entity_id":') < len(media_players):
+                errors.append(
+                    "Music player popup missing per-zone mediocre entity_id cards"
+                )
         swipe_nav = config.get("swipe_nav") or {}
         if swipe_nav.get("enable") is not False:
             errors.append(

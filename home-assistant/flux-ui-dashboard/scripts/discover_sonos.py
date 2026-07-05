@@ -18,6 +18,7 @@ MEDIA_PACKAGE = ROOT / "packages" / "flux_ui_media.yaml"
 ROOMS = ROOT / "rooms.yaml"
 
 sys.path.insert(0, str(ROOT / "scripts"))
+from flux_media_player import ARTWORK_ATTRS  # noqa: E402
 from ha_common import DEFAULT_HA, get_token  # noqa: E402
 
 SONOS_HINTS = re.compile(r"sonos|speaker|playbar|playbase|beam|arc|move|roam|one|five|era", re.I)
@@ -161,6 +162,35 @@ def discover(token: str, ha_url: str) -> tuple[list[dict], str | None, list[str]
     return updated, default_entity, notes
 
 
+def audit_artwork(states: list[dict]) -> None:
+    """Report album-art-related attributes for every Sonos media_player."""
+    candidates = dedupe_sonos_players([s for s in states if is_sonos_candidate(s)])
+    if not candidates:
+        print("No Sonos media_player entities found.")
+        return
+
+    print("\nSonos artwork audit (entity_picture and related attributes):\n")
+    for state in sorted(candidates, key=lambda x: x["entity_id"]):
+        eid = state["entity_id"]
+        attrs = state.get("attributes") or {}
+        title = attrs.get("media_title") or attrs.get("media_content_type") or "—"
+        artist = attrs.get("media_artist") or attrs.get("media_series_title") or "—"
+        print(f"  {eid}")
+        print(f"    state={state['state']!r}  title={title!r}  artist={artist!r}")
+        found_art = False
+        for key in ARTWORK_ATTRS:
+            val = attrs.get(key)
+            if val:
+                found_art = True
+                preview = str(val)
+                if len(preview) > 100:
+                    preview = preview[:97] + "..."
+                print(f"    {key}: {preview}")
+        if not found_art:
+            print("    artwork: (none — entity_picture only appears while playing)")
+        print()
+
+
 def write_media_players(players: list[dict], default_entity: str | None) -> None:
     cfg = load_media_config()
     cfg["enabled"] = cfg.get("enabled", True)
@@ -250,9 +280,20 @@ def main() -> int:
     parser.add_argument("--ha-url", default=DEFAULT_HA)
     parser.add_argument("--token", default=None)
     parser.add_argument("--apply", action="store_true", help="Write media_players.yaml and package")
+    parser.add_argument(
+        "--audit-artwork",
+        action="store_true",
+        help="Print entity_picture / album art attributes for each Sonos entity",
+    )
     args = parser.parse_args()
 
     token = get_token(args.token)
+    states = fetch_states(token, args.ha_url)
+
+    if args.audit_artwork:
+        audit_artwork(states)
+        return 0
+
     players, default_entity, notes = discover(token, args.ha_url)
 
     print("\nMapping:")
