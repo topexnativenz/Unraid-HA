@@ -487,6 +487,15 @@ async def deploy_async(args: argparse.Namespace) -> int:
             if not use_mediocre_media:
                 print("mediocre media player cards not in resources — popup uses mushroom fallback.")
                 print("  HACS → antontanderup/mediocre-hass-media-player-cards")
+            if not await has_resource(token, args.ha_url, "weather-forecast-extended"):
+                print("weather-forecast-extended not in resources — Forecast tab will not render.")
+                print("  HACS → Thyraz/weather-forecast-extended")
+            if not await has_resource(token, args.ha_url, "apexcharts"):
+                print("apexcharts-card not in resources — Rainfall/UV/Wind charts will not render.")
+                print("  HACS → RomRider/apexcharts-card")
+            if not await has_resource(token, args.ha_url, "lunar-phase"):
+                print("lunar-phase-card not in resources — Lunar tab will not render.")
+                print("  HACS → ngocjohn/lunar-phase-card")
             if not await has_kiosk_resource(token, args.ha_url):
                 print("WARNING: kiosk-mode resource missing (config still embedded).")
         except Exception:
