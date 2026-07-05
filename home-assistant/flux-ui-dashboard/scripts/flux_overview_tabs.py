@@ -157,7 +157,11 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
             {
                 "type": "custom:calendar-card-pro",
                 "entities": [
-                    {"entity": c["entity"], "accent_color": c.get("accent_color", "#B388FF")}
+                    {
+                        "entity": c["entity"],
+                        "accent_color": c.get("accent_color", "#B388FF"),
+                        **({"name": c["name"]} if c.get("name") else {}),
+                    }
                     for c in calendars
                 ],
                 "days_to_show": events.get("days_to_show", 10),

@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parents[1]
 GARAGE_DIR = ROOT.parent / "garage-doors"
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
+DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
 VERIFY = ROOT / "scripts" / "verify_flux_ui.py"
@@ -434,6 +435,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
         print("Discovering Tapo / climate sensors for room cards…")
         subprocess.run(
             ["python3", str(DISCOVER_ROOMS), "--ha-url", args.ha_url, "--token", token],
+            check=False,
+        )
+        print("Discovering Whanau calendar for Events tab…")
+        subprocess.run(
+            [
+                "python3",
+                str(DISCOVER_CALENDARS),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
             check=False,
         )
 

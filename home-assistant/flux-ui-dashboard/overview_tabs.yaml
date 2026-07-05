@@ -15,11 +15,13 @@ events:
   show_countdown: true
   show_progress_bar: true
   calendars:
+    # Whanau calendar — the.gillespie.tribe@gmail.com (auto-discovered on deploy)
+    - entity: calendar.whanau_calendar
+      name: Whanau calendar
+      accent_color: "#81C784"
+      account: the.gillespie.tribe@gmail.com
     - entity: calendar.home
       accent_color: "#B388FF"
-    # Add your HA calendar entities:
-    # - entity: calendar.family
-    #   accent_color: "#81C784"
 
 active:
   # Optional group entities — Active tab also shows when any light is on or garage door open
