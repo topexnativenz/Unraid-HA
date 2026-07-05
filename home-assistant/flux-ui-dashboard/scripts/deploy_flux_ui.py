@@ -393,6 +393,13 @@ async def deploy_async(args: argparse.Namespace) -> int:
                             f"  NOTE: {OVERVIEW_TAB_ENTITY} not loaded (OK when using simple-tabs engine). "
                             "Native tab fallback needs packages in configuration.yaml."
                         )
+                    if await wait_for_entity(token, args.ha_url, ROOMS_TAB_ENTITY):
+                        print(f"  loaded {ROOMS_TAB_ENTITY}")
+                    else:
+                        print(
+                            f"  NOTE: {ROOMS_TAB_ENTITY} not loaded — Rooms category tabs need "
+                            "packages/flux_ui_rooms.yaml in configuration.yaml."
+                        )
                 mobile_storage = Path(args.mount) / ".storage" / MOBILE_STORAGE
                 if not mobile_storage.exists():
                     mobile_storage = None
