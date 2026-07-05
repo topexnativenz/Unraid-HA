@@ -17,6 +17,7 @@ from typing import Any
 from flux_action_builders import garage_action, lock_action, scene_action
 from flux_tab_layout import (
     grid_to_vertical_stack,
+    simple_tabs_shell,
     strip_grid_options,
     tab_panel_stack,
     tab_section_from_grid,
@@ -157,65 +158,9 @@ def _tab_panel(label: str, cards: list[dict], *, visible_jinja: str | None = Non
     return wrapped
 
 
-def _simple_tabs_shell(tabs: list[dict]) -> dict:
-    """ElementZoom-style full-width tab bar — https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"""
-    return {
-        "type": "custom:simple-tabs",
-        "pre-load": False,
-        "tabs_alignment": "center",
-        "card_padding": "0",
-        "bar_padding": "6px 8px",
-        "bar_border_radius": "28px",
-        "bar_border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 35%, transparent)",
-        "bar_background": "transparent",
-        "tabs_gap": "8px",
-        "button_padding": "14px 10px",
-        "button_background": "color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent)",
-        "button_active_background": "var(--md-sys-color-primary)",
-        "button_active_text_color": "var(--md-sys-color-on-primary)",
-        "button_text_color": "var(--primary-text-color)",
-        "button_border_color": "transparent",
-        "button_hover_border_color": "transparent",
-        "haptic_feedback": True,
-        "enable_swipe": True,
-        "hide_inactive_tab_titles": False,
-        "card_mod": {
-            "style": {
-                ".": (
-                    "ha-card, :host {\n"
-                    "  width: 100% !important;\n"
-                    "  background: transparent !important;\n"
-                    "  box-shadow: none !important;\n"
-                    "  border: none !important;\n"
-                    "  margin: 0 !important;\n"
-                    "  padding: 0 !important;\n"
-                    "}\n"
-                    ".tabs-row {\n"
-                    "  width: 100% !important;\n"
-                    "}\n"
-                    ".tabs-viewport {\n"
-                    "  width: 100% !important;\n"
-                    "  max-width: 100% !important;\n"
-                    "}\n"
-                    ".tabs-container {\n"
-                    "  width: 100% !important;\n"
-                    "  min-width: 100% !important;\n"
-                    "}\n"
-                    ".tabs {\n"
-                    "  width: 100% !important;\n"
-                    "  display: flex !important;\n"
-                    "  box-sizing: border-box !important;\n"
-                    "}\n"
-                    ".tab-button {\n"
-                    "  flex: 1 1 0 !important;\n"
-                    "  min-width: 0 !important;\n"
-                    "  justify-content: center !important;\n"
-                    "}\n"
-                ),
-            },
-        },
-        "tabs": tabs,
-    }
+def _simple_tabs_shell(tabs: list[dict], *, enable_swipe: bool = True) -> dict:
+    """ElementZoom-style full-width tab bar."""
+    return simple_tabs_shell(tabs, enable_swipe=enable_swipe)
 
 
 def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
@@ -411,6 +356,7 @@ def build_overview_tabs_section(
     use_auto_entities: bool,
     use_calendar_pro: bool,
     use_simple_tabs: bool = True,
+    enable_tab_swipe: bool = True,
 ) -> dict:
     engine = tab_engine(cfg)
     use_hacs = use_simple_tabs and engine in ("simple-tabs", "auto")
@@ -439,7 +385,7 @@ def build_overview_tabs_section(
             "type": "grid",
             "cards": [
                 {
-                    **_simple_tabs_shell(tabs),
+                    **_simple_tabs_shell(tabs, enable_swipe=enable_tab_swipe),
                     "grid_options": {"columns": 12},
                 }
             ],

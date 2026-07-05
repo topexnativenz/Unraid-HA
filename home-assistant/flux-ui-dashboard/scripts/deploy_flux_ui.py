@@ -189,8 +189,8 @@ def config_fingerprint(config: dict) -> dict[str, object]:
         "has_simple_tabs": usage["has_simple_tabs"],
         "has_input_select": OVERVIEW_TAB_ENTITY in json.dumps(config),
         "overview_sections": len(overview.get("sections") or []),
-        "rooms_layout": "elementzoom-v2"
-        if ROOMS_TAB_ENTITY in rooms_blob and '"content": "Default"' in rooms_blob
+        "rooms_layout": "elementzoom-v3"
+        if "custom:simple-tabs" in rooms_blob and '"title": "Default"' in rooms_blob
         else "legacy",
         "quick_actions_grid": "Quick Actions" in json.dumps(overview)
         and '"columns": 2' in json.dumps(overview),
@@ -315,11 +315,10 @@ def build_config(
     if not fp["has_native_tabs"] and not fp["has_simple_tabs"]:
         print("\nERROR: Built config missing overview tabs.", file=sys.stderr)
         raise SystemExit(1)
-    if fp.get("rooms_layout") != "elementzoom-v2":
+    if fp.get("rooms_layout") != "elementzoom-v3":
         print(
-            "\nERROR: Built config has legacy Rooms layout — git pull may have failed.\n"
-            "  Expected packages/flux_ui_rooms.yaml + flux_rooms_index.py (commit b5d883c+).\n"
-            "  Run: git pull --rebase --autostash && bash home-assistant/scripts/run_all_e2e.sh\n",
+            "\nERROR: Built config has legacy Rooms layout — expected simple-tabs category bar.\n"
+            "  Run: bash home-assistant/scripts/deploy_mac.sh\n",
             file=sys.stderr,
         )
         raise SystemExit(1)

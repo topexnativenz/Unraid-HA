@@ -293,6 +293,7 @@ def build_overview_sections(
                 use_auto_entities=use_auto_entities,
                 use_calendar_pro=use_calendar_pro,
                 use_simple_tabs=use_simple_tabs and tab_engine(cfg) in ("simple-tabs", "auto"),
+                enable_tab_swipe=not media_player_active(cfg),
             )
         )
         popup_section = build_music_player_popup_section(cfg, use_mediocre=use_mediocre_media)
@@ -310,8 +311,8 @@ def build_overview_sections(
     return sections
 
 
-def build_rooms_index(cfg: dict) -> dict:
-    return build_rooms_index_section(cfg.get("rooms", []))
+def build_rooms_index(cfg: dict, *, use_simple_tabs: bool = True) -> dict:
+    return build_rooms_index_section(cfg.get("rooms", []), use_simple_tabs=use_simple_tabs)
 
 
 def extract_section_from_mobile_home(config: dict, *, path: str | None = None, title: str | None = None) -> dict | None:
@@ -426,7 +427,7 @@ def build_config(
             title="Rooms",
             path="rooms",
             icon="mdi:sofa",
-            sections=[build_rooms_index(cfg)],
+            sections=[build_rooms_index(cfg, use_simple_tabs=use_simple_tabs)],
             use_navbar_card=use_navbar_card,
         ),
         flux_view(

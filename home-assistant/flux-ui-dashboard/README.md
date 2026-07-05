@@ -44,6 +44,19 @@ Entity map: [`entities.yaml`](entities.yaml)
 
 Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA. **Tapo sensor IDs** are discovered to [`garage-doors/entities.local.yaml`](../garage-doors/entities.local.yaml.example) (gitignored) — icons show open/closed from contact sensors, not button toggles.
 
+### Install Mediocre Media Player Cards (music popup)
+
+Not in the default HACS store — add as a **custom repository**:
+
+1. Open **HACS** → **⋮** (top right) → **Custom repositories**
+2. Repository: `https://github.com/antontanderup/mediocre-hass-media-player-cards`
+3. Category: **Dashboard** → **Add**
+4. **HACS** → **Frontend** → search **Mediocre Hass Media Player Cards** → **Download**
+5. **Settings** → **Dashboards** → **⋮** → **Reload resources** (or restart HA)
+6. Re-run deploy: `bash home-assistant/scripts/deploy_mac.sh`
+
+Without this, the music popup uses mushroom media player (works, fewer features). Deploy auto-registers the JS if HACS installed it.
+
 ## Visual design (MD3 / Flux)
 
 MD3 styling includes:
@@ -65,25 +78,19 @@ From your Mac on the same LAN as HA:
 
 ```bash
 cd /Users/topexnative/Projects/unraid-array-design
-
-# Full pipeline: garage → Flux UI MD3 → Mobile Home
-bash home-assistant/scripts/run_all_e2e.sh
+bash home-assistant/scripts/deploy_mac.sh
 ```
 
 Or pull latest MD3 branch first:
 
 ```bash
-bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
+bash home-assistant/scripts/deploy_mac.sh --restart-ha
 ```
 
-```bash
-# Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
-export HA_TOKEN="your-long-lived-token"   # optional if mcp.json exists
-export HA_URL="http://192.168.1.239:8123" # optional
+Legacy manual deploy:
 
-git stash
-git pull origin cursor/flux-ui-md3-dashboard-bf3a
-bash home-assistant/flux-ui-dashboard/scripts/setup_e2e.sh
+```bash
+bash home-assistant/scripts/run_all_e2e.sh
 ```
 
 One-shot script: downloads Mushroom + card-mod JS → builds overview → verifies entities → mounts Samba → copies theme/www/storage → registers dashboard via WebSocket → live verify.

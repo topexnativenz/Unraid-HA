@@ -100,9 +100,29 @@ def load_package() -> dict:
     return yaml.safe_load(MEDIA_PACKAGE.read_text()) or {}
 
 
+def dedupe_sonos_players(candidates: list[dict]) -> list[dict]:
+    """Prefer one entity per speaker — skip _sonos_2 duplicates and unavailable copies."""
+    by_base: dict[str, dict] = {}
+    for state in candidates:
+        eid = state["entity_id"]
+        base = re.sub(r"_2$", "", eid.replace("media_player.", ""))
+        base = re.sub(r"_sonos_2$", "_sonos", base)
+        score = 0
+        if state["state"] not in ("unavailable", "unknown"):
+            score += 10
+        if not eid.endswith("_2"):
+            score += 5
+        if "sonos" in eid.lower():
+            score += 2
+        prev = by_base.get(base)
+        if not prev or score > prev["_score"]:
+            by_base[base] = {**state, "_score": score}
+    return [v for k, v in sorted(by_base.items())]
+
+
 def discover(token: str, ha_url: str) -> tuple[list[dict], str | None, list[str]]:
     states = fetch_states(token, ha_url)
-    candidates = [s for s in states if is_sonos_candidate(s)]
+    candidates = dedupe_sonos_players([s for s in states if is_sonos_candidate(s)])
     keywords = room_keywords()
     existing = {p.get("entity"): p for p in load_media_config().get("players", [])}
     notes: list[str] = []
