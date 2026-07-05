@@ -130,12 +130,14 @@ def verify_build(path: Path) -> list[str]:
         if light in blob:
             found_lights.add(light)
 
+    enabled_garage = entities_cfg["quick_actions"]["garage"]
+
     if found_gate != len(entities_cfg["quick_actions"]["gate"]):
         errors.append(f"Gate entities: found {found_gate}, expected {len(entities_cfg['quick_actions']['gate'])}")
-    if found_garage_sensors != len(entities_cfg["quick_actions"]["garage"]):
+    if enabled_garage and found_garage_sensors != len(enabled_garage):
         errors.append(
             f"Garage Tapo sensors: found {found_garage_sensors}, "
-            f"expected {len(entities_cfg['quick_actions']['garage'])}"
+            f"expected {len(enabled_garage)}"
         )
     if found_lights != expected_lights:
         missing = expected_lights - found_lights
@@ -270,7 +272,7 @@ def verify_build(path: Path) -> list[str]:
     if '"template": "flux_light"' not in blob:
         errors.append("Missing flux_light toggle tiles")
 
-    if '"template": "flux_door"' not in blob:
+    if enabled_garage and '"template": "flux_door"' not in blob:
         errors.append("Missing flux_door tiles for garage/shed quick actions")
 
     if "states['binary_sensor." in blob and "isDoorOpen" in blob:

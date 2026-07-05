@@ -28,6 +28,8 @@ from ha_common import DEFAULT_HA, get_token  # noqa: E402
 
 METSERVICE_HINT = re.compile(r"metservice|met service", re.I)
 ATTRIBUTION_HINT = re.compile(r"metservice|met service", re.I)
+# Never treat these as MetService weather sensors (false suffix matches).
+SENSOR_BLOCKLIST = re.compile(r"growatt|battery|inverter|solar|spf_", re.I)
 
 # MetService integration sensor suffixes (entity_id ends with these after location slug)
 SENSOR_SUFFIXES: dict[str, list[str]] = {
@@ -105,40 +107,37 @@ def find_metservice_sensor(
     slug: str | None,
     suffix_keys: list[str],
 ) -> str | None:
-    """Find a MetService sensor by suffix, preferring matching location slug."""
-    by_suffix: dict[str, list[str]] = {s: [] for s in suffix_keys}
+    """Find a MetService integration sensor by suffix, scoped to the weather location slug."""
+    if not slug:
+        return None
+
+    prefix = f"sensor.{slug}_"
+    ranked: list[tuple[int, str]] = []
+
     for state in states:
         eid = state["entity_id"]
         if not eid.startswith("sensor."):
             continue
+        if SENSOR_BLOCKLIST.search(eid):
+            continue
         attrs = state.get("attributes") or {}
         fn = str(attrs.get("friendly_name") or "")
-        device = str(attrs.get("device_class") or "")
-        # Skip unrelated sensors
-        if not (
-            METSERVICE_HINT.search(eid)
-            or METSERVICE_HINT.search(fn)
-            or "metservice" in fn.lower()
-            or any(eid.endswith(f"_{s}") for s in suffix_keys)
-        ):
-            # Also match by suffix alone for MetService naming convention
-            matched_suffix = next((s for s in suffix_keys if eid.endswith(f"_{s}")), None)
-            if not matched_suffix:
-                continue
-        for suffix in suffix_keys:
-            if eid.endswith(f"_{suffix}") or suffix in eid:
-                by_suffix.setdefault(suffix, []).append(eid)
 
-    for suffix in suffix_keys:
-        options = by_suffix.get(suffix) or []
-        if not options:
+        matched_suffix = next((s for s in suffix_keys if eid.endswith(f"_{s}")), None)
+        if not matched_suffix:
             continue
-        if slug:
-            preferred = [e for e in options if e.startswith(f"sensor.{slug}_")]
-            if preferred:
-                return sorted(preferred)[0]
-        return sorted(options)[0]
-    return None
+
+        if eid.startswith(prefix):
+            ranked.append((0, eid))
+        elif "metservice" in eid.lower():
+            ranked.append((1, eid))
+        elif METSERVICE_HINT.search(fn):
+            ranked.append((2, eid))
+
+    if not ranked:
+        return None
+    ranked.sort(key=lambda x: (x[0], x[1]))
+    return ranked[0][1]
 
 
 def discover_metservice_sensors(states: list[dict], weather_entity: str, weather_state: dict) -> dict[str, str]:

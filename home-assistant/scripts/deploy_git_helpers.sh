@@ -9,6 +9,8 @@ ${ha_dir}/flux-ui-dashboard/media_players.yaml
 ${ha_dir}/flux-ui-dashboard/packages/flux_ui_media.yaml
 ${ha_dir}/flux-ui-dashboard/www/flux-ui/carousel-sync.js
 ${ha_dir}/flux-ui-dashboard/room_sensors.yaml
+${ha_dir}/flux-ui-dashboard/weather_panel.yaml
+${ha_dir}/flux-ui-dashboard/packages/flux_ui_weather.yaml
 EOF
 }
 

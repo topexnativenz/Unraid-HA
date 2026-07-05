@@ -60,6 +60,15 @@ if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
   else
     python3 "$ROOT/scripts/discover_weather.py" --apply || true
   fi
+  GARAGE_DIR="$ROOT/../garage-doors"
+  if [[ -f "$GARAGE_DIR/scripts/discover_garage_doors.py" ]]; then
+    echo "==> Discovering Tapo garage/shed door sensors"
+    if ((${#DISCOVER_ARGS[@]})); then
+      python3 "$GARAGE_DIR/scripts/discover_garage_doors.py" "${DISCOVER_ARGS[@]}" --apply || true
+    else
+      python3 "$GARAGE_DIR/scripts/discover_garage_doors.py" --apply || true
+    fi
+  fi
 else
   echo "    No HA credentials — using committed media_players.yaml (set HA_TOKEN for live Sonos names)"
 fi
