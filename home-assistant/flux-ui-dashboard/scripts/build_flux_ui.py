@@ -31,6 +31,11 @@ from md3_templates import (
     wrap_glass,
     wrap_title,
 )
+from flux_media_player import (
+    build_music_player_popup_section,
+    build_navbar_media_player,
+    media_player_active,
+)
 from flux_navbar import (
     URL_PREFIX,
     navbar_section,
@@ -57,6 +62,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
 OVERVIEW_TABS = ROOT / "overview_tabs.yaml"
+MEDIA_PLAYERS = ROOT / "media_players.yaml"
 ROOMS = ROOT / "rooms.yaml"
 ROOM_SENSORS = ROOT / "room_sensors.yaml"
 SCENES = ROOT / "scenes.yaml"
@@ -114,6 +120,10 @@ def load_entities() -> dict:
         cfg["overview_tabs"] = yaml.safe_load(OVERVIEW_TABS.read_text())
     else:
         cfg["overview_tabs"] = {}
+    if MEDIA_PLAYERS.exists():
+        cfg["media_players"] = yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
+    else:
+        cfg["media_players"] = {}
     cfg["scenes_config"] = yaml.safe_load(SCENES.read_text()) if SCENES.exists() else {}
     cfg["cameras_config"] = yaml.safe_load(CAMERAS.read_text()) if CAMERAS.exists() else {}
     cfg["light_groups"] = (
@@ -131,6 +141,7 @@ def flux_view(
     use_navbar_card: bool,
     subview: bool = False,
     back_path: str | None = None,
+    navbar_media_player: dict | None = None,
 ) -> dict:
     view: dict = {
         "title": title,
@@ -140,7 +151,13 @@ def flux_view(
         "max_columns": 2,
         "theme": "flux-ui-md3",
         "card_mod": VIEW_CARD_MOD,
-        "sections": sections + [navbar_section(use_navbar_card=use_navbar_card)],
+        "sections": sections
+        + [
+            navbar_section(
+                use_navbar_card=use_navbar_card,
+                media_player=navbar_media_player,
+            )
+        ],
     }
     if subview:
         view["subview"] = True
@@ -254,6 +271,7 @@ def build_overview_sections(
     use_auto_entities: bool,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
 ) -> list[dict]:
     """Overview layout — ElementZoom Home/Events/Active tabs below hero + status chips."""
     sections: list[dict] = [
@@ -277,6 +295,9 @@ def build_overview_sections(
                 use_simple_tabs=use_simple_tabs and tab_engine(cfg) in ("simple-tabs", "auto"),
             )
         )
+        popup_section = build_music_player_popup_section(cfg, use_mediocre=use_mediocre_media)
+        if popup_section:
+            sections.append(popup_section)
         return sections
 
     # Fallback: vertical stack (pre-tabs layout)
@@ -370,6 +391,7 @@ def build_config(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
 ) -> dict:
     cfg = load_entities()
     weather = cfg.get("weather", "weather.forecast_home")
@@ -386,7 +408,10 @@ def build_config(
         use_auto_entities=use_auto_entities,
         use_simple_tabs=use_simple_tabs,
         use_calendar_pro=use_calendar_pro,
+        use_mediocre_media=use_mediocre_media,
     )
+
+    navbar_media = build_navbar_media_player(cfg) if media_player_active(cfg) else None
 
     views: list[dict] = [
         flux_view(
@@ -395,6 +420,7 @@ def build_config(
             icon="mdi:home",
             sections=overview,
             use_navbar_card=use_navbar_card,
+            navbar_media_player=navbar_media,
         ),
         flux_view(
             title="Rooms",
@@ -518,6 +544,11 @@ def main() -> None:
         action="store_true",
         help="Use mushroom calendar fallback instead of calendar-card-pro Events tab",
     )
+    parser.add_argument(
+        "--no-mediocre-media",
+        action="store_true",
+        help="Use mushroom media player in popup instead of mediocre-massive card",
+    )
     args = parser.parse_args()
 
     climate_section = None
@@ -541,6 +572,7 @@ def main() -> None:
         use_auto_entities=not args.no_auto_entities,
         use_simple_tabs=not args.no_simple_tabs,
         use_calendar_pro=not args.no_calendar_pro,
+        use_mediocre_media=not args.no_mediocre_media,
     )
     usage = overview_tab_usage(config)
     print(

@@ -14,8 +14,9 @@ Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.c
 | **Home tab** | Quick Actions, Climate, Favourite lights |
 | **Events tab** | `calendar-card-pro` timeline (or mushroom fallback) |
 | **Active tab** | Active now lights + doors open alert (shown when anything is on/open) |
+| **Floating music player** | Sonos mini bar above bottom nav; tap opens full player with zone picker |
 
-Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
+Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml), [`media_players.yaml`](media_players.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
 Entity map: [`entities.yaml`](entities.yaml)
 
@@ -34,7 +35,9 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active tab — lights currently on |
 | [agoberg85/home-assistant-simple-tabs](https://github.com/agoberg85/home-assistant-simple-tabs) | **Home / Events / Active** overview tabs ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
 | [alexpfau/calendar-card-pro](https://github.com/alexpfau/calendar-card-pro) | Events tab timeline ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
-| [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav |
+| [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav + floating music bar |
+| [antontanderup/mediocre-hass-media-player-cards](https://github.com/antontanderup/mediocre-hass-media-player-cards) | Full music popup (mushroom fallback) |
+| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Music player popup shell |
 | [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode) | Hide HA header on mobile |
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |
 | [Nerwyn/material-you-utilities](https://github.com/Nerwyn/material-you-utilities) | MD3 helpers (optional) |

@@ -29,6 +29,7 @@ FRONTEND_RESOURCES: list[tuple[str, str]] = [
     ("kiosk-mode-alt", "/hacsfiles/lovelace-kiosk-mode/kiosk-mode.js"),
     ("simple-tabs", "/hacsfiles/home-assistant-simple-tabs/simple-tabs.js"),
     ("calendar-card-pro", "/hacsfiles/calendar-card-pro/calendar-card-pro.js"),
+    ("mediocre-media", "/hacsfiles/mediocre-hass-media-player-cards/mediocre-hass-media-player-cards.js"),
 ]
 
 

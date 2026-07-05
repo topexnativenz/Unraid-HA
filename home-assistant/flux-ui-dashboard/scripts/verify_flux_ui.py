@@ -12,10 +12,20 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
+MEDIA_PLAYERS = ROOT / "media_players.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 DEFAULT_JSON = ROOT / "generated" / "lovelace.flux_ui.json"
 sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors  # noqa: E402
+
+sys.path.insert(0, str(ROOT / "scripts"))
+from flux_media_player import MUSIC_PLAYER_HASH  # noqa: E402
+
+
+def load_media_players() -> dict:
+    if not MEDIA_PLAYERS.exists():
+        return {}
+    return yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
 
 
 def load_entities() -> dict:
@@ -149,6 +159,21 @@ def verify_build(path: Path) -> list[str]:
 
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
+
+    media_cfg = load_media_players()
+    media_enabled = media_cfg.get("enabled", True)
+    media_players = [
+        p for p in media_cfg.get("players", []) if p.get("enabled", True) and p.get("entity")
+    ]
+    if media_enabled and media_players:
+        if MUSIC_PLAYER_HASH not in overview_blob:
+            errors.append("Missing music player bubble popup (#music-player) on overview")
+        if "custom:navbar-card" in overview_blob and '"media_player"' not in overview_blob:
+            errors.append("Overview navbar missing media_player widget for Sonos")
+        if "input_select.flux_ui_media_player" not in blob:
+            errors.append(
+                "Missing input_select.flux_ui_media_player — deploy packages/flux_ui_media.yaml"
+            )
 
     if "kiosk_mode" not in blob or "hide_header" not in blob:
         errors.append(

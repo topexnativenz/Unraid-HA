@@ -30,6 +30,7 @@ GARAGE_DIR = ROOT.parent / "garage-doors"
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
+DISCOVER_SONOS = ROOT / "scripts" / "discover_sonos.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
 VERIFY = ROOT / "scripts" / "verify_flux_ui.py"
@@ -188,6 +189,7 @@ def config_fingerprint(config: dict) -> dict[str, object]:
 
 OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
 ROOMS_TAB_ENTITY = "input_select.flux_ui_rooms_tab"
+MEDIA_SELECT_ENTITY = "input_select.flux_ui_media_player"
 
 
 def print_fingerprint(config: dict, *, label: str) -> None:
@@ -241,6 +243,7 @@ def build_config(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
 ) -> dict:
     out = ROOT / "generated" / "lovelace.flux_ui.json"
     cmd = ["python3", str(BUILD), "--output", str(out)]
@@ -254,6 +257,8 @@ def build_config(
         cmd.append("--no-auto-entities")
     if not use_calendar_pro:
         cmd.append("--no-calendar-pro")
+    if not use_mediocre_media:
+        cmd.append("--no-mediocre-media")
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
@@ -400,6 +405,13 @@ async def deploy_async(args: argparse.Namespace) -> int:
                             f"  NOTE: {ROOMS_TAB_ENTITY} not loaded — Rooms category tabs need "
                             "packages/flux_ui_rooms.yaml in configuration.yaml."
                         )
+                    if await wait_for_entity(token, args.ha_url, MEDIA_SELECT_ENTITY):
+                        print(f"  loaded {MEDIA_SELECT_ENTITY}")
+                    else:
+                        print(
+                            f"  NOTE: {MEDIA_SELECT_ENTITY} not loaded — music player picker needs "
+                            "packages/flux_ui_media.yaml in configuration.yaml."
+                        )
                 mobile_storage = Path(args.mount) / ".storage" / MOBILE_STORAGE
                 if not mobile_storage.exists():
                     mobile_storage = None
@@ -420,13 +432,17 @@ async def deploy_async(args: argparse.Namespace) -> int:
     use_auto_entities = True
     use_simple_tabs = True
     use_calendar_pro = True
+    use_mediocre_media = True
     if token and ha_up:
         try:
-            use_navbar = await has_navbar_resource(token, args.ha_url)
+            use_navbar = await has_resource(token, args.ha_url, "navbar-card") or await has_resource(
+                token, args.ha_url, "lovelace-navbar-card"
+            )
             use_kiosk = await has_kiosk_resource(token, args.ha_url) or True
             use_auto_entities = await has_resource(token, args.ha_url, "auto-entities")
             use_simple_tabs = await has_resource(token, args.ha_url, "simple-tabs")
             use_calendar_pro = await has_resource(token, args.ha_url, "calendar-card-pro")
+            use_mediocre_media = await has_resource(token, args.ha_url, "mediocre")
             if not use_navbar:
                 print("navbar-card not in resources — mushroom chip nav fallback.")
             if not use_auto_entities:
@@ -438,6 +454,9 @@ async def deploy_async(args: argparse.Namespace) -> int:
             if not use_calendar_pro:
                 print("calendar-card-pro not in resources — Events tab uses mushroom fallback.")
                 print("  HACS → alexpfau/calendar-card-pro (ElementZoom reference)")
+            if not use_mediocre_media:
+                print("mediocre media player cards not in resources — popup uses mushroom fallback.")
+                print("  HACS → antontanderup/mediocre-hass-media-player-cards")
             if not await has_kiosk_resource(token, args.ha_url):
                 print("WARNING: kiosk-mode resource missing (config still embedded).")
         except Exception:
@@ -446,6 +465,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_kiosk = True
             use_simple_tabs = True
             use_calendar_pro = True
+            use_mediocre_media = True
 
     if ha_up and token and not args.offline:
         print("Discovering Tapo garage/shed door sensors…")
@@ -479,6 +499,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
             ],
             check=False,
         )
+        print("Discovering Sonos media players for music bar…")
+        subprocess.run(
+            [
+                "python3",
+                str(DISCOVER_SONOS),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
+            check=False,
+        )
 
     config = build_config(
         mobile_storage,
@@ -487,6 +520,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
         use_auto_entities=use_auto_entities,
         use_simple_tabs=use_simple_tabs,
         use_calendar_pro=use_calendar_pro,
+        use_mediocre_media=use_mediocre_media,
     )
 
     if mounted:
