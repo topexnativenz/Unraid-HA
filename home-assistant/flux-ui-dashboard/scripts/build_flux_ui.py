@@ -202,13 +202,35 @@ def section_title(title: str, subtitle: str = "") -> dict:
     return wrap_title(card)
 
 
-def hero_card(weather_entity: str) -> dict:
-    """Single Flux-style hero: weather icon + greeting + conditions (no duplicate chips)."""
+def hero_bitmoji_picture_js(cfg: dict) -> str:
+    """Logged-in user avatar: HA person entity picture, then configured bitmoji map."""
+    hero = (cfg.get("context") or {}).get("hero") or {}
+    by_user = hero.get("bitmoji_by_user") or {"Dave": "/local/flux-ui/bitmoji/dave.png"}
+    default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
+    map_json = json.dumps(by_user)
+    default_json = json.dumps(default)
+    return (
+        "[[[ "
+        "for (const [eid, st] of Object.entries(states)) { "
+        "if (!eid.startsWith('person.')) continue; "
+        "if (st.attributes.user_id === user.id) { "
+        "const pic = st.attributes.entity_picture; "
+        "if (pic) return pic; "
+        "} "
+        "} "
+        f"const map = {map_json}; "
+        f"return map[user.name] || {default_json}; "
+        "]]]"
+    )
+
+
+def hero_card(weather_entity: str, cfg: dict) -> dict:
+    """Single Flux-style hero: user bitmoji + greeting + weather conditions."""
     return {
         "type": "custom:button-card",
         "template": "flux_hero",
         "entity": weather_entity,
-        "icon": "[[[ return entity.attributes?.condition ? `weather-${entity.attributes.condition}` : 'mdi:weather-partly-cloudy'; ]]]",
+        "entity_picture": hero_bitmoji_picture_js(cfg),
         "name": (
             "[[[\n"
             "  const h = new Date().getHours();\n"
@@ -232,8 +254,8 @@ def hero_card(weather_entity: str) -> dict:
     }
 
 
-def build_hero(weather_entity: str) -> dict:
-    return {"type": "grid", "cards": [hero_card(weather_entity)]}
+def build_hero(weather_entity: str, cfg: dict) -> dict:
+    return {"type": "grid", "cards": [hero_card(weather_entity, cfg)]}
 
 
 def build_quick_actions(cfg: dict) -> dict:
@@ -278,7 +300,7 @@ def build_overview_sections(
 ) -> list[dict]:
     """Overview layout — ElementZoom Home/Events/Active tabs below hero + status chips."""
     sections: list[dict] = [
-        build_hero(weather),
+        build_hero(weather, cfg),
         build_home_status_section(cfg),
     ]
 
