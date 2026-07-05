@@ -19,7 +19,7 @@ sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from flux_media_player import MUSIC_PLAYER_HASH  # noqa: E402
+from flux_media_player import MUSIC_PLAYER_HASH, SELECT_ZONE_SCRIPT  # noqa: E402
 
 
 def load_media_players() -> dict:
@@ -183,6 +183,8 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(
                     "Music player popup missing per-zone mediocre entity_id cards"
                 )
+        if SELECT_ZONE_SCRIPT not in overview_blob:
+            errors.append("Music player missing zone select script action in navbar/popup")
         swipe_nav = config.get("swipe_nav") or {}
         if swipe_nav.get("enable") is not False:
             errors.append(

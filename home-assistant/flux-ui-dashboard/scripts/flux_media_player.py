@@ -11,6 +11,9 @@ from typing import Any
 
 MUSIC_PLAYER_HASH = "#music-player"
 MEDIA_SELECT_ENTITY = "input_select.flux_ui_media_player"
+SELECT_ZONE_SCRIPT = "script.flux_ui_select_media_zone"
+ZONE_PREV_SCRIPT = "script.flux_ui_media_zone_prev"
+ZONE_NEXT_SCRIPT = "script.flux_ui_media_zone_next"
 
 BUBBLE_POPUP_STYLES = """\
 #root {
@@ -60,32 +63,11 @@ def _player_show_jinja(entity: str) -> str:
     )
 
 
-def _album_art_picture(entity: str) -> dict:
-    """Explicit album art — picture-entity reads entity_picture from Sonos when playing."""
+def _select_zone_action(zone: str) -> dict:
     return {
-        "type": "picture-entity",
-        "entity": entity,
-        "show_name": False,
-        "show_state": False,
-        "aspect_ratio": "1",
-        "tap_action": {"action": "more-info"},
-        "card_mod": {
-            "style": (
-                "ha-card {\n"
-                "  border-radius: 20px !important;\n"
-                "  overflow: hidden !important;\n"
-                "  aspect-ratio: 1 !important;\n"
-                "  max-width: min(320px, 72vw) !important;\n"
-                "  margin: 0 auto 8px auto !important;\n"
-                "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 60%, transparent) !important;\n"
-                "}\n"
-                "img {\n"
-                "  object-fit: cover !important;\n"
-                "  width: 100% !important;\n"
-                "  height: 100% !important;\n"
-                "}\n"
-            )
-        },
+        "action": "perform-action",
+        "perform_action": SELECT_ZONE_SCRIPT,
+        "data": {"zone": zone},
     }
 
 
@@ -103,7 +85,10 @@ def _mediocre_player_card(entity: str) -> dict:
 
 
 def build_navbar_media_player(cfg: dict) -> dict | None:
-    """Navbar mini player — draggable carousel when multiple Sonos zones are active."""
+    """Navbar mini player — swipe carousel between active Sonos zones.
+
+    Tap a zone to select it (syncs popup artwork/controls). Hold to open the full player.
+    """
     players = enabled_players(cfg)
     if not players:
         return None
@@ -111,29 +96,46 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
     entries: list[dict[str, Any]] = []
     for player in players:
         entity = player["entity"]
+        name = player["name"]
         entry: dict[str, Any] = {
             "entity": entity,
             "show": _player_show_jinja(entity),
-            "tap_action": {
+            "title": name,
+            "tap_action": _select_zone_action(name),
+            "hold_action": {
                 "action": "navigate",
                 "navigation_path": MUSIC_PLAYER_HASH,
             },
         }
         if player.get("icon"):
             entry["icon"] = player["icon"]
-        if player.get("name"):
-            entry["title"] = player["name"]
         entries.append(entry)
 
     return {
-        "album_cover_background": True,
+        # Per-slide artwork — widget-level blur shared one cover when swiping.
+        "album_cover_background": False,
         "auto_padding": True,
         "players": entries,
     }
 
 
+def _zone_nav_chip(icon: str, script: str) -> dict:
+    return {
+        "type": "template",
+        "icon": icon,
+        "icon_color": "primary",
+        "content": "",
+        "tap_action": {
+            "action": "perform-action",
+            "perform_action": script,
+        },
+    }
+
+
 def _player_selector_chips(players: list[dict]) -> dict:
     chips: list[dict] = []
+    if len(players) > 1:
+        chips.append(_zone_nav_chip("mdi:chevron-left", ZONE_PREV_SCRIPT))
     for player in players:
         name = player["name"]
         chips.append(
@@ -141,17 +143,14 @@ def _player_selector_chips(players: list[dict]) -> dict:
                 "type": "template",
                 "icon": player.get("icon", "mdi:speaker"),
                 "content": name,
-                "tap_action": {
-                    "action": "perform-action",
-                    "perform_action": "input_select.select_option",
-                    "target": {"entity_id": MEDIA_SELECT_ENTITY},
-                    "data": {"option": name},
-                },
+                "tap_action": _select_zone_action(name),
                 "icon_color": (
                     "{{ 'primary' if is_state('" + MEDIA_SELECT_ENTITY + "', '" + name + "') else 'grey' }}"
                 ),
             }
         )
+    if len(players) > 1:
+        chips.append(_zone_nav_chip("mdi:chevron-right", ZONE_NEXT_SCRIPT))
     return {
         "type": "custom:mushroom-chips-card",
         "alignment": "center",
@@ -224,3 +223,79 @@ def build_music_player_popup_section(cfg: dict, *, use_mediocre: bool = True) ->
         "type": "grid",
         "cards": [popup],
     }
+
+
+def media_zone_scripts(options: list[str]) -> dict:
+    """HA scripts — zone select / prev / next for input_select.flux_ui_media_player."""
+    if not options:
+        return {}
+    opt_yaml = yaml_list(options)
+    return {
+        "flux_ui_select_media_zone": {
+            "alias": "Flux UI select media zone",
+            "mode": "queued",
+            "fields": {
+                "zone": {
+                    "description": "Sonos zone name (matches input_select option)",
+                    "example": options[0],
+                    "selector": {"text": {}},
+                }
+            },
+            "sequence": [
+                {
+                    "service": "input_select.select_option",
+                    "target": {"entity_id": MEDIA_SELECT_ENTITY},
+                    "data": {"option": "{{ zone }}"},
+                }
+            ],
+        },
+        "flux_ui_media_zone_next": {
+            "alias": "Flux UI next Sonos zone",
+            "mode": "single",
+            "sequence": [
+                {
+                    "service": "input_select.select_option",
+                    "target": {"entity_id": MEDIA_SELECT_ENTITY},
+                    "data": {
+                        "option": (
+                            "{% set opts = "
+                            + opt_yaml
+                            + " %}"
+                            "{% set cur = states('"
+                            + MEDIA_SELECT_ENTITY
+                            + "') %}"
+                            "{% set i = opts.index(cur) if cur in opts else 0 %}"
+                            "{{ opts[(i + 1) % (opts | length)] }}"
+                        ),
+                    },
+                }
+            ],
+        },
+        "flux_ui_media_zone_prev": {
+            "alias": "Flux UI previous Sonos zone",
+            "mode": "single",
+            "sequence": [
+                {
+                    "service": "input_select.select_option",
+                    "target": {"entity_id": MEDIA_SELECT_ENTITY},
+                    "data": {
+                        "option": (
+                            "{% set opts = "
+                            + opt_yaml
+                            + " %}"
+                            "{% set cur = states('"
+                            + MEDIA_SELECT_ENTITY
+                            + "') %}"
+                            "{% set i = opts.index(cur) if cur in opts else 0 %}"
+                            "{{ opts[(i - 1) % (opts | length)] }}"
+                        ),
+                    },
+                }
+            ],
+        },
+    }
+
+
+def yaml_list(items: list[str]) -> str:
+    inner = ", ".join(repr(x) for x in items)
+    return "[" + inner + "]"

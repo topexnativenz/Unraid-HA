@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
@@ -18,10 +19,13 @@ MEDIA_PACKAGE = ROOT / "packages" / "flux_ui_media.yaml"
 ROOMS = ROOT / "rooms.yaml"
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from flux_media_player import ARTWORK_ATTRS  # noqa: E402
-from ha_common import DEFAULT_HA, get_token  # noqa: E402
+from flux_media_player import ARTWORK_ATTRS, media_zone_scripts  # noqa: E402
+from ha_common import DEFAULT_HA, get_token, run_async, ws_call  # noqa: E402
 
-SONOS_HINTS = re.compile(r"sonos|speaker|playbar|playbase|beam|arc|move|roam|one|five|era", re.I)
+SONOS_HINTS = re.compile(
+    r"sonos|speaker|playbar|playbase|beam|arc|move|roam|one|five|era|symfonisk",
+    re.I,
+)
 
 
 def fetch_states(token: str, ha_url: str) -> list[dict]:
@@ -31,6 +35,41 @@ def fetch_states(token: str, ha_url: str) -> list[dict]:
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read())
+
+
+def fetch_entity_registry(token: str, ha_url: str) -> list[dict]:
+    results = run_async(ws_call(token, ha_url, [{"type": "config/entity_registry/list"}]))
+    if not results or not results[0].get("success"):
+        return []
+    return results[0].get("result") or []
+
+
+def reload_sonos_integration(token: str, ha_url: str) -> list[str]:
+    """Reload Sonos config entries so HA picks up renamed speakers from the Sonos app."""
+    notes: list[str] = []
+    list_res = run_async(ws_call(token, ha_url, [{"type": "config_entries/list"}]))
+    if not list_res or not list_res[0].get("success"):
+        notes.append("Could not list config entries — reload Sonos manually in HA Settings")
+        return notes
+
+    entries = list_res[0].get("result") or []
+    sonos_entries = [e for e in entries if e.get("domain") == "sonos"]
+    if not sonos_entries:
+        notes.append("No Sonos config entry found in Home Assistant")
+        return notes
+
+    for entry in sonos_entries:
+        entry_id = entry["entry_id"]
+        title = entry.get("title") or entry_id
+        reload_res = run_async(
+            ws_call(token, ha_url, [{"type": "config_entries/reload", "entry_id": entry_id}])
+        )
+        if reload_res and reload_res[0].get("success"):
+            notes.append(f"Reloaded Sonos integration: {title}")
+        else:
+            notes.append(f"Failed to reload Sonos integration: {title}")
+    time.sleep(3)
+    return notes
 
 
 def room_keywords() -> list[str]:
@@ -48,10 +87,26 @@ def room_keywords() -> list[str]:
     return sorted(words)
 
 
-def is_sonos_candidate(state: dict) -> bool:
+def registry_sonos_media_entities(registry: list[dict]) -> set[str]:
+    """Entity IDs registered under the Sonos integration."""
+    out: set[str] = set()
+    for ent in registry:
+        eid = ent.get("entity_id") or ""
+        if not eid.startswith("media_player."):
+            continue
+        platform = (ent.get("platform") or "").lower()
+        if platform == "sonos":
+            out.add(eid)
+    return out
+
+
+def is_sonos_candidate(state: dict, *, registry_ids: set[str] | None = None) -> bool:
     eid = state["entity_id"]
     if not eid.startswith("media_player."):
         return False
+    if registry_ids and eid in registry_ids:
+        return True
+
     attrs = state.get("attributes") or {}
     hay = " ".join(
         [
@@ -59,6 +114,8 @@ def is_sonos_candidate(state: dict) -> bool:
             str(attrs.get("friendly_name", "")),
             str(attrs.get("device_class", "")),
             str(attrs.get("app_name", "")),
+            str(attrs.get("manufacturer", "")),
+            str(attrs.get("model", "")),
         ]
     ).lower()
     if "sonos" in hay:
@@ -71,11 +128,15 @@ def is_sonos_candidate(state: dict) -> bool:
     return False
 
 
-def friendly_label(state: dict) -> str:
+def friendly_label(state: dict, registry: list[dict] | None = None) -> str:
     attrs = state.get("attributes") or {}
     fn = (attrs.get("friendly_name") or "").strip()
     if fn:
         return fn
+    if registry:
+        reg = next((e for e in registry if e.get("entity_id") == state["entity_id"]), None)
+        if reg and reg.get("name"):
+            return str(reg["name"]).strip()
     slug = state["entity_id"].replace("media_player.", "")
     return slug.replace("_", " ").title()
 
@@ -95,14 +156,8 @@ def load_media_config() -> dict:
     return yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
 
 
-def load_package() -> dict:
-    if not MEDIA_PACKAGE.exists():
-        return {"input_select": {"flux_ui_media_player": {"options": ["None"]}}}
-    return yaml.safe_load(MEDIA_PACKAGE.read_text()) or {}
-
-
 def dedupe_sonos_players(candidates: list[dict]) -> list[dict]:
-    """Prefer one entity per speaker — skip _sonos_2 duplicates and unavailable copies."""
+    """Prefer one entity per speaker — skip _2 / _sonos_2 duplicates and unavailable copies."""
     by_base: dict[str, dict] = {}
     for state in candidates:
         eid = state["entity_id"]
@@ -121,9 +176,29 @@ def dedupe_sonos_players(candidates: list[dict]) -> list[dict]:
     return [v for k, v in sorted(by_base.items())]
 
 
-def discover(token: str, ha_url: str) -> tuple[list[dict], str | None, list[str]]:
-    states = fetch_states(token, ha_url)
-    candidates = dedupe_sonos_players([s for s in states if is_sonos_candidate(s)])
+def discover_from_states(
+    states: list[dict],
+    *,
+    registry: list[dict] | None = None,
+    refresh_names: bool = True,
+) -> tuple[list[dict], str | None, list[str]]:
+    registry = registry or []
+    registry_ids = registry_sonos_media_entities(registry)
+    state_by_id = {s["entity_id"]: s for s in states}
+
+    # Include registry Sonos entities even if state fetch missed them.
+    candidates: list[dict] = []
+    seen: set[str] = set()
+    for eid in sorted(registry_ids):
+        seen.add(eid)
+        candidates.append(state_by_id.get(eid) or {"entity_id": eid, "state": "unknown", "attributes": {}})
+    for s in states:
+        if s["entity_id"] in seen:
+            continue
+        if is_sonos_candidate(s, registry_ids=registry_ids):
+            candidates.append(s)
+
+    candidates = dedupe_sonos_players(candidates)
     keywords = room_keywords()
     existing = {p.get("entity"): p for p in load_media_config().get("players", [])}
     notes: list[str] = []
@@ -131,17 +206,28 @@ def discover(token: str, ha_url: str) -> tuple[list[dict], str | None, list[str]
 
     print("Sonos / media_player candidates in HA:\n")
     for s in sorted(candidates, key=lambda x: x["entity_id"]):
-        fn = (s.get("attributes") or {}).get("friendly_name", "")
-        print(f"  {s['entity_id']:<48} state={s['state']:<10} {fn}")
+        label = friendly_label(s, registry)
+        print(f"  {s['entity_id']:<48} state={s['state']:<10} {label}")
 
-    for state in sorted(candidates, key=lambda x: friendly_label(x)):
+    for state in sorted(candidates, key=lambda x: friendly_label(x, registry)):
         eid = state["entity_id"]
-        label = friendly_label(state)
+        label = friendly_label(state, registry)
         prior = existing.get(eid, {})
-        name = prior.get("name") or label
+
+        if refresh_names or not prior.get("name"):
+            name = label
+        elif prior.get("pin_name"):
+            name = prior.get("name") or label
+        else:
+            name = label
+
+        old_name = prior.get("name")
+        if old_name and old_name != name:
+            notes.append(f"{eid}: name {old_name!r} -> {name!r} (from HA/Sonos)")
+
         room_score = score_room_match(label, keywords)
-        if room_score and not prior.get("name"):
-            notes.append(f"{eid}: matched room keywords (score={room_score})")
+        if room_score:
+            notes.append(f"{eid}: room keyword match (score={room_score})")
 
         updated.append(
             {
@@ -152,19 +238,31 @@ def discover(token: str, ha_url: str) -> tuple[list[dict], str | None, list[str]
         )
 
     default_entity: str | None = load_media_config().get("default_entity")
+    if default_entity and not any(p["entity"] == default_entity for p in updated):
+        notes.append(f"default_entity {default_entity!r} not found — resetting")
+        default_entity = None
     if not default_entity and updated:
         default_entity = updated[0]["entity"]
         notes.append(f"default_entity: {default_entity}")
 
     if not updated:
-        notes.append("No Sonos media_player entities found — music bar will be hidden until speakers appear in HA.")
+        notes.append("No Sonos media_player entities found — music bar hidden until speakers appear in HA.")
 
     return updated, default_entity, notes
 
 
-def audit_artwork(states: list[dict]) -> None:
+def discover(token: str, ha_url: str, **kwargs) -> tuple[list[dict], str | None, list[str]]:
+    states = fetch_states(token, ha_url)
+    registry = fetch_entity_registry(token, ha_url)
+    return discover_from_states(states, registry=registry, **kwargs)
+
+
+def audit_artwork(states: list[dict], *, registry: list[dict] | None = None) -> None:
     """Report album-art-related attributes for every Sonos media_player."""
-    candidates = dedupe_sonos_players([s for s in states if is_sonos_candidate(s)])
+    registry_ids = registry_sonos_media_entities(registry or [])
+    candidates = dedupe_sonos_players(
+        [s for s in states if is_sonos_candidate(s, registry_ids=registry_ids)]
+    )
     if not candidates:
         print("No Sonos media_player entities found.")
         return
@@ -173,9 +271,10 @@ def audit_artwork(states: list[dict]) -> None:
     for state in sorted(candidates, key=lambda x: x["entity_id"]):
         eid = state["entity_id"]
         attrs = state.get("attributes") or {}
+        label = friendly_label(state, registry)
         title = attrs.get("media_title") or attrs.get("media_content_type") or "—"
         artist = attrs.get("media_artist") or attrs.get("media_series_title") or "—"
-        print(f"  {eid}")
+        print(f"  {eid}  ({label})")
         print(f"    state={state['state']!r}  title={title!r}  artist={artist!r}")
         found_art = False
         for key in ARTWORK_ATTRS:
@@ -199,9 +298,10 @@ def write_media_players(players: list[dict], default_entity: str | None) -> None
     header = (
         "# Sonos media players for Flux UI floating music bar + popup.\n"
         "# Run: python3 home-assistant/flux-ui-dashboard/scripts/discover_sonos.py --apply\n"
+        "# Names refresh from HA friendly_name on each --apply (set pin_name: true to keep a custom label).\n"
         "#\n"
         "# Apple Music and Spotify stream through Sonos in HA — each speaker is a media_player entity.\n"
-        "# The navbar mini player shows all active players; tap opens #music-player for volume + queue.\n\n"
+        "# Tap mini player to select zone; hold to open full player. Swipe then tap to sync artwork.\n\n"
     )
     MEDIA_PLAYERS.write_text(header + yaml.safe_dump(cfg, sort_keys=False, default_flow_style=False))
 
@@ -230,6 +330,7 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
                 "icon": "mdi:speaker",
             }
         },
+        "script": media_zone_scripts(options),
     }
     if entities:
         choose: list[dict] = []
@@ -285,20 +386,49 @@ def main() -> int:
         action="store_true",
         help="Print entity_picture / album art attributes for each Sonos entity",
     )
+    parser.add_argument(
+        "--reload-sonos",
+        action="store_true",
+        help="Reload Sonos integration before discover (picks up Sonos app renames)",
+    )
+    parser.add_argument(
+        "--no-reload-sonos",
+        action="store_true",
+        help="Skip Sonos reload even when using --apply",
+    )
+    parser.add_argument(
+        "--keep-names",
+        action="store_true",
+        help="Do not overwrite custom names from media_players.yaml (default: refresh from HA)",
+    )
     args = parser.parse_args()
 
     token = get_token(args.token)
-    states = fetch_states(token, args.ha_url)
+    ha_url = args.ha_url
+    notes: list[str] = []
+
+    if args.reload_sonos or (args.apply and not args.no_reload_sonos):
+        print("Reloading Sonos integration (sync names from Sonos app)...")
+        notes.extend(reload_sonos_integration(token, ha_url))
+
+    registry = fetch_entity_registry(token, ha_url)
+    states = fetch_states(token, ha_url)
 
     if args.audit_artwork:
-        audit_artwork(states)
+        audit_artwork(states, registry=registry)
         return 0
 
-    players, default_entity, notes = discover(token, args.ha_url)
+    players, default_entity, discover_notes = discover_from_states(
+        states,
+        registry=registry,
+        refresh_names=not args.keep_names,
+    )
+    notes.extend(discover_notes)
 
-    print("\nMapping:")
-    for line in notes:
-        print(f"  {line}")
+    if notes:
+        print("\nMapping:")
+        for line in notes:
+            print(f"  {line}")
 
     if args.apply:
         write_media_players(players, default_entity)
