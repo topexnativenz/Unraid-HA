@@ -26,6 +26,7 @@ def flux_door_tile(door: dict, *, columns: int = 4) -> dict:
         "type": "custom:button-card",
         "template": "flux_door",
         "entity": sensor,
+        "triggers_update": "all",
         "name": name,
         "icon": open_icon_js(sensor, invert=invert, name=name),
         "label": open_label_js(sensor, invert=invert),

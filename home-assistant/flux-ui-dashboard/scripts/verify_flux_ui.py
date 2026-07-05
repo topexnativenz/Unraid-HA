@@ -124,6 +124,17 @@ def verify_build(path: Path) -> list[str]:
     if '"template": "flux_light"' not in blob:
         errors.append("Missing flux_light toggle tiles")
 
+    if '"template": "flux_door"' not in blob:
+        errors.append("Missing flux_door tiles for garage/shed quick actions")
+
+    if "states['binary_sensor." in blob and "isDoorOpen" in blob:
+        errors.append(
+            "Garage door JS still uses states[] lookup — rebuild with entity-bound isDoorOpen(entity)"
+        )
+
+    if "mdi:help-circle-outline" in blob:
+        errors.append("Door cards still use help-circle fallback icon — redeploy latest build")
+
     if "show_brightness_control" in blob:
         errors.append("Embedded mushroom sliders found — use flux_light tiles (tap/hold for dimmer)")
 

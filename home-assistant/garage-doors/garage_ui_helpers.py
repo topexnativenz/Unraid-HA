@@ -83,10 +83,11 @@ def open_label_jinja(sensor: str, *, invert: bool = False) -> str:
 
 IS_DOOR_OPEN_JS = (
     "const isDoorOpen = (st, invert) => {\n"
-    "  if (!st || ['unavailable','unknown'].includes(st.state)) return null;\n"
+    "  if (!st) return null;\n"
+    "  const s = String(st.state ?? '').toLowerCase();\n"
+    "  if (!s || ['unavailable','unknown','none'].includes(s)) return null;\n"
     f"  const openish = [{', '.join(repr(s) for s in DOOR_OPEN_STATES)}];\n"
     f"  const closedish = [{', '.join(repr(s) for s in DOOR_CLOSED_STATES)}];\n"
-    "  const s = String(st.state).toLowerCase();\n"
     "  if (openish.includes(s)) return invert ? false : true;\n"
     "  if (closedish.includes(s)) return invert ? true : false;\n"
     "  return false;\n"
@@ -94,45 +95,45 @@ IS_DOOR_OPEN_JS = (
 )
 
 
+def _door_js_body(*, invert: bool, icon_open: str, icon_closed: str, kind: str) -> str:
+    """Button-card JS using bound entity (not states lookup)."""
+    inv = str(invert).lower()
+    if kind == "icon":
+        tail = (
+            f"  if (open === true) return '{icon_open}';\n"
+            f"  if (open === false) return '{icon_closed}';\n"
+            "  return 'mdi:garage';\n"
+        )
+    elif kind == "label":
+        tail = (
+            "  if (open === true) return 'Open';\n"
+            "  if (open === false) return 'Closed';\n"
+            "  return entity?.state ? String(entity.state) : 'Closed';\n"
+        )
+    else:
+        tail = (
+            "  if (open === true) return '#F2B8B5';\n"
+            "  if (open === false) return '#81C784';\n"
+            "  return '#938F99';\n"
+        )
+    return "[[[\n" + IS_DOOR_OPEN_JS + f"  const open = isDoorOpen(entity, {inv});\n" + tail + "]]]"
+
+
 def open_icon_js(sensor: str, *, invert: bool = False, name: str = "Garage") -> str:
-    icon_open = door_icon(name, open_icon=True)
-    icon_closed = door_icon(name, open_icon=False)
-    return (
-        "[[[\n"
-        + IS_DOOR_OPEN_JS
-        + f"  const st = states['{sensor}'];\n"
-        f"  const open = isDoorOpen(st, {str(invert).lower()});\n"
-        f"  if (open) return '{icon_open}';\n"
-        f"  if (open === false) return '{icon_closed}';\n"
-        "  return 'mdi:help-circle-outline';\n"
-        "]]]"
+    return _door_js_body(
+        invert=invert,
+        icon_open=door_icon(name, open_icon=True),
+        icon_closed=door_icon(name, open_icon=False),
+        kind="icon",
     )
 
 
 def open_label_js(sensor: str, *, invert: bool = False) -> str:
-    return (
-        "[[[\n"
-        + IS_DOOR_OPEN_JS
-        + f"  const st = states['{sensor}'];\n"
-        f"  const open = isDoorOpen(st, {str(invert).lower()});\n"
-        "  if (open === true) return 'Open';\n"
-        "  if (open === false) return 'Closed';\n"
-        "  return '—';\n"
-        "]]]"
-    )
+    return _door_js_body(invert=invert, icon_open="", icon_closed="", kind="label")
 
 
 def open_color_js(sensor: str, *, invert: bool = False) -> str:
-    return (
-        "[[[\n"
-        + IS_DOOR_OPEN_JS
-        + f"  const st = states['{sensor}'];\n"
-        f"  const open = isDoorOpen(st, {str(invert).lower()});\n"
-        "  if (open === true) return '#F2B8B5';\n"
-        "  if (open === false) return '#81C784';\n"
-        "  return '#938F99';\n"
-        "]]]"
-    )
+    return _door_js_body(invert=invert, icon_open="", icon_closed="", kind="color")
 
 
 def door_open_state_js(*, invert: bool = False) -> str:
@@ -152,7 +153,7 @@ def indicator_from_door(door: dict) -> dict:
         "entity": door["sensor"],
         "name": name,
         "invert": door.get("invert", False),
-        "icon": "mdi:warehouse-open" if is_shed else "mdi:garage-open",
+        "icon": "mdi:door-sliding-open" if is_shed else "mdi:garage-open",
         "icon_closed": "mdi:warehouse" if is_shed else "mdi:garage",
         "color_on": "#F2B8B5",
         "color_off": "#81C784",

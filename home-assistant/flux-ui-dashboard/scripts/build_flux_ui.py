@@ -54,14 +54,8 @@ LIGHT_GROUPS = ROOT / "light_groups.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
-from garage_ui_helpers import (  # noqa: E402
-    door_open_state_js,
-    indicator_from_door,
-    load_garage_doors,
-    open_color_js,
-    open_icon_js,
-    open_label_js,
-)
+from flux_door_builders import flux_door_tile
+from garage_ui_helpers import indicator_from_door, load_garage_doors  # noqa: E402
 
 
 def _sync_garage_room_indicators(rooms: list[dict], doors: list[dict]) -> None:
@@ -223,46 +217,8 @@ def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
 
 
 def garage_action(door: dict, *, columns: int = 6) -> dict:
-    sensor = door["sensor"]
-    invert = door.get("invert", False)
-    name = door["name"]
-    return {
-        "type": "custom:button-card",
-        "template": "flux_action",
-        "entity": sensor,
-        "name": name,
-        "icon": open_icon_js(sensor, invert=invert, name=name),
-        "label": open_label_js(sensor, invert=invert),
-        "tap_action": {
-            "action": "call-service",
-            "service": "script.turn_on",
-            "service_data": {"entity_id": door["script"]},
-        },
-        "hold_action": {"action": "more-info"},
-        "state": [
-            {
-                "operator": "template",
-                "value": door_open_state_js(invert=invert),
-                "styles": {
-                    "card": [
-                        {"border": "1px solid rgba(242, 184, 181, 0.72)"},
-                        {
-                            "background": (
-                                "color-mix(in srgb, #F2B8B5 28%, "
-                                "var(--md-sys-color-surface-container) 72%)"
-                            )
-                        },
-                    ],
-                    "icon": [{"color": "#F2B8B5"}],
-                    "label": [{"color": "#F2B8B5"}, {"font-weight": "700"}],
-                },
-            },
-        ],
-        "styles": {
-            "icon": [{"color": open_color_js(sensor, invert=invert)}]
-        },
-        "grid_options": {"columns": columns},
-    }
+    """Quick action — flux_door tile bound to Tapo contact sensor."""
+    return flux_door_tile(door, columns=columns)
 
 
 def scene_action(
