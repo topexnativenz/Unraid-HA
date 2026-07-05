@@ -34,6 +34,23 @@ for f in media_players.yaml packages/flux_ui_media.yaml www/flux-ui/carousel-syn
   fi
 done
 
+echo "==> Discovering Sonos media players from HA (names + zones)"
+if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
+  DISCOVER_ARGS=()
+  if [[ -n "${HA_URL:-}" ]]; then
+    DISCOVER_ARGS+=(--ha-url "$HA_URL")
+  fi
+  if [[ -n "${HA_TOKEN:-}" ]]; then
+    DISCOVER_ARGS+=(--token "$HA_TOKEN")
+  fi
+  if ! python3 "$ROOT/scripts/discover_sonos.py" "${DISCOVER_ARGS[@]}" --apply; then
+    echo ""
+    echo "WARNING: Sonos discovery failed or no speakers found — building with existing media_players.yaml"
+  fi
+else
+  echo "    No HA credentials — using committed media_players.yaml (set HA_TOKEN for live Sonos names)"
+fi
+
 python3 "$ROOT/scripts/build_flux_ui.py" \
   --output "$ROOT/generated/lovelace.flux_ui.json"
 

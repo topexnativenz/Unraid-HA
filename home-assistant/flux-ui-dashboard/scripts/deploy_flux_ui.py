@@ -269,6 +269,18 @@ async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
     return any(s.get("entity_id") == entity_id for s in res[0].get("result", []))
 
 
+async def _sync_sonos_input_select(token: str, ha_url: str) -> None:
+    """Push live input_select options to match media_players.yaml after package reload."""
+    from discover_sonos import load_media_config, sync_input_select_options
+
+    players = load_media_config().get("players", [])
+    if not players:
+        return
+    notes = sync_input_select_options(token, ha_url, players)
+    for line in notes:
+        print(f"  {line}")
+
+
 def build_config(
     mobile_storage: Path | None,
     *,
@@ -517,7 +529,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             check=False,
         )
         print("Discovering Sonos media players for music bar…")
-        subprocess.run(
+        discover = subprocess.run(
             [
                 "python3",
                 str(DISCOVER_SONOS),
@@ -529,6 +541,11 @@ async def deploy_async(args: argparse.Namespace) -> int:
             ],
             check=False,
         )
+        if discover.returncode != 0:
+            print(
+                "WARNING: Sonos discovery failed or no speakers — "
+                "music bar may be hidden until speakers appear in HA"
+            )
 
     config = build_config(
         mobile_storage,
@@ -565,6 +582,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
                     f"  WARNING: {MEDIA_SELECT_ENTITY} not loaded — music player zone picker disabled.\n"
                     "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
                 )
+            await _sync_sonos_input_select(token, args.ha_url)
         write_storage(args.mount, config)
 
     subprocess.run(["python3", str(VERIFY)], check=True)
@@ -609,6 +627,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             ],
             check=False,
         )
+        await _sync_sonos_input_select(token, args.ha_url)
 
     subprocess.run(
         ["python3", str(VERIFY), "--live", "--ha-url", args.ha_url, "--token", token],

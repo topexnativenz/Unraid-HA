@@ -12,6 +12,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ha_common import DEFAULT_HA, get_token, run_async, ws_call
 
+ROOT = Path(__file__).resolve().parents[1]
+MEDIA_PLAYERS = ROOT / "media_players.yaml"
+
 FLUX_ENTITIES = (
     "input_select.flux_ui_rooms_tab",
     "input_select.flux_ui_media_player",
@@ -82,6 +85,23 @@ async def restart_ha(token: str, ha_url: str) -> bool:
     return res[0].get("success") is not False
 
 
+async def _sync_sonos_zone_names(token: str, ha_url: str) -> None:
+    """Ensure input_select.flux_ui_media_player options match media_players.yaml."""
+    import yaml
+
+    from discover_sonos import sync_input_select_options
+
+    if not MEDIA_PLAYERS.exists():
+        return
+    media_cfg = yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
+    players = media_cfg.get("players") or []
+    if not players:
+        return
+    print("  Syncing Sonos zone names to input_select.flux_ui_media_player…")
+    for line in sync_input_select_options(token, ha_url, players):
+        print(f"    {line}")
+
+
 async def wait_for_entities(
     token: str,
     ha_url: str,
@@ -129,6 +149,7 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
 
         if all(found[e] for e in REQUIRED) and scripts_ok:
             print("Flux UI package helpers and media scripts loaded.")
+            await _sync_sonos_zone_names(token, ha_url)
             return 0
 
     missing = [e for e in REQUIRED if not found[e]]
@@ -146,6 +167,7 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
                 found = {e: False for e in REQUIRED}
             if all(found[e] for e in REQUIRED):
                 print("Flux UI package helpers loaded after restart.")
+                await _sync_sonos_zone_names(token, ha_url)
                 return 0
             if i % 5 == 4:
                 print(f"  waiting for HA… ({(i + 1) * 3}s)")

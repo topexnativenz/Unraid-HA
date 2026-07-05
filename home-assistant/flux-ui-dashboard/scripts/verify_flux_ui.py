@@ -333,6 +333,48 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
         if needle not in urls:
             errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")
 
+    media_cfg = load_media_players()
+    expected_players = [
+        p for p in media_cfg.get("players", []) if p.get("enabled", True) and p.get("name")
+    ]
+    if media_cfg.get("enabled", True) and expected_players:
+        expected_opts = [p["name"] for p in expected_players]
+        states_res = (await ws_call(token, ha_url, [{"type": "get_states"}]))[0]
+        if states_res.get("success"):
+            media_select = next(
+                (
+                    s
+                    for s in states_res.get("result", [])
+                    if s.get("entity_id") == "input_select.flux_ui_media_player"
+                ),
+                None,
+            )
+            if not media_select:
+                errors.append(
+                    "Live input_select.flux_ui_media_player missing — deploy packages/flux_ui_media.yaml"
+                )
+            else:
+                live_opts = list(media_select.get("attributes", {}).get("options") or [])
+                if live_opts != expected_opts:
+                    errors.append(
+                        f"Live Sonos zone names {live_opts!r} != media_players.yaml {expected_opts!r} "
+                        "— run discover_sonos.py --apply or redeploy"
+                    )
+                current = media_select.get("state") or ""
+                if current and current not in expected_opts:
+                    errors.append(
+                        f"input_select selection {current!r} not in Sonos zone list {expected_opts!r}"
+                    )
+
+        overview = next((v for v in views if v.get("path") == "overview"), None)
+        if overview:
+            overview_blob = json.dumps(overview)
+            for player in expected_players:
+                if player["name"] not in overview_blob:
+                    errors.append(
+                        f"Live dashboard missing Sonos zone {player['name']!r} — rebuild after discover_sonos --apply"
+                    )
+
     return errors
 
 

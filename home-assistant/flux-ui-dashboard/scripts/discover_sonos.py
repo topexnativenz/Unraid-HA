@@ -68,8 +68,13 @@ def reload_sonos_integration(token: str, ha_url: str) -> list[str]:
             notes.append(f"Reloaded Sonos integration: {title}")
         else:
             notes.append(f"Failed to reload Sonos integration: {title}")
-    time.sleep(3)
+    # Allow Sonos integration + entity registry to settle after reload.
+    time.sleep(5)
     return notes
+
+
+def registry_entry(registry: list[dict], entity_id: str) -> dict | None:
+    return next((e for e in registry if e.get("entity_id") == entity_id), None)
 
 
 def room_keywords() -> list[str]:
@@ -129,15 +134,23 @@ def is_sonos_candidate(state: dict, *, registry_ids: set[str] | None = None) -> 
 
 
 def friendly_label(state: dict, registry: list[dict] | None = None) -> str:
+    """Display name from live HA / Sonos integration (matches Sonos app after reload)."""
+    eid = state["entity_id"]
     attrs = state.get("attributes") or {}
+
+    # Prefer live state friendly_name — updates when Sonos integration reloads.
     fn = (attrs.get("friendly_name") or "").strip()
     if fn:
         return fn
-    if registry:
-        reg = next((e for e in registry if e.get("entity_id") == state["entity_id"]), None)
-        if reg and reg.get("name"):
-            return str(reg["name"]).strip()
-    slug = state["entity_id"].replace("media_player.", "")
+
+    reg = registry_entry(registry or [], eid)
+    if reg:
+        for key in ("name", "original_name"):
+            val = reg.get(key)
+            if val and str(val).strip():
+                return str(val).strip()
+
+    slug = eid.replace("media_player.", "")
     return slug.replace("_", " ").title()
 
 
@@ -186,17 +199,19 @@ def discover_from_states(
     registry_ids = registry_sonos_media_entities(registry)
     state_by_id = {s["entity_id"]: s for s in states}
 
-    # Include registry Sonos entities even if state fetch missed them.
     candidates: list[dict] = []
-    seen: set[str] = set()
-    for eid in sorted(registry_ids):
-        seen.add(eid)
-        candidates.append(state_by_id.get(eid) or {"entity_id": eid, "state": "unknown", "attributes": {}})
-    for s in states:
-        if s["entity_id"] in seen:
-            continue
-        if is_sonos_candidate(s, registry_ids=registry_ids):
-            candidates.append(s)
+    if registry_ids:
+        # Authoritative list: every Sonos media_player in the HA entity registry.
+        for eid in sorted(registry_ids):
+            candidates.append(
+                state_by_id.get(eid) or {"entity_id": eid, "state": "unknown", "attributes": {}}
+            )
+    else:
+        seen: set[str] = set()
+        for s in states:
+            if is_sonos_candidate(s, registry_ids=registry_ids):
+                candidates.append(s)
+                seen.add(s["entity_id"])
 
     candidates = dedupe_sonos_players(candidates)
     keywords = room_keywords()
@@ -214,10 +229,8 @@ def discover_from_states(
         label = friendly_label(state, registry)
         prior = existing.get(eid, {})
 
-        if refresh_names or not prior.get("name"):
-            name = label
-        elif prior.get("pin_name"):
-            name = prior.get("name") or label
+        if prior.get("pin_name") and prior.get("name"):
+            name = prior["name"]
         else:
             name = label
 
@@ -377,6 +390,86 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
     MEDIA_PACKAGE.write_text(header + yaml.safe_dump(data, sort_keys=False, default_flow_style=False))
 
 
+def expected_zone_options(players: list[dict]) -> list[str]:
+    return [p["name"] for p in players if p.get("enabled", True) and p.get("name")] or ["None"]
+
+
+async def sync_input_select_options_async(token: str, ha_url: str, players: list[dict]) -> list[str]:
+    """Push live input_select options to match discovered Sonos zone names."""
+    import asyncio
+
+    options = expected_zone_options(players)
+    notes: list[str] = []
+
+    states_res = await ws_call(token, ha_url, [{"type": "get_states"}])
+    if not states_res[0].get("success"):
+        notes.append("Could not read HA states for input_select sync")
+        return notes
+
+    entity = next(
+        (s for s in states_res[0].get("result", []) if s.get("entity_id") == "input_select.flux_ui_media_player"),
+        None,
+    )
+    if not entity:
+        notes.append("input_select.flux_ui_media_player missing — reload packages")
+        return notes
+
+    live_opts = list(entity.get("attributes", {}).get("options") or [])
+    current = entity.get("state") or ""
+
+    if live_opts == options:
+        notes.append(f"input_select options already match Sonos ({len(options)} zones)")
+        return notes
+
+    notes.append(f"Syncing input_select options: {live_opts} -> {options}")
+
+    set_res = await ws_call(
+        token,
+        ha_url,
+        [
+            {
+                "type": "call_service",
+                "domain": "input_select",
+                "service": "set_options",
+                "target": {"entity_id": "input_select.flux_ui_media_player"},
+                "service_data": {"options": options},
+            }
+        ],
+    )
+    if set_res[0].get("success") is False:
+        notes.append(f"input_select.set_options failed: {set_res[0].get('error')}")
+        return notes
+
+    await asyncio.sleep(1)
+
+    if current not in options:
+        pick = options[0]
+        for player in players:
+            if player.get("entity") and player.get("name"):
+                pick = player["name"]
+                break
+        await ws_call(
+            token,
+            ha_url,
+            [
+                {
+                    "type": "call_service",
+                    "domain": "input_select",
+                    "service": "select_option",
+                    "target": {"entity_id": "input_select.flux_ui_media_player"},
+                    "service_data": {"option": pick},
+                }
+            ],
+        )
+        notes.append(f"Reset input_select selection to {pick!r}")
+
+    return notes
+
+
+def sync_input_select_options(token: str, ha_url: str, players: list[dict]) -> list[str]:
+    return run_async(sync_input_select_options_async(token, ha_url, players))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ha-url", default=DEFAULT_HA)
@@ -414,6 +507,11 @@ def main() -> int:
 
     registry = fetch_entity_registry(token, ha_url)
     states = fetch_states(token, ha_url)
+    # Re-fetch after Sonos reload so friendly_name reflects Sonos app names.
+    if args.reload_sonos or (args.apply and not args.no_reload_sonos):
+        time.sleep(2)
+        registry = fetch_entity_registry(token, ha_url)
+        states = fetch_states(token, ha_url)
 
     if args.audit_artwork:
         audit_artwork(states, registry=registry)
@@ -436,6 +534,12 @@ def main() -> int:
         write_package(players, default_entity)
         print(f"\nUpdated {MEDIA_PLAYERS}")
         print(f"Updated {MEDIA_PACKAGE}")
+        sync_notes = sync_input_select_options(token, ha_url, players)
+        for line in sync_notes:
+            print(f"  {line}")
+        if not players:
+            print("WARNING: No Sonos players discovered — music bar will be hidden")
+            return 1
     else:
         print("\nDry run — re-run with --apply to update media_players.yaml")
 
