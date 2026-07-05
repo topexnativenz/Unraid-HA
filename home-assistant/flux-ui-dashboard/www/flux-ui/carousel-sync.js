@@ -42,8 +42,8 @@
   function activeZoneTitle() {
     const idx = activeCarouselIndex();
     if (idx >= 0 && idx < ZONE_ORDER.length) return ZONE_ORDER[idx];
-    const titles = deepQueryAll('.media-player-title');
-    return titles[idx]?.textContent?.trim() || titles[0]?.textContent?.trim() || null;
+    // Do not read .media-player-title — it shows track names, not zone names.
+    return null;
   }
 
   function syncZone() {

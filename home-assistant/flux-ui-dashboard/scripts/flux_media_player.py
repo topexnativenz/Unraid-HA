@@ -64,6 +64,33 @@ def _player_show_jinja() -> str:
     return "[[[ return true; ]]]"
 
 
+def _navbar_player_title_js(entity: str, zone_name: str) -> str:
+    """Track name when playing; Sonos zone name when idle."""
+    return (
+        "[[[ "
+        f"const s = states[{entity!r}]; "
+        "if (!s) return '';"
+        "const track = s.attributes?.media_title || s.attributes?.media_series_title;"
+        f"return track || {zone_name!r}; "
+        "]]]"
+    )
+
+
+def _navbar_player_subtitle_js(entity: str, zone_name: str) -> str:
+    """Artist when playing; zone name when idle with no track metadata."""
+    return (
+        "[[[ "
+        f"const s = states[{entity!r}]; "
+        "if (!s) return '';"
+        "const artist = s.attributes?.media_artist || s.attributes?.media_album_artist;"
+        "const track = s.attributes?.media_title || s.attributes?.media_series_title;"
+        "if (artist) return artist;"
+        "if (track) return '';"
+        f"return {zone_name!r}; "
+        "]]]"
+    )
+
+
 def _select_zone_action(zone: str) -> dict:
     """Select Sonos zone via input_select (no script dependency)."""
     return {
@@ -119,7 +146,8 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         entry: dict[str, Any] = {
             "entity": entity,
             "show": _player_show_jinja(),
-            "title": name,
+            "title": _navbar_player_title_js(entity, name),
+            "subtitle": _navbar_player_subtitle_js(entity, name),
             "tap_action": open_action,
             "hold_action": open_action,
         }
@@ -373,8 +401,8 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
   function activeZoneTitle() {{
     const idx = activeCarouselIndex();
     if (idx >= 0 && idx < ZONE_ORDER.length) return ZONE_ORDER[idx];
-    const titles = deepQueryAll('.media-player-title');
-    return titles[idx]?.textContent?.trim() || titles[0]?.textContent?.trim() || null;
+    // Do not read .media-player-title — it shows track names, not zone names.
+    return null;
   }}
 
   function syncZone() {{
