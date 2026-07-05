@@ -224,15 +224,33 @@ async def reload_core_config(token: str, ha_url: str) -> None:
         print("  reloaded HA core config (packages/input_select)")
 
 
-async def wait_for_entity(token: str, ha_url: str, entity_id: str, *, attempts: int = 5) -> bool:
+async def wait_for_entity(token: str, ha_url: str, entity_id: str, *, attempts: int = 15) -> bool:
     import asyncio
 
     for i in range(attempts):
         if await entity_exists(token, ha_url, entity_id):
             return True
         if i < attempts - 1:
-            await asyncio.sleep(2)
+            await asyncio.sleep(3)
     return False
+
+
+async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool]:
+    """Reload packages and wait for input_select helpers (Rooms tabs, music picker)."""
+    import asyncio
+
+    await asyncio.sleep(2)  # allow SMB writes to flush
+    for pass_num in range(1, 3):
+        await reload_core_config(token, ha_url)
+        await asyncio.sleep(4)
+        found = {
+            OVERVIEW_TAB_ENTITY: await wait_for_entity(token, ha_url, OVERVIEW_TAB_ENTITY, attempts=5),
+            ROOMS_TAB_ENTITY: await wait_for_entity(token, ha_url, ROOMS_TAB_ENTITY, attempts=5),
+            MEDIA_SELECT_ENTITY: await wait_for_entity(token, ha_url, MEDIA_SELECT_ENTITY, attempts=5),
+        }
+        if found[ROOMS_TAB_ENTITY] and found[MEDIA_SELECT_ENTITY]:
+            return found
+    return found
 
 
 async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
@@ -402,31 +420,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             mounted = mount_config(args.host, user, pw, args.mount)
             if mounted:
                 copy_theme(args.mount)
-                copy_packages(args.mount)
                 copy_frontend_assets(args.mount)
-                if token and ha_up and not args.offline:
-                    await reload_core_config(token, args.ha_url)
-                    if await wait_for_entity(token, args.ha_url, OVERVIEW_TAB_ENTITY):
-                        print(f"  loaded {OVERVIEW_TAB_ENTITY}")
-                    else:
-                        print(
-                            f"  NOTE: {OVERVIEW_TAB_ENTITY} not loaded (OK when using simple-tabs engine). "
-                            "Native tab fallback needs packages in configuration.yaml."
-                        )
-                    if await wait_for_entity(token, args.ha_url, ROOMS_TAB_ENTITY):
-                        print(f"  loaded {ROOMS_TAB_ENTITY}")
-                    else:
-                        print(
-                            f"  NOTE: {ROOMS_TAB_ENTITY} not loaded — Rooms category tabs need "
-                            "packages/flux_ui_rooms.yaml in configuration.yaml."
-                        )
-                    if await wait_for_entity(token, args.ha_url, MEDIA_SELECT_ENTITY):
-                        print(f"  loaded {MEDIA_SELECT_ENTITY}")
-                    else:
-                        print(
-                            f"  NOTE: {MEDIA_SELECT_ENTITY} not loaded — music player picker needs "
-                            "packages/flux_ui_media.yaml in configuration.yaml."
-                        )
                 mobile_storage = Path(args.mount) / ".storage" / MOBILE_STORAGE
                 if not mobile_storage.exists():
                     mobile_storage = None
@@ -539,6 +533,30 @@ async def deploy_async(args: argparse.Namespace) -> int:
     )
 
     if mounted:
+        # Copy packages AFTER discover (Sonos updates flux_ui_media.yaml on disk).
+        copy_packages(args.mount)
+        if token and ha_up and not args.offline:
+            helpers = await ensure_flux_package_helpers(token, args.ha_url)
+            if helpers.get(OVERVIEW_TAB_ENTITY):
+                print(f"  loaded {OVERVIEW_TAB_ENTITY}")
+            else:
+                print(
+                    f"  NOTE: {OVERVIEW_TAB_ENTITY} not loaded (OK when using simple-tabs engine)."
+                )
+            if helpers.get(ROOMS_TAB_ENTITY):
+                print(f"  loaded {ROOMS_TAB_ENTITY}")
+            else:
+                print(
+                    f"  WARNING: {ROOMS_TAB_ENTITY} not loaded — Rooms category tabs will not switch.\n"
+                    "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
+                )
+            if helpers.get(MEDIA_SELECT_ENTITY):
+                print(f"  loaded {MEDIA_SELECT_ENTITY}")
+            else:
+                print(
+                    f"  WARNING: {MEDIA_SELECT_ENTITY} not loaded — music player zone picker disabled.\n"
+                    "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
+                )
         write_storage(args.mount, config)
 
     subprocess.run(["python3", str(VERIFY)], check=True)
@@ -556,6 +574,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
     assert token is not None
 
     await save_dashboard(token, args.ha_url, config)
+
+    if token and ha_up and not args.offline:
+        subprocess.run(
+            [
+                "python3",
+                str(ROOT / "scripts" / "ensure_packages_loaded.py"),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+            ],
+            check=False,
+        )
 
     subprocess.run(
         ["python3", str(VERIFY), "--live", "--ha-url", args.ha_url, "--token", token],
