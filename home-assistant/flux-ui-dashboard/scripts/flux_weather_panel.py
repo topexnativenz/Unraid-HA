@@ -156,11 +156,34 @@ def _apex_base() -> dict[str, Any]:
     }
 
 
+def _hourly_fc_jinja(weather: str, hourly_sensor: str, var: str = "fc") -> str:
+    """Load hourly forecast list from template sensor, with weather-entity fallback."""
+    return (
+        "{% set raw = state_attr('" + hourly_sensor + "', 'forecasts') %}"
+        "{% if raw is string %}{% set " + var + " = raw | from_json(default=[]) %}"
+        "{% elif raw is iterable %}{% set " + var + " = raw %}"
+        "{% else %}{% set " + var + " = [] %}{% endif %}"
+        "{% if " + var + " | count == 0 %}"
+        "{% set raw2 = state_attr('" + weather + "', 'forecast_hourly') %}"
+        "{% if raw2 is string %}{% set " + var + " = raw2 | from_json(default=[]) %}"
+        "{% elif raw2 is iterable %}{% set " + var + " = raw2 %}{% endif %}{% endif %}"
+    )
+
+
+def _sensor_or_fallback(sensor: str, fallback_jinja: str) -> str:
+    """Prefer template sensor state; use inline Jinja when sensor is unknown."""
+    return (
+        "{% set s = states('" + sensor + "') %}"
+        "{% if s not in ['unknown','unavailable','none',''] %}{{ s }}"
+        "{% else %}" + fallback_jinja + "{% endif %}"
+    )
+
+
 def _forecasts_js() -> str:
-    """Read MetService online forecast from weather entity (forecast_hourly attribute)."""
+    """Read hourly forecast from flux_ui template sensor (weather.get_forecasts)."""
     return (
         "let forecasts = [];\n"
-        "const raw = entity.attributes.forecast_hourly ?? entity.attributes.forecasts;\n"
+        "const raw = entity.attributes.forecasts ?? entity.attributes.forecast_hourly ?? entity.attributes.forecast;\n"
         "if (typeof raw === 'string') { try { forecasts = JSON.parse(raw || '[]'); } catch (e) { forecasts = []; } }\n"
         "else if (Array.isArray(raw)) forecasts = raw;\n"
         "if (!forecasts.length) return [];\n"
@@ -177,11 +200,10 @@ def _forecasts_js() -> str:
     )
 
 
-def _rain_summary_subtitle(w: str) -> str:
-    return (
-        "{% set fc = state_attr('" + w + "', 'forecast_hourly') %}"
-        "{% if fc is string %}{% set fc = fc | from_json %}{% endif %}"
-        "{% if fc is iterable and fc | count > 0 %}"
+def _rain_summary_subtitle(w: str, hourly: str, rain_summary: str) -> str:
+    body = (
+        _hourly_fc_jinja(w, hourly)
+        + "{% if fc | count > 0 %}"
         "{% set values = fc | map(attribute='precipitation') | map('float', default=0) | list %}"
         "{% set total = values | sum %}"
         "{% if total == 0 %}🌤️ Rainfall: None expected in the next 24 hours"
@@ -191,22 +213,23 @@ def _rain_summary_subtitle(w: str) -> str:
         "{% else %}🌊 Rainfall: {{ total | round(1) }} mm (Very heavy) next 24h{% endif %}"
         "{% else %}🌤️ MetService forecast loading…{% endif %}"
     )
+    return _sensor_or_fallback(rain_summary, body)
 
 
-def _next_rain_subtitle(w: str) -> str:
-    return (
-        "{% set fc = state_attr('" + w + "', 'forecast_hourly') %}"
-        "{% if fc is string %}{% set fc = fc | from_json %}{% endif %}"
-        "{% if fc is iterable and fc | count > 0 %}"
+def _next_rain_subtitle(w: str, hourly: str, next_rain: str) -> str:
+    body = (
+        _hourly_fc_jinja(w, hourly)
+        + "{% if fc | count > 0 %}"
         "{% set rain = fc | selectattr('precipitation','defined') | selectattr('precipitation','gt',0) | list %}"
         "{% if rain | count > 0 %}"
         "{% set n = rain | first %}{% set val = n.precipitation | float %}"
         "{% if val < 2.5 %}🌦️ Light · {{ val | round(1) }} mm · {{ as_datetime(n.datetime).strftime('%a, %b %d at %I:%M %p') }}"
         "{% elif val < 7.6 %}🌧️ Moderate · {{ val | round(1) }} mm · {{ as_datetime(n.datetime).strftime('%a, %b %d at %I:%M %p') }}"
         "{% else %}⛈️ Heavy · {{ val | round(1) }} mm · {{ as_datetime(n.datetime).strftime('%a, %b %d at %I:%M %p') }}{% endif %}"
-        "{% else %}🌤️ No rain today{% endif %}"
+        "{% else %}🌤️ No rain expected in the next 24 hours{% endif %}"
         "{% else %}🌤️ MetService forecast loading…{% endif %}"
     )
+    return _sensor_or_fallback(next_rain, body)
 
 
 def _uv_summary_subtitle(w: str, uv: str) -> str:
@@ -216,14 +239,32 @@ def _uv_summary_subtitle(w: str, uv: str) -> str:
     )
 
 
-def _wind_summary_subtitle(w: str) -> str:
-    return (
-        "{% set fc = state_attr('" + w + "', 'forecast_hourly') %}"
-        "{% if fc is string %}{% set fc = fc | from_json %}{% endif %}"
-        "{% if fc is iterable and fc | count > 0 %}"
+def _wind_summary_subtitle(w: str, hourly: str, wind_summary: str) -> str:
+    body = (
+        _hourly_fc_jinja(w, hourly)
+        + "{% if fc | count > 0 %}"
         "{% set speeds = fc | map(attribute='wind_speed') | map('float', default=0) | list %}"
         "💨 Peak wind: {{ speeds | max | round(1) }} {{ state_attr('" + w + "', 'wind_speed_unit') | default('km/h') }} next 24h"
         "{% else %}💨 MetService forecast loading…{% endif %}"
+    )
+    return _sensor_or_fallback(wind_summary, body)
+
+
+def _daily_high_low_secondary(w: str, daily: str) -> str:
+    return (
+        "{% set raw = state_attr('" + daily + "', 'forecast_data') %}"
+        "{% if raw is string %}{% set forecast = raw | from_json(default={}) %}"
+        "{% elif raw is mapping %}{% set forecast = raw %}{% else %}{% set forecast = {} %}{% endif %}"
+        "{% if forecast.temperature is not defined %}"
+        "{% set fd = state_attr('" + w + "', 'forecast_daily') %}"
+        "{% if fd is string %}{% set fd = fd | from_json(default=[]) %}{% endif %}"
+        "{% set forecast = fd[0] if fd is iterable and fd | count > 0 else {} %}{% endif %}"
+        "{% set unit = state_attr('" + w + "', 'temperature_unit') | default('°C') %}"
+        "{% if forecast.temperature is defined and forecast.templow is defined %}"
+        "High: {{ forecast.temperature }}{{ unit }} - Low: {{ forecast.templow }}{{ unit }}"
+        "{% elif forecast.temperature is defined %}"
+        "High: {{ forecast.temperature }}{{ unit }} - Low: N/A"
+        "{% else %}High: N/A - Low: N/A{% endif %}"
     )
 
 
@@ -248,7 +289,7 @@ def _wind_bearing_js() -> str:
     )
 
 
-def _rainfall_chart(weather: str) -> dict:
+def _rainfall_chart(hourly_sensor: str) -> dict:
     chart = _apex_base()
     chart["header"] = {"show": True}
     chart["apex_config"]["yaxis"] = [
@@ -257,7 +298,7 @@ def _rainfall_chart(weather: str) -> dict:
     ]
     chart["series"] = [
         {
-            "entity": weather,
+            "entity": hourly_sensor,
             "name": "Rain",
             "type": "column",
             "yaxis_id": "rain",
@@ -275,7 +316,7 @@ def _rainfall_chart(weather: str) -> dict:
             ),
         },
         {
-            "entity": weather,
+            "entity": hourly_sensor,
             "name": "Temp",
             "type": "line",
             "curve": "smooth",
@@ -293,7 +334,7 @@ def _rainfall_chart(weather: str) -> dict:
     return {"type": "custom:apexcharts-card", **chart}
 
 
-def _uv_chart(weather: str) -> dict:
+def _uv_chart(hourly_sensor: str) -> dict:
     chart = _apex_base()
     chart["apex_config"]["yaxis"] = [
         {"id": "uv", "title": {"text": "UV Index"}, "opposite": False, "min": 0, "max": 11},
@@ -301,7 +342,7 @@ def _uv_chart(weather: str) -> dict:
     ]
     chart["series"] = [
         {
-            "entity": weather,
+            "entity": hourly_sensor,
             "name": "UV Index",
             "type": "line",
             "curve": "smooth",
@@ -318,7 +359,7 @@ def _uv_chart(weather: str) -> dict:
             ),
         },
         {
-            "entity": weather,
+            "entity": hourly_sensor,
             "name": "Cloud Coverage",
             "type": "area",
             "yaxis_id": "cloud",
@@ -337,7 +378,7 @@ def _uv_chart(weather: str) -> dict:
     return {"type": "custom:apexcharts-card", **chart}
 
 
-def _wind_chart(weather: str) -> dict:
+def _wind_chart(hourly_sensor: str) -> dict:
     chart = _apex_base()
     chart["apex_config"]["yaxis"] = [
         {"id": "speed", "title": {"text": "Wind Speed (km/h)"}, "opposite": False},
@@ -345,7 +386,7 @@ def _wind_chart(weather: str) -> dict:
     ]
     chart["series"] = [
         {
-            "entity": weather,
+            "entity": hourly_sensor,
             "name": "Speed",
             "type": "line",
             "curve": "smooth",
@@ -361,7 +402,7 @@ def _wind_chart(weather: str) -> dict:
             ),
         },
         {
-            "entity": weather,
+            "entity": hourly_sensor,
             "name": "Direction",
             "type": "line",
             "curve": "smooth",
@@ -405,7 +446,10 @@ def _forecast_tab(p: dict) -> dict:
                     "mode": "vertical",
                     "cards": [
                         {
-                            **_title_subtitle("Forecast", _next_rain_subtitle(w)),
+                            **_title_subtitle(
+                                "Forecast",
+                                _next_rain_subtitle(w, e["hourly"], e["next_rain"]),
+                            ),
                             "card_mod": FORECAST_HEADER_PAD,
                         },
                         {
@@ -441,18 +485,12 @@ def _forecast_tab(p: dict) -> dict:
             live["temperature"],
             "mdi:thermometer",
             (
-                "Temp: {{ states('" + live["temperature"] + "') }} "
-                "{{ state_attr('" + w + "', 'temperature_unit') }}"
+                "Temp: {{ state_attr('" + live["temperature"] + "', 'temperature') "
+                "if '" + live["temperature"] + "'.startswith('weather.') "
+                "else states('" + live["temperature"] + "') }} "
+                "{{ state_attr('" + w + "', 'temperature_unit') | default('°C') }}"
             ),
-            (
-                "{% set fd = state_attr('" + w + "', 'forecast_daily') %}"
-                "{% if fd is string %}{% set fd = fd | from_json %}{% endif %}"
-                "{% set forecast = fd[0] if fd is iterable and fd | count > 0 else {} %}"
-                "{% set unit = state_attr('" + w + "', 'temperature_unit') %}"
-                "{% if forecast.temperature is defined and forecast.templow is defined %}"
-                "High: {{ forecast.temperature }}{{ unit }} - Low: {{ forecast.templow }}{{ unit }}"
-                "{% else %}High: N/A - Low: N/A{% endif %}"
-            ),
+            _daily_high_low_secondary(w, e["daily"]),
             _temp_color_template(w),
         )
     ]
@@ -492,10 +530,19 @@ def _forecast_tab(p: dict) -> dict:
 
 def _rainfall_tab(p: dict) -> dict:
     w = p["weather"]
+    e = p["entities"]
     live = p["live"]
+    hourly = e["hourly"]
+    rain_now = (
+        _hourly_fc_jinja(w, hourly)
+        + "{% set r = (fc[0].precipitation if fc | count > 0 else 0) | float(0) %}"
+    )
     cards = [
-        _title_subtitle("Rainfall & Temperature Forecast", _rain_summary_subtitle(w)),
-        {"type": "vertical-stack", "cards": [_rainfall_chart(w)]},
+        _title_subtitle(
+            "Rainfall & Temperature Forecast",
+            _rain_summary_subtitle(w, hourly, e["rain_summary"]),
+        ),
+        {"type": "vertical-stack", "cards": [_rainfall_chart(hourly)]},
         _title_subtitle("Current Rainfall", ""),
         {
             "type": "horizontal-stack",
@@ -504,24 +551,18 @@ def _rainfall_tab(p: dict) -> dict:
                     w,
                     "mdi:weather-rainy",
                     (
-                        "{% set fc = state_attr('" + w + "', 'forecast_hourly') %}"
-                        "{% if fc is string %}{% set fc = fc | from_json %}{% endif %}"
-                        "{% set r = (fc[0].precipitation if fc is iterable and fc | count > 0 else 0) | float(0) %}"
-                        "{% if r == 0 %}Rainfall: None{% else %}Rainfall: {{ r }} mm{% endif %}"
+                        rain_now
+                        + "{% if r == 0 %}Rainfall: None{% else %}Rainfall: {{ r }} mm{% endif %}"
                     ),
                     (
-                        "{% set fc = state_attr('" + w + "', 'forecast_hourly') %}"
-                        "{% if fc is string %}{% set fc = fc | from_json %}{% endif %}"
-                        "{% set r = (fc[0].precipitation if fc is iterable and fc | count > 0 else 0) | float(0) %}"
-                        "{% if r == 0 %}None - Dry conditions{% elif r < 1 %}Light - Possible drizzle"
+                        rain_now
+                        + "{% if r == 0 %}None - Dry conditions{% elif r < 1 %}Light - Possible drizzle"
                         "{% elif r < 5 %}Moderate - Bring umbrella{% elif r < 20 %}Heavy - Wet outdoors"
                         "{% else %}Intense - Flood risk{% endif %}"
                     ),
                     (
-                        "{% set fc = state_attr('" + w + "', 'forecast_hourly') %}"
-                        "{% if fc is string %}{% set fc = fc | from_json %}{% endif %}"
-                        "{% set r = (fc[0].precipitation if fc is iterable and fc | count > 0 else 0) | float(0) %}"
-                        "{% if r == 0 %}blue{% elif r < 1 %}lightblue{% elif r < 5 %}cyan"
+                        rain_now
+                        + "{% if r == 0 %}blue{% elif r < 1 %}lightblue{% elif r < 5 %}cyan"
                         "{% elif r < 20 %}orange{% else %}red{% endif %}"
                     ),
                 ),
@@ -548,12 +589,19 @@ def _rainfall_tab(p: dict) -> dict:
 
 def _uv_tab(p: dict) -> dict:
     w = p["weather"]
+    e = p["entities"]
     live = p["live"]
     uv = live["uv"]
     humidity = live["humidity"]
     cards = [
-        _title_subtitle("UV Index & Cloud Coverage Forecast", _uv_summary_subtitle(w, uv)),
-        {"type": "vertical-stack", "cards": [_uv_chart(w)]},
+        _title_subtitle(
+            "UV Index & Cloud Coverage Forecast",
+            _sensor_or_fallback(
+                e["uv_cloud"],
+                _uv_summary_subtitle(w, uv),
+            ),
+        ),
+        {"type": "vertical-stack", "cards": [_uv_chart(e["hourly"])]},
         _title_subtitle("Current Sky Conditions", ""),
         {
             "type": "horizontal-stack",
@@ -606,10 +654,14 @@ def _uv_tab(p: dict) -> dict:
 
 def _wind_tab(p: dict) -> dict:
     w = p["weather"]
+    e = p["entities"]
     live = p["live"]
     cards = [
-        _title_subtitle("Wind Speed & Direction Forecast", _wind_summary_subtitle(w)),
-        {"type": "vertical-stack", "cards": [_wind_chart(w)]},
+        _title_subtitle(
+            "Wind Speed & Direction Forecast",
+            _wind_summary_subtitle(w, e["hourly"], e["wind_summary"]),
+        ),
+        {"type": "vertical-stack", "cards": [_wind_chart(e["hourly"])]},
         _title_subtitle("Current Wind", ""),
         _mushroom_info(
             live["wind_speed"],

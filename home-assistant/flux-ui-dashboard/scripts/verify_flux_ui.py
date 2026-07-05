@@ -166,6 +166,10 @@ def verify_build(path: Path) -> list[str]:
     if "/local/flux-ui/bitmoji/" not in blob:
         errors.append("Missing hero bitmoji picture path (/local/flux-ui/bitmoji/)")
 
+    bitmoji_png = ROOT / "www" / "flux-ui" / "bitmoji" / "dave.png"
+    if not bitmoji_png.exists():
+        errors.append(f"Missing bitmoji asset: {bitmoji_png.name} — hero avatar will 404")
+
     for card_type in ("custom:button-card", "flux_hero"):
         if card_type not in blob:
             errors.append(f"Missing {card_type}")
@@ -186,23 +190,15 @@ def verify_build(path: Path) -> list[str]:
         if needle not in overview_blob:
             errors.append(f"Weather panel missing ElementZoom component: {needle}")
 
-    if "forecast_hourly" not in overview_blob:
+    if "entity.attributes.forecasts" not in overview_blob:
         errors.append(
-            "Weather charts must read MetService forecast_hourly on the weather entity"
+            "Weather charts must read forecasts from sensor.flux_ui_hourly_forecast_full"
         )
 
-    if "sensor.flux_ui_hourly_forecast_full" in overview_blob:
+    if "sensor.flux_ui_hourly_forecast_full" not in overview_blob:
         errors.append(
-            "Stale weather chart entity sensor.flux_ui_hourly_forecast_full — rebuild with weather entity"
+            "Weather charts missing sensor.flux_ui_hourly_forecast_full entity reference"
         )
-
-    for stale in (
-        "sensor.flux_ui_forecast_rainfall",
-        "sensor.flux_ui_forecast_temperature",
-        "sensor.flux_ui_forecast_uv_index",
-    ):
-        if stale in overview_blob and "custom:apexcharts-card" in overview_blob:
-            errors.append(f"Stale apexcharts entity {stale} — charts must use weather entity")
 
     media_cfg = load_media_players()
     media_enabled = media_cfg.get("enabled", True)

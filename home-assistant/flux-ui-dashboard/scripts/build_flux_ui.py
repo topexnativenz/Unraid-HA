@@ -209,7 +209,7 @@ def section_title(title: str, subtitle: str = "") -> dict:
 
 
 def hero_bitmoji_picture_js(cfg: dict) -> str:
-    """Logged-in user avatar: HA person entity picture, then configured bitmoji map."""
+    """Logged-in user avatar: configured bitmoji map, then HA person picture, then default."""
     hero = (cfg.get("context") or {}).get("hero") or {}
     by_user = hero.get("bitmoji_by_user") or {"Dave": "/local/flux-ui/bitmoji/dave.png"}
     default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
@@ -223,6 +223,7 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
         "    const uid = u.id;\n"
         f"    const map = {map_json};\n"
         f"    const fallback = {default_json};\n"
+        "    if (map[uname]) return map[uname];\n"
         "    if (typeof states === 'object' && states && uid != null) {\n"
         "      for (const eid of Object.keys(states)) {\n"
         "        if (!eid.startsWith('person.')) continue;\n"
@@ -230,11 +231,11 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
         "        if (!st || !st.attributes) continue;\n"
         "        if (st.attributes.user_id === uid) {\n"
         "          const pic = st.attributes.entity_picture;\n"
-        "          if (pic) return pic;\n"
+        "          if (pic && !String(pic).includes('branding/logo')) return pic;\n"
         "        }\n"
         "      }\n"
         "    }\n"
-        "    return map[uname] || fallback;\n"
+        "    return fallback;\n"
         "  } catch (e) {\n"
         f"    return {default_json};\n"
         "  }\n"
@@ -251,6 +252,7 @@ def hero_card(weather_entity: str, cfg: dict) -> dict:
         "entity": weather_entity,
         "show_icon": False,
         "show_entity_picture": True,
+        "entity_picture": avatar,
         "picture": avatar,
         "triggers_update": "all",
         "name": (

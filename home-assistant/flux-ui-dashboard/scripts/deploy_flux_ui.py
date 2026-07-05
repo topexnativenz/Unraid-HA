@@ -281,17 +281,23 @@ async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool
                 print(f"  WARNING: {domain}.{svc} failed")
         await asyncio.sleep(3)
         weather_entity = _weather_entity_from_config()
+        hourly_sensor = "sensor.flux_ui_hourly_forecast_full"
         found = {
             OVERVIEW_TAB_ENTITY: await wait_for_entity(token, ha_url, OVERVIEW_TAB_ENTITY, attempts=5),
             ROOMS_TAB_ENTITY: await wait_for_entity(token, ha_url, ROOMS_TAB_ENTITY, attempts=5),
             MEDIA_SELECT_ENTITY: await wait_for_entity(token, ha_url, MEDIA_SELECT_ENTITY, attempts=5),
             weather_entity: await wait_for_entity(token, ha_url, weather_entity, attempts=8),
+            hourly_sensor: await wait_for_entity(token, ha_url, hourly_sensor, attempts=8),
         }
         if found[ROOMS_TAB_ENTITY] and found[MEDIA_SELECT_ENTITY]:
             if not found[weather_entity]:
                 print(
-                    f"  WARNING: {weather_entity} not found — Rainfall/UV/Wind charts need MetService integration.\n"
-                    "  Run: python3 scripts/discover_weather.py --apply"
+                    f"  WARNING: {weather_entity} not found — run discover_weather.py --apply"
+                )
+            if not found[hourly_sensor]:
+                print(
+                    f"  WARNING: {hourly_sensor} not loaded — Forecast subtitles and charts need flux_ui_weather.yaml.\n"
+                    "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
                 )
             return found
     return found

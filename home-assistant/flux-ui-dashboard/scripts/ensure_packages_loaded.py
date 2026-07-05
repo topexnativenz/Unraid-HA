@@ -21,7 +21,10 @@ FLUX_ENTITIES = (
     "input_select.flux_ui_overview_tab",
 )
 
-WEATHER_ENTITIES = ()  # optional legacy template sensors — charts use weather entity directly
+WEATHER_ENTITIES = (
+    "sensor.flux_ui_hourly_forecast_full",
+    "sensor.flux_ui_daily_forecast_data",
+)
 
 REQUIRED = (
     "input_select.flux_ui_rooms_tab",
@@ -141,10 +144,14 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
         await reload_service_domain(token, ha_url, "automation", "reload")
         await asyncio.sleep(5)
         found = await wait_for_entities(token, ha_url, FLUX_ENTITIES, attempts=10, delay=2.0)
+        weather = await wait_for_entities(token, ha_url, WEATHER_ENTITIES, attempts=8, delay=2.0)
         for eid in FLUX_ENTITIES:
             status = "ok" if found[eid] else "missing"
             optional = "" if eid in REQUIRED else " (optional)"
             print(f"    {status:7} {eid}{optional}")
+        for eid in WEATHER_ENTITIES:
+            status = "ok" if weather[eid] else "missing"
+            print(f"    {status:7} {eid} (weather panel)")
 
         scripts_ok = True
         for sid in MEDIA_SCRIPTS:
@@ -155,13 +162,19 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
                 scripts_ok = False
 
         if all(found[e] for e in REQUIRED) and scripts_ok:
-            print("Flux UI package helpers and media scripts loaded.")
+            if weather.get(WEATHER_ENTITIES[0]):
+                print("Flux UI package helpers, weather forecast sensors, and media scripts loaded.")
+            else:
+                print("Flux UI package helpers loaded (weather forecast sensors still loading — charts may be empty briefly).")
             await _sync_sonos_zone_names(token, ha_url)
             return 0
 
     missing = [e for e in REQUIRED if not found[e]]
+    weather_missing = [e for e in WEATHER_ENTITIES if not weather.get(e)]
     print(f"\nWARNING: Required helpers still missing: {', '.join(missing) or 'none'}")
-    print("  Weather charts read forecast_hourly from your MetService weather entity (no template sensors required).")
+    if weather_missing:
+        print(f"WARNING: Weather forecast sensors missing: {', '.join(weather_missing)}")
+        print("  Ensure packages/flux_ui_weather.yaml is deployed and run: bash home-assistant/scripts/deploy_mac.sh --restart-ha")
     print("Packages were copied to /config/packages/ but HA has not loaded them yet.")
 
     if restart:
@@ -171,8 +184,10 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
             await asyncio.sleep(3)
             try:
                 found = await wait_for_entities(token, ha_url, REQUIRED, attempts=1, delay=0)
+                weather = await wait_for_entities(token, ha_url, WEATHER_ENTITIES, attempts=1, delay=0)
             except Exception:
                 found = {e: False for e in REQUIRED}
+                weather = {e: False for e in WEATHER_ENTITIES}
             if all(found[e] for e in REQUIRED):
                 print("Flux UI package helpers loaded after restart.")
                 await _sync_sonos_zone_names(token, ha_url)
