@@ -15,6 +15,13 @@ events:
   first_day_of_week: monday
   show_countdown: true
   show_progress_bar: true
+  # Compact date column — day / date / month stacked at top (ElementZoom reference)
+  date_vertical_alignment: top
+  weekday_font_size: 12px
+  day_font_size: 26px
+  month_font_size: 10px
+  day_spacing: 4px
+  event_spacing: 6px
   calendars:
     # Whanau calendar — the.gillespie.tribe@gmail.com (auto-discovered on deploy)
     - entity: calendar.whanau_calendar

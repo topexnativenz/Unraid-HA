@@ -162,7 +162,7 @@ def _simple_tabs_shell(tabs: list[dict]) -> dict:
     return {
         "type": "custom:simple-tabs",
         "pre-load": False,
-        "tabs_alignment": "start",
+        "tabs_alignment": "center",
         "card_padding": "0",
         "bar_padding": "6px 8px",
         "bar_border_radius": "28px",
@@ -180,20 +180,39 @@ def _simple_tabs_shell(tabs: list[dict]) -> dict:
         "enable_swipe": True,
         "hide_inactive_tab_titles": False,
         "card_mod": {
-            "style": (
-                "ha-card {\n"
-                "  width: 100% !important;\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  margin: 0 !important;\n"
-                "  padding: 0 !important;\n"
-                "}\n"
-                "simple-tabs {\n"
-                "  width: 100% !important;\n"
-                "  display: block !important;\n"
-                "}\n"
-            )
+            "style": {
+                ".": (
+                    "ha-card, :host {\n"
+                    "  width: 100% !important;\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "  margin: 0 !important;\n"
+                    "  padding: 0 !important;\n"
+                    "}\n"
+                    ".tabs-row {\n"
+                    "  width: 100% !important;\n"
+                    "}\n"
+                    ".tabs-viewport {\n"
+                    "  width: 100% !important;\n"
+                    "  max-width: 100% !important;\n"
+                    "}\n"
+                    ".tabs-container {\n"
+                    "  width: 100% !important;\n"
+                    "  min-width: 100% !important;\n"
+                    "}\n"
+                    ".tabs {\n"
+                    "  width: 100% !important;\n"
+                    "  display: flex !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    ".tab-button {\n"
+                    "  flex: 1 1 0 !important;\n"
+                    "  min-width: 0 !important;\n"
+                    "  justify-content: center !important;\n"
+                    "}\n"
+                ),
+            },
         },
         "tabs": tabs,
     }
@@ -216,7 +235,8 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
                 "compact_events_to_show": events.get("compact_events_to_show", 10),
                 "background_color": "transparent",
                 "vertical_line_width": "5px",
-                "event_spacing": 6,
+                "event_spacing": events.get("event_spacing", "6px"),
+                "day_spacing": events.get("day_spacing", "4px"),
                 "first_day_of_week": events.get("first_day_of_week", "monday"),
                 "show_week_numbers": "iso",
                 "week_number_color": "var(--md-sys-color-on-primary)",
@@ -226,8 +246,10 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
                 "today_indicator": "pulse",
                 "today_indicator_position": "10% 50%",
                 "today_indicator_color": "var(--md-sys-color-primary)",
-                "weekday_font_size": 12,
-                "month_font_size": 10,
+                "date_vertical_alignment": events.get("date_vertical_alignment", "top"),
+                "weekday_font_size": events.get("weekday_font_size", "12px"),
+                "day_font_size": events.get("day_font_size", "26px"),
+                "month_font_size": events.get("month_font_size", "10px"),
                 "show_countdown": events.get("show_countdown", True),
                 "show_progress_bar": events.get("show_progress_bar", True),
                 "progress_bar_color": "var(--md-sys-color-primary)",
@@ -277,7 +299,9 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
     return [{"type": "vertical-stack", "cards": fallback}]
 
 
-def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool) -> list[dict]:
+def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool, for_tab_panel: bool = False) -> list[dict]:
+    from flux_tab_layout import adapt_card_for_tab_panel
+
     cards: list[dict] = []
     if use_auto_entities:
         cards.append(build_active_lights_section(cfg))
@@ -289,6 +313,8 @@ def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool) -> list[dict]:
         entity = group.get("entity")
         if entity:
             cards.append(_active_group_section(group))
+    if for_tab_panel:
+        return [adapt_card_for_tab_panel(c) for c in cards]
     return cards
 
 
@@ -390,7 +416,9 @@ def build_overview_tabs_section(
                 "cards": build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro),
             },
         ]
-        active_cards = build_active_tab_cards(cfg, use_auto_entities=use_auto_entities)
+        active_cards = build_active_tab_cards(
+            cfg, use_auto_entities=use_auto_entities, for_tab_panel=True
+        )
         if active_cards:
             tabs.append(
                 {
