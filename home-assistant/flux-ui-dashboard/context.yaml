@@ -1,5 +1,6 @@
 # Phase 3 — context-aware overview (Flux home intelligence).
-# Update entity IDs to match your HA instance.
+# Overview tabs: overview_tabs.yaml (ElementZoom reference)
+# https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
 
 home_status:
   # Shown in status chips when state != off/closed/0

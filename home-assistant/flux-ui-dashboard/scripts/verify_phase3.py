@@ -20,10 +20,22 @@ def main() -> int:
 
     if "Home status" not in text:
         issues.append("Missing home status section")
+    if "custom:simple-tabs" not in text:
+        issues.append(
+            "Missing ElementZoom Home/Events/Active tabs — "
+            "see https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"
+        )
+    if '"title": "Home"' not in text or '"title": "Events"' not in text:
+        issues.append("simple-tabs missing Home or Events tab titles")
+    if '"title": "Active"' not in text:
+        issues.append("simple-tabs missing Active tab (ElementZoom reference)")
     if "custom:auto-entities" not in text:
-        issues.append("Missing auto-entities active lights")
+        issues.append("Missing auto-entities active lights (Active tab or fallback)")
     overview = next(v for v in blob["views"] if v["path"] == "overview")
-    fav_section = json.dumps(next(s for s in overview["sections"] if "Favourite lights" in json.dumps(s)))
+    overview_text = json.dumps(overview)
+    if "Favourite lights" not in overview_text:
+        issues.append("Missing Favourite lights section (Home tab)")
+    fav_section = overview_text
     if '"template": "flux_light"' not in fav_section:
         issues.append("Favourite lights should use flux_light template tiles")
     if '"columns": 6' not in fav_section:
@@ -37,7 +49,14 @@ def main() -> int:
     if '"action": "navigate"' in text and "#light-" in text:
         issues.append("Light tiles still navigate to bubble popups")
     if "Doors open" not in text:
-        issues.append("Missing conditional open garage section")
+        issues.append("Missing conditional open garage section (Active tab)")
+
+    tabs_present = "custom:simple-tabs" in text
+    if tabs_present:
+        if "Active now" not in text:
+            issues.append("Active tab should include Active now lights section")
+    elif len(overview["sections"]) < 6:
+        issues.append(f"Vertical fallback overview has {len(overview['sections'])} sections, need >= 6")
 
     templates = blob.get("button_card_templates") or {}
     if "flux_door" not in templates:
@@ -104,7 +123,10 @@ def main() -> int:
             break
 
     if len(overview["sections"]) < 6:
-        issues.append(f"Overview has {len(overview['sections'])} sections, need >= 6")
+        if "custom:simple-tabs" not in text:
+            issues.append(f"Overview has {len(overview['sections'])} sections, need >= 6 (or simple-tabs)")
+        elif len(overview["sections"]) < 3:
+            issues.append(f"Overview has {len(overview['sections'])} sections, need >= 3 with tabs layout")
 
     if issues:
         print("Phase 3 verification FAILED:")
@@ -114,7 +136,7 @@ def main() -> int:
 
     print(f"Phase 3 verification OK ({len(overview['sections'])} overview sections)")
     print("Deploy: bash home-assistant/scripts/run_all_e2e.sh")
-    print("HACS required: auto-entities")
+    print("HACS required: auto-entities, simple-tabs (optional: calendar-card-pro for Events timeline)")
     return 0
 
 

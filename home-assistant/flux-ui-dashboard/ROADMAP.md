@@ -11,9 +11,12 @@ Context-aware overview + ElementZoom reference layouts.
 
 | Feature | Description |
 |---------|-------------|
+| **Home / Events / Active tabs** | `custom:simple-tabs` — [ElementZoom reference](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) |
+| **Home tab** | Quick Actions, Climate, Favourite lights |
+| **Events tab** | `calendar-card-pro` timeline (config: `overview_tabs.yaml`) |
+| **Active tab** | Auto-entities lights + doors open (conditional visibility) |
 | **Home status** | Live chips: lights on count, garage door state |
-| **Active now** | `auto-entities` — 2-col `flux_light` tiles for lights currently on |
-| **Doors open** | Conditional section when any Tapo garage sensor is open |
+| **Doors open** | Conditional strip inside Active tab when Tapo garage sensor is open |
 | **Rooms index** | Large `flux_room` cards — temp/humidity label, sensor column, 2-col grid |
 | **Room detail** | Status chips, feature row, sub-nav tabs, light count badge, 2-col lights |
 | **Room grid subview** | 3-col dense light grid + shortcuts per room |
@@ -23,9 +26,10 @@ Context-aware overview + ElementZoom reference layouts.
 | **Lights tab** | Active now + favourites + all room groups + Upstairs/Outside |
 | **Cameras tab** | `picture-glance` feeds + camera auto-discovery |
 
-Config: [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml), [`scenes.yaml`](scenes.yaml), [`cameras.yaml`](cameras.yaml), [`light_groups.yaml`](light_groups.yaml)
+Config: [`context.yaml`](context.yaml), [`overview_tabs.yaml`](overview_tabs.yaml), [`rooms.yaml`](rooms.yaml), [`scenes.yaml`](scenes.yaml), [`cameras.yaml`](cameras.yaml), [`light_groups.yaml`](light_groups.yaml)
 
-**HACS required:** `auto-entities`
+**HACS required:** `auto-entities`, `simple-tabs`  
+**HACS optional:** `calendar-card-pro` (Events timeline — ElementZoom reference)
 
 ```bash
 python3 home-assistant/flux-ui-dashboard/scripts/verify_phase3.py

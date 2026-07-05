@@ -2,21 +2,20 @@
 
 Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard). Installed **alongside** Mobile Home; does not modify `mobile-home` or its default panel settings.
 
-## Phase 3 (current): Context-aware overview
+## Phase 3 (current): Context-aware overview + ElementZoom tabs
 
-Overview extends Mobile Home with live home intelligence:
+Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) (`dashboard/mobile/views/01-overview.yaml`):
 
-| Section | Description |
-|---------|-------------|
+| Area | Description |
+|------|-------------|
 | Hero | Greeting + `weather.forecast_home` |
 | Home status | Live chips: lights on count, garage state |
-| Active now | `auto-entities` — only lights currently on |
-| Doors open | Conditional when any Tapo garage sensor is open |
-| Climate | Copied from Mobile Home storage on deploy |
-| Quick Actions | Gate locks, garage pulse, All Off, Goodnight |
-| Favourite lights | 2-col `flux_light` tiles — tap toggles, hold for more-info |
+| **Home / Events / Active tabs** | `custom:simple-tabs` filter (ElementZoom reference) |
+| **Home tab** | Quick Actions, Climate, Favourite lights |
+| **Events tab** | `calendar-card-pro` timeline (or mushroom fallback) |
+| **Active tab** | Active now lights + doors open alert (shown when anything is on/open) |
 
-Config: [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml), [`scenes.yaml`](scenes.yaml), [`cameras.yaml`](cameras.yaml), [`light_groups.yaml`](light_groups.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
+Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
 Entity map: [`entities.yaml`](entities.yaml)
 
@@ -32,7 +31,9 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [custom-cards/button-card](https://github.com/custom-cards/button-card) | Future Flux views |
 | [thomasloven/lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Future tablet layout |
 | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Card stacking |
-| [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active now lights section |
+| [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active tab — lights currently on |
+| [agoberg85/home-assistant-simple-tabs](https://github.com/agoberg85/home-assistant-simple-tabs) | **Home / Events / Active** overview tabs ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
+| [alexpfau/calendar-card-pro](https://github.com/alexpfau/calendar-card-pro) | Events tab timeline ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
 | [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav |
 | [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode) | Hide HA header on mobile |
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |
@@ -136,7 +137,15 @@ Temporary debug (show header): `python3 .../build_flux_ui.py --no-kiosk`
 python3 home-assistant/flux-ui-dashboard/scripts/verify_phase3.py
 ```
 
-Expect `(23 views, 8 overview sections)` and deploy log `phase3=True`.
+Expect `(23 views, 4 overview sections)` with tabs layout and deploy log `phase3=True`.
+
+### Overview tabs setup
+
+1. Install **simple-tabs** and **calendar-card-pro** via HACS (see table above).
+2. Edit [`overview_tabs.yaml`](overview_tabs.yaml) — add your `calendar.*` entities.
+3. Redeploy. The **Active** tab auto-hides when no lights/doors are open (ElementZoom pattern).
+
+Reference: [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) → `dashboard/mobile/views/01-overview.yaml`
 
 ## Roadmap
 

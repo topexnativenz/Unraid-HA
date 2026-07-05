@@ -42,10 +42,12 @@ from phase3_builders import (
     build_home_status_section,
     build_open_garage_section,
 )
+from flux_overview_tabs import build_overview_tabs_section, tabs_enabled
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
+OVERVIEW_TABS = ROOT / "overview_tabs.yaml"
 ROOMS = ROOT / "rooms.yaml"
 ROOM_SENSORS = ROOT / "room_sensors.yaml"
 SCENES = ROOT / "scenes.yaml"
@@ -101,6 +103,10 @@ def load_entities() -> dict:
         cfg["context"] = yaml.safe_load(CONTEXT.read_text())
     else:
         cfg["context"] = {}
+    if OVERVIEW_TABS.exists():
+        cfg["overview_tabs"] = yaml.safe_load(OVERVIEW_TABS.read_text())
+    else:
+        cfg["overview_tabs"] = {}
     cfg["scenes_config"] = yaml.safe_load(SCENES.read_text()) if SCENES.exists() else {}
     cfg["cameras_config"] = yaml.safe_load(CAMERAS.read_text()) if CAMERAS.exists() else {}
     cfg["light_groups"] = (
@@ -275,23 +281,39 @@ def build_overview_sections(
     climate: dict,
     *,
     use_auto_entities: bool,
+    use_simple_tabs: bool = True,
+    use_calendar_pro: bool = True,
 ) -> list[dict]:
+    """Overview layout — ElementZoom Home/Events/Active tabs below hero + status chips."""
     sections: list[dict] = [
         build_hero(weather),
         build_home_status_section(cfg),
-        build_quick_actions(cfg),
     ]
+
+    home_tab_cards: list[dict] = [
+        build_quick_actions(cfg),
+        climate,
+        build_favourite_lights(cfg),
+    ]
+
+    if use_simple_tabs and tabs_enabled(cfg):
+        sections.append(
+            build_overview_tabs_section(
+                cfg,
+                home_tab_cards=home_tab_cards,
+                use_auto_entities=use_auto_entities,
+                use_calendar_pro=use_calendar_pro,
+            )
+        )
+        return sections
+
+    # Fallback: vertical stack (pre-tabs layout)
+    sections.extend(home_tab_cards)
     if use_auto_entities:
         sections.append(build_active_lights_section(cfg))
     open_garage = build_open_garage_section(cfg)
     if open_garage:
         sections.append(open_garage)
-    sections.extend(
-        [
-            climate,
-            build_favourite_lights(cfg),
-        ]
-    )
     return sections
 
 
@@ -374,6 +396,8 @@ def build_config(
     use_navbar_card: bool = True,
     use_kiosk: bool = True,
     use_auto_entities: bool = True,
+    use_simple_tabs: bool = True,
+    use_calendar_pro: bool = True,
 ) -> dict:
     cfg = load_entities()
     weather = cfg.get("weather", "weather.forecast_home")
@@ -388,6 +412,8 @@ def build_config(
         weather,
         climate,
         use_auto_entities=use_auto_entities,
+        use_simple_tabs=use_simple_tabs,
+        use_calendar_pro=use_calendar_pro,
     )
 
     views: list[dict] = [
@@ -507,6 +533,16 @@ def main() -> None:
         action="store_true",
         help="Disable auto-entities active lights section",
     )
+    parser.add_argument(
+        "--no-simple-tabs",
+        action="store_true",
+        help="Use vertical overview layout instead of ElementZoom Home/Events/Active tabs",
+    )
+    parser.add_argument(
+        "--no-calendar-pro",
+        action="store_true",
+        help="Use mushroom calendar fallback instead of calendar-card-pro Events tab",
+    )
     args = parser.parse_args()
 
     climate_section = None
@@ -527,6 +563,8 @@ def main() -> None:
         use_navbar_card=not args.no_navbar_card,
         use_kiosk=not args.no_kiosk,
         use_auto_entities=not args.no_auto_entities,
+        use_simple_tabs=not args.no_simple_tabs,
+        use_calendar_pro=not args.no_calendar_pro,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {

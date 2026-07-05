@@ -141,6 +141,8 @@ def build_config(
     use_navbar_card: bool = True,
     use_kiosk: bool = True,
     use_auto_entities: bool = True,
+    use_simple_tabs: bool = True,
+    use_calendar_pro: bool = True,
 ) -> dict:
     out = ROOT / "generated" / "lovelace.flux_ui.json"
     cmd = ["python3", str(BUILD), "--output", str(out)]
@@ -152,15 +154,20 @@ def build_config(
         cmd.append("--no-kiosk")
     if not use_auto_entities:
         cmd.append("--no-auto-entities")
+    if not use_simple_tabs:
+        cmd.append("--no-simple-tabs")
+    if not use_calendar_pro:
+        cmd.append("--no-calendar-pro")
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
     blob = json.dumps(config)
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
     sections = len(overview.get("sections", []))
-    if sections < 6:
+    min_sections = 3 if use_simple_tabs else 6
+    if sections < min_sections:
         print(
-            f"\nERROR: Built {sections} overview sections — Phase 3 expects at least 6.\n",
+            f"\nERROR: Built {sections} overview sections — expected at least {min_sections}.\n",
             file=sys.stderr,
         )
         raise SystemExit(1)
@@ -169,6 +176,9 @@ def build_config(
         raise SystemExit(1)
     if "Home status" not in blob:
         print("\nERROR: Build missing Phase 3 home status section.", file=sys.stderr)
+        raise SystemExit(1)
+    if use_simple_tabs and "custom:simple-tabs" not in blob:
+        print("\nERROR: Build missing ElementZoom simple-tabs overview filter.", file=sys.stderr)
         raise SystemExit(1)
     if use_kiosk and "kiosk_mode" not in config:
         print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
@@ -256,22 +266,34 @@ async def deploy_async(args: argparse.Namespace) -> int:
     use_navbar = False
     use_kiosk = True
     use_auto_entities = True
+    use_simple_tabs = True
+    use_calendar_pro = True
     if token and ha_up:
         try:
             use_navbar = await has_navbar_resource(token, args.ha_url)
             use_kiosk = await has_kiosk_resource(token, args.ha_url) or True
             use_auto_entities = await has_resource(token, args.ha_url, "auto-entities")
+            use_simple_tabs = await has_resource(token, args.ha_url, "simple-tabs")
+            use_calendar_pro = await has_resource(token, args.ha_url, "calendar-card-pro")
             if not use_navbar:
                 print("navbar-card not in resources — mushroom chip nav fallback.")
             if not use_auto_entities:
-                print("auto-entities not in resources — skipping Active now section.")
+                print("auto-entities not in resources — Active tab will omit live lights.")
                 print("  HACS → thomasloven/lovelace-auto-entities")
+            if not use_simple_tabs:
+                print("simple-tabs not in resources — vertical overview fallback.")
+                print("  HACS → agoberg85/home-assistant-simple-tabs (ElementZoom reference)")
+            if not use_calendar_pro:
+                print("calendar-card-pro not in resources — Events tab uses mushroom fallback.")
+                print("  HACS → alexpfau/calendar-card-pro (ElementZoom reference)")
             if not await has_kiosk_resource(token, args.ha_url):
                 print("WARNING: kiosk-mode resource missing (config still embedded).")
         except Exception:
             use_navbar = False
             use_auto_entities = True
             use_kiosk = True
+            use_simple_tabs = True
+            use_calendar_pro = True
 
     if ha_up and token and not args.offline:
         print("Discovering Tapo garage/shed door sensors…")
@@ -298,6 +320,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
         use_navbar_card=use_navbar,
         use_kiosk=use_kiosk,
         use_auto_entities=use_auto_entities,
+        use_simple_tabs=use_simple_tabs,
+        use_calendar_pro=use_calendar_pro,
     )
 
     if mounted:

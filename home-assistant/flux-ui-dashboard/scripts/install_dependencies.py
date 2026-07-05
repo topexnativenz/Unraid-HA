@@ -27,6 +27,8 @@ FRONTEND_RESOURCES: list[tuple[str, str]] = [
     ("navbar-card", "/hacsfiles/lovelace-navbar-card/navbar-card.js"),
     ("kiosk-mode", "/hacsfiles/kiosk-mode/kiosk-mode.js"),
     ("kiosk-mode-alt", "/hacsfiles/lovelace-kiosk-mode/kiosk-mode.js"),
+    ("simple-tabs", "/hacsfiles/home-assistant-simple-tabs/simple-tabs.js"),
+    ("calendar-card-pro", "/hacsfiles/calendar-card-pro/calendar-card-pro.js"),
 ]
 
 

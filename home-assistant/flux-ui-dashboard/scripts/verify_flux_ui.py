@@ -41,8 +41,16 @@ def verify_build(path: Path) -> list[str]:
         return errors
 
     overview_sections = overview.get("sections", [])
+    blob = json.dumps(config)
     if len(overview_sections) < 6:
-        errors.append(f"Expected at least 6 overview sections (Phase 3), got {len(overview_sections)}")
+        if "custom:simple-tabs" not in blob and len(overview_sections) < 6:
+            errors.append(
+                f"Expected at least 6 overview sections (vertical layout), got {len(overview_sections)}"
+            )
+        elif "custom:simple-tabs" in blob and len(overview_sections) < 3:
+            errors.append(
+                f"Expected at least 3 overview sections with tabs layout, got {len(overview_sections)}"
+            )
 
     if overview.get("theme") != "flux-ui-md3":
         errors.append(f"Expected theme 'flux-ui-md3', got {overview.get('theme')!r}")
@@ -56,7 +64,6 @@ def verify_build(path: Path) -> list[str]:
             if "navbar-card" not in tail and "mushroom-chips-card" not in tail:
                 errors.append(f"View {view.get('path')} missing navbar section")
 
-    blob = json.dumps(config)
     if "custom:navbar-card" in blob:
         for label in ('"label": "Home"', '"label": "Rooms"', '"label": "Camera"', '"label": "More"'):
             if label not in blob:
@@ -102,6 +109,12 @@ def verify_build(path: Path) -> list[str]:
 
     if "Home status" not in blob:
         errors.append("Missing Phase 3 home status section")
+
+    if "custom:simple-tabs" not in blob:
+        errors.append(
+            "Missing ElementZoom overview tabs (custom:simple-tabs) — "
+            "install agoberg85/home-assistant-simple-tabs via HACS"
+        )
 
     if "weather.forecast_home" not in blob:
         errors.append("Missing weather.forecast_home")
