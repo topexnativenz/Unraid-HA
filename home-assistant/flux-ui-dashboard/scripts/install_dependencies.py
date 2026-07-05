@@ -30,6 +30,12 @@ FRONTEND_RESOURCES: list[tuple[str, str]] = [
     ("simple-tabs", "/hacsfiles/home-assistant-simple-tabs/simple-tabs.js"),
     ("calendar-card-pro", "/hacsfiles/calendar-card-pro/calendar-card-pro.js"),
     ("mediocre-media", "/hacsfiles/mediocre-hass-media-player-cards/mediocre-hass-media-player-cards.js"),
+    ("apexcharts-card", "/hacsfiles/apexcharts-card/apexcharts-card.js"),
+    (
+        "weather-forecast-extended",
+        "/hacsfiles/weather-forecast-extended-card/weather-forecast-extended-card.js",
+    ),
+    ("lunar-phase-card", "/hacsfiles/lunar-phase-card/lunar-phase-card.js"),
 ]
 
 

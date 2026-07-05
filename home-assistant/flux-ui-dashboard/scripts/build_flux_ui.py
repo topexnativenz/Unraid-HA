@@ -625,9 +625,9 @@ def main() -> None:
             print("Imported cameras section from Mobile Home")
 
     cfg = load_entities()
-    from generate_weather_package import main as generate_weather_package
+    from generate_weather_package import write_weather_package
 
-    generate_weather_package()
+    write_weather_package()
     config = build_config(
         climate_section=climate_section,
         camera_section=camera_section,

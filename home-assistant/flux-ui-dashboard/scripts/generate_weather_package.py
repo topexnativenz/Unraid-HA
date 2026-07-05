@@ -59,27 +59,32 @@ def sensor_map(panel: dict, weather: str) -> dict[str, str]:
     }
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--weather-entity", default=None)
-    parser.add_argument("--output", type=Path, default=OUT)
-    args = parser.parse_args()
-
+def write_weather_package(*, weather_entity: str | None = None, output: Path = OUT) -> dict[str, str]:
+    """Write flux_ui_weather.yaml without parsing sys.argv (safe when called from build_flux_ui)."""
     panel = load_panel_config()
-    weather = args.weather_entity or load_weather_entity(panel)
+    weather = weather_entity or load_weather_entity(panel)
     mapping = sensor_map(panel, weather)
 
     template = TEMPLATE.read_text()
     for key, default in PLACEHOLDERS.items():
         template = template.replace(key, mapping.get(key, default))
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(template)
-    print(f"Wrote {args.output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(template)
+    print(f"Wrote {output}")
     print(f"  weather: {mapping['__WEATHER_ENTITY__']}")
     for k in ("__UV_SENSOR__", "__HUMIDITY_SENSOR__", "__WIND_SPEED_SENSOR__", "__WARNINGS_SENSOR__"):
         if mapping.get(k) and mapping[k] != "sensor.unknown":
             print(f"  {k.strip('_')}: {mapping[k]}")
+    return mapping
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--weather-entity", default=None)
+    parser.add_argument("--output", type=Path, default=OUT)
+    args = parser.parse_args()
+    write_weather_package(weather_entity=args.weather_entity, output=args.output)
     return 0
 
 
