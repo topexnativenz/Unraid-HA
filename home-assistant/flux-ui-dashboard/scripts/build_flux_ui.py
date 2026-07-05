@@ -13,7 +13,8 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from flux_action_builders import garage_action, lock_action, scene_action
-from flux_layouts import build_lights_grid_section, build_rooms_index_section
+from flux_rooms_index import build_rooms_index_section
+from flux_layouts import build_lights_grid_section
 from flux_view_builders import (
     build_cameras_view,
     build_lights_view,

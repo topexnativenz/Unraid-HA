@@ -1,23 +1,26 @@
 # Flux UI room groups — lights per area (mirrors Mobile Home Lights tab groups).
 #
+# Reference: ElementZoom Flux UI 02-rooms.yaml — Default / Others / Outdoor tabs
+#   https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
+#
+# category: default | others | outdoor  (filters Rooms index tabs)
 # card_name: shorter label on room index cards (avoids truncation)
 # keywords: used to auto-match Tapo temp/humidity/motion sensors at runtime
 # temperature_entity / humidity_entity: optional explicit overrides
-# indicators: up to 4 right-column sensor slots (empty slots show stub circles)
+# indicators: up to 3 extra right-column slots after the auto lights pill
 #   - {entity: binary_sensor.xxx, icon: mdi:garage-open, icon_closed: mdi:garage,
 #      color_on: '#F2B8B5', color_off: '#81C784'}
-#   - omit indicators to show 4 stubs until sensors are mapped for that room
 #
 # light_groups: quick shortcuts on room detail (reference FAB menu)
 # features: optional quick actions row (defaults to Presence / Movie / Adaptive stubs)
 # cameras: optional per-room camera feeds on room Camera subview
-#   - {entity: camera.front_door, name: Front door}
 # occupancy_entity / temperature_entity / humidity_entity: live status chips on room detail
 
 rooms:
   - name: Kitchen & dining
     card_name: Kitchen
     path: kitchen
+    category: default
     icon: mdi:stove
     subtitle: Kitchen, dining, bar
     keywords: [kitchen, dining, bar, breakfast, stove]
@@ -31,6 +34,7 @@ rooms:
   - name: Living & media
     card_name: Living
     path: living
+    category: default
     icon: mdi:sofa
     subtitle: Lounges and media room
     keywords: [living, lounge, media, atrium, sofa]
@@ -48,9 +52,32 @@ rooms:
       - {entity: light.white_lounge, name: White lounge}
       - {entity: light.media_room, name: Media room}
 
+  - name: Master bedroom
+    card_name: Master
+    path: master-bedroom
+    category: default
+    icon: mdi:bed-king-outline
+    subtitle: Bedroom lights
+    keywords: [master, bedroom, bed]
+    lights:
+      - {entity: light.master_bedroom, name: Master bedroom}
+
+  - name: Garage & exterior
+    card_name: Garage
+    path: garage
+    category: default
+    icon: mdi:garage
+    subtitle: Garage and outside
+    keywords: [garage, shed, exterior, outside garage]
+    # Door indicators synced from garage-doors/entities.yaml at build (enabled doors only)
+    lights:
+      - {entity: light.garage, name: Garage}
+      - {entity: light.outside_garage, name: Outside garage}
+
   - name: Entry & arrival
     card_name: Entry
     path: entry
+    category: others
     icon: mdi:door-open
     subtitle: Front door and path
     keywords: [entry, arrival, front door, outside entry]
@@ -59,36 +86,13 @@ rooms:
       - {entity: light.night_arrival, name: Night arrival}
       - {entity: light.outside_entry, name: Outside entry}
 
-  - name: Master bedroom
-    card_name: Master
-    path: master-bedroom
-    icon: mdi:bed-king-outline
-    subtitle: Bedroom lights
-    keywords: [master, bedroom, bed]
-    lights:
-      - {entity: light.master_bedroom, name: Master bedroom}
-
   - name: Hall & stairs
     card_name: Hall
     path: hall
+    category: others
     icon: mdi:stairs
     subtitle: Footlights and passages
     keywords: [hall, stair, footlight, passage]
     lights:
       - {entity: light.main_footlights, name: Hall footlights}
       - {entity: light.stair_footlights, name: Stair footlights}
-
-  - name: Garage & exterior
-    card_name: Garage
-    path: garage
-    icon: mdi:garage
-    subtitle: Garage and outside
-    keywords: [garage, shed, exterior, outside garage]
-    indicators:
-      - {entity: binary_sensor.house_garage_door_contact, color_on: '#F2B8B5', color_off: '#81C784', icon: mdi:garage-open, icon_closed: mdi:garage}
-      - {entity: binary_sensor.main_shed_door_contact, color_on: '#F2B8B5', color_off: '#81C784', icon: mdi:garage-open, icon_closed: mdi:garage}
-      - {entity: binary_sensor.second_shed_door_contact, color_on: '#F2B8B5', color_off: '#81C784', icon: mdi:garage-open, icon_closed: mdi:garage}
-      - {entity: light.garage, color_on: '#FFD54F', color_off: 'rgba(255,255,255,0.08)', icon: mdi:lightbulb-on, icon_closed: mdi:lightbulb-outline}
-    lights:
-      - {entity: light.garage, name: Garage}
-      - {entity: light.outside_garage, name: Outside garage}

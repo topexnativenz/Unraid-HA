@@ -44,21 +44,15 @@ def _room_tile_grid(rooms: list[dict]) -> dict:
     }
 
 
-def build_rooms_index_section(rooms: list[dict]) -> dict:
-    """Rooms index — reference: large 2-col room cards with status strip."""
-    return {
-        "type": "grid",
-        "cards": [
-            _title("Rooms", "Choose an area"),
-            wrap_glass(_room_tile_grid(rooms)),
-        ],
-    }
-
-
 _ROOM_BG_ICON = (
     "[[[\n"
     "  const icon = variables.room_icon || 'mdi:home-outline';\n"
-    "  return `<ha-icon icon=\"${icon}\" style=\"width:68px;height:68px;opacity:0.22;color:var(--md-sys-color-on-surface);\"></ha-icon>`;\n"
+    "  return `\n"
+    "    <div style=\"width:96px;height:96px;border-radius:50%;display:flex;align-items:center;"
+    "justify-content:center;background:color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);"
+    "margin:12px 0 0 -8px;opacity:0.72;\">\n"
+    "      <ha-icon icon=\"${icon}\" style=\"width:52px;height:52px;color:var(--md-sys-color-on-surface);\"></ha-icon>\n"
+    "    </div>`;\n"
     "]]]"
 )
 
@@ -67,11 +61,27 @@ SENSOR_SLOT_COUNT = 4
 
 
 def _sensor_slots(room: dict) -> list[dict]:
-    """Build exactly 4 right-column sensor slots; pad with stubs when unconfigured."""
-    slots: list[dict] = [dict(item) for item in (room.get("indicators") or [])[:SENSOR_SLOT_COUNT]]
-    while len(slots) < SENSOR_SLOT_COUNT:
+    """Build exactly 4 right-column slots — lights summary first, then configured indicators."""
+    slots: list[dict] = []
+    lights = room.get("lights") or []
+    if lights:
+        slots.append(
+            {
+                "kind": "lights",
+                "entities": [item["entity"] for item in lights],
+                "icon": "mdi:lightbulb-on",
+                "icon_closed": "mdi:lightbulb-outline",
+                "color_on": "#FFD54F",
+                "color_off": "rgba(255,255,255,0.08)",
+            }
+        )
+    for item in room.get("indicators") or []:
+        if len(slots) >= 4:
+            break
+        slots.append(dict(item))
+    while len(slots) < 4:
         slots.append({"stub": True})
-    return slots
+    return slots[:4]
 
 
 def _find_sensor_js(kind: str) -> str:
@@ -105,6 +115,37 @@ _ROOM_SUBTITLE_JS = (
     + "  const sub = parts.length ? parts.join(' / ') : (variables.subtitle || '');\n"
 )
 
+_ROOM_TEMP_BG = (
+    "[[[\n"
+    "  let tempId = variables.temperature_entity;\n"
+    "  if (!tempId || !states[tempId] || ['unavailable','unknown'].includes(states[tempId].state)) {\n"
+    "    const keywords = (variables.keywords || []).map(k => k.toLowerCase());\n"
+    "    for (const [eid, st] of Object.entries(states)) {\n"
+    "      if (!eid.startsWith('sensor.')) continue;\n"
+    "      const cls = st.attributes?.device_class || '';\n"
+    "      const hay = (eid + ' ' + (st.attributes?.friendly_name || '')).toLowerCase();\n"
+    "      if (cls !== 'temperature' && !hay.includes('temp')) continue;\n"
+    "      if (keywords.some(k => hay.includes(k))) { tempId = eid; break; }\n"
+    "    }\n"
+    "  }\n"
+    "  let t = null;\n"
+    "  if (tempId && states[tempId] && !['unavailable','unknown'].includes(states[tempId].state)) {\n"
+    "    t = parseFloat(states[tempId].state);\n"
+    "  }\n"
+    "  if (!Number.isFinite(t)) {\n"
+    "    return 'color-mix(in srgb, var(--md-sys-color-surface-container) 78%, transparent)';\n"
+    "  }\n"
+    "  if (t < 13) return 'color-mix(in srgb, rgba(172,156,175,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "  if (t < 16) return 'color-mix(in srgb, rgba(215,196,219,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "  if (t < 19) return 'color-mix(in srgb, rgba(163,217,245,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "  if (t < 22) return 'color-mix(in srgb, rgba(205,227,219,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "  if (t < 24) return 'color-mix(in srgb, rgba(255,229,153,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "  if (t < 27) return 'color-mix(in srgb, rgba(247,190,129,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "  return 'color-mix(in srgb, rgba(228,143,123,0.72) 55%, var(--md-sys-color-surface-container) 45%)';\n"
+    "]]]"
+)
+
+
 _ROOM_INFO_HTML = (
     "[[[\n"
     "  const title = variables.card_name || '';\n"
@@ -129,6 +170,11 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
         if entity and entity not in triggers:
             triggers.append(entity)
     for item in slots:
+        if item.get("kind") == "lights":
+            for entity in item.get("entities") or []:
+                if entity not in triggers:
+                    triggers.append(entity)
+            continue
         entity = item.get("entity")
         if entity and entity not in triggers:
             triggers.append(entity)
@@ -139,6 +185,11 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
         "type": "custom:button-card",
         "template": "flux_room",
         "show_icon": False,
+        "styles": {
+            "card": [
+                {"background": _ROOM_TEMP_BG},
+            ],
+        },
         "variables": {
             "card_name": card_name,
             "subtitle": room.get("subtitle", ""),
@@ -177,13 +228,15 @@ _ROOM_LABEL = (
 _ROOM_SENSOR_COLUMN = (
     "[[[\n"
     + IS_DOOR_OPEN_JS
-    + "  const slots = variables.sensor_slots || [];\n"
+    +     "  const slots = variables.sensor_slots || [];\n"
+    "  const pillWrap = (inner, badge='') => `\n"
+    "    <div style=\"position:relative;width:35px;height:35px;flex-shrink:0;\">${badge}${inner}</div>`;\n"
     "  const pill = (inner) => `\n"
-    "    <div style=\"width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">${inner}</div>`;\n"
-    "  const stub = () => pill(`\n"
-    "    <div style=\"width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;\">\n"
+    "    <div style=\"width:35px;height:35px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">${inner}</div>`;\n"
+    "  const stub = () => pillWrap(pill(`\n"
+    "    <div style=\"width:35px;height:35px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;\">\n"
     "      <div style=\"width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.14)\"></div>\n"
-    "    </div>`);\n"
+    "    </div>`));\n"
     "  const iconFor = (eid, st, item, open) => {\n"
     "    if (item.icon && open) return item.icon;\n"
     "    if (item.icon_closed && !open) return item.icon_closed;\n"
@@ -260,17 +313,27 @@ _ROOM_SENSOR_COLUMN = (
     "    return { bg: item.color_off || 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)', fg: 'rgba(255,255,255,0.35)', glow: '', open: false };\n"
     "  };\n"
     "  const cells = slots.slice(0, 4).map(item => {\n"
+    "    if (item.kind === 'lights') {\n"
+    "      const ents = item.entities || [];\n"
+    "      const on = ents.filter(e => states[e]?.state === 'on').length;\n"
+    "      const open = on > 0;\n"
+    "      const bg = open ? (item.color_on || '#FFD54F') : (item.color_off || 'rgba(255,255,255,0.08)');\n"
+    "      const fg = open ? '#1c1b1f' : 'rgba(255,255,255,0.35)';\n"
+    "      const icon = open ? (item.icon || 'mdi:lightbulb-on') : (item.icon_closed || 'mdi:lightbulb-outline');\n"
+    "      const badge = on > 0 ? `<span style=\"position:absolute;top:-4px;right:-6px;min-width:15px;height:15px;border-radius:4px;background:#FFD54F;color:#1c1b1f;font-size:9px;font-weight:700;line-height:15px;text-align:center;padding:0 3px;\">${on}</span>` : '';\n"
+    "      return pillWrap(`<div style=\"width:35px;height:35px;border-radius:50%;background:${bg};${open ? 'box-shadow:0 0 10px rgba(255,213,79,0.45);' : 'border:1px solid rgba(255,255,255,0.14);'}display:flex;align-items:center;justify-content:center;\"><ha-icon icon=\"${icon}\" style=\"width:16px;height:16px;color:${fg};\"></ha-icon></div>`, badge);\n"
+    "    }\n"
     "    if (item.stub || !item.entity) return stub();\n"
     "    const st = states[item.entity];\n"
     "    const style = styleFor(item, item.entity, st);\n"
     "    const icon = iconFor(item.entity, st, item, style.open);\n"
-    "    return `\n"
-    "      <div style=\"width:26px;height:26px;border-radius:50%;background:${style.bg};border:${style.border};${style.glow}display:flex;align-items:center;justify-content:center;\">\n"
-    "        <ha-icon icon=\"${icon}\" style=\"width:14px;height:14px;color:${style.fg};\"></ha-icon>\n"
-    "      </div>`;\n"
+    "    return pillWrap(`\n"
+    "      <div style=\"width:35px;height:35px;border-radius:50%;background:${style.bg};border:${style.border};${style.glow}display:flex;align-items:center;justify-content:center;\">\n"
+    "        <ha-icon icon=\"${icon}\" style=\"width:16px;height:16px;color:${style.fg};\"></ha-icon>\n"
+    "      </div>`);\n"
     "  });\n"
     "  while (cells.length < 4) cells.push(stub());\n"
-    "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;min-height:118px;width:100%;box-sizing:border-box;padding:2px 0;\">${cells.join('')}</div>`;\n"
+    "  return `<div style=\"display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;min-height:154px;width:100%;box-sizing:border-box;padding:4px 0;\">${cells.join('')}</div>`;\n"
     "]]]"
 )
 

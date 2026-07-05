@@ -187,6 +187,7 @@ def config_fingerprint(config: dict) -> dict[str, object]:
 
 
 OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
+ROOMS_TAB_ENTITY = "input_select.flux_ui_rooms_tab"
 
 
 def print_fingerprint(config: dict, *, label: str) -> None:

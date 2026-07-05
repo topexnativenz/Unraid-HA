@@ -72,8 +72,14 @@ def main() -> int:
         issues.append("Rooms index should use flux_room cards")
     if '"columns": 2' not in rooms_text:
         issues.append("Rooms index should use inner 2-column grid like light tiles")
-    if '"height": "148px"' not in json.dumps(templates.get("flux_room", {})):
-        issues.append("flux_room template should use fixed 148px card height")
+    if '"height": "186px"' not in json.dumps(templates.get("flux_room", {})):
+        issues.append("flux_room template should use ElementZoom 186px card height")
+    if "input_select.flux_ui_rooms_tab" not in rooms_text:
+        issues.append("Rooms view missing category tab helper (packages/flux_ui_rooms.yaml)")
+    if '"content": "Default"' not in rooms_text or '"content": "Others"' not in rooms_text:
+        issues.append("Rooms view missing Default/Others/Outdoor category tabs")
+    if '"type": "conditional"' not in rooms_text:
+        issues.append("Rooms view should filter cards by category with conditional panels")
     if '"align-self": "stretch"' not in json.dumps(templates.get("flux_room", {})):
         issues.append("flux_room sensor column should stretch full card height")
     if "justify-content:space-between" not in rooms_text.replace(" ", ""):
