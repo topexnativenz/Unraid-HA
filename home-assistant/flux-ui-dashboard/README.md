@@ -74,7 +74,17 @@ Optional: install [Material You Theme](https://github.com/Nerwyn/material-you-th
 
 ## Deploy (E2E)
 
-From your Mac on the same LAN as HA:
+### Cloud agents / iOS Cursor (recommended)
+
+Every agent task runs live deploy automatically — **no Mac script required**:
+
+```bash
+bash home-assistant/scripts/deploy_cloud.sh
+```
+
+Set `HA_URL` + `HA_TOKEN` in Cursor Cloud Agent secrets (see `.secrets/ha.env.example`).
+
+### Mac on LAN (optional)
 
 ```bash
 cd /Users/topexnative/Projects/unraid-array-design

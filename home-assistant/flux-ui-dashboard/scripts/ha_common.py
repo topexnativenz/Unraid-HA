@@ -12,6 +12,9 @@ from pathlib import Path
 
 import websockets
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SECRETS_ENV = REPO_ROOT / ".secrets" / "ha.env"
+
 DEFAULT_HA = os.environ.get("HA_URL", "http://192.168.1.239:8123")
 DEFAULT_HOST = os.environ.get("HA_HOST", "192.168.1.239")
 DEFAULT_MOUNT = os.environ.get("HA_CONFIG_MOUNT", "/tmp/ha-config-smb")
@@ -22,7 +25,54 @@ MCP_PATHS = [
 ]
 
 
+def load_env_file(path: Path | None = None) -> None:
+    """Load KEY=VALUE pairs from .secrets/ha.env into os.environ (does not override)."""
+    env_path = path or SECRETS_ENV
+    if not env_path.exists():
+        return
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("'\"")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def ensure_ha_env() -> None:
+    """Load cloud secrets file so HA_URL / HA_TOKEN are available in agent sessions."""
+    load_env_file()
+
+
+def has_ha_credentials() -> bool:
+    """True when a live deploy token is available (env, secrets file, or mcp.json)."""
+    ensure_ha_env()
+    if os.environ.get("HA_TOKEN") or os.environ.get("HOMEASSISTANT_TOKEN"):
+        return True
+    for path in MCP_PATHS:
+        if not path.exists():
+            continue
+        try:
+            data = json.loads(path.read_text())
+            auth = data.get("mcpServers", {}).get("homeassistant", {}).get("headers", {}).get(
+                "Authorization", ""
+            )
+            if auth.startswith("Bearer "):
+                return True
+        except (json.JSONDecodeError, OSError):
+            continue
+    return False
+
+
+def ssh_configured() -> bool:
+    ensure_ha_env()
+    return bool(os.environ.get("HA_SSH_HOST") and os.environ.get("HA_SSH_USER"))
+
+
 def get_token(explicit: str | None = None) -> str:
+    ensure_ha_env()
     if explicit:
         return explicit.strip()
     env = os.environ.get("HA_TOKEN") or os.environ.get("HOMEASSISTANT_TOKEN")
@@ -124,5 +174,31 @@ async def ha_reachable(ha_url: str, token: str) -> bool:
         return False
 
 
+async def fetch_lovelace_config(token: str, ha_url: str, url_path: str) -> dict:
+    res = await ws_call(
+        token,
+        ha_url,
+        [{"type": "lovelace/config", "url_path": url_path, "force": True}],
+    )
+    if not res[0].get("success"):
+        raise RuntimeError(f"lovelace/config failed for {url_path}: {res[0].get('error')}")
+    return res[0]["result"]
+
+
+def host_reachable(host: str, *, port: int = 445, timeout: float = 3.0) -> bool:
+    """Quick TCP check — SMB/SSH push only when HA host is reachable from this machine."""
+    import socket
+
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
 def run_async(coro):
     return asyncio.run(coro)
+
+
+# Load secrets as soon as this module is imported (cloud agent sessions).
+ensure_ha_env()

@@ -28,7 +28,7 @@ for arg in "$@"; do
 done
 
 echo "=============================================="
-echo " Flux UI + dashboards — Mac deploy"
+echo " Flux UI + dashboards — Mac deploy (optional — cloud agents use deploy_cloud.sh)"
 echo " Repo: $GIT_ROOT"
 echo " HA:   ${HA_URL:-http://192.168.1.239:8123}"
 echo "=============================================="

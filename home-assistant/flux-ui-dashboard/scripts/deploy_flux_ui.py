@@ -572,6 +572,20 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     assert token is not None
 
+    if not mounted and token and ha_up and not args.offline:
+        print("SMB unavailable — pushing packages via SSH/SMB fallback…")
+        push_cmd = [
+            "python3",
+            str(ROOT / "scripts" / "push_ha_files.py"),
+            "--ha-url",
+            args.ha_url,
+            "--token",
+            token,
+            "--host",
+            args.host,
+        ]
+        subprocess.run(push_cmd, check=False)
+
     await save_dashboard(token, args.ha_url, config)
 
     if token and ha_up and not args.offline:

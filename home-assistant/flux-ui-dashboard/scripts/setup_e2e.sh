@@ -31,11 +31,18 @@ echo "==> Verifying build"
 python3 "$ROOT/scripts/verify_flux_ui.py"
 
 echo "==> Deploying to Home Assistant"
-if [[ -z "${HA_TOKEN:-}" ]] && [[ ! -f "${HOME}/.cursor/mcp.json" ]] && [[ ! -f "/Users/topexnative/.cursor/mcp.json" ]]; then
-  echo "No HA token found — build-only (pass HA_TOKEN or run on Mac with mcp.json for live deploy)"
-  python3 "$ROOT/scripts/deploy_flux_ui.py" --offline-ok "$@"
+if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
+  DEPLOY_ARGS=()
+  if [[ -n "${HA_URL:-}" ]]; then
+    DEPLOY_ARGS+=(--ha-url "$HA_URL")
+  fi
+  if [[ -n "${HA_TOKEN:-}" ]]; then
+    DEPLOY_ARGS+=(--token "$HA_TOKEN")
+  fi
+  python3 "$ROOT/scripts/deploy_flux_ui.py" "${DEPLOY_ARGS[@]}" "$@"
 else
-  python3 "$ROOT/scripts/deploy_flux_ui.py" "$@"
+  echo "No HA token found — build-only (set HA_TOKEN / .secrets/ha.env for live deploy)"
+  python3 "$ROOT/scripts/deploy_flux_ui.py" --offline-ok "$@"
 fi
 
 echo ""

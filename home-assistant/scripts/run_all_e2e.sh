@@ -1,22 +1,45 @@
 #!/usr/bin/env bash
 # Full E2E: Flux UI MD3 → Mobile Home → garage doors (optional sync).
+# Cloud agents: bash home-assistant/scripts/deploy_cloud.sh  (or --cloud here)
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
+GIT_ROOT="$(cd "$REPO/.." && pwd)"
 cd "$REPO"
 
 FLUX="$REPO/flux-ui-dashboard"
 GARAGE="$REPO/garage-doors"
 MOBILE="$REPO/mobile-dashboard"
 
+CLOUD_MODE=false
+EXTRA_ARGS=()
+
+for arg in "$@"; do
+  case "$arg" in
+    --cloud) CLOUD_MODE=true ;;
+    *) EXTRA_ARGS+=("$arg") ;;
+  esac
+done
+
+# Load repo secrets for cloud sessions.
+if [[ -f "$GIT_ROOT/.secrets/ha.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$GIT_ROOT/.secrets/ha.env"
+  set +a
+fi
+
 echo "=============================================="
 echo " Home Assistant dashboards — full E2E deploy"
 echo " Repo: $REPO"
 echo " HA:   ${HA_URL:-http://192.168.1.239:8123}"
+if [[ "$CLOUD_MODE" == true ]]; then
+  echo " Mode: cloud (skip git sync — agent already pushed)"
+fi
 echo "=============================================="
 
 # Keep repo current — autostash LAN-specific garage sensor mappings (entities.local.yaml).
-if git rev-parse --git-dir >/dev/null 2>&1; then
+if [[ "$CLOUD_MODE" != true ]] && git rev-parse --git-dir >/dev/null 2>&1; then
   BRANCH="$(git branch --show-current 2>/dev/null || true)"
   if [[ -n "${BRANCH}" ]]; then
     echo ""
@@ -44,19 +67,28 @@ python3 -m pip install -q -r "$FLUX/requirements.txt"
 
 echo ""
 echo "==> [1/3] Flux UI MD3 (assets → build → verify → deploy)"
-bash "$FLUX/scripts/setup_e2e.sh" "$@"
+bash "$FLUX/scripts/setup_e2e.sh" "${EXTRA_ARGS[@]}"
 
 echo ""
 echo "==> [2/3] Mobile Home (build + live push)"
-if [[ -z "${HA_TOKEN:-}" ]] && [[ ! -f "${HOME}/.cursor/mcp.json" ]] && [[ ! -f "/Users/topexnative/.cursor/mcp.json" ]]; then
-  echo "No HA token — skipping Mobile Home live deploy."
+if python3 "$FLUX/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
+  MOBILE_ARGS=(--ha-url "${HA_URL:-http://192.168.1.239:8123}")
+  if [[ -n "${HA_TOKEN:-}" ]]; then
+    MOBILE_ARGS+=(--token "$HA_TOKEN")
+  fi
+  python3 "$MOBILE/scripts/deploy_mobile_home.py" "${MOBILE_ARGS[@]}" "${EXTRA_ARGS[@]}" \
+    || echo "Warning: Mobile Home deploy failed (Flux UI may still be OK)."
 else
-  python3 "$MOBILE/scripts/deploy_mobile_home.py" "$@" || echo "Warning: Mobile Home deploy failed (Flux UI may still be OK)."
+  echo "No HA token — skipping Mobile Home live deploy."
 fi
 
 echo ""
 echo "==> [3/3] Garage doors (package + Tapo sensor sync)"
-python3 "$GARAGE/scripts/deploy_garage_doors_pulse.py" --offline-ok "$@" || {
+GARAGE_ARGS=(--offline-ok --ha-url "${HA_URL:-http://192.168.1.239:8123}")
+if [[ -n "${HA_TOKEN:-}" ]]; then
+  GARAGE_ARGS+=(--token "$HA_TOKEN")
+fi
+python3 "$GARAGE/scripts/deploy_garage_doors_pulse.py" "${GARAGE_ARGS[@]}" "${EXTRA_ARGS[@]}" || {
   echo "Warning: garage deploy/sync failed — update garage-doors/entities.local.yaml with real Tapo sensor IDs."
   echo "  python3 $GARAGE/scripts/list_garage_sensors.py"
 }
