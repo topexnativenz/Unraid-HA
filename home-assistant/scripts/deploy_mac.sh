@@ -51,6 +51,8 @@ fi
 echo ""
 echo "==> [1/4] Git sync ($BRANCH)"
 
+repair_deploy_git_state "$GIT_ROOT" "$BRANCH" "$HA_DIR"
+
 if ! git -C "$GIT_ROOT" diff --quiet HEAD -- "$GARAGE_ENTITIES" 2>/dev/null; then
   echo "    Resetting stale garage-doors/entities.yaml (blocks pull)"
   git -C "$GIT_ROOT" checkout -- "$GARAGE_ENTITIES"

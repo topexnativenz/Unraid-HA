@@ -47,7 +47,7 @@ if [[ "$CLOUD_MODE" != true ]] && git rev-parse --git-dir >/dev/null 2>&1; then
   if [[ -n "${BRANCH}" ]]; then
     echo ""
     echo "==> Syncing git ($BRANCH)"
-    reset_flux_deploy_generated_files "$GIT_ROOT" "$REPO"
+    repair_deploy_git_state "$GIT_ROOT" "$BRANCH" "$REPO"
     git fetch origin "$BRANCH" 2>/dev/null || git fetch origin 2>/dev/null || true
     BEHIND="$(git rev-list --count "HEAD..origin/${BRANCH}" 2>/dev/null || echo 0)"
     if [[ "${BEHIND}" != "0" ]]; then
