@@ -1,5 +1,5 @@
-# Weather panel — ElementZoom Material Design 3 mobile dashboard (MetService NZ).
-# Coordinates used by Radar (Windy) and Lunar phase cards.
+# Weather panel — ElementZoom layout, data from MetService NZ (no local weather station).
+# Run: python3 scripts/discover_weather.py --apply  (during deploy) to wire live HA entities.
 
 enabled: true
 weather_entity: weather.metservice
@@ -7,21 +7,25 @@ weather_entity: weather.metservice
 source_label: MetService
 source_url: https://www.metservice.com/warnings/home
 
-# Home coordinates — update for your property (Radar + Lunar tabs)
+# Radar + Lunar tabs — updated from HA home coordinates by discover_weather.py --apply
 location:
   latitude: -37.7870
   longitude: 175.2793
   city: ""
   country: New Zealand
 
-# Optional WAQI air-quality sensor for Forecast tab second card (hide when unset)
-# aqi_entity: sensor.your_town_air_quality_index
-# aqi_pollutant_entity: sensor.your_town_dominant_pollutant
+# MetService integration sensors — auto-filled by discover_weather.py --apply
+metservice:
+  weather_entity: weather.metservice
+  sensors: {}
 
-# Optional MetService warnings sensor from integration (shows Warning tab when active)
+# MetService warnings sensor (enables Warning tab when active)
 # warnings_entity: sensor.home_metservice_weather_warnings
 
-# Flux UI template sensor entity IDs (generated in packages/flux_ui_weather.yaml)
+# Optional WAQI air-quality sensor for Forecast tab second card
+# aqi_entity: sensor.your_town_air_quality_index
+
+# Flux UI derived sensors (packages/flux_ui_weather.yaml — from weather.get_forecasts)
 entities:
   hourly_forecast: sensor.flux_ui_hourly_forecast_full
   daily_forecast: sensor.flux_ui_daily_forecast_data

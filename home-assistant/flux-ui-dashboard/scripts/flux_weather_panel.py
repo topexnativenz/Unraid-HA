@@ -54,9 +54,12 @@ FORECAST_HEADER_PAD = {
 
 def _panel_cfg(cfg: dict) -> dict:
     wp = cfg.get("weather_panel") or {}
+    ms = wp.get("metservice") or {}
     entities = wp.get("entities") or {}
+    ms_sensors = ms.get("sensors") or {}
     loc = wp.get("location") or {}
-    weather = wp.get("weather_entity") or cfg.get("weather", "weather.metservice")
+    weather = ms.get("weather_entity") or wp.get("weather_entity") or cfg.get("weather", "weather.metservice")
+    warnings = wp.get("warnings_entity") or ms_sensors.get("warnings")
     return {
         "enabled": wp.get("enabled", True),
         "weather": weather,
@@ -65,7 +68,8 @@ def _panel_cfg(cfg: dict) -> dict:
         "location": loc,
         "aqi_entity": wp.get("aqi_entity"),
         "aqi_pollutant_entity": wp.get("aqi_pollutant_entity"),
-        "warnings_entity": wp.get("warnings_entity"),
+        "warnings_entity": warnings,
+        "metservice_sensors": ms_sensors,
         "entities": {
             "hourly": entities.get("hourly_forecast", "sensor.flux_ui_hourly_forecast_full"),
             "daily": entities.get("daily_forecast", "sensor.flux_ui_daily_forecast_data"),
@@ -497,6 +501,8 @@ def _wind_tab(p: dict) -> dict:
 def _radar_tab(p: dict) -> dict:
     w = p["weather"]
     loc = p["location"]
+    ms = p.get("metservice_sensors") or {}
+    humidity = ms.get("humidity")
     lat = loc.get("latitude", -37.787)
     lon = loc.get("longitude", 175.2793)
     windy_url = (
@@ -506,17 +512,24 @@ def _radar_tab(p: dict) -> dict:
         "&marker=&calendar=now&pressure=&type=map&location=coordinates"
         "&detail=&metricWind=km%2Fh&metricTemp=%C2%B0C&radarRange=-1"
     )
+    if humidity:
+        subtitle = (
+            "{% set wx = state_attr('" + w + "') %}"
+            "🌡️ {{ wx.temperature }}{{ wx.temperature_unit }} "
+            "💧 Humidity: {{ states('" + humidity + "') }}% "
+            "💨 Wind: {{ wx.wind_speed }} {{ wx.wind_speed_unit }} "
+            "🌤️ UV: {{ states('sensor.flux_ui_forecast_uv_index') }}"
+        )
+    else:
+        subtitle = (
+            "{% set wx = state_attr('" + w + "') %}"
+            "🌡️ {{ wx.temperature }}{{ wx.temperature_unit }} "
+            "💧 Humidity: {{ wx.humidity }}% "
+            "💨 Wind: {{ wx.wind_speed }} {{ wx.wind_speed_unit }} "
+            "🌤️ UV: {{ states('sensor.flux_ui_forecast_uv_index') }}"
+        )
     cards = [
-        _title_subtitle(
-            "Radar",
-            (
-                "{% set wx = state_attr('" + w + "') %}"
-                "🌡️ {{ wx.temperature }}{{ wx.temperature_unit }} "
-                "💧 Humidity: {{ wx.humidity }}% "
-                "💨 Wind: {{ wx.wind_speed }} {{ wx.wind_speed_unit }} "
-                "🌤️ UV index: {{ wx.uv_index | default('N/A') }}"
-            ),
-        ),
+        _title_subtitle("Radar", subtitle),
         {
             "type": "custom:mod-card",
             "card": {"type": "iframe", "url": windy_url},

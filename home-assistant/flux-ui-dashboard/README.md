@@ -68,15 +68,17 @@ Install these **before** deploy (ElementZoom [weather panel](https://github.com/
 | Item | Source |
 |------|--------|
 | **MetService NZ** | HACS integration [ciejer/metservice-weather](https://github.com/ciejer/metservice-weather) |
-| **Lunar phase** | HACS integration [ngocjohn/lunar-phase](https://github.com/ngocjohn/lunar-phase) (Lunar tab + moon summary) |
+| **Lunar phase** | HACS integration [ngocjohn/lunar-phase](https://github.com/ngocjohn/lunar-phase) (optional — Lunar tab works from coordinates alone) |
 | **ApexCharts Card** | HACS frontend [RomRider/apexcharts-card](https://github.com/RomRider/apexcharts-card) |
 | **Weather Forecast Extended** | HACS frontend [Thyraz/weather-forecast-extended](https://github.com/Thyraz/weather-forecast-extended) |
 | **Lunar Phase Card** | HACS frontend [ngocjohn/lunar-phase-card](https://github.com/ngocjohn/lunar-phase-card) |
 | **Stack In Card** | Already listed above (`custom-cards/stack-in-card`) |
 
-Deploy generates `packages/flux_ui_weather.yaml` — template sensors that call `weather.get_forecasts` on your MetService entity every 15 minutes (required since HA 2024.4 removed inline forecast attributes).
+Deploy generates `packages/flux_ui_weather.yaml` — template sensors that call `weather.get_forecasts` on your MetService entity every 15 minutes (required since HA 2024.4 removed inline forecast attributes). **No local weather station** — all current conditions come from MetService integration sensors (UV, humidity, wind, warnings).
 
-Edit [`weather_panel.yaml`](weather_panel.yaml) for **Radar/Lunar map coordinates** (`location.latitude` / `longitude`). Optional: `aqi_entity` (WAQI), `warnings_entity` (MetService warnings sensor).
+Run `python3 scripts/discover_weather.py --apply` (included in deploy) to auto-wire your live MetService entity + sensors from HA.
+
+Edit [`weather_panel.yaml`](weather_panel.yaml) for **Radar/Lunar map coordinates** if HA home location differs. Optional: `aqi_entity` (WAQI).
 
 ## Visual design (MD3 / Flux)
 
