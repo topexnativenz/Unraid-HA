@@ -35,8 +35,8 @@ for f in media_players.yaml packages/flux_ui_media.yaml www/flux-ui/carousel-syn
 done
 
 echo "==> Discovering Sonos media players from HA (names + zones)"
+DISCOVER_ARGS=()
 if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
-  DISCOVER_ARGS=()
   if [[ -n "${HA_URL:-}" ]]; then
     DISCOVER_ARGS+=(--ha-url "$HA_URL")
   fi
@@ -53,6 +53,12 @@ if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
       echo ""
       echo "WARNING: Sonos discovery failed or no speakers found — building with existing media_players.yaml"
     fi
+  fi
+  echo "==> Discovering NZ MetService weather entity"
+  if ((${#DISCOVER_ARGS[@]})); then
+    python3 "$ROOT/scripts/discover_weather.py" "${DISCOVER_ARGS[@]}" --apply || true
+  else
+    python3 "$ROOT/scripts/discover_weather.py" --apply || true
   fi
 else
   echo "    No HA credentials — using committed media_players.yaml (set HA_TOKEN for live Sonos names)"

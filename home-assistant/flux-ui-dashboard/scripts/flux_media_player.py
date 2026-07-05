@@ -70,27 +70,42 @@ def _navbar_player_title_js(entity: str, zone_name: str) -> str:
     return (
         "[[[ "
         f"const s = states[{entity!r}]; "
-        "if (!s) return '';"
-        "const track = s.attributes?.media_title || s.attributes?.media_series_title;"
-        f"return track || {zone_name!r}; "
+        f"const player = {zone_name!r}; "
+        "if (!s) return player;"
+        "const attrs = s.attributes || {};"
+        "const track = attrs.media_title || attrs.media_series_title || '';"
+        "return track || player; "
         "]]]"
     )
 
 
 def _navbar_player_subtitle_js(entity: str, zone_name: str) -> str:
-    """Artist + Sonos zone when playing; zone only when idle with no track."""
+    """Artist + configured Sonos zone name (never Sonos 'Listening on' group text)."""
     return (
         "[[[ "
         f"const s = states[{entity!r}]; "
         f"const player = {zone_name!r}; "
         "if (!s) return '';"
-        "const artist = s.attributes?.media_artist || s.attributes?.media_album_artist;"
-        "const track = s.attributes?.media_title || s.attributes?.media_series_title;"
+        "const attrs = s.attributes || {};"
+        "let artist = attrs.media_artist || attrs.media_album_artist || '';"
+        "if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';"
+        "const track = attrs.media_title || attrs.media_series_title || '';"
         "if (artist) return artist + ' · ' + player;"
         "if (track) return player;"
-        "return '';"
+        "return ''; "
         "]]]"
     )
+
+
+def _navbar_player_actions(name: str) -> dict[str, dict]:
+    """Open popup — disable default media_player toggle on double-tap."""
+    open_action = _open_player_action(name)
+    no_action = {"action": "none"}
+    return {
+        "tap_action": open_action,
+        "hold_action": open_action,
+        "double_tap_action": no_action,
+    }
 
 
 def _select_zone_action(zone: str) -> dict:
@@ -111,7 +126,7 @@ def _open_player_action(_zone: str) -> dict:
     }
 
 
-def _mediocre_player_card(entity: str) -> dict:
+def _mediocre_player_card(entity: str, zone_name: str) -> dict:
     return {
         "type": "custom:mediocre-massive-media-player-card",
         "entity_id": entity,
@@ -119,7 +134,14 @@ def _mediocre_player_card(entity: str) -> dict:
         "use_art_colors": True,
         "options": {
             "show_volume_step_buttons": True,
-            "show_source": True,
+            "show_source": False,
+            "hide_selected_player_header": True,
+        },
+        "card_mod": {
+            "style": (
+                "ha-card h3 + div, ha-card .device, ha-card [class*='device-name'] "
+                "{ display: none !important; }\n"
+            )
         },
     }
 
@@ -138,14 +160,12 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
     for player in players:
         entity = player["entity"]
         name = player["name"]
-        open_action = _open_player_action(name)
         entry: dict[str, Any] = {
             "entity": entity,
             "show": _player_show_jinja(),
             "title": _navbar_player_title_js(entity, name),
             "subtitle": _navbar_player_subtitle_js(entity, name),
-            "tap_action": open_action,
-            "hold_action": open_action,
+            **_navbar_player_actions(name),
         }
         if player.get("icon"):
             entry["icon"] = player["icon"]
@@ -214,7 +234,7 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
 def _player_panel(player: dict, *, use_mediocre: bool) -> dict:
     entity = player["entity"]
     name = player["name"]
-    card = _mediocre_player_card(entity) if use_mediocre else _mushroom_player_card(entity, name)
+    card = _mediocre_player_card(entity, name) if use_mediocre else _mushroom_player_card(entity, name)
     return {
         "type": "conditional",
         "conditions": [

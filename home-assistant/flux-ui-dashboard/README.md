@@ -8,7 +8,7 @@ Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.c
 
 | Area | Description |
 |------|-------------|
-| Hero | Greeting + `weather.forecast_home` |
+| Hero | Greeting + bitmoji + NZ MetService weather (`discover_weather.py --apply`) |
 | Home status | Live chips: lights on count, garage state |
 | **Home / Events / Active tabs** | `custom:simple-tabs` filter (ElementZoom reference) |
 | **Home tab** | Quick Actions, Climate, Favourite lights |

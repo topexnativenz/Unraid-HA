@@ -226,11 +226,16 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
 
 def hero_card(weather_entity: str, cfg: dict) -> dict:
     """Single Flux-style hero: user bitmoji + greeting + weather conditions."""
+    avatar = hero_bitmoji_picture_js(cfg)
     return {
         "type": "custom:button-card",
         "template": "flux_hero",
         "entity": weather_entity,
-        "entity_picture": hero_bitmoji_picture_js(cfg),
+        "show_icon": False,
+        "show_entity_picture": True,
+        "picture": avatar,
+        "entity_picture": avatar,
+        "triggers_update": "all",
         "name": (
             "[[[\n"
             "  const h = new Date().getHours();\n"
@@ -243,8 +248,9 @@ def hero_card(weather_entity: str, cfg: dict) -> dict:
         ),
         "label": (
             "[[[\n"
-            "  const cond = entity.attributes?.friendly_name || entity.attributes?.condition || '';\n"
-            "  const temp = entity.attributes?.temperature;\n"
+            "  const attrs = entity.attributes || {};\n"
+            "  const cond = attrs.condition || attrs.weather || entity.state || '';\n"
+            "  const temp = attrs.temperature;\n"
             "  const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});\n"
             "  const wx = temp != null ? `${cond} · ${temp}°` : String(cond);\n"
             "  return `${wx} · ${time}`;\n"

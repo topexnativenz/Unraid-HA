@@ -11,7 +11,7 @@ events:
   # calendar-card-pro timeline (ElementZoom Events tab)
   days_to_show: 10
   compact_events_to_show: 10
-  weather_entity: weather.forecast_home
+  weather_entity: weather.metservice
   first_day_of_week: monday
   show_countdown: true
   show_progress_bar: true

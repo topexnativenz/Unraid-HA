@@ -150,8 +150,12 @@ def verify_build(path: Path) -> list[str]:
     if "_flux_ui" in blob:
         errors.append("Invalid lovelace root key _flux_ui — remove from build output")
 
-    if "weather.forecast_home" not in blob:
-        errors.append("Missing weather.forecast_home")
+    weather_entity = load_entities().get("weather", "weather.metservice")
+    if weather_entity not in blob:
+        errors.append(f"Missing configured weather entity: {weather_entity}")
+
+    if "/local/flux-ui/bitmoji/" not in blob:
+        errors.append("Missing hero bitmoji picture path (/local/flux-ui/bitmoji/)")
 
     for card_type in ("custom:button-card", "flux_hero"):
         if card_type not in blob:

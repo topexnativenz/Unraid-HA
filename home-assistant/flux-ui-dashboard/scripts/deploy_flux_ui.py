@@ -30,6 +30,7 @@ GARAGE_DIR = ROOT.parent / "garage-doors"
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
+DISCOVER_WEATHER = ROOT / "scripts" / "discover_weather.py"
 DISCOVER_SONOS = ROOT / "scripts" / "discover_sonos.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
@@ -520,6 +521,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
             [
                 "python3",
                 str(DISCOVER_CALENDARS),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
+            check=False,
+        )
+        print("Discovering NZ MetService weather for hero…")
+        subprocess.run(
+            [
+                "python3",
+                str(DISCOVER_WEATHER),
                 "--ha-url",
                 args.ha_url,
                 "--token",
