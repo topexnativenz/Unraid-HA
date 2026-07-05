@@ -57,7 +57,7 @@ fi
 echo ""
 echo "==> [3/3] Garage doors (package + Tapo sensor sync)"
 python3 "$GARAGE/scripts/deploy_garage_doors_pulse.py" --offline-ok "$@" || {
-  echo "Warning: garage deploy/sync failed — update garage-doors/entities.yaml with real Tapo sensor IDs."
+  echo "Warning: garage deploy/sync failed — update garage-doors/entities.local.yaml with real Tapo sensor IDs."
   echo "  python3 $GARAGE/scripts/list_garage_sensors.py"
 }
 
