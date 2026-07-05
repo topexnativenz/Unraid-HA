@@ -54,7 +54,7 @@ if ! git -C "$GIT_ROOT" diff --quiet HEAD -- "$GARAGE_ENTITIES" 2>/dev/null; the
 fi
 
 git -C "$GIT_ROOT" fetch origin "$BRANCH" 2>/dev/null || git -C "$GIT_ROOT" fetch origin
-BEHIND="$(git -C "$GIT_ROOT" rev-parse --count "HEAD..origin/${BRANCH}" 2>/dev/null || echo 0)"
+BEHIND="$(git -C "$GIT_ROOT" rev-list --count "HEAD..origin/${BRANCH}" 2>/dev/null || echo 0)"
 if [[ "${BEHIND}" != "0" ]]; then
   echo "    Pulling ${BEHIND} commit(s)"
   git -C "$GIT_ROOT" pull --rebase --autostash origin "$BRANCH"
@@ -70,7 +70,11 @@ fi
 
 echo ""
 echo "==> [2/4] Full E2E deploy (Flux UI + Mobile Home + garage)"
-bash "$HA_DIR/scripts/run_all_e2e.sh" "${DEPLOY_ARGS[@]}"
+if ((${#DEPLOY_ARGS[@]})); then
+  bash "$HA_DIR/scripts/run_all_e2e.sh" "${DEPLOY_ARGS[@]}"
+else
+  bash "$HA_DIR/scripts/run_all_e2e.sh"
+fi
 
 echo ""
 echo "==> [3/4] Verify HA package helpers (Rooms tabs, music player)"
