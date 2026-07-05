@@ -44,6 +44,7 @@ from flux_navbar import (
     room_view_path,
 )
 from kiosk_config import KIOSK_MODE
+from swipe_nav_config import SWIPE_NAV
 from phase3_builders import (
     build_active_lights_section,
     build_home_status_section,
@@ -507,6 +508,8 @@ def build_config(
         out["button_card_templates"].pop("flux_overview_tab", None)
     if use_kiosk:
         out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)
+    # Bottom navbar handles view changes; keep horizontal swipes for media carousel.
+    out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
     return out
 
 

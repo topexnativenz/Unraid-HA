@@ -174,6 +174,15 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Missing input_select.flux_ui_media_player — deploy packages/flux_ui_media.yaml"
             )
+        swipe_nav = config.get("swipe_nav") or {}
+        if swipe_nav.get("enable") is not False:
+            errors.append(
+                "Missing swipe_nav enable:false — media carousel swipes conflict with view navigation"
+            )
+        if "media-player-viewport" not in blob or "touch-action: none" not in blob:
+            errors.append(
+                "Navbar styles missing media-player-viewport touch-action — Sonos zone swipe may fail"
+            )
 
     if "kiosk_mode" not in blob or "hide_header" not in blob:
         errors.append(

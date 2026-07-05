@@ -54,6 +54,13 @@ NAVBAR_STYLES = """
 ha-ripple {
   display: none !important;
 }
+/* Capture horizontal swipes for the Sonos zone carousel (navbar-card sets pan-y). */
+.media-player-viewport {
+  touch-action: none !important;
+}
+.media-player-carousel {
+  touch-action: none !important;
+}
 """
 
 
