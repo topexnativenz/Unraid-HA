@@ -306,8 +306,12 @@ def cameras_for_room(cfg: dict, room_path: str) -> list[dict]:
     return out
 
 
-def _room_header(room: dict) -> list[dict]:
-    from flux_room_detail import build_room_status_chips_auto
+def _room_header(room: dict, *, active_tab: str = "room") -> list[dict]:
+    from flux_room_detail import (
+        build_room_features_row,
+        build_room_status_chips_auto,
+        build_room_subnav,
+    )
 
     title = room.get("card_name") or room["name"]
     return [
@@ -322,16 +326,14 @@ def _room_header(room: dict) -> list[dict]:
             "grid_options": {"columns": 12},
         },
         build_room_status_chips_auto(room),
+        build_room_features_row(room),
+        build_room_subnav(room, active=active_tab),
     ]
 
 
 def build_room_grid_page(room: dict, *, active_tab: str = "grid") -> dict:
     """Room Grid subview — dense 3-column control grid for all room lights."""
-    from flux_room_detail import build_room_features_row, build_room_subnav
-
-    cards: list[dict] = _room_header(room)
-    cards.append(build_room_features_row(room))
-    cards.append(build_room_subnav(room, active=active_tab))
+    cards: list[dict] = _room_header(room, active_tab=active_tab)
 
     lights = room.get("lights") or []
     if lights:
@@ -382,10 +384,7 @@ def build_room_grid_page(room: dict, *, active_tab: str = "grid") -> dict:
 
 def build_room_camera_page(room: dict, cfg: dict, *, active_tab: str = "camera") -> dict:
     """Room Camera subview — picture-glance feeds for this area."""
-    from flux_room_detail import build_room_subnav
-
-    cards: list[dict] = _room_header(room)
-    cards.append(build_room_subnav(room, active=active_tab))
+    cards: list[dict] = _room_header(room, active_tab=active_tab)
 
     feeds = cameras_for_room(cfg, room["path"])
     if feeds:

@@ -80,6 +80,14 @@ def main() -> int:
             issues.append("Room detail missing status/subnav chips")
         if "flux_feature" not in living_text:
             issues.append("Room detail missing feature action row")
+        if "flux_room_status" not in json.dumps(templates):
+            issues.append("Missing flux_room_status template for room status chips")
+        if "Cool (" not in living_text and "Occupied" not in living_text:
+            issues.append("Room detail status row should format Occupied / Cool / Humid labels")
+        if "flux_fab_group" not in json.dumps(templates):
+            issues.append("Missing flux_fab_group template for light group shortcuts")
+        if living.get("path") == "room-living" and "flux_fab_group" not in living_text:
+            issues.append("Living room should include floating light group shortcuts")
         if "/flux-ui/room-living" not in living_text:
             issues.append("Room detail missing navigation from room index")
         if "room-living-grid" not in living_text:

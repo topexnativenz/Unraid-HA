@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
 from flux_navbar import (
+    URL_PREFIX,
     room_camera_navigation_path,
     room_grid_navigation_path,
     room_navigation_path,
 )
-from md3_templates import wrap_glass, wrap_title
+from flux_room_sensors import ROOM_STATUS_ROW_HTML
+from md3_templates import GLASS_CARD_MOD, wrap_glass, wrap_title
 
 DEFAULT_FEATURES: list[dict] = [
     {"name": "Presence Sensor", "icon": "mdi:motion-sensor", "stub": True},
@@ -16,71 +18,69 @@ DEFAULT_FEATURES: list[dict] = [
     {"name": "Adaptive Lighting", "icon": "mdi:lightbulb-auto-outline", "stub": True},
 ]
 
+FAB_STACK_MOD = {
+    "style": (
+        "ha-card {\n"
+        "  position: fixed !important;\n"
+        "  bottom: 108px !important;\n"
+        "  right: 12px !important;\n"
+        "  width: min(188px, 44vw) !important;\n"
+        "  z-index: 8 !important;\n"
+        "  background: transparent !important;\n"
+        "  box-shadow: none !important;\n"
+        "  border: none !important;\n"
+        "  pointer-events: none !important;\n"
+        "  padding: 0 !important;\n"
+        "}\n"
+        "#root, .grid, hui-grid-card { pointer-events: auto !important; }\n"
+    )
+}
 
-def _chip(content: str, *, icon: str, icon_color: str = "primary", entity: str | None = None) -> dict:
-    entry: dict = {
-        "type": "template",
-        "icon": icon,
-        "icon_color": icon_color,
-        "content": content,
-    }
-    if entity:
-        entry["entity"] = entity
-    return entry
+SUBNAV_MOD = {
+    "style": (
+        "ha-card {\n"
+        "  border-radius: 999px !important;\n"
+        "  padding: 4px 6px !important;\n"
+        "}\n"
+        "mushroom-chip {\n"
+        "  flex: 1;\n"
+        "  justify-content: center;\n"
+        "}\n"
+    )
+}
 
 
 def build_room_status_chips_auto(room: dict) -> dict:
-    """Status chips row — Occupied, temperature, humidity (live or placeholder)."""
+    """Status chips — Occupied, Cool (°C), Humid (%) with Tapo keyword discovery."""
     if room.get("status_chips"):
         chips_card = build_room_status_chips(room)
         if chips_card:
             return chips_card
 
-    chips: list[dict] = []
-    occ = room.get("occupancy_entity")
-    if occ:
-        chips.append(
-            _chip(
-                f"{{% if is_state('{occ}', 'on') %}}Occupied{{% else %}}Empty{{% endif %}}",
-                icon="mdi:account",
-                icon_color=f"{{% if is_state('{occ}', 'on') %}}purple{{% else %}}disabled{{% endif %}}",
-                entity=occ,
-            )
-        )
-    else:
-        chips.append(_chip("—", icon="mdi:account", icon_color="disabled"))
-
-    temp = room.get("temperature_entity")
-    if temp:
-        chips.append(
-            _chip(
-                f"{{{{ states('{temp}') }}}}°C",
-                icon="mdi:thermometer",
-                icon_color="cyan",
-                entity=temp,
-            )
-        )
-    else:
-        chips.append(_chip("—°C", icon="mdi:thermometer", icon_color="disabled"))
-
-    humid = room.get("humidity_entity")
-    if humid:
-        chips.append(
-            _chip(
-                f"{{{{ states('{humid}') }}}}%",
-                icon="mdi:water-percent",
-                icon_color="teal",
-                entity=humid,
-            )
-        )
-    else:
-        chips.append(_chip("—%", icon="mdi:water-percent", icon_color="disabled"))
+    triggers: list[str] = ["sensor", "binary_sensor"]
+    for key in ("occupancy_entity", "temperature_entity", "humidity_entity"):
+        entity = room.get(key)
+        if entity:
+            triggers.append(entity)
 
     return wrap_glass(
         {
-            "type": "custom:mushroom-chips-card",
-            "alignment": "start",
-            "chips": chips,
+            "type": "custom:button-card",
+            "template": "flux_room_status",
+            "variables": {
+                "keywords": room.get("keywords") or [],
+                "occupancy_entity": room.get("occupancy_entity"),
+                "temperature_entity": room.get("temperature_entity"),
+                "humidity_entity": room.get("humidity_entity"),
+            },
+            "custom_fields": {"row": ROOM_STATUS_ROW_HTML},
+            "styles": {
+                "grid": [{"grid-template-areas": "'row'"}, {"grid-template-columns": "1fr"}],
+                "custom_fields": {
+                    "row": [{"grid-area": "row"}, {"width": "100%"}, {"justify-self": "stretch"}],
+                },
+            },
+            "triggers_update": "all",
             "grid_options": {"columns": 12},
         }
     )
@@ -93,7 +93,6 @@ def _feature_tile(feature: dict, *, columns: int = 4) -> dict:
             "template": "flux_feature",
             "name": feature["name"],
             "icon": feature.get("icon", "mdi:gesture-tap"),
-            "label": "—",
             "styles": {
                 "card": [{"opacity": "0.55"}],
                 "icon": [{"color": "var(--md-sys-color-on-surface-variant)"}],
@@ -107,7 +106,6 @@ def _feature_tile(feature: dict, *, columns: int = 4) -> dict:
         "entity": entity,
         "name": feature["name"],
         "icon": feature.get("icon", "mdi:gesture-tap"),
-        "label": "[[[ return entity.state === 'on' ? 'On' : 'Off'; ]]]",
         "tap_action": {"action": "toggle"},
         "hold_action": {"action": "more-info"},
         "grid_options": {"columns": columns},
@@ -115,28 +113,22 @@ def _feature_tile(feature: dict, *, columns: int = 4) -> dict:
 
 
 def build_room_features_row(room: dict) -> dict:
-    """Quick action icons — Presence, Movie Mode, Adaptive Lighting."""
+    """Quick action icons — Presence, Movie Mode, Adaptive Lighting (reference row)."""
     features = room.get("features") or DEFAULT_FEATURES
-    return {
-        "type": "grid",
-        "columns": 12,
-        "square": False,
-        "cards": [_feature_tile(f, columns=4) for f in features[:3]],
-        "grid_options": {"columns": 12},
-    }
+    return wrap_glass(
+        {
+            "type": "grid",
+            "columns": 3,
+            "square": False,
+            "cards": [_feature_tile(f, columns=4) for f in features[:3]],
+            "grid_options": {"columns": 12},
+        }
+    )
 
 
 def build_room_subnav(room: dict, *, active: str = "room") -> dict:
-    """Room / Grid / Camera sub-navigation chips."""
+    """Room / Grid / Camera segmented sub-navigation."""
     path = room["path"]
-    active_mod = {
-        "style": (
-            "ha-card {\n"
-            "  background: rgba(208, 188, 255, 0.32) !important;\n"
-            "  border: 1px solid rgba(208, 188, 255, 0.55) !important;\n"
-            "}\n"
-        )
-    }
 
     def chip(content: str, icon: str, nav_path: str, tab: str) -> dict:
         is_active = active == tab
@@ -155,12 +147,12 @@ def build_room_subnav(room: dict, *, active: str = "room") -> dict:
     ]
     nav_card: dict = {
         "type": "custom:mushroom-chips-card",
-        "alignment": "start",
+        "alignment": "justify",
         "chips": chips,
         "grid_options": {"columns": 12},
     }
-    if active == "room":
-        nav_card["card_mod"] = active_mod
+    existing = GLASS_CARD_MOD["style"] + SUBNAV_MOD["style"]
+    nav_card["card_mod"] = {"style": existing}
     return wrap_glass(nav_card)
 
 
@@ -173,8 +165,8 @@ def _lights_on_count_jinja(entities: list[str]) -> tuple[str, str]:
     return content, icon_color
 
 
-def build_room_light_groups(room: dict) -> dict | None:
-    """Optional quick light-group shortcuts (reference FAB menu)."""
+def build_room_light_groups_fab(room: dict) -> dict | None:
+    """Floating vertical shortcut stack — reference FAB menu (Main Lights, Media, …)."""
     groups = room.get("light_groups") or []
     if not groups:
         return None
@@ -183,16 +175,23 @@ def build_room_light_groups(room: dict) -> dict | None:
         cards.append(
             {
                 "type": "custom:button-card",
-                "template": "flux_action",
+                "template": "flux_fab_group",
                 "entity": group["entity"],
                 "name": group["name"],
                 "icon": group.get("icon", "mdi:lightbulb-group"),
-                "label": "[[[ return entity.state === 'on' ? 'On' : 'Off'; ]]]",
                 "tap_action": {"action": "toggle"},
-                "grid_options": {"columns": 6},
+                "hold_action": {"action": "more-info"},
+                "grid_options": {"columns": 12},
             }
         )
-    return {"type": "grid", "cards": cards}
+    return {
+        "type": "grid",
+        "columns": 1,
+        "square": False,
+        "cards": cards,
+        "grid_options": {"columns": 12},
+        "card_mod": FAB_STACK_MOD,
+    }
 
 
 def build_room_lights_section(room: dict) -> dict:
@@ -247,16 +246,16 @@ def build_room_detail_page(room: dict) -> dict:
             "name": "Back to Rooms",
             "icon": "mdi:arrow-left",
             "label": "All areas",
-            "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/rooms"},
+            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/rooms"},
             "grid_options": {"columns": 12},
         },
         build_room_status_chips_auto(room),
         build_room_features_row(room),
         build_room_subnav(room, active="room"),
     ]
-    groups = build_room_light_groups(room)
-    if groups:
-        cards.append(groups)
     if room.get("lights"):
         cards.append(build_room_lights_section(room))
+    fab = build_room_light_groups_fab(room)
+    if fab:
+        cards.append(fab)
     return {"type": "grid", "cards": cards}

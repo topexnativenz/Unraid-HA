@@ -36,11 +36,14 @@ rooms:
     keywords: [living, lounge, media, atrium, sofa]
     light_groups:
       - {name: Main Lights, icon: mdi:lightbulb-group, entity: light.main_atrium}
-      - {name: Living, icon: mdi:sofa, entity: light.living_center}
+      - {name: Other Lights, icon: mdi:lightbulb-multiple-outline, entity: light.white_lounge}
+      - {name: Kitchen, icon: mdi:stove, entity: light.dining_room}
       - {name: Media, icon: mdi:television, entity: light.media_room}
-      - {name: White lounge, icon: mdi:lightbulb, entity: light.white_lounge}
     lights:
       - {entity: light.living_center, name: Living}
+      - {entity: light.dining_room, name: Dining}
+      - {entity: light.dining_centre, name: Kitchen centre}
+      - {entity: light.dining_pic_light, name: Table top}
       - {entity: light.main_atrium, name: Main area}
       - {entity: light.white_lounge, name: White lounge}
       - {entity: light.media_room, name: Media room}

@@ -257,14 +257,16 @@ BUTTON_CARD_TEMPLATES: dict = {
     "flux_feature": {
         "template": "flux_glass",
         "show_icon": True,
-        "show_label": True,
+        "show_name": True,
+        "show_label": False,
         "styles": {
             "grid": [
-                {"grid-template-areas": "'i' 'n' 'l'"},
+                {"grid-template-areas": "'i' 'n'"},
                 {"grid-template-columns": "1fr"},
-                {"grid-template-rows": "min-content min-content min-content"},
+                {"grid-template-rows": "min-content min-content"},
                 {"justify-items": "center"},
-                {"row-gap": "4px"},
+                {"align-items": "center"},
+                {"row-gap": "6px"},
             ],
             "img_cell": [
                 {"background-color": "rgba(208, 188, 255, 0.16)"},
@@ -272,19 +274,80 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"width": "44px"},
                 {"height": "44px"},
             ],
-            "icon": [{"width": "24px"}, {"color": "var(--md-sys-color-primary)"}],
+            "icon": [{"width": "22px"}, {"color": "var(--md-sys-color-on-surface-variant)"}],
             "name": [
                 {"font-size": "11px"},
                 {"font-weight": "600"},
                 {"text-align": "center"},
+                {"line-height": "1.25"},
+                {"color": "var(--md-sys-color-on-surface)"},
+                {"white-space": "normal"},
+                {"overflow": "hidden"},
+                {"display": "-webkit-box"},
+                {"-webkit-line-clamp": "2"},
+                {"-webkit-box-orient": "vertical"},
+                {"max-width": "100%"},
+                {"padding": "0 2px"},
+            ],
+            "card": [
+                {"padding": "12px 6px"},
+                {"min-height": "80px"},
+                {"max-height": "80px"},
+                {"display": "flex"},
+                {"align-items": "center"},
+                {"justify-content": "center"},
+            ],
+        },
+    },
+    "flux_fab_group": {
+        "template": "flux_glass",
+        "show_icon": True,
+        "show_label": False,
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i n'"},
+                {"grid-template-columns": "36px 1fr"},
+                {"column-gap": "10px"},
+                {"align-items": "center"},
+            ],
+            "img_cell": [
+                {"background-color": "rgba(208, 188, 255, 0.22)"},
+                {"border-radius": "12px"},
+                {"width": "36px"},
+                {"height": "36px"},
+            ],
+            "icon": [{"width": "20px"}, {"color": "var(--md-sys-color-primary)"}],
+            "name": [
+                {"font-size": "13px"},
+                {"font-weight": "600"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
                 {"color": "var(--md-sys-color-on-surface)"},
             ],
-            "label": [
-                {"font-size": "10px"},
-                {"text-align": "center"},
-                {"color": "var(--md-sys-color-on-surface-variant)"},
+            "card": [
+                {"padding": "10px 12px"},
+                {"margin-bottom": "8px"},
+                {"border-radius": "999px"},
+                {
+                    "background": (
+                        "color-mix(in srgb, var(--md-sys-color-surface-container) "
+                        "82%, rgba(208, 188, 255, 0.12))"
+                    )
+                },
             ],
-            "card": [{"padding": "10px 6px", "min-height": "88px"}],
+        },
+    },
+    "flux_room_status": {
+        "show_icon": False,
+        "show_name": False,
+        "show_label": False,
+        "styles": {
+            "card": [
+                {"background": "transparent"},
+                {"box-shadow": "none"},
+                {"border": "none"},
+                {"padding": "0"},
+            ],
         },
     },
     "flux_greeting": {
