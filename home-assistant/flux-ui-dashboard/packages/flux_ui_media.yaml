@@ -1,5 +1,6 @@
 # Flux UI media player selection (Sonos zones)
 # Options are rewritten by discover_sonos.py --apply
+# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
 
 input_select:
   flux_ui_media_player:
@@ -35,10 +36,253 @@ script:
       target:
         entity_id: input_select.flux_ui_media_player
       data:
-        option: '{% set opts = [''Black Lounge SONOS'', ''Kitchen SONOS'', ''Sleepout
-          SONOS'', ''Upstairs Office SONOS''] %}{% set cur = states(''input_select.flux_ui_media_player'')
-          %}{% set i = opts.index(cur) if cur in opts else 0 %}{{ opts[(i + 1) % (opts
-          | length)] }}'
+        option: '{% set ns = namespace(visible=[], zones=[]) %}
+
+          {% if is_state(''media_player.garage_sonos'', ''playing'') and (not (((is_state(''media_player.garage_sonos'',
+          ''playing'') and ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.garage_sonos'']
+          %}{% endif %}
+
+          {% if is_state(''media_player.kitchen_sonos'', ''playing'') and (not (((is_state(''media_player.garage_sonos'',
+          ''playing'') and ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.kitchen_sonos'']
+          %}{% endif %}
+
+          {% if is_state(''media_player.main_lounge_sonos'', ''playing'') and (not
+          (((is_state(''media_player.garage_sonos'', ''playing'') and ({% set _t =
+          state_attr(''media_player.garage_sonos'', ''media_content_type'') | default('''')
+          | lower %}{% set _app = state_attr(''media_player.garage_sonos'', ''app_name'')
+          | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.main_lounge_sonos'']
+          %}{% endif %}
+
+          {% if is_state(''media_player.kids_room_sonos'', ''playing'') and (not (((is_state(''media_player.garage_sonos'',
+          ''playing'') and ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.kids_room_sonos'']
+          %}{% endif %}
+
+          {% if ns.visible | length <= 2 %}
+
+          {% if ''media_player.garage_sonos'' not in ns.visible and ns.visible | length
+          < 2 %}{% set ns.visible = ns.visible + [''media_player.garage_sonos''] %}{%
+          endif %}
+
+          {% if ''media_player.kitchen_sonos'' not in ns.visible and ns.visible |
+          length < 2 %}{% set ns.visible = ns.visible + [''media_player.kitchen_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.main_lounge_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.kids_room_sonos'']
+          %}{% endif %}
+
+          {% endif %}
+
+          {% if ''media_player.garage_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Black Lounge SONOS''] %}{% endif %}
+
+          {% if ''media_player.kitchen_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Kitchen SONOS''] %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' in ns.visible %}{% set ns.zones
+          = ns.zones + [''Sleepout SONOS''] %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' in ns.visible %}{% set ns.zones =
+          ns.zones + [''Upstairs Office SONOS''] %}{% endif %}
+
+          {% set cur = states(''input_select.flux_ui_media_player'') %}{% set i =
+          ns.zones.index(cur) if cur in ns.zones else 0 %}{% if ns.zones | length
+          > 0 %}{{ ns.zones[(i + 1) % (ns.zones | length)] }}{% else %}{{ cur }}{%
+          endif %}'
   flux_ui_media_zone_prev:
     alias: Flux UI previous Sonos zone
     mode: single
@@ -47,14 +291,257 @@ script:
       target:
         entity_id: input_select.flux_ui_media_player
       data:
-        option: '{% set opts = [''Black Lounge SONOS'', ''Kitchen SONOS'', ''Sleepout
-          SONOS'', ''Upstairs Office SONOS''] %}{% set cur = states(''input_select.flux_ui_media_player'')
-          %}{% set i = opts.index(cur) if cur in opts else 0 %}{{ opts[(i - 1) % (opts
-          | length)] }}'
+        option: '{% set ns = namespace(visible=[], zones=[]) %}
+
+          {% if is_state(''media_player.garage_sonos'', ''playing'') and (not (((is_state(''media_player.garage_sonos'',
+          ''playing'') and ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.garage_sonos'']
+          %}{% endif %}
+
+          {% if is_state(''media_player.kitchen_sonos'', ''playing'') and (not (((is_state(''media_player.garage_sonos'',
+          ''playing'') and ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.kitchen_sonos'']
+          %}{% endif %}
+
+          {% if is_state(''media_player.main_lounge_sonos'', ''playing'') and (not
+          (((is_state(''media_player.garage_sonos'', ''playing'') and ({% set _t =
+          state_attr(''media_player.garage_sonos'', ''media_content_type'') | default('''')
+          | lower %}{% set _app = state_attr(''media_player.garage_sonos'', ''app_name'')
+          | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.main_lounge_sonos'']
+          %}{% endif %}
+
+          {% if is_state(''media_player.kids_room_sonos'', ''playing'') and (not (((is_state(''media_player.garage_sonos'',
+          ''playing'') and ({% set _t = state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kitchen_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.main_lounge_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) or (is_state(''media_player.kids_room_sonos'', ''playing'')
+          and ({% set _t = state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})))) or ({% set _t = state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower %}{% set _app = state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower %}{% set _artist = state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') %}{% set _series = state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''') %}{{ _t in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (_artist
+          and _t not in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode''])
+          or (_artist and not _series) or (_t not in [''video'', ''tvshow'', ''movie'',
+          ''channel'', ''episode''] and ''tv'' not in _app and ''hdmi'' not in _app
+          and not _series) }})) %}{% set ns.visible = ns.visible + [''media_player.kids_room_sonos'']
+          %}{% endif %}
+
+          {% if ns.visible | length <= 2 %}
+
+          {% if ''media_player.garage_sonos'' not in ns.visible and ns.visible | length
+          < 2 %}{% set ns.visible = ns.visible + [''media_player.garage_sonos''] %}{%
+          endif %}
+
+          {% if ''media_player.kitchen_sonos'' not in ns.visible and ns.visible |
+          length < 2 %}{% set ns.visible = ns.visible + [''media_player.kitchen_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.main_lounge_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.kids_room_sonos'']
+          %}{% endif %}
+
+          {% endif %}
+
+          {% if ''media_player.garage_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Black Lounge SONOS''] %}{% endif %}
+
+          {% if ''media_player.kitchen_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Kitchen SONOS''] %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' in ns.visible %}{% set ns.zones
+          = ns.zones + [''Sleepout SONOS''] %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' in ns.visible %}{% set ns.zones =
+          ns.zones + [''Upstairs Office SONOS''] %}{% endif %}
+
+          {% set cur = states(''input_select.flux_ui_media_player'') %}{% set i =
+          ns.zones.index(cur) if cur in ns.zones else 0 %}{% if ns.zones | length
+          > 0 %}{{ ns.zones[(i + -1) % (ns.zones | length)] }}{% else %}{{ cur }}{%
+          endif %}'
 automation:
 - id: flux_ui_media_player_sync
   alias: Flux UI sync media player to active Sonos zone
-  description: Keep input_select on the Sonos zone that is playing or paused.
+  description: Keep input_select on the Sonos zone that is actively playing.
   mode: queued
   max: 10
   trigger:
@@ -66,7 +553,6 @@ automation:
     - media_player.kids_room_sonos
     to:
     - playing
-    - paused
   action:
   - choose:
     - conditions:

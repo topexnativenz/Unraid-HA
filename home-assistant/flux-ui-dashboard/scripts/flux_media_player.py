@@ -19,6 +19,7 @@ SELECT_ZONE_SCRIPT = "script.flux_ui_select_media_zone"
 ZONE_PREV_SCRIPT = "script.flux_ui_media_zone_prev"
 ZONE_NEXT_SCRIPT = "script.flux_ui_media_zone_next"
 CAROUSEL_SYNC_MODULE = "/local/flux-ui/carousel-sync.js"
+MIN_PLAYER_SLOTS = 2
 
 BUBBLE_POPUP_STYLES = """\
 #root {
@@ -83,24 +84,46 @@ def _any_music_playing_jinja(players: list[dict]) -> str:
     return "(" + " or ".join(parts) + ")" if parts else "false"
 
 
-def _player_visible_expr(players: list[dict], entity: str) -> str:
-    """Jinja boolean expr: actively playing and visible (music beats TV)."""
+def _visible_entities_jinja_setup(players: list[dict]) -> str:
+    """Build ns.visible: active sessions (music over TV), min 2 slots, extras only when 3+ active."""
     any_music = _any_music_playing_jinja(players)
-    is_music = _is_music_entity_jinja(entity)
-    return f"is_state('{entity}', 'playing') and (not ({any_music}) or ({is_music}))"
+    active_lines = []
+    for p in players:
+        e = p["entity"]
+        is_music = _is_music_entity_jinja(e)
+        active_lines.append(
+            f"{{% if is_state('{e}', 'playing') and (not ({any_music}) or ({is_music})) %}}"
+            f"{{% set ns.visible = ns.visible + ['{e}'] %}}{{% endif %}}"
+        )
+    filler_lines = []
+    for p in players:
+        e = p["entity"]
+        filler_lines.append(
+            f"{{% if '{e}' not in ns.visible and ns.visible | length < {MIN_PLAYER_SLOTS} %}}"
+            f"{{% set ns.visible = ns.visible + ['{e}'] %}}{{% endif %}}"
+        )
+    return (
+        "{% set ns = namespace(visible=[]) %}\n"
+        + "\n".join(active_lines)
+        + f"\n{{% if ns.visible | length <= {MIN_PLAYER_SLOTS} %}}\n"
+        + "\n".join(filler_lines)
+        + "\n{% endif %}"
+    )
 
 
 def _player_visible_template(players: list[dict], entity: str) -> str:
-    """Show only actively playing zones; hide TV when any music zone is playing."""
-    return "{{ " + _player_visible_expr(players, entity) + " }}"
+    """Navbar/popup visibility: 2 slots minimum; 3+ only when extra zones are actively playing."""
+    return _visible_entities_jinja_setup(players) + f"\n{{{{ '{entity}' in ns.visible }}}}"
 
 
 def _player_show_jinja(players: list[dict], entity: str) -> str:
-    """Navbar carousel: only actively playing Sonos zones (music beats TV)."""
-    entities_js = json.dumps([p["entity"] for p in players])
+    """Navbar carousel visibility — matches _player_visible_template logic in JS."""
+    players_js = json.dumps([{"entity": p["entity"], "name": p["name"]} for p in players])
     return (
         "[[[ "
-        f"const ALL = {entities_js}; "
+        f"const MIN_SLOTS = {MIN_PLAYER_SLOTS}; "
+        f"const ALL_PLAYERS = {players_js}; "
+        "const ALL = ALL_PLAYERS.map((p) => p.entity); "
         "const isMusic = (a) => {"
         "  if (!a) return false;"
         "  const t = String(a.media_content_type || '').toLowerCase();"
@@ -112,13 +135,17 @@ def _player_show_jinja(players: list[dict], entity: str) -> str:
         "  if (a.media_series_title && !a.media_artist) return false;"
         "  return !!a.media_artist || !a.media_series_title;"
         "};"
-        f"const e = {entity!r}; "
-        "const s = states[e]; "
-        "if (!s || s.state !== 'playing') return false;"
         "const playing = ALL.filter((id) => states[id]?.state === 'playing');"
         "const anyMusic = playing.some((id) => isMusic(states[id]?.attributes));"
-        "if (anyMusic && !isMusic(s.attributes)) return false;"
-        "return true; "
+        "let active = playing.filter((id) => !anyMusic || isMusic(states[id]?.attributes));"
+        "let visible = [...active];"
+        "if (visible.length <= MIN_SLOTS) {"
+        "  for (const id of ALL) {"
+        "    if (visible.length >= MIN_SLOTS) break;"
+        "    if (!visible.includes(id)) visible.push(id);"
+        "  }"
+        "}"
+        f"return visible.includes({entity!r}); "
         "]]]"
     )
 
@@ -238,17 +265,19 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
 
 
 def _visible_zone_cycle_jinja(players: list[dict], step: int) -> str:
-    """input_select option for next/prev — only actively playing zones (music over TV)."""
-    blocks = []
+    """input_select option for next/prev — cycles visible carousel slots only."""
+    setup = _visible_entities_jinja_setup(players)
+    name_lines = []
     for p in players:
         e, n = p["entity"], p["name"]
-        vis = _player_visible_expr(players, e)
-        blocks.append(f"{{% if {vis} %}}{{% set ns.zones = ns.zones + ['{n}'] %}}{{% endif %}}")
-    body = "\n".join(blocks)
+        name_lines.append(
+            f"{{% if '{e}' in ns.visible %}}{{% set ns.zones = ns.zones + ['{n}'] %}}{{% endif %}}"
+        )
     step_expr = f"(i + {step}) % (ns.zones | length)"
     return (
-        "{% set ns = namespace(zones=[]) %}\n"
-        + body
+        setup.replace("namespace(visible=[])", "namespace(visible=[], zones=[])")
+        + "\n"
+        + "\n".join(name_lines)
         + "\n{% set cur = states('"
         + MEDIA_SELECT_ENTITY
         + "') %}"
@@ -259,16 +288,17 @@ def _visible_zone_cycle_jinja(players: list[dict], step: int) -> str:
     )
 
 
-def _multiple_visible_playing_jinja(players: list[dict]) -> str:
-    parts = [f"(1 if ({_player_visible_expr(players, p['entity'])}) else 0)" for p in players]
-    return "{{ " + " + ".join(parts) + " > 1 }}"
+def _multiple_visible_jinja(players: list[dict]) -> str:
+    setup = _visible_entities_jinja_setup(players)
+    parts = [f"(1 if '{p['entity']}' in ns.visible else 0)" for p in players]
+    return setup + "\n{{ " + " + ".join(parts) + " > 1 }}"
 
 
 def _zone_nav_chip(icon: str, script_entity: str, players: list[dict]) -> dict:
     return {
         "type": "conditional",
         "conditions": [
-            {"condition": "template", "value_template": _multiple_visible_playing_jinja(players)},
+            {"condition": "template", "value_template": _multiple_visible_jinja(players)},
         ],
         "card": {
             "type": "custom:mushroom-template-card",
@@ -396,11 +426,12 @@ def build_music_player_popup_section(cfg: dict, *, use_mediocre: bool = True) ->
     }
 
 
-def media_zone_scripts(options: list[str]) -> dict:
+def media_zone_scripts(players: list[dict]) -> dict:
     """HA scripts — zone select / prev / next for input_select.flux_ui_media_player."""
+    options = [p["name"] for p in players if p.get("enabled", True) and p.get("name")]
     if not options:
         return {}
-    opt_yaml = yaml_list(options)
+    enabled = [p for p in players if p.get("enabled", True) and p.get("entity")]
     return {
         "flux_ui_select_media_zone": {
             "alias": "Flux UI select media zone",
@@ -427,7 +458,7 @@ def media_zone_scripts(options: list[str]) -> dict:
                 {
                     "service": "input_select.select_option",
                     "target": {"entity_id": MEDIA_SELECT_ENTITY},
-                    "data": {"option": _visible_zone_cycle_jinja(players, 1)},
+                    "data": {"option": _visible_zone_cycle_jinja(enabled, 1)},
                 }
             ],
         },
@@ -438,7 +469,7 @@ def media_zone_scripts(options: list[str]) -> dict:
                 {
                     "service": "input_select.select_option",
                     "target": {"entity_id": MEDIA_SELECT_ENTITY},
-                    "data": {"option": _visible_zone_cycle_jinja(players, -1)},
+                    "data": {"option": _visible_zone_cycle_jinja(enabled, -1)},
                 }
             ],
         },
@@ -482,10 +513,17 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
     const h = hass();
     if (!h) return [];
     const playing = ALL_PLAYERS.filter((p) => h.states[p.entity]?.state === 'playing');
-    if (!playing.length) return [];
     const anyMusic = playing.some((p) => isMusic(h.states[p.entity]?.attributes));
-    if (anyMusic) return playing.filter((p) => isMusic(h.states[p.entity]?.attributes));
-    return playing;
+    let active = playing.filter((p) => !anyMusic || isMusic(h.states[p.entity]?.attributes));
+    let visible = [...active];
+    const MIN_SLOTS = {MIN_PLAYER_SLOTS};
+    if (visible.length <= MIN_SLOTS) {{
+      for (const p of ALL_PLAYERS) {{
+        if (visible.length >= MIN_SLOTS) break;
+        if (!visible.find((v) => v.entity === p.entity)) visible.push(p);
+      }}
+    }}
+    return visible;
   }}
 
   function visibleZoneNames() {{

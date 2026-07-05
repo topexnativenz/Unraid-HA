@@ -248,7 +248,17 @@ async def reload_template(token: str, ha_url: str) -> None:
         print("  reloaded template sensors (weather forecasts)")
 
 
-WEATHER_HOURLY_ENTITY = "sensor.flux_ui_hourly_forecast_full"
+WEATHER_PANEL = ROOT / "weather_panel.yaml"
+
+
+def _weather_entity_from_config() -> str:
+    if not WEATHER_PANEL.exists():
+        return "weather.metservice"
+    import yaml
+
+    data = yaml.safe_load(WEATHER_PANEL.read_text()) or {}
+    ms = data.get("metservice") or {}
+    return str(ms.get("weather_entity") or data.get("weather_entity") or "weather.metservice")
 
 
 async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool]:
@@ -270,17 +280,18 @@ async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool
             if res[0].get("success") is False:
                 print(f"  WARNING: {domain}.{svc} failed")
         await asyncio.sleep(3)
+        weather_entity = _weather_entity_from_config()
         found = {
             OVERVIEW_TAB_ENTITY: await wait_for_entity(token, ha_url, OVERVIEW_TAB_ENTITY, attempts=5),
             ROOMS_TAB_ENTITY: await wait_for_entity(token, ha_url, ROOMS_TAB_ENTITY, attempts=5),
             MEDIA_SELECT_ENTITY: await wait_for_entity(token, ha_url, MEDIA_SELECT_ENTITY, attempts=5),
-            WEATHER_HOURLY_ENTITY: await wait_for_entity(token, ha_url, WEATHER_HOURLY_ENTITY, attempts=8),
+            weather_entity: await wait_for_entity(token, ha_url, weather_entity, attempts=8),
         }
         if found[ROOMS_TAB_ENTITY] and found[MEDIA_SELECT_ENTITY]:
-            if not found[WEATHER_HOURLY_ENTITY]:
+            if not found[weather_entity]:
                 print(
-                    f"  WARNING: {WEATHER_HOURLY_ENTITY} not loaded — Rainfall/UV/Wind charts need flux_ui_weather.yaml.\n"
-                    "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
+                    f"  WARNING: {weather_entity} not found — Rainfall/UV/Wind charts need MetService integration.\n"
+                    "  Run: python3 scripts/discover_weather.py --apply"
                 )
             return found
     return found

@@ -186,11 +186,23 @@ def verify_build(path: Path) -> list[str]:
         if needle not in overview_blob:
             errors.append(f"Weather panel missing ElementZoom component: {needle}")
 
-    if "forecast_hourly" not in overview_blob and "sensor.flux_ui_hourly_forecast_full" not in blob:
+    if "forecast_hourly" not in overview_blob:
         errors.append(
-            "Weather charts must read MetService forecast_hourly on the weather entity "
-            "(or flux_ui template sensors as fallback)"
+            "Weather charts must read MetService forecast_hourly on the weather entity"
         )
+
+    if "sensor.flux_ui_hourly_forecast_full" in overview_blob:
+        errors.append(
+            "Stale weather chart entity sensor.flux_ui_hourly_forecast_full — rebuild with weather entity"
+        )
+
+    for stale in (
+        "sensor.flux_ui_forecast_rainfall",
+        "sensor.flux_ui_forecast_temperature",
+        "sensor.flux_ui_forecast_uv_index",
+    ):
+        if stale in overview_blob and "custom:apexcharts-card" in overview_blob:
+            errors.append(f"Stale apexcharts entity {stale} — charts must use weather entity")
 
     media_cfg = load_media_players()
     media_enabled = media_cfg.get("enabled", True)
@@ -224,6 +236,10 @@ def verify_build(path: Path) -> list[str]:
         if "/local/flux-ui/carousel-sync.js" not in blob:
             errors.append(
                 "Missing carousel-sync.js module — Sonos swipe will not sync popup artwork"
+            )
+        if "MIN_SLOTS = 2" not in overview_blob:
+            errors.append(
+                "Music carousel missing MIN_SLOTS=2 visibility — idle zones will all show"
             )
         swipe_nav = config.get("swipe_nav") or {}
         if swipe_nav.get("enable") is not False:

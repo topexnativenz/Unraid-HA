@@ -344,7 +344,7 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
                 "icon": "mdi:speaker",
             }
         },
-        "script": media_zone_scripts(options),
+        "script": media_zone_scripts(players),
     }
     if entities:
         choose: list[dict] = []

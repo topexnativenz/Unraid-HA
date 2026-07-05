@@ -684,9 +684,11 @@ def _lunar_tab(p: dict) -> dict:
     loc = p["location"]
     lat = loc.get("latitude", -37.787)
     lon = loc.get("longitude", 175.2793)
-    e = p["entities"]
     cards = [
-        _title_subtitle("Lunar Cycle & Visibility", f"{{{{ states('{e['moon_summary']}') }}}}"),
+        _title_subtitle(
+            "Lunar Cycle & Visibility",
+            "Moon phase and visibility from home coordinates",
+        ),
         {
             "type": "custom:lunar-phase-card",
             "entity": "",

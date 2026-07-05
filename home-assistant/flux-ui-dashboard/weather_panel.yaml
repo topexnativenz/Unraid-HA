@@ -25,18 +25,6 @@ metservice:
 # Optional WAQI air-quality sensor for Forecast tab second card
 # aqi_entity: sensor.your_town_air_quality_index
 
-# Flux UI derived sensors (packages/flux_ui_weather.yaml — from weather.get_forecasts)
-entities:
-  hourly_forecast: sensor.flux_ui_hourly_forecast_full
-  daily_forecast: sensor.flux_ui_daily_forecast_data
-  next_rain_summary: sensor.flux_ui_next_rain_summary
-  rainfall_summary: sensor.flux_ui_24h_rainfall_summary
-  uv_cloud_summary: sensor.flux_ui_uv_and_cloud_summary
-  wind_summary: sensor.flux_ui_wind_summary
-  moon_summary: sensor.flux_ui_moon_summary
-  forecast_rainfall: sensor.flux_ui_forecast_rainfall
-  forecast_temperature: sensor.flux_ui_forecast_temperature
-  forecast_uv_index: sensor.flux_ui_forecast_uv_index
-  forecast_cloud_coverage: sensor.flux_ui_forecast_cloud_coverage
-  forecast_wind_speed: sensor.flux_ui_forecast_wind_speed
-  forecast_wind_direction: sensor.flux_ui_forecast_wind_direction
+# Charts read forecast_hourly directly from the MetService weather entity above.
+# Optional flux_ui template sensors (packages/flux_ui_weather.yaml) are legacy fallbacks only.
+entities: {}
