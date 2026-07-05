@@ -43,9 +43,16 @@ if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
   if [[ -n "${HA_TOKEN:-}" ]]; then
     DISCOVER_ARGS+=(--token "$HA_TOKEN")
   fi
-  if ! python3 "$ROOT/scripts/discover_sonos.py" "${DISCOVER_ARGS[@]}" --apply; then
-    echo ""
-    echo "WARNING: Sonos discovery failed or no speakers found — building with existing media_players.yaml"
+  if ((${#DISCOVER_ARGS[@]})); then
+    if ! python3 "$ROOT/scripts/discover_sonos.py" "${DISCOVER_ARGS[@]}" --apply; then
+      echo ""
+      echo "WARNING: Sonos discovery failed or no speakers found — building with existing media_players.yaml"
+    fi
+  else
+    if ! python3 "$ROOT/scripts/discover_sonos.py" --apply; then
+      echo ""
+      echo "WARNING: Sonos discovery failed or no speakers found — building with existing media_players.yaml"
+    fi
   fi
 else
   echo "    No HA credentials — using committed media_players.yaml (set HA_TOKEN for live Sonos names)"
