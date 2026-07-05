@@ -126,6 +126,9 @@ def verify_build(path: Path) -> list[str]:
             "Native tabs use input_select.flux_ui_overview_tab — deploy packages/flux_ui_overview.yaml"
         )
 
+    if "_flux_ui" in blob:
+        errors.append("Invalid lovelace root key _flux_ui — remove from build output")
+
     if "weather.forecast_home" not in blob:
         errors.append("Missing weather.forecast_home")
 

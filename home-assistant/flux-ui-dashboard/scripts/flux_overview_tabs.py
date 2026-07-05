@@ -58,6 +58,19 @@ def _active_tab_visibility_jinja(cfg: dict) -> str:
     return "{{ " + " or ".join(parts) + " }}"
 
 
+def _tab_is_active(label: str) -> dict:
+    """Template condition — defaults to Home when tab helper entity is missing."""
+    entity = OVERVIEW_TAB_ENTITY
+    if label == "Home":
+        template = (
+            "{% set tab = states('" + entity + "') %}"
+            "{{ tab == 'Home' or tab in ['unknown', 'unavailable', none] }}"
+        )
+    else:
+        template = "{{ is_state('" + entity + "', '" + label + "') }}"
+    return {"condition": "template", "value_template": template}
+
+
 def _tab_button(label: str, icon: str) -> dict:
     """Full-width tab pill — one third of the tab bar grid."""
     return {
@@ -68,11 +81,21 @@ def _tab_button(label: str, icon: str) -> dict:
         "icon": icon,
         "variables": {"tab_option": label},
         "tap_action": {
-            "action": "call-service",
-            "service": "input_select.select_option",
-            "service_data": {"entity_id": OVERVIEW_TAB_ENTITY, "option": label},
+            "action": "perform-action",
+            "perform_action": "input_select.select_option",
+            "target": {"entity_id": OVERVIEW_TAB_ENTITY},
+            "data": {"option": label},
         },
         "triggers_update": "all",
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  width: 100% !important;\n"
+                "  margin: 0 !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+            )
+        },
     }
 
 
@@ -87,9 +110,11 @@ def _native_tab_bar(cfg: dict) -> dict:
         "type": "grid",
         "columns": 3,
         "square": False,
+        "grid_options": {"columns": 12},
         "card_mod": {
             "style": (
                 "ha-card {\n"
+                "  width: 100% !important;\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
@@ -97,7 +122,9 @@ def _native_tab_bar(cfg: dict) -> dict:
                 "  padding: 0 !important;\n"
                 "}\n"
                 "#root {\n"
-                "  gap: 6px !important;\n"
+                "  display: grid !important;\n"
+                "  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;\n"
+                "  gap: 8px !important;\n"
                 "  width: 100% !important;\n"
                 "}\n"
             )
@@ -110,16 +137,16 @@ def _tab_panel(label: str, cards: list[dict], *, visible_jinja: str | None = Non
     panel = tab_panel_stack(*cards) if len(cards) > 1 else grid_to_vertical_stack(cards[0])
     wrapped: dict[str, Any] = {
         "type": "conditional",
-        "conditions": [
-            {"condition": "state", "entity": OVERVIEW_TAB_ENTITY, "state": label},
-        ],
+        "conditions": [_tab_is_active(label)],
         "card": panel,
+        "grid_options": {"columns": 12},
     }
     if visible_jinja:
         wrapped = {
             "type": "conditional",
             "conditions": [{"condition": "template", "value_template": visible_jinja}],
             "card": wrapped,
+            "grid_options": {"columns": 12},
         }
     return wrapped
 
@@ -157,11 +184,7 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
             {
                 "type": "custom:calendar-card-pro",
                 "entities": [
-                    {
-                        "entity": c["entity"],
-                        "accent_color": c.get("accent_color", "#B388FF"),
-                        **({"name": c["name"]} if c.get("name") else {}),
-                    }
+                    {"entity": c["entity"], "accent_color": c.get("accent_color", "#B388FF")}
                     for c in calendars
                 ],
                 "days_to_show": events.get("days_to_show", 10),
@@ -298,13 +321,7 @@ def build_native_tabs_section(
 
     return {
         "type": "grid",
-        "cards": [
-            {
-                "type": "vertical-stack",
-                "cards": stack_cards,
-                "grid_options": {"columns": 12},
-            }
-        ],
+        "cards": stack_cards,
     }
 
 

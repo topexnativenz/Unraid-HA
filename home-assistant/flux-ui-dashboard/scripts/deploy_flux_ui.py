@@ -47,6 +47,24 @@ def copy_packages(mount: str) -> None:
     for pkg in src.glob("*.yaml"):
         shutil.copy2(pkg, dst_root / pkg.name)
         print(f"  copied packages/{pkg.name}")
+    ensure_packages_in_configuration(mount)
+
+
+def ensure_packages_in_configuration(mount: str) -> None:
+    """Ensure HA loads /config/packages/*.yaml (input_select tab helper)."""
+    conf = Path(mount) / "configuration.yaml"
+    if not conf.exists():
+        return
+    text = conf.read_text()
+    if "include_dir_named packages" in text or "include_dir_merge_named packages" in text:
+        return
+    block = "\nhomeassistant:\n  packages: !include_dir_named packages\n"
+    if "homeassistant:" in text:
+        text = text.replace("homeassistant:", "homeassistant:\n  packages: !include_dir_named packages", 1)
+    else:
+        text = text.rstrip() + block
+    conf.write_text(text)
+    print("  added homeassistant.packages to configuration.yaml")
 
 
 def copy_theme(mount: str) -> None:
@@ -150,10 +168,8 @@ async def ensure_frontend_resources(token: str, ha_url: str) -> None:
 def config_fingerprint(config: dict) -> dict[str, object]:
     blob = json.dumps(config)
     overview = next((v for v in config.get("views", []) if v.get("path") == "overview"), {})
-    meta = config.get("_flux_ui") or {}
     return {
-        "tab_layout": meta.get("tab_layout") or ("native" if "flux_overview_tab" in blob else "legacy"),
-        "tab_engine": meta.get("tab_engine", "unknown"),
+        "tab_layout": "native-v2" if "flux_overview_tab" in blob else "legacy",
         "has_native_tabs": "flux_overview_tab" in blob,
         "has_simple_tabs": "custom:simple-tabs" in blob,
         "has_input_select": OVERVIEW_TAB_ENTITY in blob,
@@ -167,7 +183,7 @@ OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
 
 def print_fingerprint(config: dict, *, label: str) -> None:
     fp = config_fingerprint(config)
-    print(f"  {label}: tab_layout={fp['tab_layout']} engine={fp['tab_engine']} "
+    print(f"  {label}: tab_layout={fp['tab_layout']} "
           f"native={fp['has_native_tabs']} simple-tabs={fp['has_simple_tabs']} "
           f"sections={fp['overview_sections']}")
 
@@ -255,6 +271,9 @@ def build_config(
     if not fp["has_native_tabs"]:
         print("\nERROR: Built config missing flux_overview_tab native tabs.", file=sys.stderr)
         raise SystemExit(1)
+    if "_flux_ui" in blob:
+        print("\nERROR: Built config contains invalid _flux_ui root key.", file=sys.stderr)
+        raise SystemExit(1)
     print_fingerprint(config, label="Built config")
     return config
 
@@ -300,12 +319,8 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
             "Live flux-ui still uses legacy custom:simple-tabs. "
             "Pull latest cursor/overview-home-events-active-tabs-bf3a and redeploy."
         )
-    expected_layout = (config.get("_flux_ui") or {}).get("tab_layout")
-    live_layout = (live_config.get("_flux_ui") or {}).get("tab_layout")
-    if expected_layout and live_layout and expected_layout != live_layout:
-        raise RuntimeError(
-            f"Live tab layout mismatch: built {expected_layout!r}, live {live_layout!r}"
-        )
+    if "_flux_ui" in live_blob:
+        raise RuntimeError("Live config contains invalid _flux_ui key — rebuild and redeploy.")
 
 
 async def deploy_async(args: argparse.Namespace) -> int:
