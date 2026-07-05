@@ -1,0 +1,20 @@
+# Weather panel — ElementZoom-style bubble popup on overview (#weather-panel).
+# Sensor bindings are optional; missing entities render stub placeholders until wired.
+
+enabled: true
+source_label: MetService
+source_url: https://www.metservice.com
+
+# Optional future sensor map (uncomment when devices exist in HA)
+# sensors:
+#   rainfall: sensor.forecast_rainfall
+#   temperature: sensor.forecast_temperature
+#   uv_index: sensor.forecast_uv_index
+#   cloud_coverage: sensor.forecast_cloud_coverage
+#   wind_speed: sensor.forecast_wind_speed
+#   wind_direction: sensor.forecast_wind_direction
+#   rainfall_summary: sensor.24h_rainfall_summary
+#   uv_cloud_summary: sensor.uv_and_cloud_summary
+#   wind_summary: sensor.wind_summary
+#   moon_summary: sensor.moon_summary
+#   next_rain_summary: sensor.next_rain_summary

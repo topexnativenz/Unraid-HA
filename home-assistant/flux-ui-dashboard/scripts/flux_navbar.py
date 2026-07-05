@@ -6,6 +6,11 @@ from md3_templates import GLASS_CARD_MOD
 
 URL_PREFIX = "/flux-ui"
 
+try:
+    from flux_weather_panel import FLUX_UI_WEATHER_PANEL_PATH
+except ImportError:
+    FLUX_UI_WEATHER_PANEL_PATH = "/flux-ui/overview#weather-panel"
+
 
 def room_view_path(room_slug: str) -> str:
     """Lovelace view path for a room detail page (no slashes — HA requirement)."""
@@ -84,23 +89,10 @@ def flux_routes() -> list[dict]:
             ),
         },
         {
-            "url": f"{URL_PREFIX}/scenes",
-            "label": "Scenes",
-            "icon": "mdi:layers-outline",
-            "icon_selected": "mdi:layers",
-            "tap_action": {"action": "open-popup"},
-            "popup": [
-                {
-                    "icon": "mdi:lightbulb-group-outline",
-                    "label": "Scenes",
-                    "url": f"{URL_PREFIX}/scenes",
-                },
-                {
-                    "icon": "mdi:palette-outline",
-                    "label": "Lights",
-                    "url": f"{URL_PREFIX}/lights",
-                },
-            ],
+            "url": FLUX_UI_WEATHER_PANEL_PATH,
+            "label": "Weather",
+            "icon": "mdi:weather-partly-cloudy",
+            "icon_selected": "mdi:weather-partly-cloudy",
         },
         {
             "url": f"{URL_PREFIX}/cameras",
@@ -113,6 +105,16 @@ def flux_routes() -> list[dict]:
             "label": "More",
             "tap_action": {"action": "open-popup"},
             "popup": [
+                {
+                    "icon": "mdi:layers-outline",
+                    "label": "Scenes",
+                    "url": f"{URL_PREFIX}/scenes",
+                },
+                {
+                    "icon": "mdi:palette-outline",
+                    "label": "Lights",
+                    "url": f"{URL_PREFIX}/lights",
+                },
                 {
                     "icon": "mdi:cellphone",
                     "label": "Mobile Home",
@@ -183,9 +185,9 @@ def build_navbar_card(
         },
         {
             "type": "template",
-            "icon": "mdi:layers",
-            "content": "Scenes",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/scenes"},
+            "icon": "mdi:weather-partly-cloudy",
+            "content": "Weather",
+            "tap_action": {"action": "navigate", "navigation_path": FLUX_UI_WEATHER_PANEL_PATH},
         },
         {
             "type": "template",

@@ -38,6 +38,7 @@ from flux_media_player import (
     media_player_active,
     write_carousel_sync_js,
 )
+from flux_weather_panel import build_weather_panel_section
 from flux_navbar import (
     URL_PREFIX,
     navbar_section,
@@ -65,6 +66,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
 OVERVIEW_TABS = ROOT / "overview_tabs.yaml"
+WEATHER_PANEL = ROOT / "weather_panel.yaml"
 MEDIA_PLAYERS = ROOT / "media_players.yaml"
 ROOMS = ROOT / "rooms.yaml"
 ROOM_SENSORS = ROOT / "room_sensors.yaml"
@@ -127,6 +129,10 @@ def load_entities() -> dict:
         cfg["media_players"] = yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
     else:
         cfg["media_players"] = {}
+    if WEATHER_PANEL.exists():
+        cfg["weather_panel"] = yaml.safe_load(WEATHER_PANEL.read_text()) or {}
+    else:
+        cfg["weather_panel"] = {}
     cfg["scenes_config"] = yaml.safe_load(SCENES.read_text()) if SCENES.exists() else {}
     cfg["cameras_config"] = yaml.safe_load(CAMERAS.read_text()) if CAMERAS.exists() else {}
     cfg["light_groups"] = (
@@ -210,16 +216,28 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
     map_json = json.dumps(by_user)
     default_json = json.dumps(default)
     return (
-        "[[[ "
-        "for (const [eid, st] of Object.entries(states)) { "
-        "if (!eid.startsWith('person.')) continue; "
-        "if (st.attributes.user_id === user.id) { "
-        "const pic = st.attributes.entity_picture; "
-        "if (pic) return pic; "
-        "} "
-        "} "
-        f"const map = {map_json}; "
-        f"return map[user.name] || {default_json}; "
+        "[[[\n"
+        "  try {\n"
+        "    const u = (typeof user !== 'undefined' && user) ? user : {};\n"
+        "    const uname = u.name || 'Guest';\n"
+        "    const uid = u.id;\n"
+        f"    const map = {map_json};\n"
+        f"    const fallback = {default_json};\n"
+        "    if (typeof states === 'object' && states && uid != null) {\n"
+        "      for (const eid of Object.keys(states)) {\n"
+        "        if (!eid.startsWith('person.')) continue;\n"
+        "        const st = states[eid];\n"
+        "        if (!st || !st.attributes) continue;\n"
+        "        if (st.attributes.user_id === uid) {\n"
+        "          const pic = st.attributes.entity_picture;\n"
+        "          if (pic) return pic;\n"
+        "        }\n"
+        "      }\n"
+        "    }\n"
+        "    return map[uname] || fallback;\n"
+        "  } catch (e) {\n"
+        f"    return {default_json};\n"
+        "  }\n"
         "]]]"
     )
 
@@ -234,20 +252,22 @@ def hero_card(weather_entity: str, cfg: dict) -> dict:
         "show_icon": False,
         "show_entity_picture": True,
         "picture": avatar,
-        "entity_picture": avatar,
         "triggers_update": "all",
         "name": (
             "[[[\n"
+            "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
+            "  const uname = u.name || 'Guest';\n"
             "  const h = new Date().getHours();\n"
             "  let g = 'Morning';\n"
             "  if (h >= 22 || h < 5) g = 'Night';\n"
             "  else if (h >= 18) g = 'Evening';\n"
             "  else if (h >= 12) g = 'Afternoon';\n"
-            "  return `${g}, ${user.name}!`;\n"
+            "  return `${g}, ${uname}!`;\n"
             "]]]"
         ),
         "label": (
             "[[[\n"
+            "  if (!entity) return '';\n"
             "  const attrs = entity.attributes || {};\n"
             "  const cond = attrs.condition || attrs.weather || entity.state || '';\n"
             "  const temp = attrs.temperature;\n"
@@ -330,6 +350,9 @@ def build_overview_sections(
         popup_section = build_music_player_popup_section(cfg, use_mediocre=use_mediocre_media)
         if popup_section:
             sections.append(popup_section)
+        weather_section = build_weather_panel_section(cfg)
+        if weather_section:
+            sections.append(weather_section)
         return sections
 
     # Fallback: vertical stack (pre-tabs layout)

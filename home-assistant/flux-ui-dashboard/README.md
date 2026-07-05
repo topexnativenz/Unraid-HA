@@ -15,8 +15,9 @@ Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.c
 | **Events tab** | `calendar-card-pro` timeline (or mushroom fallback) |
 | **Active tab** | Active now lights + doors open alert (shown when anything is on/open) |
 | **Floating music player** | Sonos mini bar above bottom nav; tap opens full player with zone picker |
+| **Weather panel** | Navbar **Weather** shortcut → `#weather-panel` bubble popup (Forecast / Rainfall / UV / Wind / Moon tabs; stub layout until sensors exist) |
 
-Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml), [`media_players.yaml`](media_players.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
+Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`weather_panel.yaml`](weather_panel.yaml), [`rooms.yaml`](rooms.yaml), [`media_players.yaml`](media_players.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
 Entity map: [`entities.yaml`](entities.yaml)
 

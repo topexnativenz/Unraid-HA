@@ -20,6 +20,7 @@ from garage_ui_helpers import load_garage_doors  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
 from flux_media_player import MUSIC_PLAYER_HASH, SELECT_ZONE_SCRIPT  # noqa: E402
+from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
 
 
 def load_media_players() -> dict:
@@ -90,11 +91,17 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"View {view.get('path')} missing navbar section")
 
     if "custom:navbar-card" in blob:
-        for label in ('"label": "Home"', '"label": "Rooms"', '"label": "Camera"', '"label": "More"'):
+        for label in (
+            '"label": "Home"',
+            '"label": "Rooms"',
+            '"label": "Weather"',
+            '"label": "Camera"',
+            '"label": "More"',
+        ):
             if label not in blob:
                 errors.append(f"Flux navbar missing route: {label}")
     elif "custom:mushroom-chips-card" in blob:
-        for label in ("Home", "Rooms", "Scenes", "Camera"):
+        for label in ("Home", "Rooms", "Weather", "Camera"):
             if label not in blob:
                 errors.append(f"Navbar fallback missing: {label}")
 
@@ -163,6 +170,12 @@ def verify_build(path: Path) -> list[str]:
 
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
+
+    if WEATHER_PANEL_HASH not in overview_blob:
+        errors.append("Missing weather panel bubble popup (#weather-panel) on overview")
+
+    if '"title": "Forecast"' not in overview_blob or '"title": "Rainfall"' not in overview_blob:
+        errors.append("Weather panel missing Forecast/Rainfall simple-tabs")
 
     media_cfg = load_media_players()
     media_enabled = media_cfg.get("enabled", True)
@@ -266,7 +279,6 @@ def verify_build(path: Path) -> list[str]:
 
     stale_mushroom = (
         "custom:mushroom-lock-card",
-        "custom:mushroom-template-card",
     )
 
     for card_type in stale_mushroom:
@@ -274,6 +286,11 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 f"Stale Mushroom card {card_type} — pull latest branch and redeploy"
             )
+
+    if "custom:mushroom-template-card" in blob and WEATHER_PANEL_HASH not in overview_blob:
+        errors.append(
+            "Stale Mushroom card custom:mushroom-template-card — pull latest branch and redeploy"
+        )
 
     return errors
 
