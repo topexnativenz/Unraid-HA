@@ -2,8 +2,17 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+from flux_door_builders import build_doors_open_alert_section
 from flux_layouts import flux_light_auto_entities_options
 from md3_templates import wrap_glass, wrap_title
+
+GARAGE_DIR = Path(__file__).resolve().parents[2] / "garage-doors"
+sys.path.insert(0, str(GARAGE_DIR))
+
+from garage_ui_helpers import jinja_door_open_expr  # noqa: E402
 
 
 def _title(title: str, subtitle: str = "") -> dict:
@@ -18,7 +27,6 @@ def _title(title: str, subtitle: str = "") -> dict:
 
 
 def _jinja_lights_chip(lights_entity: str) -> tuple[str, str]:
-    """Return (content, icon_color) Jinja templates for lights status chip."""
     content = (
         "{% set n = states.light | selectattr('state', 'eq', 'on') | list | count %}\n"
         "{% if n > 0 %}\n"
@@ -34,21 +42,24 @@ def _jinja_lights_chip(lights_entity: str) -> tuple[str, str]:
     return content, icon_color
 
 
-def _jinja_garage_chip(sensors: list[str]) -> tuple[str, str]:
-    """Return (content, icon_color) Jinja templates for garage status chip."""
-    if not sensors:
+def _jinja_garage_chip(doors: list[dict]) -> tuple[str, str]:
+    """Live garage/shed status — supports Tapo on/off and open/closed states."""
+    if not doors:
         return "Garage closed", "disabled"
-    parts = " + ".join(f"(1 if is_state('{s}', 'on') else 0)" for s in sensors)
+    count_parts = " + ".join(
+        f"(1 if {jinja_door_open_expr(d['sensor'], invert=d.get('invert', False))} else 0)"
+        for d in doors
+    )
     content = (
-        f"{{% set open = {parts} %}}\n"
+        f"{{% set open = {count_parts} %}}\n"
         "{% if open > 0 %}\n"
         "{{ open }} door{% if open != 1 %}s{% endif %} open\n"
         "{% else %}\n"
-        "Garage closed\n"
+        "All closed\n"
         "{% endif %}"
     )
     icon_color = (
-        f"{{% set open = {parts} %}}\n"
+        f"{{% set open = {count_parts} %}}\n"
         "{% if open > 0 %}red{% else %}green{% endif %}"
     )
     return content, icon_color
@@ -73,14 +84,15 @@ def build_home_status_section(cfg: dict) -> dict:
     ]
 
     if garage:
-        sensors = [d["sensor"] for d in garage]
-        garage_content, garage_color = _jinja_garage_chip(sensors)
+        garage_content, garage_color = _jinja_garage_chip(garage)
         chips.append(
             {
                 "type": "template",
+                "entity": garage[0]["sensor"],
                 "icon": "mdi:garage-alert",
                 "icon_color": garage_color,
                 "content": garage_content,
+                "tap_action": {"action": "navigate", "navigation_path": "/flux-ui/room-garage"},
             }
         )
 
@@ -101,7 +113,6 @@ def build_home_status_section(cfg: dict) -> dict:
 
 
 def build_active_lights_section(cfg: dict) -> dict:
-    """auto-entities: only lights that are on (section hidden when empty)."""
     active = cfg.get("context", {}).get("active_lights", {})
     domain = active.get("domain", "light")
     state = active.get("state", "on")
@@ -139,52 +150,12 @@ def build_active_lights_section(cfg: dict) -> dict:
 
 
 def build_open_garage_section(cfg: dict) -> dict | None:
-    """Conditional section when any garage door contact is open."""
+    """Conditional alert when any Tapo garage/shed contact is open."""
     garage = cfg.get("quick_actions", {}).get("garage", [])
-    if not garage:
-        return None
-
-    checks = " or ".join(f"is_state('{d['sensor']}', 'on')" for d in garage)
-    cards = [_title("Doors open", "Check before leaving")]
-    for door in garage:
-        sensor = door["sensor"]
-        cards.append(
-            {
-                "type": "custom:button-card",
-                "template": "flux_action",
-                "entity": sensor,
-                "name": door["name"],
-                "icon": "mdi:garage-open",
-                "label": "Open",
-                "styles": {"icon": [{"color": "#F2B8B5"}]},
-                "tap_action": {
-                    "action": "call-service",
-                    "service": "script.turn_on",
-                    "service_data": {"entity_id": door["script"]},
-                },
-                "grid_options": {"columns": 6},
-            }
-        )
-
-    return {
-        "type": "grid",
-        "cards": [
-            {
-                "type": "conditional",
-                "conditions": [
-                    {
-                        "condition": "template",
-                        "value_template": f"{{{{ {checks} }}}}",
-                    }
-                ],
-                "card": {"type": "grid", "cards": cards},
-            }
-        ],
-    }
+    return build_doors_open_alert_section(garage)
 
 
 def bubble_popup_card(entity: str, name: str) -> dict:
-    """Bubble pop-up with mushroom light slider (Flux-style)."""
     slug = entity.replace(".", "-")
     return {
         "type": "custom:bubble-card",
@@ -237,24 +208,9 @@ def light_tile_bubble(entity: str, name: str, *, columns: int = 6) -> dict:
 
 
 def build_bubble_popups_section(lights: list[dict]) -> dict:
-    """Hidden pop-up anchors (triggered by light tile hash navigation)."""
     cards = [bubble_popup_card(item["entity"], item["name"]) for item in lights]
-    return {
-        "type": "grid",
-        "cards": cards,
-    }
+    return {"type": "grid", "cards": cards}
 
 
 def collect_bubble_lights(cfg: dict) -> list[dict]:
-    seen: set[str] = set()
-    out: list[dict] = []
-    for item in cfg.get("favourite_lights", []):
-        if item["entity"] not in seen:
-            seen.add(item["entity"])
-            out.append(item)
-    for room in cfg.get("rooms", []):
-        for light in room.get("lights", []):
-            if light["entity"] not in seen:
-                seen.add(light["entity"])
-                out.append(light)
-    return out
+    return list(cfg.get("favourite_lights", []))

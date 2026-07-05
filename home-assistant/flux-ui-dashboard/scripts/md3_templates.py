@@ -47,6 +47,10 @@ VIEW_CARD_MOD = {
         "  margin: 0 auto;\n"
         "  padding-top: 8px;\n"
         "}\n"
+        "@keyframes flux-door-pulse {\n"
+        "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"
+        "  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n"
+        "}\n"
         "hui-view-sections {\n"
         "  padding-bottom: 88px;\n"
         "}\n"
@@ -347,6 +351,51 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"box-shadow": "none"},
                 {"border": "none"},
                 {"padding": "0"},
+            ],
+        },
+    },
+    "flux_door": {
+        "template": "flux_glass",
+        "show_icon": True,
+        "show_label": True,
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i n' 'i l'"},
+                {"grid-template-columns": "52px 1fr"},
+                {"grid-template-rows": "min-content min-content"},
+                {"column-gap": "12px"},
+                {"align-items": "center"},
+            ],
+            "img_cell": [
+                {"background-color": "rgba(129, 199, 132, 0.22)"},
+                {"border-radius": "18px"},
+                {"width": "52px"},
+                {"height": "52px"},
+            ],
+            "icon": [{"width": "28px"}, {"color": "#81C784"}],
+            "name": [
+                {"font-weight": "700"},
+                {"font-size": "14px"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+                {"color": "var(--md-sys-color-on-surface)"},
+            ],
+            "label": [
+                {"font-weight": "600"},
+                {"font-size": "12px"},
+                {"justify-self": "start"},
+                {"color": "#81C784"},
+            ],
+            "card": [
+                {"padding": "14px 16px"},
+                {"min-height": "80px"},
+                {
+                    "background": (
+                        "color-mix(in srgb, var(--md-sys-color-surface-container) 78%, "
+                        "rgba(129, 199, 132, 0.1))"
+                    )
+                },
+                {"border": "1px solid rgba(129, 199, 132, 0.35)"},
             ],
         },
     },

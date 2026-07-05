@@ -55,6 +55,8 @@ GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
 from garage_ui_helpers import (  # noqa: E402
+    door_open_state_js,
+    indicator_from_door,
     load_garage_doors,
     open_color_js,
     open_icon_js,
@@ -62,11 +64,29 @@ from garage_ui_helpers import (  # noqa: E402
 )
 
 
+def _sync_garage_room_indicators(rooms: list[dict], doors: list[dict]) -> None:
+    """Keep garage room card indicators in sync with garage-doors/entities.yaml."""
+    if not doors:
+        return
+    for room in rooms:
+        if room.get("path") != "garage":
+            continue
+        door_inds = [indicator_from_door(d) for d in doors]
+        light_ind = next(
+            (i for i in (room.get("indicators") or []) if str(i.get("entity", "")).startswith("light.")),
+            {"entity": "light.garage", "color_on": "#FFD54F", "icon": "mdi:lightbulb-on", "icon_closed": "mdi:lightbulb-outline"},
+        )
+        room["indicators"] = (door_inds + [light_ind])[:4]
+        while len(room["indicators"]) < 4:
+            room["indicators"].append({"stub": True})
+
+
 def load_entities() -> dict:
     cfg = yaml.safe_load(ENTITIES.read_text())
     cfg["quick_actions"]["garage"] = load_garage_doors()
     if ROOMS.exists():
         rooms = yaml.safe_load(ROOMS.read_text()).get("rooms", [])
+        _sync_garage_room_indicators(rooms, cfg["quick_actions"]["garage"])
         if ROOM_SENSORS.exists():
             overrides = yaml.safe_load(ROOM_SENSORS.read_text()).get("overrides") or {}
             merged: list[dict] = []
@@ -205,18 +225,39 @@ def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
 def garage_action(door: dict, *, columns: int = 6) -> dict:
     sensor = door["sensor"]
     invert = door.get("invert", False)
+    name = door["name"]
     return {
         "type": "custom:button-card",
         "template": "flux_action",
         "entity": sensor,
-        "name": door["name"],
-        "icon": open_icon_js(sensor, invert=invert),
+        "name": name,
+        "icon": open_icon_js(sensor, invert=invert, name=name),
         "label": open_label_js(sensor, invert=invert),
         "tap_action": {
             "action": "call-service",
             "service": "script.turn_on",
             "service_data": {"entity_id": door["script"]},
         },
+        "hold_action": {"action": "more-info"},
+        "state": [
+            {
+                "operator": "template",
+                "value": door_open_state_js(invert=invert),
+                "styles": {
+                    "card": [
+                        {"border": "1px solid rgba(242, 184, 181, 0.72)"},
+                        {
+                            "background": (
+                                "color-mix(in srgb, #F2B8B5 28%, "
+                                "var(--md-sys-color-surface-container) 72%)"
+                            )
+                        },
+                    ],
+                    "icon": [{"color": "#F2B8B5"}],
+                    "label": [{"color": "#F2B8B5"}, {"font-weight": "700"}],
+                },
+            },
+        ],
         "styles": {
             "icon": [{"color": open_color_js(sensor, invert=invert)}]
         },
@@ -267,8 +308,9 @@ def build_favourite_lights(cfg: dict) -> dict:
     return build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
 
 
-def build_room_detail(room: dict) -> dict:
-    return build_room_detail_page(room)
+def build_room_detail(room: dict, cfg: dict | None = None) -> dict:
+    doors = (cfg or {}).get("quick_actions", {}).get("garage", []) if cfg else []
+    return build_room_detail_page(room, garage_doors=doors if room.get("path") == "garage" else None)
 
 
 def build_overview_sections(
@@ -445,7 +487,7 @@ def build_config(
                 title=room["name"],
                 path=room_view_path(slug),
                 icon=room.get("icon", "mdi:home-outline"),
-                sections=[build_room_detail(room)],
+                sections=[build_room_detail(room, cfg)],
                 use_navbar_card=use_navbar_card,
                 subview=True,
                 back_path=back,

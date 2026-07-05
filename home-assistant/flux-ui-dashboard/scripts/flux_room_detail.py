@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from flux_door_builders import build_doors_status_section
 from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
 from flux_navbar import (
     URL_PREFIX,
@@ -236,7 +237,7 @@ def build_room_lights_section(room: dict) -> dict:
     }
 
 
-def build_room_detail_page(room: dict) -> dict:
+def build_room_detail_page(room: dict, *, garage_doors: list[dict] | None = None) -> dict:
     """Full room detail matching ElementZoom reference (Living screenshot)."""
     cards: list[dict] = [
         _title(room.get("card_name") or room["name"], room.get("subtitle", "")),
@@ -253,6 +254,8 @@ def build_room_detail_page(room: dict) -> dict:
         build_room_features_row(room),
         build_room_subnav(room, active="room"),
     ]
+    if room.get("path") == "garage" and garage_doors:
+        cards.append(build_doors_status_section(garage_doors, title="Garage & sheds", subtitle="Live Tapo contacts"))
     if room.get("lights"):
         cards.append(build_room_lights_section(room))
     fab = build_room_light_groups_fab(room)

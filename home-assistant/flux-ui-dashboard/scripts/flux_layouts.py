@@ -2,8 +2,16 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from flux_navbar import room_navigation_path
 from md3_templates import wrap_glass, wrap_title
+
+GARAGE_DIR = Path(__file__).resolve().parents[2] / "garage-doors"
+sys.path.insert(0, str(GARAGE_DIR))
+
+from garage_ui_helpers import IS_DOOR_OPEN_JS  # noqa: E402
 
 _LIGHT_LABEL = (
     "[[[\n"
@@ -151,6 +159,8 @@ def flux_room_tile(room: dict, *, columns: int = 6) -> dict:
     }
     if triggers:
         card["triggers_update"] = triggers
+    else:
+        card["triggers_update"] = "all"
     return card
 
 
@@ -166,7 +176,8 @@ _ROOM_LABEL = (
 
 _ROOM_SENSOR_COLUMN = (
     "[[[\n"
-    "  const slots = variables.sensor_slots || [];\n"
+    + IS_DOOR_OPEN_JS
+    + "  const slots = variables.sensor_slots || [];\n"
     "  const pill = (inner) => `\n"
     "    <div style=\"width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;\">${inner}</div>`;\n"
     "  const stub = () => pill(`\n"
@@ -196,12 +207,16 @@ _ROOM_SENSOR_COLUMN = (
     "  };\n"
     "  const isOpenState = (eid, st, item) => {\n"
     "    if (!eid || !st || ['unavailable','unknown'].includes(st.state)) return null;\n"
-    "    const raw = ['on','open','home'].includes(st.state);\n"
-    "    if (item.invert) return !raw;\n"
+    "    const dc = st.attributes?.device_class || '';\n"
+    "    const isDoor = eid.startsWith('binary_sensor.') && (\n"
+    "      ['door','garage_door','opening','window'].includes(dc) || eid.includes('door') || eid.includes('contact') || eid.includes('garage') || eid.includes('shed')\n"
+    "    );\n"
+    "    if (isDoor) return isDoorOpen(st, !!item.invert);\n"
+    "    if (item.invert) return !['on','open','home'].includes(st.state);\n"
     "    if (eid.startsWith('light.')) return st.state === 'on';\n"
-    "    if (eid.startsWith('binary_sensor.')) return raw;\n"
+    "    if (eid.startsWith('binary_sensor.')) return ['on','open','home','detected'].includes(String(st.state).toLowerCase());\n"
     "    if (eid.startsWith('sensor.')) return st.state !== '' && st.state !== '0';\n"
-    "    return raw;\n"
+    "    return ['on','open','home'].includes(String(st.state).toLowerCase());\n"
     "  };\n"
     "  const styleFor = (item, eid, st) => {\n"
     "    if (item.stub || !eid || !st || ['unavailable','unknown'].includes(st.state)) {\n"

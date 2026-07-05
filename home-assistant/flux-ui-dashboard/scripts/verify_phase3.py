@@ -40,8 +40,8 @@ def main() -> int:
         issues.append("Missing conditional open garage section")
 
     templates = blob.get("button_card_templates") or {}
-    if "flux_room" not in templates:
-        issues.append("Missing flux_room button-card template")
+    if "flux_door" not in templates:
+        issues.append("Missing flux_door template for garage/shed tiles")
 
     rooms_view = next(v for v in blob["views"] if v["path"] == "rooms")
     rooms_text = json.dumps(rooms_view)

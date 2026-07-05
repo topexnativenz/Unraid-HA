@@ -1,8 +1,8 @@
 # Tapo contact sensors = source of truth for open/closed icons.
 # Update sensor IDs to match Developer Tools → States (filter: tapo, garage, shed, contact).
 #
-# Standard door binary_sensor: on = open, off = closed.
-# Set invert: true if your sensor reports the opposite.
+# Standard Tapo T110 contact: on/open = door open, off/closed = door closed.
+# If your sensors show the opposite, set invert: true on that door.
 
 doors:
   - name: House Garage
