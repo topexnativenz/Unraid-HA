@@ -135,6 +135,11 @@ def verify_build(path: Path) -> list[str]:
     if "mdi:help-circle-outline" in blob:
         errors.append("Door cards still use help-circle fallback icon — redeploy latest build")
 
+    if "_door_contact" in blob:
+        errors.append(
+            "Garage sensors still use legacy *_door_contact IDs — run discover_garage_doors.py --apply"
+        )
+
     if "show_brightness_control" in blob:
         errors.append("Embedded mushroom sliders found — use flux_light tiles (tap/hold for dimmer)")
 

@@ -14,6 +14,9 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[1]
 ENTITIES = REPO / "entities.yaml"
+sys.path.insert(0, str(REPO))
+
+from garage_ui_helpers import is_open_state  # noqa: E402
 
 
 def get_token(explicit: str | None) -> str:
@@ -48,9 +51,7 @@ def ha_state(token: str, ha_url: str, entity_id: str) -> str | None:
 
 
 def is_open(state: str, *, invert: bool) -> bool:
-    if state in ("unknown", "unavailable"):
-        return False
-    return state == "off" if invert else state == "on"
+    return is_open_state(state, invert=invert)
 
 
 def sync_bool(token: str, ha_url: str, name: str, tracked: str, sensor: str, invert: bool) -> bool:

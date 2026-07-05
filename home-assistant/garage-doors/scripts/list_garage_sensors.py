@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "flux-ui-dashboard"
 
 from ha_common import DEFAULT_HA, get_token  # noqa: E402
 
-KEYWORDS = ("garage", "shed", "door", "contact", "tapo", "t110", "t100")
+KEYWORDS = ("garage", "shed", "door", "contact", "tapo", "t110", "t100", "is_open")
 
 
 def fetch_states(token: str, ha_url: str) -> list[dict]:
@@ -51,6 +51,7 @@ def main() -> int:
         print(f"  {s['entity_id']:<55} state={s['state']:<12} {name}")
 
     print("\nCopy the correct IDs into home-assistant/garage-doors/entities.yaml")
+    print("Or run: python3 home-assistant/garage-doors/scripts/discover_garage_doors.py --apply")
     return 0
 
 

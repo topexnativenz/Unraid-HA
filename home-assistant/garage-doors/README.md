@@ -20,13 +20,21 @@ Red = open (Tapo sensor `on`), grey = closed. Icons read **Tapo contact sensors*
 
 ## Tapo sensor entity map
 
-Edit **`entities.yaml`** in this folder with your real Tapo contact sensor IDs (Developer Tools → States → filter `tapo` or `contact`):
+Edit **`entities.yaml`** in this folder with your real Tapo contact sensor IDs (Developer Tools → States → filter `tapo` or `is_open`):
 
-| Door | Tapo sensor (default placeholder) | Tracked boolean | Pulse script |
-|------|-----------------------------------|-----------------|--------------|
-| House Garage | `binary_sensor.house_garage_door_contact` | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
-| Main Shed | `binary_sensor.main_shed_door_contact` | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
-| Second Shed | `binary_sensor.second_shed_door_contact` | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
+| Door | Tapo sensor (TP-Link default) | Tracked boolean | Pulse script |
+|------|--------------------------------|-----------------|--------------|
+| House Garage | `binary_sensor.house_garage_door_is_open` | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
+| Main Shed | `binary_sensor.shed_main_door_is_open` | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
+| Second Shed | `binary_sensor.second_shed_door_is_open` | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
+
+Auto-map from live HA (on your LAN):
+
+```bash
+python3 home-assistant/garage-doors/scripts/discover_garage_doors.py --apply
+```
+
+Legacy `*_door_contact` entity IDs are placeholders — Tapo T110 via TP-Link uses `*_is_open`.
 
 Standard door sensor: **`on` = open**, **`off` = closed. If yours is reversed, set `invert: true` for that door in `entities.yaml`.
 

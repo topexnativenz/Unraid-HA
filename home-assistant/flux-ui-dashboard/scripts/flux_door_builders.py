@@ -30,7 +30,7 @@ def flux_door_tile(door: dict, *, columns: int = 4) -> dict:
         "name": name,
         "icon": open_icon_js(sensor, invert=invert, name=name),
         "label": open_label_js(sensor, invert=invert),
-        "variables": {"invert": invert, "door_name": name},
+        "variables": {"invert": invert, "door_name": name, "sensor_id": sensor},
         "tap_action": {
             "action": "call-service",
             "service": "script.turn_on",
@@ -40,7 +40,7 @@ def flux_door_tile(door: dict, *, columns: int = 4) -> dict:
         "state": [
             {
                 "operator": "template",
-                "value": door_open_state_js(invert=invert),
+                "value": door_open_state_js(invert=invert, sensor=sensor),
                 "styles": {
                     "card": [
                         {

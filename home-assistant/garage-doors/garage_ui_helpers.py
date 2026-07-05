@@ -81,6 +81,20 @@ def open_label_jinja(sensor: str, *, invert: bool = False) -> str:
     return f"{{{{ 'Open' if {cond} else 'Closed' }}}}"
 
 
+def is_open_state(state: str | None, *, invert: bool = False) -> bool:
+    """True when a Tapo / HA door sensor state means open."""
+    if not state:
+        return False
+    s = str(state).lower()
+    if s in ("unknown", "unavailable", "none"):
+        return False
+    if s in DOOR_OPEN_STATES:
+        return not invert
+    if s in DOOR_CLOSED_STATES:
+        return invert
+    return False
+
+
 IS_DOOR_OPEN_JS = (
     "const isDoorOpen = (st, invert) => {\n"
     "  if (!st) return null;\n"
@@ -95,8 +109,21 @@ IS_DOOR_OPEN_JS = (
 )
 
 
-def _door_js_body(*, invert: bool, icon_open: str, icon_closed: str, kind: str) -> str:
-    """Button-card JS using bound entity (not states lookup)."""
+_RESOLVE_DOOR_STATE_JS = (
+    "  const id = variables?.sensor_id || entity?.entity_id;\n"
+    "  const st = (id && states?.[id]) ? states[id] : entity;\n"
+)
+
+
+def _door_js_body(
+    *,
+    invert: bool,
+    sensor: str,
+    icon_open: str,
+    icon_closed: str,
+    kind: str,
+) -> str:
+    """Button-card JS — resolve live state from states[sensor_id] then entity."""
     inv = str(invert).lower()
     if kind == "icon":
         tail = (
@@ -108,7 +135,7 @@ def _door_js_body(*, invert: bool, icon_open: str, icon_closed: str, kind: str) 
         tail = (
             "  if (open === true) return 'Open';\n"
             "  if (open === false) return 'Closed';\n"
-            "  return entity?.state ? String(entity.state) : 'Closed';\n"
+            "  return st?.state ? String(st.state) : 'Closed';\n"
         )
     else:
         tail = (
@@ -116,12 +143,20 @@ def _door_js_body(*, invert: bool, icon_open: str, icon_closed: str, kind: str) 
             "  if (open === false) return '#81C784';\n"
             "  return '#938F99';\n"
         )
-    return "[[[\n" + IS_DOOR_OPEN_JS + f"  const open = isDoorOpen(entity, {inv});\n" + tail + "]]]"
+    return (
+        "[[[\n"
+        + IS_DOOR_OPEN_JS
+        + _RESOLVE_DOOR_STATE_JS
+        + f"  const open = isDoorOpen(st, {inv});\n"
+        + tail
+        + "]]]"
+    )
 
 
 def open_icon_js(sensor: str, *, invert: bool = False, name: str = "Garage") -> str:
     return _door_js_body(
         invert=invert,
+        sensor=sensor,
         icon_open=door_icon(name, open_icon=True),
         icon_closed=door_icon(name, open_icon=False),
         kind="icon",
@@ -129,20 +164,21 @@ def open_icon_js(sensor: str, *, invert: bool = False, name: str = "Garage") -> 
 
 
 def open_label_js(sensor: str, *, invert: bool = False) -> str:
-    return _door_js_body(invert=invert, icon_open="", icon_closed="", kind="label")
+    return _door_js_body(invert=invert, sensor=sensor, icon_open="", icon_closed="", kind="label")
 
 
 def open_color_js(sensor: str, *, invert: bool = False) -> str:
-    return _door_js_body(invert=invert, icon_open="", icon_closed="", kind="color")
+    return _door_js_body(invert=invert, sensor=sensor, icon_open="", icon_closed="", kind="color")
 
 
-def door_open_state_js(*, invert: bool = False) -> str:
+def door_open_state_js(*, invert: bool = False, sensor: str = "") -> str:
     """Button-card state operator — card must set entity to the door sensor."""
     return (
         "[[[\n"
         + IS_DOOR_OPEN_JS
-        + f"  return isDoorOpen(entity, {str(invert).lower()});\n"
-        "]]]"
+        + _RESOLVE_DOOR_STATE_JS
+        + f"  return isDoorOpen(st, {str(invert).lower()});\n"
+        + "]]]"
     )
 
 

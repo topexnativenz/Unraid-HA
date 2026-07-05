@@ -26,6 +26,7 @@ from ha_common import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+GARAGE_DIR = ROOT.parent / "garage-doors"
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
@@ -273,6 +274,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_kiosk = True
 
     if ha_up and token and not args.offline:
+        print("Discovering Tapo garage/shed door sensors…")
+        subprocess.run(
+            [
+                "python3",
+                str(GARAGE_DIR / "scripts" / "discover_garage_doors.py"),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
+            check=False,
+        )
         print("Discovering Tapo / climate sensors for room cards…")
         subprocess.run(
             ["python3", str(DISCOVER_ROOMS), "--ha-url", args.ha_url, "--token", token],
