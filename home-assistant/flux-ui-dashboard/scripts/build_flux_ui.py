@@ -44,8 +44,10 @@ from phase3_builders import (
     build_open_garage_section,
 )
 from flux_overview_tabs import (
+    FLUX_UI_TAB_LAYOUT,
     build_overview_tabs_section,
     build_quick_actions_tab,
+    overview_tab_fingerprint,
     tabs_enabled,
     tab_engine,
 )
@@ -472,6 +474,10 @@ def build_config(
         "title": "Flux UI",
         "button_card_templates": copy.deepcopy(BUTTON_CARD_TEMPLATES),
         "views": views,
+        "_flux_ui": {
+            "tab_layout": FLUX_UI_TAB_LAYOUT,
+            "tab_engine": tab_engine(cfg),
+        },
     }
     if use_kiosk:
         out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)

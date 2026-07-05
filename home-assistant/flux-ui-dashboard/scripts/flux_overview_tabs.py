@@ -31,6 +31,7 @@ from phase3_builders import build_active_lights_section, build_open_garage_secti
 
 ELEMENTZOOM_REF = "https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"
 OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
+FLUX_UI_TAB_LAYOUT = "native-v2"
 
 
 def _tabs_cfg(cfg: dict) -> dict:
@@ -300,6 +301,16 @@ def build_native_tabs_section(
                 "grid_options": {"columns": 12},
             }
         ],
+    }
+
+
+def overview_tab_fingerprint(cfg: dict) -> dict[str, str]:
+    """Deploy fingerprint — confirms native tab layout is in the built config."""
+    engine = tab_engine(cfg)
+    return {
+        "layout": FLUX_UI_TAB_LAYOUT if engine == "native" else "simple-tabs",
+        "engine": engine,
+        "entity": OVERVIEW_TAB_ENTITY,
     }
 
 

@@ -204,9 +204,19 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
                 errors.append(f"Live flux-ui missing view: {required}")
         overview = next((v for v in views if v.get("path") == "overview"), views[0])
         sections = overview.get("sections", [])
-        if len(sections) < 6:
-            errors.append(f"Live overview has {len(sections)} sections (Phase 3 needs >= 6)")
         live_blob = json.dumps(cfg["result"])
+        has_native = "flux_overview_tab" in live_blob
+        has_simple = "custom:simple-tabs" in live_blob
+        if has_simple and not has_native:
+            errors.append(
+                "Live flux-ui still uses legacy custom:simple-tabs — merge PR #2 and redeploy"
+            )
+        if not has_native and not has_simple:
+            errors.append("Live flux-ui missing overview tabs")
+        elif len(sections) < 3:
+            errors.append(f"Live overview has {len(sections)} sections, need >= 3 with tabs layout")
+        elif not has_native and len(sections) < 6:
+            errors.append(f"Live overview has {len(sections)} sections (vertical layout needs >= 6)")
         if "flux_hero" not in live_blob and "flux_greeting" not in live_blob:
             errors.append("Live config missing flux hero")
         if '"label": "Rooms"' not in live_blob:

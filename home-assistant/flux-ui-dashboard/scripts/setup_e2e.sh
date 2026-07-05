@@ -12,6 +12,12 @@ echo "==> Downloading bundled Mushroom + card-mod JS"
 python3 "$ROOT/scripts/install_frontend_assets.py"
 
 echo "==> Building Flux UI config"
+GIT_BRANCH="$(git -C "$(dirname "$ROOT")/.." branch --show-current 2>/dev/null || true)"
+GIT_HEAD="$(git -C "$(dirname "$ROOT")/.." rev-parse --short HEAD 2>/dev/null || true)"
+echo "    Branch: ${GIT_BRANCH:-unknown} @ ${GIT_HEAD:-unknown}"
+if [[ "${GIT_BRANCH:-}" != *overview-home-events-active* ]]; then
+  echo "    WARNING: native tab layout fix is on cursor/overview-home-events-active-tabs-bf3a (merge PR #2)"
+fi
 python3 "$ROOT/scripts/build_flux_ui.py" \
   --output "$ROOT/generated/lovelace.flux_ui.json"
 

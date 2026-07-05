@@ -146,6 +146,56 @@ async def ensure_frontend_resources(token: str, ha_url: str) -> None:
     )
 
 
+def config_fingerprint(config: dict) -> dict[str, object]:
+    blob = json.dumps(config)
+    overview = next((v for v in config.get("views", []) if v.get("path") == "overview"), {})
+    meta = config.get("_flux_ui") or {}
+    return {
+        "tab_layout": meta.get("tab_layout") or ("native" if "flux_overview_tab" in blob else "legacy"),
+        "tab_engine": meta.get("tab_engine", "unknown"),
+        "has_native_tabs": "flux_overview_tab" in blob,
+        "has_simple_tabs": "custom:simple-tabs" in blob,
+        "has_input_select": OVERVIEW_TAB_ENTITY in blob,
+        "overview_sections": len(overview.get("sections") or []),
+        "quick_actions_grid": "Quick Actions" in blob and '"columns": 2' in blob,
+    }
+
+
+OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
+
+
+def print_fingerprint(config: dict, *, label: str) -> None:
+    fp = config_fingerprint(config)
+    print(f"  {label}: tab_layout={fp['tab_layout']} engine={fp['tab_engine']} "
+          f"native={fp['has_native_tabs']} simple-tabs={fp['has_simple_tabs']} "
+          f"sections={fp['overview_sections']}")
+
+
+async def reload_core_config(token: str, ha_url: str) -> None:
+    res = await ws_call(
+        token,
+        ha_url,
+        [
+            {
+                "type": "call_service",
+                "domain": "homeassistant",
+                "service": "reload_core_config",
+            }
+        ],
+    )
+    if res[0].get("success") is False:
+        print(f"  WARNING: reload_core_config failed: {res[0].get('error')}")
+    else:
+        print("  reloaded HA core config (packages/input_select)")
+
+
+async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
+    res = await ws_call(token, ha_url, [{"type": "get_states"}])
+    if not res[0].get("success"):
+        return False
+    return any(s.get("entity_id") == entity_id for s in res[0].get("result", []))
+
+
 def build_config(
     mobile_storage: Path | None,
     *,
@@ -193,6 +243,18 @@ def build_config(
     if use_kiosk and "kiosk_mode" not in config:
         print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
         raise SystemExit(1)
+    fp = config_fingerprint(config)
+    if fp["has_simple_tabs"] and not fp["has_native_tabs"]:
+        print(
+            "\nERROR: Built legacy simple-tabs layout — pull branch "
+            "cursor/overview-home-events-active-tabs-bf3a (native tab bar fix).\n",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    if not fp["has_native_tabs"]:
+        print("\nERROR: Built config missing flux_overview_tab native tabs.", file=sys.stderr)
+        raise SystemExit(1)
+    print_fingerprint(config, label="Built config")
     return config
 
 
@@ -210,20 +272,62 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
         ha_url,
         [{"type": "lovelace/config", "url_path": URL_PATH, "force": True}],
     )
-    views = verify[0]["result"]["views"]
+    if not verify[0].get("success"):
+        raise RuntimeError(f"Could not verify saved flux-ui config: {verify[0].get('error')}")
+
+    live_config = verify[0]["result"]
+    views = live_config.get("views", [])
     overview = next((v for v in views if v.get("path") == "overview"), views[0])
     sections = overview.get("sections", [])
-    has_kiosk = "kiosk_mode" in verify[0]["result"]
-    phase3 = "auto-entities" in json.dumps(verify[0]["result"]) and '"template": "flux_light"' in json.dumps(
-        verify[0]["result"]
-    )
+    has_kiosk = "kiosk_mode" in live_config
+    live_blob = json.dumps(live_config)
+    phase3 = "auto-entities" in live_blob and '"template": "flux_light"' in live_blob
     print(
         f"Live flux-ui: {[(v['title'], v['path']) for v in views]} "
         f"overview_sections={len(sections)} kiosk={has_kiosk} phase3={phase3}"
     )
+    print_fingerprint(live_config, label="Live config")
+
+    if "flux_overview_tab" not in live_blob:
+        raise RuntimeError(
+            "Live flux-ui still missing native tab bar (flux_overview_tab). "
+            "Hard-refresh did not apply — check you deployed from branch "
+            "cursor/overview-home-events-active-tabs-bf3a and merge PR #2."
+        )
+    if "custom:simple-tabs" in live_blob and "flux_overview_tab" not in live_blob:
+        raise RuntimeError(
+            "Live flux-ui still uses legacy custom:simple-tabs. "
+            "Pull latest cursor/overview-home-events-active-tabs-bf3a and redeploy."
+        )
+    expected_layout = (config.get("_flux_ui") or {}).get("tab_layout")
+    live_layout = (live_config.get("_flux_ui") or {}).get("tab_layout")
+    if expected_layout and live_layout and expected_layout != live_layout:
+        raise RuntimeError(
+            f"Live tab layout mismatch: built {expected_layout!r}, live {live_layout!r}"
+        )
 
 
 async def deploy_async(args: argparse.Namespace) -> int:
+    try:
+        git_head = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT.parent.parent)
+            .decode()
+            .strip()
+        )
+        git_branch = (
+            subprocess.check_output(["git", "branch", "--show-current"], cwd=ROOT.parent.parent)
+            .decode()
+            .strip()
+        )
+        print(f"Deploy source: {git_branch} @ {git_head}")
+        if "overview-home-events-active" not in git_branch and git_head:
+            print(
+                "WARNING: Deploy branch may not include native tab layout fix. "
+                "Use cursor/overview-home-events-active-tabs-bf3a or merge PR #2."
+            )
+    except Exception:
+        pass
+
     token: str | None = None
     if not args.offline:
         try:
@@ -259,6 +363,13 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 copy_theme(args.mount)
                 copy_packages(args.mount)
                 copy_frontend_assets(args.mount)
+                if token and ha_up and not args.offline:
+                    await reload_core_config(token, args.ha_url)
+                    if not await entity_exists(token, args.ha_url, OVERVIEW_TAB_ENTITY):
+                        print(
+                            f"  WARNING: {OVERVIEW_TAB_ENTITY} not loaded — "
+                            "ensure configuration.yaml includes packages: !include_dir_named packages"
+                        )
                 mobile_storage = Path(args.mount) / ".storage" / MOBILE_STORAGE
                 if not mobile_storage.exists():
                     mobile_storage = None
