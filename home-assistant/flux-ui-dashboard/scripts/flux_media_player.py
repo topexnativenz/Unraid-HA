@@ -78,16 +78,17 @@ def _navbar_player_title_js(entity: str, zone_name: str) -> str:
 
 
 def _navbar_player_subtitle_js(entity: str, zone_name: str) -> str:
-    """Artist when playing; zone name when idle with no track metadata."""
+    """Artist + Sonos zone when playing; zone only when idle with no track."""
     return (
         "[[[ "
         f"const s = states[{entity!r}]; "
+        f"const player = {zone_name!r}; "
         "if (!s) return '';"
         "const artist = s.attributes?.media_artist || s.attributes?.media_album_artist;"
         "const track = s.attributes?.media_title || s.attributes?.media_series_title;"
-        "if (artist) return artist;"
-        "if (track) return '';"
-        f"return {zone_name!r}; "
+        "if (artist) return artist + ' · ' + player;"
+        "if (track) return player;"
+        "return '';"
         "]]]"
     )
 
