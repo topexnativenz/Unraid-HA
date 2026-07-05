@@ -1,20 +1,38 @@
-# Weather panel — ElementZoom-style bubble popup on overview (#weather-panel).
-# Sensor bindings are optional; missing entities render stub placeholders until wired.
+# Weather panel — ElementZoom Material Design 3 mobile dashboard (MetService NZ).
+# Coordinates used by Radar (Windy) and Lunar phase cards.
 
 enabled: true
-source_label: MetService
-source_url: https://www.metservice.com
+weather_entity: weather.metservice
 
-# Optional future sensor map (uncomment when devices exist in HA)
-# sensors:
-#   rainfall: sensor.forecast_rainfall
-#   temperature: sensor.forecast_temperature
-#   uv_index: sensor.forecast_uv_index
-#   cloud_coverage: sensor.forecast_cloud_coverage
-#   wind_speed: sensor.forecast_wind_speed
-#   wind_direction: sensor.forecast_wind_direction
-#   rainfall_summary: sensor.24h_rainfall_summary
-#   uv_cloud_summary: sensor.uv_and_cloud_summary
-#   wind_summary: sensor.wind_summary
-#   moon_summary: sensor.moon_summary
-#   next_rain_summary: sensor.next_rain_summary
+source_label: MetService
+source_url: https://www.metservice.com/warnings/home
+
+# Home coordinates — update for your property (Radar + Lunar tabs)
+location:
+  latitude: -37.7870
+  longitude: 175.2793
+  city: ""
+  country: New Zealand
+
+# Optional WAQI air-quality sensor for Forecast tab second card (hide when unset)
+# aqi_entity: sensor.your_town_air_quality_index
+# aqi_pollutant_entity: sensor.your_town_dominant_pollutant
+
+# Optional MetService warnings sensor from integration (shows Warning tab when active)
+# warnings_entity: sensor.home_metservice_weather_warnings
+
+# Flux UI template sensor entity IDs (generated in packages/flux_ui_weather.yaml)
+entities:
+  hourly_forecast: sensor.flux_ui_hourly_forecast_full
+  daily_forecast: sensor.flux_ui_daily_forecast_data
+  next_rain_summary: sensor.flux_ui_next_rain_summary
+  rainfall_summary: sensor.flux_ui_24h_rainfall_summary
+  uv_cloud_summary: sensor.flux_ui_uv_and_cloud_summary
+  wind_summary: sensor.flux_ui_wind_summary
+  moon_summary: sensor.flux_ui_moon_summary
+  forecast_rainfall: sensor.flux_ui_forecast_rainfall
+  forecast_temperature: sensor.flux_ui_forecast_temperature
+  forecast_uv_index: sensor.flux_ui_forecast_uv_index
+  forecast_cloud_coverage: sensor.flux_ui_forecast_cloud_coverage
+  forecast_wind_speed: sensor.flux_ui_forecast_wind_speed
+  forecast_wind_direction: sensor.flux_ui_forecast_wind_direction

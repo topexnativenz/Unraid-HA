@@ -107,6 +107,9 @@ def main() -> int:
             update_yaml_weather(OVERVIEW_TABS, picked, key_path=("events", "weather_entity"))
             or changed
         )
+    wp = ROOT / "weather_panel.yaml"
+    if wp.exists():
+        changed = update_yaml_weather(wp, picked, key_path=("weather_entity",)) or changed
     print(f"\nUpdated weather entity to {picked}")
     return 0
 

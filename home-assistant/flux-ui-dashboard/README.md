@@ -15,7 +15,7 @@ Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.c
 | **Events tab** | `calendar-card-pro` timeline (or mushroom fallback) |
 | **Active tab** | Active now lights + doors open alert (shown when anything is on/open) |
 | **Floating music player** | Sonos mini bar above bottom nav; tap opens full player with zone picker |
-| **Weather panel** | Navbar **Weather** shortcut → `#weather-panel` bubble popup (Forecast / Rainfall / UV / Wind / Moon tabs; stub layout until sensors exist) |
+| **Weather panel** | Navbar **Weather** → `#weather-panel` — ElementZoom layout: Forecast (`weather-forecast-extended-card`), Rainfall/UV/Wind (`apexcharts-card`), Radar (Windy), Lunar (`lunar-phase-card`). Template sensors in `packages/flux_ui_weather.yaml`. |
 
 Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`weather_panel.yaml`](weather_panel.yaml), [`rooms.yaml`](rooms.yaml), [`media_players.yaml`](media_players.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
@@ -38,7 +38,10 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [alexpfau/calendar-card-pro](https://github.com/alexpfau/calendar-card-pro) | Events tab timeline ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
 | [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav + floating music bar |
 | [antontanderup/mediocre-hass-media-player-cards](https://github.com/antontanderup/mediocre-hass-media-player-cards) | Full music popup (mushroom fallback) |
-| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Music player popup shell |
+| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Music + weather panel popup shells |
+| [RomRider/apexcharts-card](https://github.com/RomRider/apexcharts-card) | Weather panel Rainfall / UV / Wind charts |
+| [Thyraz/weather-forecast-extended](https://github.com/Thyraz/weather-forecast-extended) | Weather panel Forecast hero + daily/hourly rows |
+| [ngocjohn/lunar-phase-card](https://github.com/ngocjohn/lunar-phase-card) | Weather panel Lunar tab |
 | [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode) | Hide HA header on mobile |
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |
 | [Nerwyn/material-you-utilities](https://github.com/Nerwyn/material-you-utilities) | MD3 helpers (optional) |
@@ -58,6 +61,23 @@ Not in the default HACS store — add as a **custom repository**:
 
 Without this, the music popup uses mushroom media player (works, fewer features). Deploy auto-registers the JS if HACS installed it.
 
+### Weather panel HACS + integrations
+
+Install these **before** deploy (ElementZoom [weather panel](https://github.com/ElementZoom/Material-Design-3-Dynamic-Mobile-Dashboard/blob/main/assets/weather%20panel) parity):
+
+| Item | Source |
+|------|--------|
+| **MetService NZ** | HACS integration [ciejer/metservice-weather](https://github.com/ciejer/metservice-weather) |
+| **Lunar phase** | HACS integration [ngocjohn/lunar-phase](https://github.com/ngocjohn/lunar-phase) (Lunar tab + moon summary) |
+| **ApexCharts Card** | HACS frontend [RomRider/apexcharts-card](https://github.com/RomRider/apexcharts-card) |
+| **Weather Forecast Extended** | HACS frontend [Thyraz/weather-forecast-extended](https://github.com/Thyraz/weather-forecast-extended) |
+| **Lunar Phase Card** | HACS frontend [ngocjohn/lunar-phase-card](https://github.com/ngocjohn/lunar-phase-card) |
+| **Stack In Card** | Already listed above (`custom-cards/stack-in-card`) |
+
+Deploy generates `packages/flux_ui_weather.yaml` — template sensors that call `weather.get_forecasts` on your MetService entity every 15 minutes (required since HA 2024.4 removed inline forecast attributes).
+
+Edit [`weather_panel.yaml`](weather_panel.yaml) for **Radar/Lunar map coordinates** (`location.latitude` / `longitude`). Optional: `aqi_entity` (WAQI), `warnings_entity` (MetService warnings sensor).
+
 ## Visual design (MD3 / Flux)
 
 MD3 styling includes:
@@ -66,7 +86,7 @@ MD3 styling includes:
 - **Wallpaper background** (`/local/flux-ui/wallpapers/dark-purple.webp`)
 - **Glass cards** — blur, tinted surfaces, 28px corners
 - **button-card templates** — hero, quick actions, light tiles
-- **Bottom navbar** — Home / Rooms / Scenes / Camera / More (navbar-card HACS)
+- **Bottom navbar** — Home / Rooms / Weather / Camera / More (navbar-card HACS)
 - **Kiosk mode** — hides HA header on mobile
 
 After deploy: open Flux UI, hard-refresh browser (Cmd+Shift+R). On iOS Companion: **Reset Frontend Cache**.

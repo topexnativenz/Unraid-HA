@@ -174,8 +174,20 @@ def verify_build(path: Path) -> list[str]:
     if WEATHER_PANEL_HASH not in overview_blob:
         errors.append("Missing weather panel bubble popup (#weather-panel) on overview")
 
-    if '"title": "Forecast"' not in overview_blob or '"title": "Rainfall"' not in overview_blob:
-        errors.append("Weather panel missing Forecast/Rainfall simple-tabs")
+    for needle in (
+        "custom:weather-forecast-extended-card",
+        "custom:apexcharts-card",
+        "custom:lunar-phase-card",
+        '"title": "Radar"',
+        '"title": "Lunar"',
+    ):
+        if needle not in overview_blob:
+            errors.append(f"Weather panel missing ElementZoom component: {needle}")
+
+    if "sensor.flux_ui_hourly_forecast_full" not in blob:
+        errors.append(
+            "Missing flux_ui weather template sensors — deploy packages/flux_ui_weather.yaml"
+        )
 
     media_cfg = load_media_players()
     media_enabled = media_cfg.get("enabled", True)
