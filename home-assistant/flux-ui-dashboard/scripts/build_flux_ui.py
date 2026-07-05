@@ -46,6 +46,7 @@ from phase3_builders import (
 from flux_overview_tabs import (
     build_overview_tabs_section,
     build_quick_actions_tab,
+    overview_tab_usage,
     tabs_enabled,
     tab_engine,
 )
@@ -473,6 +474,9 @@ def build_config(
         "button_card_templates": copy.deepcopy(BUTTON_CARD_TEMPLATES),
         "views": views,
     }
+    # Unused native tab template confuses deploy fingerprinting when engine is simple-tabs.
+    if tab_engine(cfg) == "simple-tabs":
+        out["button_card_templates"].pop("flux_overview_tab", None)
     if use_kiosk:
         out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)
     return out
@@ -527,6 +531,7 @@ def main() -> None:
         if camera_section:
             print("Imported cameras section from Mobile Home")
 
+    cfg = load_entities()
     config = build_config(
         climate_section=climate_section,
         camera_section=camera_section,
@@ -535,6 +540,11 @@ def main() -> None:
         use_auto_entities=not args.no_auto_entities,
         use_simple_tabs=not args.no_simple_tabs,
         use_calendar_pro=not args.no_calendar_pro,
+    )
+    usage = overview_tab_usage(config)
+    print(
+        f"Overview tabs: engine={tab_engine(cfg)} "
+        f"simple-tabs={usage['has_simple_tabs']} native={usage['has_native_tabs']}"
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {

@@ -41,19 +41,26 @@ def verify_build(path: Path) -> list[str]:
         return errors
 
     overview_sections = overview.get("sections", [])
+    overview_blob = json.dumps(overview)
     blob = json.dumps(config)
+    usage = {
+        "has_simple_tabs": "custom:simple-tabs" in overview_blob,
+        "has_native_tabs": "custom:simple-tabs" not in overview_blob
+        and (
+            "input_select.flux_ui_overview_tab" in overview_blob
+            or '"template": "flux_overview_tab"' in overview_blob
+        ),
+    }
     if len(overview_sections) < 6:
-        has_native_tabs = "flux_overview_tab" in blob or "input_select.flux_ui_overview_tab" in blob
-        has_simple_tabs = "custom:simple-tabs" in blob
-        if not has_native_tabs and not has_simple_tabs and len(overview_sections) < 6:
+        if not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(overview_sections) < 6:
             errors.append(
                 f"Expected at least 6 overview sections (vertical layout), got {len(overview_sections)}"
             )
-        elif has_simple_tabs and len(overview_sections) < 3:
+        elif usage["has_simple_tabs"] and len(overview_sections) < 3:
             errors.append(
                 f"Expected at least 3 overview sections with tabs layout, got {len(overview_sections)}"
             )
-        elif has_native_tabs and len(overview_sections) < 3:
+        elif usage["has_native_tabs"] and len(overview_sections) < 3:
             errors.append(
                 f"Expected at least 3 overview sections with native tabs, got {len(overview_sections)}"
             )
@@ -80,9 +87,11 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Navbar fallback missing: {label}")
 
     templates = config.get("button_card_templates") or {}
-    for name in ("flux_glass", "flux_action", "flux_light", "flux_room", "flux_feature", "flux_overview_tab"):
+    for name in ("flux_glass", "flux_action", "flux_light", "flux_room", "flux_feature"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
+    if usage["has_native_tabs"] and "flux_overview_tab" not in templates:
+        errors.append("Missing button_card template: flux_overview_tab")
     if "flux_hero" not in templates and "flux_greeting" not in templates:
         errors.append("Missing flux_hero or flux_greeting template")
 
@@ -116,16 +125,12 @@ def verify_build(path: Path) -> list[str]:
     if "Home status" not in blob:
         errors.append("Missing Phase 3 home status section")
 
-    if "custom:simple-tabs" not in blob and "flux_overview_tab" not in blob:
+    if not usage["has_simple_tabs"] and not usage["has_native_tabs"]:
         errors.append(
-            "Missing ElementZoom overview tabs — expected flux_overview_tab (native) or custom:simple-tabs"
+            "Missing ElementZoom overview tabs — expected custom:simple-tabs or native tab bar"
         )
 
-    if (
-        "custom:simple-tabs" not in blob
-        and "input_select.flux_ui_overview_tab" not in blob
-        and '"template": "flux_overview_tab"' in blob
-    ):
+    if usage["has_native_tabs"] and "input_select.flux_ui_overview_tab" not in overview_blob:
         errors.append(
             "Native tabs use input_select.flux_ui_overview_tab — deploy packages/flux_ui_overview.yaml"
         )
@@ -212,17 +217,22 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
         overview = next((v for v in views if v.get("path") == "overview"), views[0])
         sections = overview.get("sections", [])
         live_blob = json.dumps(cfg["result"])
-        has_native = "flux_overview_tab" in live_blob
-        has_simple = "custom:simple-tabs" in live_blob
-        if has_simple and not has_native:
-            errors.append(
-                "Live flux-ui still uses legacy custom:simple-tabs — merge PR #2 and redeploy"
-            )
-        if not has_native and not has_simple:
+        overview_blob = json.dumps(overview)
+        usage = {
+            "has_simple_tabs": "custom:simple-tabs" in overview_blob,
+            "has_native_tabs": "custom:simple-tabs" not in overview_blob
+            and (
+                "input_select.flux_ui_overview_tab" in overview_blob
+                or '"template": "flux_overview_tab"' in overview_blob
+            ),
+        }
+        if not usage["has_simple_tabs"] and not usage["has_native_tabs"]:
             errors.append("Live flux-ui missing overview tabs")
-        elif len(sections) < 3:
+        elif usage["has_simple_tabs"] and len(sections) < 3:
             errors.append(f"Live overview has {len(sections)} sections, need >= 3 with tabs layout")
-        elif not has_native and len(sections) < 6:
+        elif usage["has_native_tabs"] and len(sections) < 3:
+            errors.append(f"Live overview has {len(sections)} sections, need >= 3 with native tabs")
+        elif not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(sections) < 6:
             errors.append(f"Live overview has {len(sections)} sections (vertical layout needs >= 6)")
         if "flux_hero" not in live_blob and "flux_greeting" not in live_blob:
             errors.append("Live config missing flux hero")

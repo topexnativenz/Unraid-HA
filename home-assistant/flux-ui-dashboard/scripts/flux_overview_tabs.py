@@ -9,6 +9,7 @@ Optional engine: simple-tabs (HACS) for swipe — see overview_tabs.yaml.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from typing import Any
@@ -357,6 +358,17 @@ def overview_tab_fingerprint(cfg: dict) -> dict[str, str]:
         "engine": engine,
         "entity": OVERVIEW_TAB_ENTITY,
     }
+
+
+def overview_tab_usage(config: dict) -> dict[str, bool]:
+    """Detect tab engine from overview view cards only (not unused button_card templates)."""
+    overview = next((v for v in config.get("views", []) if v.get("path") == "overview"), {})
+    blob = json.dumps(overview)
+    has_simple = "custom:simple-tabs" in blob
+    has_native = not has_simple and (
+        OVERVIEW_TAB_ENTITY in blob or '"template": "flux_overview_tab"' in blob
+    )
+    return {"has_simple_tabs": has_simple, "has_native_tabs": has_native}
 
 
 def build_overview_tabs_section(

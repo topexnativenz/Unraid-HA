@@ -165,16 +165,24 @@ async def ensure_frontend_resources(token: str, ha_url: str) -> None:
     )
 
 
+def overview_tab_usage(config: dict) -> dict[str, bool]:
+    from flux_overview_tabs import overview_tab_usage as _usage
+
+    return _usage(config)
+
+
 def config_fingerprint(config: dict) -> dict[str, object]:
-    blob = json.dumps(config)
+    usage = overview_tab_usage(config)
     overview = next((v for v in config.get("views", []) if v.get("path") == "overview"), {})
+    engine = "simple-tabs" if usage["has_simple_tabs"] else ("native-v2" if usage["has_native_tabs"] else "none")
     return {
-        "tab_layout": "native-v2" if "flux_overview_tab" in blob else "legacy",
-        "has_native_tabs": "flux_overview_tab" in blob,
-        "has_simple_tabs": "custom:simple-tabs" in blob,
-        "has_input_select": OVERVIEW_TAB_ENTITY in blob,
+        "tab_layout": engine,
+        "has_native_tabs": usage["has_native_tabs"],
+        "has_simple_tabs": usage["has_simple_tabs"],
+        "has_input_select": OVERVIEW_TAB_ENTITY in json.dumps(config),
         "overview_sections": len(overview.get("sections") or []),
-        "quick_actions_grid": "Quick Actions" in blob and '"columns": 2' in blob,
+        "quick_actions_grid": "Quick Actions" in json.dumps(overview)
+        and '"columns": 2' in json.dumps(overview),
     }
 
 
@@ -251,7 +259,8 @@ def build_config(
     blob = json.dumps(config)
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
     sections = len(overview.get("sections", []))
-    min_sections = 3 if ("custom:simple-tabs" in blob or "flux_overview_tab" in blob) else 6
+    usage = overview_tab_usage(config)
+    min_sections = 3 if usage["has_simple_tabs"] or usage["has_native_tabs"] else 6
     if sections < min_sections:
         print(
             f"\nERROR: Built {sections} overview sections — expected at least {min_sections}.\n",
@@ -264,7 +273,7 @@ def build_config(
     if "Home status" not in blob:
         print("\nERROR: Build missing Phase 3 home status section.", file=sys.stderr)
         raise SystemExit(1)
-    has_tabs = "custom:simple-tabs" in blob or "flux_overview_tab" in blob
+    has_tabs = usage["has_simple_tabs"] or usage["has_native_tabs"]
     if not has_tabs:
         print("\nERROR: Build missing ElementZoom overview tabs.", file=sys.stderr)
         raise SystemExit(1)
@@ -275,16 +284,8 @@ def build_config(
     if not fp["has_native_tabs"] and not fp["has_simple_tabs"]:
         print("\nERROR: Built config missing overview tabs.", file=sys.stderr)
         raise SystemExit(1)
-    if fp["has_simple_tabs"] and not fp["has_native_tabs"]:
-        print_fingerprint(config, label="Built config (simple-tabs)")
-        return config
-    if fp["has_simple_tabs"] and fp["has_native_tabs"]:
-        print("\nERROR: Built config has both simple-tabs and native tabs.", file=sys.stderr)
-        raise SystemExit(1)
-    if "_flux_ui" in blob:
-        print("\nERROR: Built config contains invalid _flux_ui root key.", file=sys.stderr)
-        raise SystemExit(1)
-    print_fingerprint(config, label="Built config")
+    label = "Built config (simple-tabs)" if fp["has_simple_tabs"] else "Built config (native)"
+    print_fingerprint(config, label=label)
     return config
 
 
@@ -306,6 +307,7 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
         raise RuntimeError(f"Could not verify saved flux-ui config: {verify[0].get('error')}")
 
     live_config = verify[0]["result"]
+    usage = overview_tab_usage(live_config)
     views = live_config.get("views", [])
     overview = next((v for v in views if v.get("path") == "overview"), views[0])
     sections = overview.get("sections", [])
@@ -318,13 +320,13 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     )
     print_fingerprint(live_config, label="Live config")
 
-    if "flux_overview_tab" not in live_blob and "custom:simple-tabs" not in live_blob:
+    if not usage["has_simple_tabs"] and not usage["has_native_tabs"]:
         raise RuntimeError(
-            "Live flux-ui missing overview tabs (expected custom:simple-tabs or flux_overview_tab)."
+            "Live flux-ui missing overview tabs (expected custom:simple-tabs or native tab bar)."
         )
-    if "custom:simple-tabs" in live_blob and "flux_overview_tab" not in live_blob:
+    if usage["has_simple_tabs"]:
         print("  Live tabs engine: simple-tabs (ElementZoom)")
-    elif "flux_overview_tab" in live_blob:
+    elif usage["has_native_tabs"]:
         print("  Live tabs engine: native")
     if "_flux_ui" in live_blob:
         raise RuntimeError("Live config contains invalid _flux_ui key — rebuild and redeploy.")
