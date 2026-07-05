@@ -170,9 +170,14 @@ def verify_build(path: Path) -> list[str]:
     if not bitmoji_png.exists():
         errors.append(f"Missing bitmoji asset: {bitmoji_png.name} — hero avatar will 404")
 
-    for card_type in ("custom:button-card", "flux_hero"):
-        if card_type not in blob:
-            errors.append(f"Missing {card_type}")
+    if "custom:button-card" not in blob:
+        errors.append("Missing custom:button-card")
+
+    if '"template": "flux_greeting"' not in overview_blob:
+        errors.append("Hero text card missing flux_greeting template")
+
+    if '"type": "horizontal-stack"' not in overview_blob or "/local/flux-ui/bitmoji/" not in overview_blob:
+        errors.append("Hero row missing split bitmoji avatar layout")
 
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
@@ -364,7 +369,7 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
             errors.append(f"Live overview has {len(sections)} sections, need >= 3 with native tabs")
         elif not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(sections) < 6:
             errors.append(f"Live overview has {len(sections)} sections (vertical layout needs >= 6)")
-        if "flux_hero" not in live_blob and "flux_greeting" not in live_blob:
+        if "flux_greeting" not in live_blob and "flux_hero" not in live_blob:
             errors.append("Live config missing flux hero")
         if '"label": "Rooms"' not in live_blob:
             errors.append("Live navbar missing Rooms route (old Flux/Mobile/Solar nav)")

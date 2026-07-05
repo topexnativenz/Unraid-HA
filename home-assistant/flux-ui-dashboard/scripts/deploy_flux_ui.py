@@ -360,8 +360,8 @@ def build_config(
             file=sys.stderr,
         )
         raise SystemExit(1)
-    if "flux_hero" not in blob:
-        print("\nERROR: Build missing flux_hero.", file=sys.stderr)
+    if "flux_hero" not in blob and "flux_greeting" not in blob:
+        print("\nERROR: Build missing hero templates.", file=sys.stderr)
         raise SystemExit(1)
     if "Home status" not in blob:
         print("\nERROR: Build missing Phase 3 home status section.", file=sys.stderr)

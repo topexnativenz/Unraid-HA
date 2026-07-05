@@ -209,7 +209,7 @@ def section_title(title: str, subtitle: str = "") -> dict:
 
 
 def hero_bitmoji_picture_js(cfg: dict) -> str:
-    """Logged-in user avatar: configured bitmoji map, then HA person picture, then default."""
+    """Avatar URL for button-card — configured bitmoji map, then person picture, then default."""
     hero = (cfg.get("context") or {}).get("hero") or {}
     by_user = hero.get("bitmoji_by_user") or {"Dave": "/local/flux-ui/bitmoji/dave.png"}
     default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
@@ -219,11 +219,13 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
         "[[[\n"
         "  try {\n"
         "    const u = (typeof user !== 'undefined' && user) ? user : {};\n"
-        "    const uname = u.name || 'Guest';\n"
-        "    const uid = u.id;\n"
+        "    const uname = String(u.name || 'Guest');\n"
         f"    const map = {map_json};\n"
         f"    const fallback = {default_json};\n"
         "    if (map[uname]) return map[uname];\n"
+        "    const key = Object.keys(map).find((k) => k.toLowerCase() === uname.toLowerCase());\n"
+        "    if (key) return map[key];\n"
+        "    const uid = u.id;\n"
         "    if (typeof states === 'object' && states && uid != null) {\n"
         "      for (const eid of Object.keys(states)) {\n"
         "        if (!eid.startsWith('person.')) continue;\n"
@@ -243,18 +245,65 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
     )
 
 
-def hero_card(weather_entity: str, cfg: dict) -> dict:
-    """Single Flux-style hero: user bitmoji + greeting + weather conditions."""
+def hero_avatar_card(cfg: dict) -> dict:
+    """Bitmoji avatar — separate card with no weather entity (button-card skips picture on weather.*)."""
+    hero = (cfg.get("context") or {}).get("hero") or {}
+    default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
     avatar = hero_bitmoji_picture_js(cfg)
     return {
         "type": "custom:button-card",
-        "template": "flux_hero",
+        "show_icon": False,
+        "show_name": False,
+        "show_label": False,
+        "show_state": False,
+        "show_entity_picture": True,
+        "entity_picture": avatar,
+        "picture": default,
+        "tap_action": {"action": "none"},
+        "hold_action": {"action": "none"},
+        "styles": {
+            "card": [
+                {"background": "transparent"},
+                {"box-shadow": "none"},
+                {"border": "none"},
+                {"padding": "0"},
+                {"width": "72px"},
+                {"height": "72px"},
+                {"margin": "0"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'i'"},
+                {"grid-template-columns": "72px"},
+                {"grid-template-rows": "72px"},
+            ],
+            "img_cell": [
+                {"width": "72px"},
+                {"height": "72px"},
+                {"min-width": "72px"},
+                {"border-radius": "50%"},
+                {"overflow": "hidden"},
+            ],
+            "entity_picture": [
+                {"width": "72px"},
+                {"height": "72px"},
+                {"object-fit": "cover"},
+                {"object-position": "center top"},
+                {"border-radius": "50%"},
+                {"display": "block"},
+            ],
+        },
+    }
+
+
+def hero_text_card(weather_entity: str) -> dict:
+    """Greeting + live weather line — no avatar (weather entity blocks custom pictures)."""
+    return {
+        "type": "custom:button-card",
+        "template": "flux_greeting",
         "entity": weather_entity,
         "show_icon": False,
-        "show_entity_picture": True,
-        "variables": {"avatar_url": avatar},
-        "entity_picture": avatar,
-        "triggers_update": "all",
+        "show_entity_picture": False,
+        "tap_action": {"action": "none"},
         "name": (
             "[[[\n"
             "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
@@ -278,12 +327,39 @@ def hero_card(weather_entity: str, cfg: dict) -> dict:
             "  return `${wx} · ${time}`;\n"
             "]]]"
         ),
-        "grid_options": {"columns": 12},
     }
 
 
+HERO_GLASS_MOD = {
+    "style": (
+        "ha-card {\n"
+        "  border-radius: 28px;\n"
+        "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 78%, transparent);\n"
+        "  backdrop-filter: blur(18px) saturate(140%);\n"
+        "  -webkit-backdrop-filter: blur(18px) saturate(140%);\n"
+        "  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n"
+        "  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n"
+        "  padding: 18px 20px;\n"
+        "  margin: 0;\n"
+        "}\n"
+    )
+}
+
+
 def build_hero(weather_entity: str, cfg: dict) -> dict:
-    return {"type": "grid", "cards": [hero_card(weather_entity, cfg)]}
+    return {
+        "type": "grid",
+        "cards": [
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    hero_avatar_card(cfg),
+                    hero_text_card(weather_entity),
+                ],
+                "card_mod": HERO_GLASS_MOD,
+            }
+        ],
+    }
 
 
 def build_quick_actions(cfg: dict) -> dict:
