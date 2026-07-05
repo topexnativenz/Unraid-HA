@@ -252,8 +252,8 @@ def hero_card(weather_entity: str, cfg: dict) -> dict:
         "entity": weather_entity,
         "show_icon": False,
         "show_entity_picture": True,
+        "variables": {"avatar_url": avatar},
         "entity_picture": avatar,
-        "picture": avatar,
         "triggers_update": "all",
         "name": (
             "[[[\n"

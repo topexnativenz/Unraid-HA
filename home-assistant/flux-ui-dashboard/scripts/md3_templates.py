@@ -519,6 +519,14 @@ BUTTON_CARD_TEMPLATES: dict = {
                 {"justify-self": "start"},
                 {"align-self": "center"},
                 {"margin-right": "4px"},
+                {
+                    "background-image": (
+                        "[[[ return variables.avatar_url ? `url('${variables.avatar_url}')` : 'none' ]]]"
+                    )
+                },
+                {"background-size": "cover"},
+                {"background-position": "center top"},
+                {"background-repeat": "no-repeat"},
             ],
             "icon": [{"display": "none"}],
             "entity_picture": [

@@ -24,7 +24,14 @@ if [[ ! -f "$ROOT/packages/flux_ui_rooms.yaml" ]]; then
   exit 1
 fi
 
-for f in media_players.yaml packages/flux_ui_media.yaml www/flux-ui/carousel-sync.js; do
+if [[ ! -f "$ROOT/www/flux-ui/bitmoji/dave.png" ]]; then
+  echo ""
+  echo "ERROR: Missing hero bitmoji at www/flux-ui/bitmoji/dave.png"
+  echo "  git pull origin cursor/playing-sonos-only-bf3a"
+  exit 1
+fi
+
+for f in media_players.yaml packages/flux_ui_media.yaml www/flux-ui/carousel-sync.js www/flux-ui/bitmoji/dave.png; do
   if [[ -f "$ROOT/$f" ]] && grep -q '^<<<<<<< ' "$ROOT/$f" 2>/dev/null; then
     echo ""
     echo "ERROR: Git conflict markers in flux-ui-dashboard/$f"

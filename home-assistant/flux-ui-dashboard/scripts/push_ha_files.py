@@ -158,6 +158,21 @@ def copy_www_and_theme(mount: str) -> None:
         print("  copied themes/flux-ui-md3.yaml")
 
 
+def build_www_file_list() -> list[tuple[Path, str]]:
+    """Frontend static assets under /config/www (served as /local/...)."""
+    files: list[tuple[Path, str]] = []
+    src_flux = ROOT / "www" / "flux-ui"
+    if src_flux.exists():
+        for f in src_flux.rglob("*"):
+            if f.is_file():
+                rel = f.relative_to(src_flux)
+                files.append((f, f"www/flux-ui/{rel.as_posix()}"))
+    theme_src = ROOT / "themes" / "flux-ui-md3.yaml"
+    if theme_src.exists():
+        files.append((theme_src, "themes/flux-ui-md3.yaml"))
+    return files
+
+
 def build_file_list(*, include_garage: bool) -> list[tuple[Path, str]]:
     files: list[tuple[Path, str]] = []
     pkg_dir = ROOT / "packages"
@@ -173,18 +188,19 @@ async def push_async(args: argparse.Namespace) -> int:
     ensure_ha_env()
     token = get_token(args.token)
     files = build_file_list(include_garage=args.include_garage)
-    if not files:
-        print("No package files to push.")
+    www_files = build_www_file_list()
+    if not files and not www_files:
+        print("No package or www files to push.")
         return 0
 
-    print(f"Pushing {len(files)} file(s) to Home Assistant…")
+    print(f"Pushing {len(files)} package file(s) + {len(www_files)} www asset(s) to Home Assistant…")
 
     if push_via_smb(token, args.ha_url, args.host, args.mount, files):
         print("Package push complete (SMB).")
         return 0
 
-    if push_via_ssh(files):
-        print("Package push complete (SSH).")
+    if push_via_ssh(files + www_files):
+        print("Package + www push complete (SSH).")
         return 0
 
     print(
