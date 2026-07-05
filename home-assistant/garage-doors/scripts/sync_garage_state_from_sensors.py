@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[1]
 ENTITIES = REPO / "entities.yaml"
 sys.path.insert(0, str(REPO))
 
-from garage_ui_helpers import is_open_state  # noqa: E402
+from garage_ui_helpers import is_open_state, load_garage_doors  # noqa: E402
 
 
 def get_token(explicit: str | None) -> str:
@@ -84,7 +84,7 @@ def main() -> int:
     args = parser.parse_args()
 
     token = get_token(args.token)
-    doors = yaml.safe_load(ENTITIES.read_text()).get("doors", [])
+    doors = load_garage_doors()
     print("Syncing tracked state from Tapo sensors:")
     ok = 0
     skipped = 0
@@ -104,7 +104,7 @@ def main() -> int:
     if skipped:
         print(
             f"\nWarning: {skipped} sensor(s) missing — garage icons may be wrong until "
-            "entities.yaml is updated."
+            "entities.local.yaml is updated (run discover_garage_doors.py --apply)."
         )
         print("Run: python3 home-assistant/garage-doors/scripts/list_garage_sensors.py")
     print(f"Synced {ok}/{len(doors)} doors.")

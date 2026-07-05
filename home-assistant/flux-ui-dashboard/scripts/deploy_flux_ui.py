@@ -172,9 +172,16 @@ def overview_tab_usage(config: dict) -> dict[str, bool]:
     return _usage(config)
 
 
+OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
+ROOMS_TAB_ENTITY = "input_select.flux_ui_rooms_tab"
+MEDIA_SELECT_ENTITY = "input_select.flux_ui_media_player"
+
+
 def config_fingerprint(config: dict) -> dict[str, object]:
     usage = overview_tab_usage(config)
     overview = next((v for v in config.get("views", []) if v.get("path") == "overview"), {})
+    rooms = next((v for v in config.get("views", []) if v.get("path") == "rooms"), {})
+    rooms_blob = json.dumps(rooms)
     engine = "simple-tabs" if usage["has_simple_tabs"] else ("native-v2" if usage["has_native_tabs"] else "none")
     return {
         "tab_layout": engine,
@@ -182,21 +189,21 @@ def config_fingerprint(config: dict) -> dict[str, object]:
         "has_simple_tabs": usage["has_simple_tabs"],
         "has_input_select": OVERVIEW_TAB_ENTITY in json.dumps(config),
         "overview_sections": len(overview.get("sections") or []),
+        "rooms_layout": "elementzoom-v2"
+        if ROOMS_TAB_ENTITY in rooms_blob and '"content": "Default"' in rooms_blob
+        else "legacy",
         "quick_actions_grid": "Quick Actions" in json.dumps(overview)
         and '"columns": 2' in json.dumps(overview),
     }
 
 
-OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
-ROOMS_TAB_ENTITY = "input_select.flux_ui_rooms_tab"
-MEDIA_SELECT_ENTITY = "input_select.flux_ui_media_player"
-
-
 def print_fingerprint(config: dict, *, label: str) -> None:
     fp = config_fingerprint(config)
-    print(f"  {label}: tab_layout={fp['tab_layout']} "
-          f"native={fp['has_native_tabs']} simple-tabs={fp['has_simple_tabs']} "
-          f"sections={fp['overview_sections']}")
+    print(
+        f"  {label}: tab_layout={fp['tab_layout']} "
+        f"native={fp['has_native_tabs']} simple-tabs={fp['has_simple_tabs']} "
+        f"sections={fp['overview_sections']} rooms={fp['rooms_layout']}"
+    )
 
 
 async def reload_core_config(token: str, ha_url: str) -> None:
@@ -289,6 +296,14 @@ def build_config(
     fp = config_fingerprint(config)
     if not fp["has_native_tabs"] and not fp["has_simple_tabs"]:
         print("\nERROR: Built config missing overview tabs.", file=sys.stderr)
+        raise SystemExit(1)
+    if fp.get("rooms_layout") != "elementzoom-v2":
+        print(
+            "\nERROR: Built config has legacy Rooms layout — git pull may have failed.\n"
+            "  Expected packages/flux_ui_rooms.yaml + flux_rooms_index.py (commit b5d883c+).\n"
+            "  Run: git pull --rebase --autostash && bash home-assistant/scripts/run_all_e2e.sh\n",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
     label = "Built config (simple-tabs)" if fp["has_simple_tabs"] else "Built config (native)"
     print_fingerprint(config, label=label)

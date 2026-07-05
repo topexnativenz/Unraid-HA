@@ -12,9 +12,18 @@ echo "==> Downloading bundled Mushroom + card-mod JS"
 python3 "$ROOT/scripts/install_frontend_assets.py"
 
 echo "==> Building Flux UI config"
-GIT_BRANCH="$(git -C "$(dirname "$ROOT")/.." branch --show-current 2>/dev/null || true)"
-GIT_HEAD="$(git -C "$(dirname "$ROOT")/.." rev-parse --short HEAD 2>/dev/null || true)"
+GIT_ROOT="$(cd "$ROOT/../.." && pwd)"
+GIT_BRANCH="$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null || true)"
+GIT_HEAD="$(git -C "$GIT_ROOT" rev-parse --short HEAD 2>/dev/null || true)"
 echo "    Branch: ${GIT_BRANCH:-unknown} @ ${GIT_HEAD:-unknown}"
+
+if [[ ! -f "$ROOT/packages/flux_ui_rooms.yaml" ]]; then
+  echo ""
+  echo "ERROR: Missing packages/flux_ui_rooms.yaml — git pull may have failed."
+  echo "  Run: git pull --rebase --autostash && bash home-assistant/scripts/run_all_e2e.sh"
+  exit 1
+fi
+
 python3 "$ROOT/scripts/build_flux_ui.py" \
   --output "$ROOT/generated/lovelace.flux_ui.json"
 

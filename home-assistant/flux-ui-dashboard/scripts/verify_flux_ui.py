@@ -183,6 +183,24 @@ def verify_build(path: Path) -> list[str]:
     if '"template": "flux_room"' not in blob:
         errors.append("Missing flux_room cards on Rooms view")
 
+    rooms_view = next((v for v in views if v.get("path") == "rooms"), None)
+    if rooms_view:
+        rooms_blob = json.dumps(rooms_view)
+        if "input_select.flux_ui_rooms_tab" not in rooms_blob:
+            errors.append(
+                "Rooms view missing ElementZoom category tabs — deploy packages/flux_ui_rooms.yaml"
+            )
+        if '"content": "Default"' not in rooms_blob or '"content": "Others"' not in rooms_blob:
+            errors.append("Rooms view missing Default/Others/Outdoor category chips")
+        if '"type": "conditional"' not in rooms_blob:
+            errors.append("Rooms view should filter room cards by category (conditional panels)")
+        templates = config.get("button_card_templates") or {}
+        flux_room = templates.get("flux_room", {})
+        if '"height": "186px"' not in json.dumps(flux_room):
+            errors.append("flux_room template missing ElementZoom 186px card height — old layout?")
+        if '"title": "Rooms"' not in rooms_blob:
+            errors.append("Rooms view missing centered 'Rooms' page title")
+
     if '"template": "flux_light"' not in blob:
         errors.append("Missing flux_light toggle tiles")
 

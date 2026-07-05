@@ -15,6 +15,31 @@ echo " Repo: $REPO"
 echo " HA:   ${HA_URL:-http://192.168.1.239:8123}"
 echo "=============================================="
 
+# Keep repo current — autostash LAN-specific garage sensor mappings (entities.local.yaml).
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  BRANCH="$(git branch --show-current 2>/dev/null || true)"
+  if [[ -n "${BRANCH}" ]]; then
+    echo ""
+    echo "==> Syncing git ($BRANCH)"
+    git fetch origin "$BRANCH" 2>/dev/null || git fetch origin 2>/dev/null || true
+    BEHIND="$(git rev-list --count "HEAD..origin/${BRANCH}" 2>/dev/null || echo 0)"
+    if [[ "${BEHIND}" != "0" ]]; then
+      echo "    Branch is ${BEHIND} commit(s) behind origin/${BRANCH} — pulling with autostash"
+      if ! git pull --rebase --autostash origin "$BRANCH"; then
+        echo ""
+        echo "ERROR: git pull failed — fix conflicts, then re-run E2E."
+        echo "  If garage-doors/entities.yaml has local edits from an old deploy, run:"
+        echo "    git checkout -- home-assistant/garage-doors/entities.yaml"
+        echo "    git pull --rebase --autostash"
+        exit 1
+      fi
+    else
+      echo "    Up to date with origin/${BRANCH}"
+    fi
+    echo "    Deploy commit: $(git rev-parse --short HEAD) ($(git log -1 --format=%s | head -c 60))"
+  fi
+fi
+
 python3 -m pip install -q -r "$FLUX/requirements.txt"
 
 echo ""
@@ -42,5 +67,7 @@ echo " E2E complete"
 echo "  Flux UI:    ${HA_URL:-http://192.168.1.239:8123}/flux-ui/overview"
 echo "  Mobile:     ${HA_URL:-http://192.168.1.239:8123}/mobile-home/home"
 echo "=============================================="
-echo "Flux MD3 check: deploy log above must show sections=5"
+echo "Flux MD3 check: deploy log above must show:"
+echo "  - rooms: copied packages/flux_ui_rooms.yaml + input_select.flux_ui_rooms_tab loaded"
+echo "  - overview sections=5 (with music player) or sections=4 (without)"
 echo "Hard-refresh browser after deploy (Cmd+Shift+R)."
