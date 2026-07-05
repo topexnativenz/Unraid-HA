@@ -46,16 +46,37 @@
     return null;
   }
 
-  function syncZone() {
+  function selectVisibleZone() {
     const zone = activeZoneTitle();
-    if (!zone || zone === lastZone) return;
+    if (!zone) return null;
     const h = hass();
-    if (!h) return;
+    if (!h) return null;
     lastZone = zone;
-    h.callService('input_select', 'select_option', {
+    return h.callService('input_select', 'select_option', {
       entity_id: 'input_select.flux_ui_media_player',
       option: zone,
     });
+  }
+
+  function syncZone() {
+    const zone = activeZoneTitle();
+    if (!zone || zone === lastZone) return;
+    selectVisibleZone();
+  }
+
+  function installOpenHandler() {
+    // Select zone before navbar-card navigate opens the bubble popup.
+    document.addEventListener(
+      'pointerdown',
+      (ev) => {
+        const hit = ev.target.closest(
+          '.media-player-viewport, .media-player-carousel, .media-player-container, .media-player-track, .media-player-title, .media-player-subtitle',
+        );
+        if (!hit) return;
+        selectVisibleZone();
+      },
+      true,
+    );
   }
 
   function scheduleSync() {
@@ -73,6 +94,7 @@
       childList: true,
     });
     setInterval(syncZone, 500);
+    installOpenHandler();
     scheduleSync();
   }
 

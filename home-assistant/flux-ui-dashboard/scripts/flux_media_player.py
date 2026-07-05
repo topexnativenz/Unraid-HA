@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 MUSIC_PLAYER_HASH = "#music-player"
+FLUX_UI_MUSIC_PLAYER_PATH = f"/flux-ui/overview{MUSIC_PLAYER_HASH}"
 MEDIA_SELECT_ENTITY = "input_select.flux_ui_media_player"
 SELECT_ZONE_SCRIPT = "script.flux_ui_select_media_zone"
 ZONE_PREV_SCRIPT = "script.flux_ui_media_zone_prev"
@@ -101,17 +102,11 @@ def _select_zone_action(zone: str) -> dict:
     }
 
 
-def _open_player_action(zone: str) -> dict:
-    """Select zone then open music popup."""
+def _open_player_action(_zone: str) -> dict:
+    """Open music popup — carousel-sync.js selects the visible zone before navigate."""
     return {
-        "action": "call-service",
-        "service": "input_select.select_option",
-        "target": {"entity_id": MEDIA_SELECT_ENTITY},
-        "data": {"option": zone},
-        "then": {
-            "action": "navigate",
-            "navigation_path": MUSIC_PLAYER_HASH,
-        },
+        "action": "navigate",
+        "navigation_path": FLUX_UI_MUSIC_PLAYER_PATH,
     }
 
 
@@ -405,16 +400,37 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
     return null;
   }}
 
-  function syncZone() {{
+  function selectVisibleZone() {{
     const zone = activeZoneTitle();
-    if (!zone || zone === lastZone) return;
+    if (!zone) return null;
     const h = hass();
-    if (!h) return;
+    if (!h) return null;
     lastZone = zone;
-    h.callService('input_select', 'select_option', {{
+    return h.callService('input_select', 'select_option', {{
       entity_id: 'input_select.flux_ui_media_player',
       option: zone,
     }});
+  }}
+
+  function syncZone() {{
+    const zone = activeZoneTitle();
+    if (!zone || zone === lastZone) return;
+    selectVisibleZone();
+  }}
+
+  function installOpenHandler() {{
+    // Select zone before navbar-card navigate opens the bubble popup.
+    document.addEventListener(
+      'pointerdown',
+      (ev) => {{
+        const hit = ev.target.closest(
+          '.media-player-viewport, .media-player-carousel, .media-player-container, .media-player-track, .media-player-title, .media-player-subtitle',
+        );
+        if (!hit) return;
+        selectVisibleZone();
+      }},
+      true,
+    );
   }}
 
   function scheduleSync() {{
@@ -432,6 +448,7 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
       childList: true,
     }});
     setInterval(syncZone, 500);
+    installOpenHandler();
     scheduleSync();
   }}
 
