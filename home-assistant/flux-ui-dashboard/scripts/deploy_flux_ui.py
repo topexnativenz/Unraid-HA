@@ -242,7 +242,16 @@ async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool
     await asyncio.sleep(2)  # allow SMB writes to flush
     for pass_num in range(1, 3):
         await reload_core_config(token, ha_url)
-        await asyncio.sleep(4)
+        await asyncio.sleep(3)
+        for domain, svc in (("script", "reload"), ("automation", "reload")):
+            res = await ws_call(
+                token,
+                ha_url,
+                [{"type": "call_service", "domain": domain, "service": svc}],
+            )
+            if res[0].get("success") is False:
+                print(f"  WARNING: {domain}.{svc} failed")
+        await asyncio.sleep(3)
         found = {
             OVERVIEW_TAB_ENTITY: await wait_for_entity(token, ha_url, OVERVIEW_TAB_ENTITY, attempts=5),
             ROOMS_TAB_ENTITY: await wait_for_entity(token, ha_url, ROOMS_TAB_ENTITY, attempts=5),

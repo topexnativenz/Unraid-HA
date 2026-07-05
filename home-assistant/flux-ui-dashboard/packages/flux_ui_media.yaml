@@ -1,13 +1,109 @@
 # Flux UI media player selection (Sonos zones)
 # Options are rewritten by discover_sonos.py --apply
-# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
 
 input_select:
   flux_ui_media_player:
     name: Flux UI Media Player
     options:
-      - Living Room
-      - Kitchen
-      - Media Room
-    initial: Living Room
+    - Black Lounge SONOS
+    - Kitchen SONOS
+    - Sleepout SONOS
+    - Upstairs Office SONOS
+    initial: Black Lounge SONOS
     icon: mdi:speaker
+script:
+  flux_ui_select_media_zone:
+    alias: Flux UI select media zone
+    mode: queued
+    fields:
+      zone:
+        description: Sonos zone name (matches input_select option)
+        example: Black Lounge SONOS
+        selector:
+          text: {}
+    sequence:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.flux_ui_media_player
+      data:
+        option: '{{ zone }}'
+  flux_ui_media_zone_next:
+    alias: Flux UI next Sonos zone
+    mode: single
+    sequence:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.flux_ui_media_player
+      data:
+        option: '{% set opts = [''Black Lounge SONOS'', ''Kitchen SONOS'', ''Sleepout
+          SONOS'', ''Upstairs Office SONOS''] %}{% set cur = states(''input_select.flux_ui_media_player'')
+          %}{% set i = opts.index(cur) if cur in opts else 0 %}{{ opts[(i + 1) % (opts
+          | length)] }}'
+  flux_ui_media_zone_prev:
+    alias: Flux UI previous Sonos zone
+    mode: single
+    sequence:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.flux_ui_media_player
+      data:
+        option: '{% set opts = [''Black Lounge SONOS'', ''Kitchen SONOS'', ''Sleepout
+          SONOS'', ''Upstairs Office SONOS''] %}{% set cur = states(''input_select.flux_ui_media_player'')
+          %}{% set i = opts.index(cur) if cur in opts else 0 %}{{ opts[(i - 1) % (opts
+          | length)] }}'
+automation:
+- id: flux_ui_media_player_sync
+  alias: Flux UI sync media player to active Sonos zone
+  description: Keep input_select on the Sonos zone that is playing or paused.
+  mode: queued
+  max: 10
+  trigger:
+  - platform: state
+    entity_id:
+    - media_player.garage_sonos
+    - media_player.kitchen_sonos
+    - media_player.main_lounge_sonos
+    - media_player.kids_room_sonos
+    to:
+    - playing
+    - paused
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.garage_sonos'' }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Black Lounge SONOS
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.kitchen_sonos'' }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Kitchen SONOS
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.main_lounge_sonos''
+          }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Sleepout SONOS
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.kids_room_sonos''
+          }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Upstairs Office SONOS

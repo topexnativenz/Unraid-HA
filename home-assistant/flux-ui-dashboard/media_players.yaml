@@ -1,21 +1,25 @@
 # Sonos media players for Flux UI floating music bar + popup.
 # Run: python3 home-assistant/flux-ui-dashboard/scripts/discover_sonos.py --apply
+# Names refresh from HA friendly_name on each --apply (set pin_name: true to keep a custom label).
 #
 # Apple Music and Spotify stream through Sonos in HA — each speaker is a media_player entity.
-# The navbar mini player shows all active players; tap opens #music-player for volume + queue.
+# Tap mini player to select zone; swipe carousel to switch zones (artwork syncs via carousel-sync.js).
+# Hold to open full player popup.
 
 enabled: true
 
-# Default player when opening the full popup (also initial input_select value).
-default_entity: media_player.living_room
+default_entity: media_player.garage_sonos
 
 players:
-  - entity: media_player.living_room
-    name: Living Room
+  - entity: media_player.garage_sonos
+    name: Black Lounge SONOS
     enabled: true
-  - entity: media_player.kitchen
-    name: Kitchen
+  - entity: media_player.kitchen_sonos
+    name: Kitchen SONOS
     enabled: true
-  - entity: media_player.media_room
-    name: Media Room
+  - entity: media_player.main_lounge_sonos
+    name: Sleepout SONOS
+    enabled: true
+  - entity: media_player.kids_room_sonos
+    name: Upstairs Office SONOS
     enabled: true

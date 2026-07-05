@@ -176,15 +176,19 @@ def verify_build(path: Path) -> list[str]:
             )
         if "[[[ const players" in overview_blob or "_active_entity_js" in overview_blob:
             errors.append(
-                "Music player popup uses unsupported JS entity_id template — use Jinja zone_entity map"
+                "Music player popup uses unsupported JS entity_id template — use per-zone conditional cards"
+            )
+        if "zone_entity" in overview_blob and "custom:mediocre-massive-media-player-card" in overview_blob:
+            errors.append(
+                "Mediocre card cannot use Jinja entity_id — use static entity per conditional panel"
             )
         if "custom:mediocre-massive-media-player-card" in overview_blob:
-            if "zone_entity" not in overview_blob:
+            if overview_blob.count('"entity_id":') < len(media_players):
                 errors.append(
-                    "Music player popup missing zone_entity map — popup art will not track selected zone"
+                    "Music player popup missing per-zone mediocre entity_id cards"
                 )
-        if "custom-js-action" not in overview_blob:
-            errors.append("Music player navbar missing tap-to-open with zone select (custom-js-action)")
+        if "input_select.select_option" not in overview_blob:
+            errors.append("Music player missing input_select.select_option zone actions")
         if "/local/flux-ui/carousel-sync.js" not in blob:
             errors.append(
                 "Missing carousel-sync.js module — Sonos swipe will not sync popup artwork"

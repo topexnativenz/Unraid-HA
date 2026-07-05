@@ -23,6 +23,12 @@ REQUIRED = (
     "input_select.flux_ui_media_player",
 )
 
+MEDIA_SCRIPTS = (
+    "script.flux_ui_select_media_zone",
+    "script.flux_ui_media_zone_next",
+    "script.flux_ui_media_zone_prev",
+)
+
 
 async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
     res = await ws_call(token, ha_url, [{"type": "get_states"}])
@@ -40,6 +46,21 @@ async def reload_core_config(token: str, ha_url: str) -> bool:
                 "type": "call_service",
                 "domain": "homeassistant",
                 "service": "reload_core_config",
+            }
+        ],
+    )
+    return res[0].get("success") is not False
+
+
+async def reload_service_domain(token: str, ha_url: str, domain: str, service: str) -> bool:
+    res = await ws_call(
+        token,
+        ha_url,
+        [
+            {
+                "type": "call_service",
+                "domain": domain,
+                "service": service,
             }
         ],
     )
@@ -82,20 +103,32 @@ async def wait_for_entities(
 
 async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
     token = get_token(token)
-    print("Ensuring Flux UI package helpers (input_select) are loaded…")
+    print("Ensuring Flux UI package helpers (input_select + scripts) are loaded…")
 
     for attempt in range(1, 3):
         print(f"  reload_core_config (pass {attempt}/2)")
         await reload_core_config(token, ha_url)
-        await asyncio.sleep(4)
+        await asyncio.sleep(3)
+        print("  reload scripts + automations")
+        await reload_service_domain(token, ha_url, "script", "reload")
+        await reload_service_domain(token, ha_url, "automation", "reload")
+        await asyncio.sleep(3)
         found = await wait_for_entities(token, ha_url, FLUX_ENTITIES, attempts=10, delay=2.0)
         for eid in FLUX_ENTITIES:
             status = "ok" if found[eid] else "missing"
             optional = "" if eid in REQUIRED else " (optional)"
             print(f"    {status:7} {eid}{optional}")
 
-        if all(found[e] for e in REQUIRED):
-            print("Flux UI package helpers loaded.")
+        scripts_ok = True
+        for sid in MEDIA_SCRIPTS:
+            exists = await entity_exists(token, ha_url, sid)
+            status = "ok" if exists else "missing"
+            print(f"    {status:7} {sid}")
+            if not exists:
+                scripts_ok = False
+
+        if all(found[e] for e in REQUIRED) and scripts_ok:
+            print("Flux UI package helpers and media scripts loaded.")
             return 0
 
     missing = [e for e in REQUIRED if not found[e]]
