@@ -132,7 +132,6 @@ def build_doors_open_alert_section(doors: list[dict], *, for_tab_panel: bool = F
         {
             "type": "custom:mushroom-title-card",
             "title": "Doors open",
-            "subtitle": "Check before leaving",
             **({} if for_tab_panel else {"grid_options": {"columns": 12}}),
         }
     )

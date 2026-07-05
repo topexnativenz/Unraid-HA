@@ -352,7 +352,7 @@ def _active_group_section(group: dict) -> dict:
     }
     return {
         "type": "vertical-stack",
-        "cards": [_title(title, "Currently active"), auto_card],
+        "cards": [_title(title), auto_card],
     }
 
 
@@ -473,7 +473,7 @@ def build_quick_actions_tab(cfg: dict, section_title_fn) -> dict:
                 )
             )
         )
-    title = section_title_fn("Quick Actions", "Tap to control")
+    title = section_title_fn("Quick Actions")
     title.pop("grid_options", None)
     return {
         "type": "vertical-stack",

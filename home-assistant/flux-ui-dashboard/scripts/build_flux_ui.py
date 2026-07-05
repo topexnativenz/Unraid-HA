@@ -235,7 +235,7 @@ def build_hero(weather_entity: str) -> dict:
 
 def build_quick_actions(cfg: dict) -> dict:
     col = 6
-    cards: list[dict] = [section_title("Quick Actions", "Tap to control")]
+    cards: list[dict] = [section_title("Quick Actions")]
     for item in cfg["quick_actions"]["gate"]:
         cards.append(lock_action(item["entity"], item["name"], columns=col))
     for item in cfg["quick_actions"]["garage"]:
@@ -255,7 +255,7 @@ def build_quick_actions(cfg: dict) -> dict:
 
 
 def build_favourite_lights(cfg: dict) -> dict:
-    return build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
+    return build_lights_grid_section("Favourite lights", "", cfg["favourite_lights"])
 
 
 def build_room_detail(room: dict, cfg: dict | None = None) -> dict:
@@ -352,7 +352,7 @@ def extract_climate_from_mobile_home(config: dict) -> dict | None:
     return {
         "type": "grid",
         "cards": [
-            section_title("Climate", "Live conditions"),
+            section_title("Climate"),
             *[
                 wrap_glass({**card, "grid_options": card.get("grid_options") or {"columns": 12}})
                 if card.get("type") != "grid"
@@ -367,7 +367,7 @@ def climate_fallback_section(weather_entity: str) -> dict:
     return {
         "type": "grid",
         "cards": [
-            section_title("Climate", "Live conditions"),
+            section_title("Climate"),
             wrap_glass(
                 {
                     "type": "custom:mushroom-entity-card",
