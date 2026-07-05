@@ -22,3 +22,5 @@ doors:
     tracked: input_boolean.second_shed_door_open
     sensor: binary_sensor.second_shed_door_is_open
     invert: false
+    # No Tapo on this door yet — discover sets enabled: true when sensor appears in HA
+    enabled: false

@@ -13,9 +13,12 @@ DOOR_OPEN_STATES = ("on", "open", "opened", "detected", "true")
 DOOR_CLOSED_STATES = ("off", "closed", "close", "clear", "false", "undetected")
 
 
-def load_garage_doors() -> list[dict]:
+def load_garage_doors(*, include_disabled: bool = False) -> list[dict]:
     data = yaml.safe_load(GARAGE_ENTITIES.read_text())
-    return data.get("doors", [])
+    doors = data.get("doors", [])
+    if include_disabled:
+        return doors
+    return [d for d in doors if d.get("enabled", True)]
 
 
 def door_icon(name: str, *, open_icon: bool) -> str:

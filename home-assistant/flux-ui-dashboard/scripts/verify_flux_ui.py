@@ -12,13 +12,15 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
-GARAGE_ENTITIES = ROOT.parent / "garage-doors" / "entities.yaml"
+GARAGE_DIR = ROOT.parent / "garage-doors"
 DEFAULT_JSON = ROOT / "generated" / "lovelace.flux_ui.json"
+sys.path.insert(0, str(GARAGE_DIR))
+from garage_ui_helpers import load_garage_doors  # noqa: E402
 
 
 def load_entities() -> dict:
     cfg = yaml.safe_load(ENTITIES.read_text())
-    cfg["quick_actions"]["garage"] = yaml.safe_load(GARAGE_ENTITIES.read_text()).get("doors", [])
+    cfg["quick_actions"]["garage"] = load_garage_doors()
     return cfg
 
 

@@ -300,12 +300,12 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
 
 
 def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool, for_tab_panel: bool = False) -> list[dict]:
-    from flux_tab_layout import adapt_card_for_tab_panel
+    from flux_tab_layout import adapt_card_for_tab_panel, strip_grid_options_deep
 
     cards: list[dict] = []
     if use_auto_entities:
         cards.append(build_active_lights_section(cfg))
-    open_garage = build_open_garage_section(cfg)
+    open_garage = build_open_garage_section(cfg, for_tab_panel=for_tab_panel)
     if open_garage:
         cards.append(open_garage)
     active_cfg = _tabs_cfg(cfg).get("active", {})
@@ -314,7 +314,14 @@ def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool, for_tab_panel:
         if entity:
             cards.append(_active_group_section(group))
     if for_tab_panel:
-        return [adapt_card_for_tab_panel(c) for c in cards]
+        prepared: list[dict] = []
+        for card in cards:
+            # Doors-open alert is already tab-panel shaped — only strip grid_options.
+            if card.get("type") == "conditional":
+                prepared.append(strip_grid_options_deep(card))  # type: ignore[arg-type]
+            else:
+                prepared.append(adapt_card_for_tab_panel(card))
+        return prepared
     return cards
 
 

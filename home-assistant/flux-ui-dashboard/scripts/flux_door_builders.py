@@ -103,15 +103,19 @@ def build_doors_status_section(doors: list[dict], *, title: str = "Doors", subti
     }
 
 
-def build_doors_open_alert_section(doors: list[dict]) -> dict | None:
-    """Conditional alert strip listing only doors that are currently open."""
+def build_doors_open_alert_section(doors: list[dict], *, for_tab_panel: bool = False) -> dict | None:
+    """Conditional alert when any Tapo garage/shed contact is open."""
     from garage_ui_helpers import is_door_open_jinja
 
+    doors = [d for d in doors if d.get("enabled", True)]
     if not doors:
         return None
     open_cards: list[dict] = []
     for door in doors:
         invert = door.get("invert", False)
+        tile = flux_door_tile(door, columns=6)
+        if for_tab_panel:
+            tile.pop("grid_options", None)
         open_cards.append(
             {
                 "type": "conditional",
@@ -121,34 +125,47 @@ def build_doors_open_alert_section(doors: list[dict]) -> dict | None:
                         "value_template": is_door_open_jinja(door["sensor"], invert=invert),
                     }
                 ],
-                "card": flux_door_tile(door, columns=6),
+                "card": tile,
             }
         )
-    alert_cards = [
-        wrap_title(
-            {
-                "type": "custom:mushroom-title-card",
-                "title": "Doors open",
-                "subtitle": "Check before leaving",
-                "grid_options": {"columns": 12},
-            }
-        ),
-        wrap_glass({"type": "grid", "columns": 2, "square": False, "cards": open_cards, "grid_options": {"columns": 12}}),
-    ]
+    title = wrap_title(
+        {
+            "type": "custom:mushroom-title-card",
+            "title": "Doors open",
+            "subtitle": "Check before leaving",
+            **({} if for_tab_panel else {"grid_options": {"columns": 12}}),
+        }
+    )
+    door_grid: dict = {
+        "type": "grid",
+        "columns": 2,
+        "square": False,
+        "cards": open_cards,
+        **({} if for_tab_panel else {"grid_options": {"columns": 12}}),
+    }
+    if not for_tab_panel:
+        door_grid = wrap_glass(door_grid)
+
+    panel: dict = {
+        "type": "vertical-stack" if for_tab_panel else "grid",
+        "cards": [title, door_grid],
+    }
     from garage_ui_helpers import jinja_any_door_open
+
+    conditional: dict = {
+        "type": "conditional",
+        "conditions": [
+            {
+                "condition": "template",
+                "value_template": jinja_any_door_open(doors),
+            }
+        ],
+        "card": panel,
+    }
+    if for_tab_panel:
+        return conditional
 
     return {
         "type": "grid",
-        "cards": [
-            {
-                "type": "conditional",
-                "conditions": [
-                    {
-                        "condition": "template",
-                        "value_template": jinja_any_door_open(doors),
-                    }
-                ],
-                "card": {"type": "grid", "cards": alert_cards},
-            }
-        ],
+        "cards": [conditional],
     }

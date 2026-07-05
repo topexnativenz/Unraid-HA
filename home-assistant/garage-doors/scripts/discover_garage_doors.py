@@ -114,6 +114,8 @@ def discover(token: str, ha_url: str) -> tuple[list[dict], list[str]]:
         fn = (s.get("attributes") or {}).get("friendly_name", "")
         print(f"  {s['entity_id']:<52} state={s['state']:<8} {fn}")
 
+    state_ids = {s["entity_id"] for s in states}
+
     for door in doors:
         name = door["name"]
         current = door.get("sensor", "")
@@ -123,6 +125,7 @@ def discover(token: str, ha_url: str) -> tuple[list[dict], list[str]]:
         if match:
             new_id = match["entity_id"]
             live_state = match["state"]
+            out["enabled"] = True
             if new_id != current:
                 notes.append(f"{name}: {current} -> {new_id} (live state={live_state})")
                 out["sensor"] = new_id
@@ -130,8 +133,15 @@ def discover(token: str, ha_url: str) -> tuple[list[dict], list[str]]:
                 notes.append(f"{name}: keeping {current} (live state={live_state})")
             else:
                 notes.append(f"{name}: {current} is {live_state} in HA")
+        elif current and current in state_ids:
+            out["enabled"] = True
+            notes.append(f"{name}: keeping {current} (entity exists in HA)")
         else:
-            notes.append(f"{name}: no Tapo match found — update sensor in entities.yaml manually")
+            out["enabled"] = False
+            notes.append(
+                f"{name}: disabled — no sensor in HA ({current or 'unset'}). "
+                "Re-run discover after adding the Tapo device."
+            )
 
         updated.append(out)
 
