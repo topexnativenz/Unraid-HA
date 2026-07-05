@@ -67,7 +67,11 @@ python3 -m pip install -q -r "$FLUX/requirements.txt"
 
 echo ""
 echo "==> [1/3] Flux UI MD3 (assets → build → verify → deploy)"
-bash "$FLUX/scripts/setup_e2e.sh" "${EXTRA_ARGS[@]}"
+if ((${#EXTRA_ARGS[@]})); then
+  bash "$FLUX/scripts/setup_e2e.sh" "${EXTRA_ARGS[@]}"
+else
+  bash "$FLUX/scripts/setup_e2e.sh"
+fi
 
 echo ""
 echo "==> [2/3] Mobile Home (build + live push)"
@@ -76,8 +80,13 @@ if python3 "$FLUX/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
   if [[ -n "${HA_TOKEN:-}" ]]; then
     MOBILE_ARGS+=(--token "$HA_TOKEN")
   fi
-  python3 "$MOBILE/scripts/deploy_mobile_home.py" "${MOBILE_ARGS[@]}" "${EXTRA_ARGS[@]}" \
-    || echo "Warning: Mobile Home deploy failed (Flux UI may still be OK)."
+  if ((${#EXTRA_ARGS[@]})); then
+    python3 "$MOBILE/scripts/deploy_mobile_home.py" "${MOBILE_ARGS[@]}" "${EXTRA_ARGS[@]}" \
+      || echo "Warning: Mobile Home deploy failed (Flux UI may still be OK)."
+  else
+    python3 "$MOBILE/scripts/deploy_mobile_home.py" "${MOBILE_ARGS[@]}" \
+      || echo "Warning: Mobile Home deploy failed (Flux UI may still be OK)."
+  fi
 else
   echo "No HA token — skipping Mobile Home live deploy."
 fi
@@ -88,10 +97,17 @@ GARAGE_ARGS=(--offline-ok --ha-url "${HA_URL:-http://192.168.1.239:8123}")
 if [[ -n "${HA_TOKEN:-}" ]]; then
   GARAGE_ARGS+=(--token "$HA_TOKEN")
 fi
-python3 "$GARAGE/scripts/deploy_garage_doors_pulse.py" "${GARAGE_ARGS[@]}" "${EXTRA_ARGS[@]}" || {
-  echo "Warning: garage deploy/sync failed — update garage-doors/entities.local.yaml with real Tapo sensor IDs."
-  echo "  python3 $GARAGE/scripts/list_garage_sensors.py"
-}
+if ((${#EXTRA_ARGS[@]})); then
+  python3 "$GARAGE/scripts/deploy_garage_doors_pulse.py" "${GARAGE_ARGS[@]}" "${EXTRA_ARGS[@]}" || {
+    echo "Warning: garage deploy/sync failed — update garage-doors/entities.local.yaml with real Tapo sensor IDs."
+    echo "  python3 $GARAGE/scripts/list_garage_sensors.py"
+  }
+else
+  python3 "$GARAGE/scripts/deploy_garage_doors_pulse.py" "${GARAGE_ARGS[@]}" || {
+    echo "Warning: garage deploy/sync failed — update garage-doors/entities.local.yaml with real Tapo sensor IDs."
+    echo "  python3 $GARAGE/scripts/list_garage_sensors.py"
+  }
+fi
 
 echo ""
 echo "=============================================="

@@ -39,10 +39,26 @@ if python3 "$ROOT/scripts/check_ha_credentials.py" >/dev/null 2>&1; then
   if [[ -n "${HA_TOKEN:-}" ]]; then
     DEPLOY_ARGS+=(--token "$HA_TOKEN")
   fi
-  python3 "$ROOT/scripts/deploy_flux_ui.py" "${DEPLOY_ARGS[@]}" "$@"
+  if ((${#DEPLOY_ARGS[@]})); then
+    if (($#)); then
+      python3 "$ROOT/scripts/deploy_flux_ui.py" "${DEPLOY_ARGS[@]}" "$@"
+    else
+      python3 "$ROOT/scripts/deploy_flux_ui.py" "${DEPLOY_ARGS[@]}"
+    fi
+  else
+    if (($#)); then
+      python3 "$ROOT/scripts/deploy_flux_ui.py" "$@"
+    else
+      python3 "$ROOT/scripts/deploy_flux_ui.py"
+    fi
+  fi
 else
   echo "No HA token found — build-only (set HA_TOKEN / .secrets/ha.env for live deploy)"
-  python3 "$ROOT/scripts/deploy_flux_ui.py" --offline-ok "$@"
+  if (($#)); then
+    python3 "$ROOT/scripts/deploy_flux_ui.py" --offline-ok "$@"
+  else
+    python3 "$ROOT/scripts/deploy_flux_ui.py" --offline-ok
+  fi
 fi
 
 echo ""
