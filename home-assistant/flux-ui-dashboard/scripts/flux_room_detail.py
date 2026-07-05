@@ -11,7 +11,7 @@ from flux_navbar import (
     room_navigation_path,
 )
 from flux_room_sensors import ROOM_STATUS_ROW_HTML
-from md3_templates import GLASS_CARD_MOD, wrap_glass, wrap_title
+from md3_templates import merge_card_mod, wrap_glass, wrap_title
 
 DEFAULT_FEATURES: list[dict] = [
     {"name": "Presence Sensor", "icon": "mdi:motion-sensor", "stub": True},
@@ -51,12 +51,18 @@ SUBNAV_MOD = {
 }
 
 
+def _full_width(card: dict) -> dict:
+    card = dict(card)
+    card["grid_options"] = {"columns": 12}
+    return card
+
+
 def build_room_status_chips_auto(room: dict) -> dict:
     """Status chips — Occupied, Cool (°C), Humid (%) with Tapo keyword discovery."""
     if room.get("status_chips"):
         chips_card = build_room_status_chips(room)
         if chips_card:
-            return chips_card
+            return _full_width(chips_card)
 
     triggers: list[str] = ["sensor", "binary_sensor"]
     for key in ("occupancy_entity", "temperature_entity", "humidity_entity"):
@@ -64,30 +70,31 @@ def build_room_status_chips_auto(room: dict) -> dict:
         if entity:
             triggers.append(entity)
 
-    return wrap_glass(
-        {
-            "type": "custom:button-card",
-            "template": "flux_room_status",
-            "variables": {
-                "keywords": room.get("keywords") or [],
-                "occupancy_entity": room.get("occupancy_entity"),
-                "temperature_entity": room.get("temperature_entity"),
-                "humidity_entity": room.get("humidity_entity"),
-            },
-            "custom_fields": {"row": ROOM_STATUS_ROW_HTML},
-            "styles": {
-                "grid": [{"grid-template-areas": "'row'"}, {"grid-template-columns": "1fr"}],
-                "custom_fields": {
-                    "row": [{"grid-area": "row"}, {"width": "100%"}, {"justify-self": "stretch"}],
+    return _full_width(
+        wrap_glass(
+            {
+                "type": "custom:button-card",
+                "template": "flux_room_status",
+                "variables": {
+                    "keywords": room.get("keywords") or [],
+                    "occupancy_entity": room.get("occupancy_entity"),
+                    "temperature_entity": room.get("temperature_entity"),
+                    "humidity_entity": room.get("humidity_entity"),
                 },
-            },
-            "triggers_update": "all",
-            "grid_options": {"columns": 12},
-        }
+                "custom_fields": {"row": ROOM_STATUS_ROW_HTML},
+                "styles": {
+                    "grid": [{"grid-template-areas": "'row'"}, {"grid-template-columns": "1fr"}],
+                    "custom_fields": {
+                        "row": [{"grid-area": "row"}, {"width": "100%"}, {"justify-self": "stretch"}],
+                    },
+                },
+                "triggers_update": "all",
+            }
+        )
     )
 
 
-def _feature_tile(feature: dict, *, columns: int = 4) -> dict:
+def _feature_tile(feature: dict) -> dict:
     if feature.get("stub") or not feature.get("entity"):
         return {
             "type": "custom:button-card",
@@ -98,7 +105,6 @@ def _feature_tile(feature: dict, *, columns: int = 4) -> dict:
                 "card": [{"opacity": "0.55"}],
                 "icon": [{"color": "var(--md-sys-color-on-surface-variant)"}],
             },
-            "grid_options": {"columns": columns},
         }
     entity = feature["entity"]
     return {
@@ -109,21 +115,21 @@ def _feature_tile(feature: dict, *, columns: int = 4) -> dict:
         "icon": feature.get("icon", "mdi:gesture-tap"),
         "tap_action": {"action": "toggle"},
         "hold_action": {"action": "more-info"},
-        "grid_options": {"columns": columns},
     }
 
 
 def build_room_features_row(room: dict) -> dict:
     """Quick action icons — Presence, Movie Mode, Adaptive Lighting (reference row)."""
     features = room.get("features") or DEFAULT_FEATURES
-    return wrap_glass(
-        {
-            "type": "grid",
-            "columns": 3,
-            "square": False,
-            "cards": [_feature_tile(f, columns=4) for f in features[:3]],
-            "grid_options": {"columns": 12},
-        }
+    return _full_width(
+        wrap_glass(
+            {
+                "type": "grid",
+                "columns": 3,
+                "square": False,
+                "cards": [_feature_tile(f) for f in features[:3]],
+            }
+        )
     )
 
 
@@ -150,11 +156,8 @@ def build_room_subnav(room: dict, *, active: str = "room") -> dict:
         "type": "custom:mushroom-chips-card",
         "alignment": "justify",
         "chips": chips,
-        "grid_options": {"columns": 12},
     }
-    existing = GLASS_CARD_MOD["style"] + SUBNAV_MOD["style"]
-    nav_card["card_mod"] = {"style": existing}
-    return wrap_glass(nav_card)
+    return _full_width(merge_card_mod(wrap_glass(nav_card), SUBNAV_MOD["style"]))
 
 
 def _lights_on_count_jinja(entities: list[str]) -> tuple[str, str]:
@@ -182,17 +185,17 @@ def build_room_light_groups_fab(room: dict) -> dict | None:
                 "icon": group.get("icon", "mdi:lightbulb-group"),
                 "tap_action": {"action": "toggle"},
                 "hold_action": {"action": "more-info"},
-                "grid_options": {"columns": 12},
             }
         )
-    return {
-        "type": "grid",
-        "columns": 1,
-        "square": False,
-        "cards": cards,
-        "grid_options": {"columns": 12},
-        "card_mod": FAB_STACK_MOD,
-    }
+    return _full_width(
+        {
+            "type": "grid",
+            "columns": 1,
+            "square": False,
+            "cards": cards,
+            "card_mod": FAB_STACK_MOD,
+        }
+    )
 
 
 def build_room_lights_section(room: dict) -> dict:
@@ -201,55 +204,51 @@ def build_room_lights_section(room: dict) -> dict:
     entities = [light["entity"] for light in lights]
     count_content, count_color = _lights_on_count_jinja(entities)
     return {
-        "type": "grid",
+        "type": "vertical-stack",
         "cards": [
             {
-                "type": "grid",
-                "columns": 12,
-                "square": False,
+                "type": "horizontal-stack",
                 "cards": [
                     wrap_title(
                         {
                             "type": "custom:mushroom-title-card",
                             "title": "Lights",
-                            "grid_options": {"columns": 8},
                         }
                     ),
-                    wrap_glass(
-                        {
-                            "type": "custom:mushroom-chips-card",
-                            "alignment": "end",
-                            "chips": [
-                                {
-                                    "type": "template",
-                                    "icon": "mdi:lightbulb-on",
-                                    "icon_color": count_color,
-                                    "content": count_content,
-                                }
-                            ],
-                            "grid_options": {"columns": 4},
-                        }
-                    ),
+                    {
+                        "type": "custom:mushroom-chips-card",
+                        "alignment": "end",
+                        "chips": [
+                            {
+                                "type": "template",
+                                "icon": "mdi:lightbulb-on",
+                                "icon_color": count_color,
+                                "content": count_content,
+                            }
+                        ],
+                    },
                 ],
             },
             wrap_glass(_lights_tile_grid(lights)),
         ],
+        "grid_options": {"columns": 12},
     }
 
 
 def build_room_detail_page(room: dict, *, garage_doors: list[dict] | None = None) -> dict:
     """Full room detail matching ElementZoom reference (Living screenshot)."""
     cards: list[dict] = [
-        _title(room.get("card_name") or room["name"], room.get("subtitle", "")),
-        {
-            "type": "custom:button-card",
-            "template": "flux_action",
-            "name": "Back to Rooms",
-            "icon": "mdi:arrow-left",
-            "label": "All areas",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/rooms"},
-            "grid_options": {"columns": 12},
-        },
+        _full_width(_title(room.get("card_name") or room["name"], room.get("subtitle", ""))),
+        _full_width(
+            {
+                "type": "custom:button-card",
+                "template": "flux_action",
+                "name": "Back to Rooms",
+                "icon": "mdi:arrow-left",
+                "label": "All areas",
+                "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/rooms"},
+            }
+        ),
         build_room_status_chips_auto(room),
         build_room_features_row(room),
         build_room_subnav(room, active="room"),

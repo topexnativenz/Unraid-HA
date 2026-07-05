@@ -185,12 +185,13 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
                 initial = p["name"]
                 break
 
+    entities = [p["entity"] for p in players if p.get("enabled", True) and p.get("entity")]
     header = (
         "# Flux UI media player selection (Sonos zones)\n"
         "# Options are rewritten by discover_sonos.py --apply\n"
         "# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages\n\n"
     )
-    data = {
+    data: dict = {
         "input_select": {
             "flux_ui_media_player": {
                 "name": "Flux UI Media Player",
@@ -198,8 +199,49 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
                 "initial": initial,
                 "icon": "mdi:speaker",
             }
-        }
+        },
     }
+    if entities:
+        choose: list[dict] = []
+        for player in players:
+            if not player.get("enabled", True) or not player.get("entity"):
+                continue
+            choose.append(
+                {
+                    "conditions": [
+                        {
+                            "condition": "template",
+                            "value_template": (
+                                "{{ trigger.entity_id == '" + player["entity"] + "' }}"
+                            ),
+                        }
+                    ],
+                    "sequence": [
+                        {
+                            "service": "input_select.select_option",
+                            "target": {"entity_id": "input_select.flux_ui_media_player"},
+                            "data": {"option": player["name"]},
+                        }
+                    ],
+                }
+            )
+        data["automation"] = [
+            {
+                "id": "flux_ui_media_player_sync",
+                "alias": "Flux UI sync media player to active Sonos zone",
+                "description": "Keep input_select on the Sonos zone that is playing or paused.",
+                "mode": "queued",
+                "max": 10,
+                "trigger": [
+                    {
+                        "platform": "state",
+                        "entity_id": entities,
+                        "to": ["playing", "paused"],
+                    }
+                ],
+                "action": [{"choose": choose}],
+            }
+        ]
     MEDIA_PACKAGE.write_text(header + yaml.safe_dump(data, sort_keys=False, default_flow_style=False))
 
 

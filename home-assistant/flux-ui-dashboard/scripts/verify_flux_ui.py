@@ -192,6 +192,17 @@ def verify_build(path: Path) -> list[str]:
     if '"template": "flux_room"' not in blob:
         errors.append("Missing flux_room cards on Rooms view")
 
+    garage_view = next((v for v in views if v.get("path") == "room-garage"), None)
+    if garage_view:
+        garage_sec = (garage_view.get("sections") or [{}])[0]
+        if garage_sec.get("type") != "grid":
+            errors.append("Room detail sections must use type: grid (not vertical-stack at section root)")
+        garage_cards = garage_sec.get("cards") or []
+        if garage_cards and not any(
+            isinstance(c, dict) and c.get("grid_options", {}).get("columns") == 12 for c in garage_cards
+        ):
+            errors.append("Room detail cards missing grid_options columns:12 — layout will break in sections view")
+
     rooms_view = next((v for v in views if v.get("path") == "rooms"), None)
     if rooms_view:
         rooms_blob = json.dumps(rooms_view)
