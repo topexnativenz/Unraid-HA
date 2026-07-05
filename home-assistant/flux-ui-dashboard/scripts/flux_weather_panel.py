@@ -143,6 +143,36 @@ def _apex_base() -> dict[str, Any]:
     }
 
 
+def _forecasts_js() -> str:
+    """Parse sensor.flux_ui_hourly_forecast_full.attributes.forecasts (array or JSON string)."""
+    return (
+        "const raw = entity.attributes.forecasts;\n"
+        "const forecasts = typeof raw === 'string' ? JSON.parse(raw || '[]') : (Array.isArray(raw) ? raw : []);\n"
+        "if (!forecasts.length) return [];\n"
+    )
+
+
+def _cloud_from_condition_js() -> str:
+    return (
+        "let cloud = 60;\n"
+        "const cond = String(f.condition || '').toLowerCase();\n"
+        "if (f.cloud_coverage != null) cloud = Number(f.cloud_coverage);\n"
+        "else if (['sunny','clear','clear-night'].includes(cond)) cloud = 15;\n"
+        "else if (cond.includes('partly')) cloud = 45;\n"
+        "else if (['cloudy','fog','foggy'].includes(cond)) cloud = 75;\n"
+        "else if (['rainy','pouring','drizzle','snowy'].includes(cond)) cloud = 90;\n"
+    )
+
+
+def _wind_bearing_js() -> str:
+    return (
+        "const dirs = {N:0,NNE:22.5,NE:45,ENE:67.5,E:90,ESE:112.5,SE:135,SSE:157.5,"
+        "S:180,SSW:202.5,SW:225,WSW:247.5,W:270,WNW:292.5,NW:315,NNW:337.5};\n"
+        "const b = f.wind_bearing;\n"
+        "const bearing = typeof b === 'number' ? b : (dirs[String(b || '').toUpperCase()] ?? 0);\n"
+    )
+
+
 def _rainfall_chart(hourly: str) -> dict:
     chart = _apex_base()
     chart["header"] = {"show": True}
@@ -157,8 +187,9 @@ def _rainfall_chart(hourly: str) -> dict:
             "type": "column",
             "yaxis_id": "rain",
             "data_generator": (
-                "return entity.attributes.forecasts.map(f => {\n"
-                "  let val = f.precipitation;\n"
+                _forecasts_js()
+                + "return forecasts.map(f => {\n"
+                "  let val = Number(f.precipitation) || 0;\n"
                 "  let color = '#9e9e9e';\n"
                 "  if (val > 0 && val < 2.5) color = '#4FC3F7';\n"
                 "  else if (val < 7.6) color = '#0288D1';\n"
@@ -177,8 +208,9 @@ def _rainfall_chart(hourly: str) -> dict:
             "stroke_width": 2,
             "color": "#E53935",
             "data_generator": (
-                "return entity.attributes.forecasts.map(f => ({\n"
-                "  x: new Date(f.datetime).getTime(), y: f.temperature\n"
+                _forecasts_js()
+                + "return forecasts.map(f => ({\n"
+                "  x: new Date(f.datetime).getTime(), y: Number(f.temperature) || 0\n"
                 "}));"
             ),
         },
@@ -202,10 +234,12 @@ def _uv_chart(hourly: str) -> dict:
             "color": "#F9A825",
             "stroke_width": 2,
             "data_generator": (
-                "return entity.attributes.forecasts.map(f => {\n"
-                "  if (f.uv_index == null) return null;\n"
-                "  return { x: new Date(f.datetime).getTime(), y: f.uv_index };\n"
-                "}).filter(x => x !== null);"
+                _forecasts_js()
+                + "const hourUv = (dt) => { const h = new Date(dt).getHours(); return (h >= 7 && h < 19) ? 3 : 0; };\n"
+                "return forecasts.map(f => {\n"
+                "  const uv = f.uv_index != null ? Number(f.uv_index) : hourUv(f.datetime);\n"
+                "  return { x: new Date(f.datetime).getTime(), y: uv };\n"
+                "});"
             ),
         },
         {
@@ -217,10 +251,11 @@ def _uv_chart(hourly: str) -> dict:
             "stroke_width": 1,
             "opacity": 0.3,
             "data_generator": (
-                "return entity.attributes.forecasts.map(f => {\n"
-                "  if (f.cloud_coverage == null) return null;\n"
-                "  return { x: new Date(f.datetime).getTime(), y: f.cloud_coverage };\n"
-                "}).filter(x => x !== null);"
+                _forecasts_js()
+                + "return forecasts.map(f => {\n"
+                + _cloud_from_condition_js()
+                + "  return { x: new Date(f.datetime).getTime(), y: cloud };\n"
+                "});"
             ),
         },
     ]
@@ -243,9 +278,10 @@ def _wind_chart(hourly: str) -> dict:
             "color": "#0288D1",
             "stroke_width": 2,
             "data_generator": (
-                "return entity.attributes.forecasts.map(f => ({\n"
+                _forecasts_js()
+                + "return forecasts.map(f => ({\n"
                 "  x: new Date(f.datetime).getTime(),\n"
-                "  y: Math.round(f.wind_speed * 10) / 10\n"
+                "  y: Math.round((Number(f.wind_speed) || 0) * 10) / 10\n"
                 "}));"
             ),
         },
@@ -258,10 +294,11 @@ def _wind_chart(hourly: str) -> dict:
             "color": "#8E24AA",
             "stroke_width": 1,
             "data_generator": (
-                "return entity.attributes.forecasts.map(f => ({\n"
-                "  x: new Date(f.datetime).getTime(),\n"
-                "  y: Math.round(f.wind_bearing)\n"
-                "}));"
+                _forecasts_js()
+                + "return forecasts.map(f => {\n"
+                + _wind_bearing_js()
+                + "  return { x: new Date(f.datetime).getTime(), y: Math.round(bearing) };\n"
+                "});"
             ),
         },
     ]

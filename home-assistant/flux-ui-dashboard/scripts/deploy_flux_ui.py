@@ -236,6 +236,21 @@ async def wait_for_entity(token: str, ha_url: str, entity_id: str, *, attempts: 
     return False
 
 
+async def reload_template(token: str, ha_url: str) -> None:
+    res = await ws_call(
+        token,
+        ha_url,
+        [{"type": "call_service", "domain": "template", "service": "reload"}],
+    )
+    if res[0].get("success") is False:
+        print(f"  WARNING: template.reload failed: {res[0].get('error')}")
+    else:
+        print("  reloaded template sensors (weather forecasts)")
+
+
+WEATHER_HOURLY_ENTITY = "sensor.flux_ui_hourly_forecast_full"
+
+
 async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool]:
     """Reload packages and wait for input_select helpers (Rooms tabs, music picker)."""
     import asyncio
@@ -244,6 +259,8 @@ async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool
     for pass_num in range(1, 3):
         await reload_core_config(token, ha_url)
         await asyncio.sleep(3)
+        await reload_template(token, ha_url)
+        await asyncio.sleep(5)
         for domain, svc in (("script", "reload"), ("automation", "reload")):
             res = await ws_call(
                 token,
@@ -257,8 +274,14 @@ async def ensure_flux_package_helpers(token: str, ha_url: str) -> dict[str, bool
             OVERVIEW_TAB_ENTITY: await wait_for_entity(token, ha_url, OVERVIEW_TAB_ENTITY, attempts=5),
             ROOMS_TAB_ENTITY: await wait_for_entity(token, ha_url, ROOMS_TAB_ENTITY, attempts=5),
             MEDIA_SELECT_ENTITY: await wait_for_entity(token, ha_url, MEDIA_SELECT_ENTITY, attempts=5),
+            WEATHER_HOURLY_ENTITY: await wait_for_entity(token, ha_url, WEATHER_HOURLY_ENTITY, attempts=8),
         }
         if found[ROOMS_TAB_ENTITY] and found[MEDIA_SELECT_ENTITY]:
+            if not found[WEATHER_HOURLY_ENTITY]:
+                print(
+                    f"  WARNING: {WEATHER_HOURLY_ENTITY} not loaded — Rainfall/UV/Wind charts need flux_ui_weather.yaml.\n"
+                    "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
+                )
             return found
     return found
 

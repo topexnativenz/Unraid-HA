@@ -21,6 +21,11 @@ FLUX_ENTITIES = (
     "input_select.flux_ui_overview_tab",
 )
 
+WEATHER_ENTITIES = (
+    "sensor.flux_ui_hourly_forecast_full",
+    "sensor.flux_ui_daily_forecast_data",
+)
+
 REQUIRED = (
     "input_select.flux_ui_rooms_tab",
     "input_select.flux_ui_media_player",
@@ -121,6 +126,10 @@ async def wait_for_entities(
     return found
 
 
+async def reload_template(token: str, ha_url: str) -> bool:
+    return await reload_service_domain(token, ha_url, "template", "reload")
+
+
 async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
     token = get_token(token)
     print("Ensuring Flux UI package helpers (input_select + scripts) are loaded…")
@@ -129,15 +138,20 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
         print(f"  reload_core_config (pass {attempt}/2)")
         await reload_core_config(token, ha_url)
         await asyncio.sleep(3)
-        print("  reload scripts + automations")
+        print("  reload template + scripts + automations")
+        await reload_template(token, ha_url)
         await reload_service_domain(token, ha_url, "script", "reload")
         await reload_service_domain(token, ha_url, "automation", "reload")
-        await asyncio.sleep(3)
+        await asyncio.sleep(5)
         found = await wait_for_entities(token, ha_url, FLUX_ENTITIES, attempts=10, delay=2.0)
+        weather = await wait_for_entities(token, ha_url, WEATHER_ENTITIES, attempts=8, delay=2.0)
         for eid in FLUX_ENTITIES:
             status = "ok" if found[eid] else "missing"
             optional = "" if eid in REQUIRED else " (optional)"
             print(f"    {status:7} {eid}{optional}")
+        for eid in WEATHER_ENTITIES:
+            status = "ok" if weather[eid] else "missing"
+            print(f"    {status:7} {eid} (weather panel)")
 
         scripts_ok = True
         for sid in MEDIA_SCRIPTS:
@@ -147,13 +161,18 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
             if not exists:
                 scripts_ok = False
 
-        if all(found[e] for e in REQUIRED) and scripts_ok:
-            print("Flux UI package helpers and media scripts loaded.")
+        if all(found[e] for e in REQUIRED) and scripts_ok and weather[WEATHER_ENTITIES[0]]:
+            print("Flux UI package helpers, weather sensors, and media scripts loaded.")
             await _sync_sonos_zone_names(token, ha_url)
             return 0
 
     missing = [e for e in REQUIRED if not found[e]]
-    print(f"\nWARNING: Required helpers still missing: {', '.join(missing)}")
+    weather_missing = [e for e in WEATHER_ENTITIES if not weather.get(e)]
+    print(f"\nWARNING: Required helpers still missing: {', '.join(missing) or 'none'}")
+    if weather_missing:
+        print(f"WARNING: Weather template sensors missing: {', '.join(weather_missing)}")
+        print("  Ensure packages/flux_ui_weather.yaml is on HA and references your MetService entity.")
+        print("  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha")
     print("Packages were copied to /config/packages/ but HA has not loaded them yet.")
 
     if restart:
@@ -163,10 +182,12 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
             await asyncio.sleep(3)
             try:
                 found = await wait_for_entities(token, ha_url, REQUIRED, attempts=1, delay=0)
+                weather = await wait_for_entities(token, ha_url, WEATHER_ENTITIES, attempts=1, delay=0)
             except Exception:
                 found = {e: False for e in REQUIRED}
-            if all(found[e] for e in REQUIRED):
-                print("Flux UI package helpers loaded after restart.")
+                weather = {e: False for e in WEATHER_ENTITIES}
+            if all(found[e] for e in REQUIRED) and weather.get(WEATHER_ENTITIES[0]):
+                print("Flux UI package helpers and weather sensors loaded after restart.")
                 await _sync_sonos_zone_names(token, ha_url)
                 return 0
             if i % 5 == 4:

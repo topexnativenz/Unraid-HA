@@ -2,20 +2,44 @@
 # Data source: ciejer/metservice-weather + weather.get_forecasts
 
 template:
-  - trigger:
-      - platform: time_pattern
-        minutes: /15
-      - platform: homeassistant
+  # Hourly forecast — feeds Rainfall / UV / Wind charts and summary sensors.
+  - triggers:
+      - trigger: time_pattern
+        minutes: "/15"
+      - trigger: homeassistant
         event: start
-      - platform: event
+      - trigger: event
         event_type: event_template_reloaded
-    action:
+    actions:
       - action: weather.get_forecasts
         target:
           entity_id: __WEATHER_ENTITY__
         data:
           type: hourly
         response_variable: forecast
+    sensor:
+      - name: Flux UI Hourly Forecast Full
+        unique_id: flux_ui_hourly_forecast_full
+        state: >
+          {% set wx = '__WEATHER_ENTITY__' %}
+          {% if forecast[wx].forecast is defined and forecast[wx].forecast | length > 0 %}
+            {{ forecast[wx].forecast[0].datetime }}
+          {% else %}
+            unknown
+          {% endif %}
+        attributes:
+          forecasts: >
+            {{ forecast['__WEATHER_ENTITY__'].forecast | default([], true) | tojson }}
+
+  # Daily forecast — Forecast tab high/low card.
+  - triggers:
+      - trigger: time_pattern
+        hours: "/1"
+      - trigger: homeassistant
+        event: start
+      - trigger: event
+        event_type: event_template_reloaded
+    actions:
       - action: weather.get_forecasts
         target:
           entity_id: __WEATHER_ENTITY__
@@ -36,63 +60,9 @@ template:
           forecast_data: >
             {% if forecast_daily['__WEATHER_ENTITY__'].forecast is defined
                   and forecast_daily['__WEATHER_ENTITY__'].forecast | length > 0 %}
-              {{ forecast_daily['__WEATHER_ENTITY__'].forecast[0] }}
+              {{ forecast_daily['__WEATHER_ENTITY__'].forecast[0] | tojson }}
             {% else %}
-              {{ {} }}
-            {% endif %}
-
-      - name: Flux UI Hourly Forecast Full
-        unique_id: flux_ui_hourly_forecast_full
-        state: >
-          {% if forecast['__WEATHER_ENTITY__'].forecast is defined
-                and forecast['__WEATHER_ENTITY__'].forecast | length > 0 %}
-            {{ forecast['__WEATHER_ENTITY__'].forecast[0].datetime }}
-          {% else %}
-            unknown
-          {% endif %}
-        attributes:
-          forecasts: >
-            {% set wx = '__WEATHER_ENTITY__' %}
-            {% set uv_src = states('__UV_SENSOR__') | default('', true) | lower %}
-            {% set uv_num = {
-              'low': 2, 'moderate': 5, 'high': 8, 'very high': 10, 'extreme': 11,
-              'status-low': 2, 'status-moderate': 5, 'status-high': 8
-            }.get(uv_src, uv_src | float(0)) %}
-            {% set dirs = {
-              'N':0,'NNE':22.5,'NE':45,'ENE':67.5,'E':90,'ESE':112.5,'SE':135,'SSE':157.5,
-              'S':180,'SSW':202.5,'SW':225,'WSW':247.5,'W':270,'WNW':292.5,'NW':315,'NNW':337.5
-            } %}
-            {% if forecast[wx].forecast is defined and forecast[wx].forecast | length > 0 %}
-              [
-              {%- for f in forecast[wx].forecast %}
-                {% set cond = (f.condition | default('') | string | lower) %}
-                {% set cloud = f.cloud_coverage if f.cloud_coverage is defined else (
-                  15 if cond in ['sunny','clear','clear-night'] else
-                  45 if cond in ['partlycloudy','partly cloudy','partly-cloudy'] else
-                  75 if cond in ['cloudy','fog','foggy'] else
-                  90 if cond in ['rainy','pouring','drizzle','snowy','snowy-rainy'] else 60
-                ) %}
-                {% set bearing = f.wind_bearing %}
-                {% set bearing_num = bearing if bearing is number else dirs.get(bearing | string | upper, 0) %}
-                {% set hour = as_datetime(f.datetime).hour if f.datetime is defined else 12 %}
-                {% set slot_uv = f.uv_index if f.uv_index is defined else (
-                  uv_num if 7 <= hour < 19 else 0
-                ) %}
-                {
-                  "datetime": "{{ f.datetime }}",
-                  "condition": "{{ f.condition | default('') }}",
-                  "temperature": {{ f.temperature | default(0) | float }},
-                  "precipitation": {{ f.precipitation | default(0) | float }},
-                  "wind_speed": {{ f.wind_speed | default(0) | float }},
-                  "wind_bearing": {{ bearing_num | float(0) }},
-                  "humidity": {{ f.humidity | default(states('__HUMIDITY_SENSOR__') | float(0)) }},
-                  "cloud_coverage": {{ cloud | float(0) }},
-                  "uv_index": {{ slot_uv | float(0) }}
-                }{{ "," if not loop.last }}
-              {%- endfor %}
-              ]
-            {% else %}
-              []
+              {}
             {% endif %}
 
   - sensor:
@@ -115,12 +85,13 @@ template:
         unique_id: flux_ui_forecast_cloud_coverage
         unit_of_measurement: "%"
         state: >
-          {% set f = state_attr('sensor.flux_ui_hourly_forecast_full', 'forecasts') %}
+          {% set raw = state_attr('sensor.flux_ui_hourly_forecast_full', 'forecasts') %}
+          {% set f = raw | from_json(default=[]) if raw is string else (raw if raw is iterable else []) %}
           {% set cond = state('__WEATHER_ENTITY__') | lower %}
-          {% if f is sequence and f | count > 0 and f[0].cloud_coverage is not none %}
+          {% if f | count > 0 and f[0].cloud_coverage is defined and f[0].cloud_coverage is not none %}
             {{ f[0].cloud_coverage }}
           {% elif cond in ['sunny','clear','clear-night'] %}15
-          {% elif cond in ['partlycloudy','partly cloudy'] %}45
+          {% elif cond in ['partlycloudy','partly cloudy','partly-cloudy'] %}45
           {% elif cond in ['cloudy','fog','foggy'] %}75
           {% elif cond in ['rainy','pouring','drizzle'] %}90
           {% else %}60
@@ -130,11 +101,12 @@ template:
         unique_id: flux_ui_forecast_rainfall
         unit_of_measurement: mm
         state: >
-          {% set f = state_attr('sensor.flux_ui_hourly_forecast_full', 'forecasts') %}
-          {% if f is sequence and f | count > 0 %}
+          {% set raw = state_attr('sensor.flux_ui_hourly_forecast_full', 'forecasts') %}
+          {% set f = raw | from_json(default=[]) if raw is string else (raw if raw is iterable else []) %}
+          {% if f | count > 0 and f[0].precipitation is defined %}
             {{ f[0].precipitation }}
           {% else %}
-            unknown
+            0
           {% endif %}
 
       - name: Flux UI Forecast Wind Speed
@@ -163,8 +135,9 @@ template:
       - name: Flux UI Next Rain Summary
         unique_id: flux_ui_next_rain_summary
         state: >
-          {%- set forecasts = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
-          {%- if forecasts -%}
+          {%- set raw = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
+          {%- set forecasts = raw | from_json(default=[]) if raw is string else (raw if raw is iterable else []) -%}
+          {%- if forecasts | count > 0 -%}
           {%- set rain_forecasts = forecasts | selectattr('precipitation','defined') | selectattr('precipitation','gt',0) | list -%}
           {%- if rain_forecasts | count > 0 -%}
           {%- set next_rain = rain_forecasts | first -%}
@@ -181,8 +154,9 @@ template:
       - name: Flux UI 24h Rainfall Summary
         unique_id: flux_ui_24h_rainfall_summary
         state: >
-          {%- set forecasts = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
-          {%- if forecasts -%}
+          {%- set raw = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
+          {%- set forecasts = raw | from_json(default=[]) if raw is string else (raw if raw is iterable else []) -%}
+          {%- if forecasts | count > 0 -%}
           {%- set values = forecasts | map(attribute='precipitation') | map('float') | list -%}
           {%- set total = values | sum -%}
           {%- set peak = values | max -%}
@@ -201,8 +175,9 @@ template:
       - name: Flux UI UV and Cloud Summary
         unique_id: flux_ui_uv_and_cloud_summary
         state: >
-          {%- set forecasts = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
-          {%- if forecasts -%}
+          {%- set raw = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
+          {%- set forecasts = raw | from_json(default=[]) if raw is string else (raw if raw is iterable else []) -%}
+          {%- if forecasts | count > 0 -%}
           {%- set uv_values = forecasts | map(attribute='uv_index') | reject('eq', none) | map('float') | list -%}
           {%- set peak_uv = (uv_values | max) if uv_values | count > 0 else (states('sensor.flux_ui_forecast_uv_index') | float(0)) -%}
           {%- set peak_entry = forecasts | selectattr('uv_index','eq', peak_uv) | list | first if uv_values | count > 0 else forecasts | first -%}
@@ -223,8 +198,9 @@ template:
       - name: Flux UI Wind Summary
         unique_id: flux_ui_wind_summary
         state: >
-          {%- set forecasts = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
-          {%- if forecasts -%}
+          {%- set raw = state_attr('sensor.flux_ui_hourly_forecast_full','forecasts') -%}
+          {%- set forecasts = raw | from_json(default=[]) if raw is string else (raw if raw is iterable else []) -%}
+          {%- if forecasts | count > 0 -%}
           {%- set speeds = forecasts | map(attribute='wind_speed') | map('float') | list -%}
           {%- set peak = speeds | max -%}
           {%- set peak_entry = forecasts | selectattr('wind_speed','eq', peak) | list | first -%}
