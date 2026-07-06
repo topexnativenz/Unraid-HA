@@ -291,22 +291,31 @@ HERO_CARD_MOD = {
         "  -webkit-backdrop-filter: none !important;\n"
         "  overflow: visible !important;\n"
         "  box-sizing: border-box !important;\n"
+        "  width: 100% !important;\n"
+        "  display: block !important;\n"
+        "}\n"
+        "ha-card > div {\n"
+        "  width: 100% !important;\n"
         "}\n"
         "#root {\n"
+        "  position: relative !important;\n"
         "  min-width: 0 !important;\n"
         "  width: 100% !important;\n"
         "  max-width: 100% !important;\n"
+        "}\n"
+        "#root > div {\n"
+        "  width: 100% !important;\n"
         "}\n"
     )
 }
 
 
 def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
-    """Transparent hero row — avatar, greeting, and compact weather (no glass box)."""
+    """Transparent hero row — avatar, greeting, weather pinned to the right edge."""
     hero = (cfg.get("context") or {}).get("hero") or {}
     default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
     avatar = hero_bitmoji_picture_js(cfg)
-    return {
+    card: dict = {
         "type": "custom:button-card",
         "show_icon": False,
         "show_entity_picture": True,
@@ -318,6 +327,7 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
         "tap_action": {"action": "none"},
         "hold_action": {"action": "none"},
         "triggers_update": ["all", weather_entity],
+        "grid_options": {"columns": 12},
         "name": (
             "[[[\n"
             "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
@@ -342,14 +352,15 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
                 {"background": "transparent"},
                 {"box-shadow": "none"},
                 {"border": "none"},
-                {"padding": "8px 0"},
+                {"position": "relative"},
+                {"padding": "8px 76px 8px 0"},
                 {"overflow": "visible"},
                 {"box-sizing": "border-box"},
                 {"width": "100%"},
             ],
             "grid": [
-                {"grid-template-areas": "'i n w' 'i l w'"},
-                {"grid-template-columns": "64px minmax(0, 1fr) max-content"},
+                {"grid-template-areas": "'i n' 'i l'"},
+                {"grid-template-columns": "64px minmax(0, 1fr)"},
                 {"grid-template-rows": "min-content min-content"},
                 {"column-gap": "12px"},
                 {"row-gap": "2px"},
@@ -395,19 +406,18 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
             ],
             "custom_fields": {
                 "weather": [
-                    {"grid-area": "w"},
-                    {"grid-row": "1 / span 2"},
-                    {"justify-self": "end"},
-                    {"align-self": "center"},
+                    {"position": "absolute"},
+                    {"right": "0"},
+                    {"top": "50%"},
+                    {"transform": "translateY(-50%)"},
                     {"width": "auto"},
                     {"max-width": "72px"},
-                    {"min-width": "0"},
-                    {"margin-left": "auto"},
-                    {"padding-right": "0"},
+                    {"z-index": "1"},
                 ],
             },
         },
     }
+    return card
 
 
 def build_hero(weather_entity: str, cfg: dict) -> dict:
