@@ -17,12 +17,12 @@
   function visiblePlayers() {
     const h = hass();
     if (!h) return [];
-    const playing = ALL_PLAYERS.filter((p) => h.states[p.entity]?.state === 'playing');
-    const anyMusic = playing.some((p) => isMusic(h.states[p.entity]?.attributes));
-    let active = playing.filter((p) => !anyMusic || isMusic(h.states[p.entity]?.attributes));
-    let visible = [...active];
+    const ACTIVE = ['playing', 'paused'];
+    const live = ALL_PLAYERS.filter((p) => ACTIVE.includes(h.states[p.entity]?.state));
+    const anyMusic = live.some((p) => isMusic(h.states[p.entity]?.attributes));
+    let visible = live.filter((p) => !anyMusic || isMusic(h.states[p.entity]?.attributes));
     const MIN_SLOTS = 2;
-    if (visible.length <= MIN_SLOTS) {
+    if (visible.length < MIN_SLOTS) {
       for (const p of ALL_PLAYERS) {
         if (visible.length >= MIN_SLOTS) break;
         if (!visible.find((v) => v.entity === p.entity)) visible.push(p);

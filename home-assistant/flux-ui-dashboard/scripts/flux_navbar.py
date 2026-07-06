@@ -62,19 +62,9 @@ ha-ripple {
 /* Capture horizontal swipes for the Sonos zone carousel (navbar-card sets pan-y). */
 .media-player-viewport {
   touch-action: none !important;
-  overflow: hidden !important;
 }
 .media-player-carousel {
   touch-action: none !important;
-  overflow: hidden !important;
-}
-.media-player-container {
-  overflow: hidden !important;
-  background: color-mix(in srgb, var(--card-background-color, var(--ha-card-background)) 90%, transparent) !important;
-  border-radius: 14px;
-}
-.media-player-track {
-  overflow: hidden !important;
 }
 """
 

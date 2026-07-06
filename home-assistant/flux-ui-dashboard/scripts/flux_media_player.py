@@ -78,7 +78,8 @@ def _is_music_entity_jinja(entity: str) -> str:
 
 def _any_music_playing_jinja(players: list[dict]) -> str:
     parts = [
-        f"(is_state('{p['entity']}', 'playing') and ({_is_music_entity_jinja(p['entity'])}))"
+        f"((is_state('{p['entity']}', 'playing') or is_state('{p['entity']}', 'paused')) "
+        f"and ({_is_music_entity_jinja(p['entity'])}))"
         for p in players
     ]
     return "(" + " or ".join(parts) + ")" if parts else "false"
@@ -92,7 +93,8 @@ def _visible_entities_jinja_setup(players: list[dict]) -> str:
         e = p["entity"]
         is_music = _is_music_entity_jinja(e)
         active_lines.append(
-            f"{{% if is_state('{e}', 'playing') and (not ({any_music}) or ({is_music})) %}}"
+            f"{{% if (is_state('{e}', 'playing') or is_state('{e}', 'paused')) "
+            f"and (not ({any_music}) or ({is_music})) %}}"
             f"{{% set ns.visible = ns.visible + ['{e}'] %}}{{% endif %}}"
         )
     filler_lines = []
@@ -116,38 +118,46 @@ def _player_visible_template(players: list[dict], entity: str) -> str:
     return _visible_entities_jinja_setup(players) + f"\n{{{{ '{entity}' in ns.visible }}}}"
 
 
-def _player_show_jinja(players: list[dict], entity: str) -> str:
-    """Navbar carousel visibility — matches _player_visible_template logic in JS."""
-    players_js = json.dumps([{"entity": p["entity"], "name": p["name"]} for p in players])
+def _is_music_js_fn() -> str:
     return (
-        "[[[ "
-        f"const MIN_SLOTS = {MIN_PLAYER_SLOTS}; "
-        f"const ALL_PLAYERS = {players_js}; "
-        "const ALL = ALL_PLAYERS.map((p) => p.entity); "
-        "const isMusic = (a) => {"
-        "  if (!a) return false;"
-        "  const t = String(a.media_content_type || '').toLowerCase();"
-        "  const app = String(a.app_name || '').toLowerCase();"
-        "  if (['music','artist','album','playlist','podcast','track','genre'].includes(t)) return true;"
-        "  if (['video','tvshow','movie','channel','episode'].includes(t)) return false;"
-        "  if (app.includes('tv') || app.includes('hdmi')) return false;"
-        "  if (a.media_artist && !a.media_series_title) return true;"
-        "  if (a.media_series_title && !a.media_artist) return false;"
-        "  return !!a.media_artist || !a.media_series_title;"
+        "const isMusic = (attrs) => {\n"
+        "  if (!attrs) return false;\n"
+        "  const t = String(attrs.media_content_type || '').toLowerCase();\n"
+        "  const app = String(attrs.app_name || '').toLowerCase();\n"
+        "  if (['music','artist','album','playlist','podcast','track','genre'].includes(t)) return true;\n"
+        "  if (['video','tvshow','movie','channel','episode'].includes(t)) return false;\n"
+        "  if (app.includes('tv') || app.includes('hdmi')) return false;\n"
+        "  if (attrs.media_artist && !attrs.media_series_title) return true;\n"
+        "  if (attrs.media_series_title && !attrs.media_artist) return false;\n"
+        "  return !!attrs.media_artist || !attrs.media_series_title;\n"
         "};"
-        "const playing = ALL.filter((id) => states[id]?.state === 'playing');"
-        "const anyMusic = playing.some((id) => isMusic(states[id]?.attributes));"
-        "let active = playing.filter((id) => !anyMusic || isMusic(states[id]?.attributes));"
-        "let visible = [...active];"
-        "if (visible.length <= MIN_SLOTS) {"
-        "  for (const id of ALL) {"
-        "    if (visible.length >= MIN_SLOTS) break;"
-        "    if (!visible.includes(id)) visible.push(id);"
-        "  }"
-        "}"
-        f"return visible.includes({entity!r}); "
-        "]]]"
     )
+
+
+def _visible_entities_js(players: list[dict]) -> str:
+    """JS block that builds `visible` entity ids — min slots, music-over-TV, playing+paused."""
+    entities = json.dumps([p["entity"] for p in players])
+    return (
+        f"const MIN_SLOTS = {MIN_PLAYER_SLOTS};\n"
+        f"const ALL = {entities};\n"
+        "const ACTIVE_STATES = ['playing', 'paused'];\n"
+        + _is_music_js_fn()
+        + "\n"
+        "const live = ALL.filter((id) => ACTIVE_STATES.includes(states[id]?.state));\n"
+        "const anyMusic = live.some((id) => isMusic(states[id]?.attributes));\n"
+        "let visible = live.filter((id) => !anyMusic || isMusic(states[id]?.attributes));\n"
+        "if (visible.length < MIN_SLOTS) {\n"
+        "  for (const id of ALL) {\n"
+        "    if (visible.length >= MIN_SLOTS) break;\n"
+        "    if (!visible.includes(id)) visible.push(id);\n"
+        "  }\n"
+        "}\n"
+    )
+
+
+def _player_show_jinja(players: list[dict], entity: str) -> str:
+    """Navbar carousel visibility — matches carousel-sync.js and popup jinja templates."""
+    return f"[[[\n{_visible_entities_js(players)}return visible.includes({entity!r});\n]]]"
 
 
 def _navbar_player_title_js(entity: str, zone_name: str) -> str:
@@ -512,12 +522,12 @@ def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
   function visiblePlayers() {{
     const h = hass();
     if (!h) return [];
-    const playing = ALL_PLAYERS.filter((p) => h.states[p.entity]?.state === 'playing');
-    const anyMusic = playing.some((p) => isMusic(h.states[p.entity]?.attributes));
-    let active = playing.filter((p) => !anyMusic || isMusic(h.states[p.entity]?.attributes));
-    let visible = [...active];
+    const ACTIVE = ['playing', 'paused'];
+    const live = ALL_PLAYERS.filter((p) => ACTIVE.includes(h.states[p.entity]?.state));
+    const anyMusic = live.some((p) => isMusic(h.states[p.entity]?.attributes));
+    let visible = live.filter((p) => !anyMusic || isMusic(h.states[p.entity]?.attributes));
     const MIN_SLOTS = {MIN_PLAYER_SLOTS};
-    if (visible.length <= MIN_SLOTS) {{
+    if (visible.length < MIN_SLOTS) {{
       for (const p of ALL_PLAYERS) {{
         if (visible.length >= MIN_SLOTS) break;
         if (!visible.find((v) => v.entity === p.entity)) visible.push(p);
