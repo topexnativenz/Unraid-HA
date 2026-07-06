@@ -295,14 +295,14 @@ def hero_avatar_card(cfg: dict) -> dict:
     }
 
 
-def hero_text_card(weather_entity: str) -> dict:
-    """Greeting + live weather line — no avatar (weather entity blocks custom pictures)."""
+def hero_text_card() -> dict:
+    """Greeting only — weather lives in hero_weather_card on the right."""
     return {
         "type": "custom:button-card",
         "template": "flux_greeting",
-        "entity": weather_entity,
         "show_icon": False,
         "show_entity_picture": False,
+        "show_label": False,
         "tap_action": {"action": "none"},
         "name": (
             "[[[\n"
@@ -316,17 +316,66 @@ def hero_text_card(weather_entity: str) -> dict:
             "  return `${g}, ${uname}!`;\n"
             "]]]"
         ),
+    }
+
+
+def hero_weather_card(weather_entity: str) -> dict:
+    """Right-aligned live weather — icon, temp, condition (MetService entity)."""
+    return {
+        "type": "custom:button-card",
+        "entity": weather_entity,
+        "show_icon": True,
+        "show_name": False,
+        "show_state": False,
+        "show_label": True,
+        "show_entity_picture": False,
+        "tap_action": {"action": "none"},
+        "triggers_update": "all",
         "label": (
             "[[[\n"
             "  if (!entity) return '';\n"
             "  const attrs = entity.attributes || {};\n"
-            "  const cond = attrs.condition || attrs.weather || entity.state || '';\n"
             "  const temp = attrs.temperature;\n"
+            "  const unit = attrs.temperature_unit || '°C';\n"
+            "  const cond = attrs.condition || attrs.weather || entity.state || '';\n"
             "  const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});\n"
-            "  const wx = temp != null ? `${cond} · ${temp}°` : String(cond);\n"
-            "  return `${wx} · ${time}`;\n"
+            "  const t = temp != null ? `${temp}${unit === '°C' ? '°' : ' ' + unit}` : '';\n"
+            "  return [t, cond, time].filter(Boolean).join(' · ');\n"
             "]]]"
         ),
+        "styles": {
+            "card": [
+                {"background": "transparent"},
+                {"box-shadow": "none"},
+                {"border": "none"},
+                {"padding": "0"},
+                {"margin": "0"},
+                {"margin-left": "auto"},
+                {"width": "auto"},
+                {"min-width": "88px"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'i' 'l'"},
+                {"grid-template-columns": "1fr"},
+                {"grid-template-rows": "min-content min-content"},
+                {"justify-items": "end"},
+                {"text-align": "right"},
+            ],
+            "icon": [
+                {"width": "40px"},
+                {"height": "40px"},
+                {"color": "var(--md-sys-color-primary)"},
+                {"justify-self": "end"},
+            ],
+            "label": [
+                {"font-size": "12px"},
+                {"font-weight": "500"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+                {"justify-self": "end"},
+                {"text-align": "right"},
+                {"white-space": "nowrap"},
+            ],
+        },
     }
 
 
@@ -342,6 +391,23 @@ HERO_GLASS_MOD = {
         "  padding: 18px 20px;\n"
         "  margin: 0;\n"
         "}\n"
+        "#root {\n"
+        "  width: 100% !important;\n"
+        "}\n"
+        "#root > div {\n"
+        "  display: flex !important;\n"
+        "  align-items: center !important;\n"
+        "  width: 100% !important;\n"
+        "  gap: 12px;\n"
+        "}\n"
+        "#root > div > *:nth-child(2) {\n"
+        "  flex: 1 1 auto !important;\n"
+        "  min-width: 0 !important;\n"
+        "}\n"
+        "#root > div > *:nth-child(3) {\n"
+        "  flex: 0 0 auto !important;\n"
+        "  margin-left: auto !important;\n"
+        "}\n"
     )
 }
 
@@ -354,7 +420,8 @@ def build_hero(weather_entity: str, cfg: dict) -> dict:
                 "type": "horizontal-stack",
                 "cards": [
                     hero_avatar_card(cfg),
-                    hero_text_card(weather_entity),
+                    hero_text_card(),
+                    hero_weather_card(weather_entity),
                 ],
                 "card_mod": HERO_GLASS_MOD,
             }

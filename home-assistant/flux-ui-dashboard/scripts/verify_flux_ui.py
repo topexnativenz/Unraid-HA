@@ -179,6 +179,9 @@ def verify_build(path: Path) -> list[str]:
     if '"type": "horizontal-stack"' not in overview_blob or "/local/flux-ui/bitmoji/" not in overview_blob:
         errors.append("Hero row missing split bitmoji avatar layout")
 
+    if '"margin-left": "auto"' not in overview_blob[:15000]:
+        errors.append("Hero row missing right-side weather card")
+
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
 
