@@ -245,102 +245,59 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
     )
 
 
-def hero_weather_card(weather_entity: str) -> dict:
-    """Compact weather column — nested in hero grid (entity must not be on parent card)."""
-    return {
-        "type": "custom:button-card",
-        "entity": weather_entity,
-        "show_icon": True,
-        "show_name": True,
-        "show_state": False,
-        "show_label": True,
-        "show_entity_picture": False,
-        "tap_action": {"action": "none"},
-        "triggers_update": "all",
-        "name": (
-            "[[[\n"
-            "  if (!entity) return '';\n"
-            "  const temp = entity.attributes?.temperature;\n"
-            "  const unit = entity.attributes?.temperature_unit || '°C';\n"
-            "  if (temp == null) return '';\n"
-            "  return unit === '°C' ? `${temp}°` : `${temp} ${unit}`;\n"
-            "]]]"
-        ),
-        "label": (
-            "[[[\n"
-            "  if (!entity) return '';\n"
-            "  const attrs = entity.attributes || {};\n"
-            "  return String(attrs.condition || attrs.weather || entity.state || '').toLowerCase();\n"
-            "]]]"
-        ),
-        "styles": {
-            "card": [
-                {"background": "transparent"},
-                {"box-shadow": "none"},
-                {"border": "none"},
-                {"padding": "0"},
-                {"margin": "0"},
-                {"width": "100%"},
-                {"max-width": "100%"},
-                {"overflow": "hidden"},
-            ],
-            "grid": [
-                {"grid-template-areas": "'i' 'n' 'l'"},
-                {"grid-template-columns": "1fr"},
-                {"grid-template-rows": "min-content min-content min-content"},
-                {"justify-items": "end"},
-                {"text-align": "right"},
-                {"width": "100%"},
-            ],
-            "icon": [
-                {"width": "32px"},
-                {"height": "32px"},
-                {"color": "var(--md-sys-color-primary)"},
-                {"justify-self": "end"},
-            ],
-            "name": [
-                {"font-size": "18px"},
-                {"font-weight": "700"},
-                {"color": "var(--md-sys-color-on-surface)"},
-                {"justify-self": "end"},
-                {"line-height": "1.1"},
-                {"white-space": "nowrap"},
-            ],
-            "label": [
-                {"font-size": "11px"},
-                {"font-weight": "500"},
-                {"color": "var(--md-sys-color-on-surface-variant)"},
-                {"justify-self": "end"},
-                {"text-align": "right"},
-                {"text-transform": "capitalize"},
-                {"line-height": "1.2"},
-                {"white-space": "nowrap"},
-                {"overflow": "hidden"},
-                {"text-overflow": "ellipsis"},
-                {"max-width": "100%"},
-            ],
-        },
-    }
+def hero_weather_html(weather_entity: str) -> str:
+    """Inline weather column — avoids button-card weather.* layout (large icon + friendly_name)."""
+    eid = json.dumps(weather_entity)
+    return (
+        "[[[\n"
+        f"  const e = states[{eid}];\n"
+        "  if (!e) return '';\n"
+        "  const attrs = e.attributes || {};\n"
+        "  const temp = attrs.temperature;\n"
+        "  const unit = attrs.temperature_unit || '°C';\n"
+        "  const tempStr = temp != null ? (unit === '°C' ? `${temp}°` : `${temp}°`) : '';\n"
+        "  const cond = String(attrs.condition || attrs.weather || e.state || '').toLowerCase();\n"
+        "  const icons = {\n"
+        "    sunny: 'mdi:weather-sunny', clear: 'mdi:weather-sunny',\n"
+        "    partlycloudy: 'mdi:weather-partly-cloudy', 'partly-cloudy': 'mdi:weather-partly-cloudy',\n"
+        "    cloudy: 'mdi:weather-cloudy', overcast: 'mdi:weather-cloudy',\n"
+        "    rainy: 'mdi:weather-rainy', pouring: 'mdi:weather-pouring', hail: 'mdi:weather-hail',\n"
+        "    lightning: 'mdi:weather-lightning', lightning_rainy: 'mdi:weather-lightning-rainy',\n"
+        "    snowy: 'mdi:weather-snowy', fog: 'mdi:weather-fog', windy: 'mdi:weather-windy',\n"
+        "  };\n"
+        "  const iconKey = cond.replace(/[\\s-]+/g, '');\n"
+        "  const icon = icons[iconKey] || icons[cond] || 'mdi:weather-partly-cloudy';\n"
+        "  return `\n"
+        "    <div style=\"display:flex;flex-direction:column;align-items:flex-end;justify-content:center;"
+        "gap:1px;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box;line-height:1.1;\">\n"
+        "      <ha-icon icon=\"${icon}\" style=\"width:22px;height:22px;color:var(--md-sys-color-primary);\"></ha-icon>\n"
+        "      <span style=\"font-size:14px;font-weight:700;color:var(--md-sys-color-on-surface);"
+        "white-space:nowrap;\">${tempStr}</span>\n"
+        "      <span style=\"font-size:10px;font-weight:500;color:var(--md-sys-color-on-surface-variant);"
+        "text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+        "max-width:100%;display:block;\">${cond}</span>\n"
+        "    </div>`;\n"
+        "]]]"
+    )
 
 
-HERO_WEATHER_FIELD_MOD = {
+HERO_CARD_MOD = {
     "style": (
         "ha-card {\n"
-        "  background: transparent !important;\n"
-        "  box-shadow: none !important;\n"
-        "  border: none !important;\n"
-        "  padding: 0 !important;\n"
-        "  margin: 0 !important;\n"
+        "  overflow: hidden !important;\n"
+        "  box-sizing: border-box !important;\n"
+        "}\n"
+        "#root {\n"
+        "  min-width: 0 !important;\n"
         "  width: 100% !important;\n"
         "  max-width: 100% !important;\n"
-        "  overflow: hidden !important;\n"
         "}\n"
     )
 }
 
 
 def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
-    """Single glass hero — avatar, greeting, and weather in one grid (avoids horizontal-stack overflow)."""
+    """Single glass hero — avatar, greeting, and compact weather HTML in one grid."""
     hero = (cfg.get("context") or {}).get("hero") or {}
     default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
     avatar = hero_bitmoji_picture_js(cfg)
@@ -356,7 +313,7 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
         "show_state": False,
         "tap_action": {"action": "none"},
         "hold_action": {"action": "none"},
-        "triggers_update": "all",
+        "triggers_update": ["all", weather_entity],
         "name": (
             "[[[\n"
             "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
@@ -373,60 +330,60 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
             "[[[ return new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); ]]]"
         ),
         "custom_fields": {
-            "weather": {
-                "card": hero_weather_card(weather_entity),
-                "card_mod": HERO_WEATHER_FIELD_MOD,
-            }
+            "weather": hero_weather_html(weather_entity),
         },
+        "card_mod": HERO_CARD_MOD,
         "styles": {
             "card": [
-                {"padding": "16px 20px 16px 18px"},
+                {"padding": "14px 16px"},
                 {"overflow": "hidden"},
                 {"box-sizing": "border-box"},
                 {"width": "100%"},
             ],
             "grid": [
                 {"grid-template-areas": "'i n w' 'i l w'"},
-                {"grid-template-columns": "72px minmax(0, 1fr) 72px"},
+                {"grid-template-columns": "64px minmax(0, 1fr) 52px"},
                 {"grid-template-rows": "min-content min-content"},
-                {"column-gap": "10px"},
-                {"row-gap": "4px"},
+                {"column-gap": "8px"},
+                {"row-gap": "2px"},
                 {"align-items": "center"},
                 {"width": "100%"},
+                {"min-width": "0"},
             ],
             "img_cell": [
-                {"width": "72px"},
-                {"height": "72px"},
-                {"min-width": "72px"},
+                {"width": "64px"},
+                {"height": "64px"},
+                {"min-width": "64px"},
+                {"max-width": "64px"},
                 {"border-radius": "50%"},
                 {"overflow": "hidden"},
                 {"justify-self": "start"},
                 {"align-self": "center"},
             ],
             "entity_picture": [
-                {"width": "72px"},
-                {"height": "72px"},
+                {"width": "64px"},
+                {"height": "64px"},
                 {"object-fit": "cover"},
                 {"object-position": "center top"},
                 {"border-radius": "50%"},
                 {"display": "block"},
             ],
             "name": [
-                {"font-size": "22px"},
+                {"font-size": "20px"},
                 {"font-weight": "700"},
                 {"justify-self": "start"},
                 {"text-align": "left"},
                 {"color": "var(--md-sys-color-on-surface)"},
-                {"white-space": "nowrap"},
-                {"overflow": "hidden"},
-                {"text-overflow": "ellipsis"},
+                {"line-height": "1.2"},
                 {"min-width": "0"},
+                {"max-width": "100%"},
             ],
             "label": [
                 {"font-size": "13px"},
                 {"color": "var(--md-sys-color-on-surface-variant)"},
                 {"justify-self": "start"},
                 {"text-align": "left"},
+                {"line-height": "1.2"},
             ],
             "custom_fields": {
                 "weather": [
@@ -434,8 +391,8 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
                     {"grid-row": "1 / span 2"},
                     {"justify-self": "end"},
                     {"align-self": "center"},
-                    {"width": "72px"},
-                    {"max-width": "72px"},
+                    {"width": "52px"},
+                    {"max-width": "52px"},
                     {"min-width": "0"},
                     {"overflow": "hidden"},
                 ],

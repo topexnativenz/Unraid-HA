@@ -179,12 +179,11 @@ def verify_build(path: Path) -> list[str]:
     if "/local/flux-ui/bitmoji/" not in overview_blob:
         errors.append("Hero row missing bitmoji avatar layout")
 
-    if '"grid-template-areas": "\'i n w\' \'i l w\'"' not in overview_blob.replace(" ", ""):
-        if "'i n w'" not in overview_blob or "'i l w'" not in overview_blob:
-            errors.append("Hero row missing unified 3-column grid (avatar | greeting | weather)")
+    if "'i n w'" not in overview_blob or "'i l w'" not in overview_blob:
+        errors.append("Hero row missing unified 3-column grid (avatar | greeting | weather)")
 
-    if '"custom_fields"' not in overview_blob[:15000] or '"weather"' not in overview_blob[:15000]:
-        errors.append("Hero row missing weather custom field")
+    if "<ha-icon icon" not in overview_blob[:25000]:
+        errors.append("Hero row missing compact inline weather HTML")
 
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
