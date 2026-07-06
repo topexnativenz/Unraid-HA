@@ -296,13 +296,13 @@ def hero_avatar_card(cfg: dict) -> dict:
 
 
 def hero_text_card() -> dict:
-    """Greeting only — weather lives in hero_weather_card on the right."""
+    """Greeting + time — weather icon/temp on the right column."""
     return {
         "type": "custom:button-card",
         "template": "flux_greeting",
         "show_icon": False,
         "show_entity_picture": False,
-        "show_label": False,
+        "show_label": True,
         "tap_action": {"action": "none"},
         "name": (
             "[[[\n"
@@ -316,31 +316,38 @@ def hero_text_card() -> dict:
             "  return `${g}, ${uname}!`;\n"
             "]]]"
         ),
+        "label": (
+            "[[[ return new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); ]]]"
+        ),
     }
 
 
 def hero_weather_card(weather_entity: str) -> dict:
-    """Right-aligned live weather — icon, temp, condition (MetService entity)."""
+    """Right-aligned weather — icon, temp, condition (compact, no truncation)."""
     return {
         "type": "custom:button-card",
         "entity": weather_entity,
         "show_icon": True,
-        "show_name": False,
+        "show_name": True,
         "show_state": False,
         "show_label": True,
         "show_entity_picture": False,
         "tap_action": {"action": "none"},
         "triggers_update": "all",
+        "name": (
+            "[[[\n"
+            "  if (!entity) return '';\n"
+            "  const temp = entity.attributes?.temperature;\n"
+            "  const unit = entity.attributes?.temperature_unit || '°C';\n"
+            "  if (temp == null) return '';\n"
+            "  return unit === '°C' ? `${temp}°` : `${temp} ${unit}`;\n"
+            "]]]"
+        ),
         "label": (
             "[[[\n"
             "  if (!entity) return '';\n"
             "  const attrs = entity.attributes || {};\n"
-            "  const temp = attrs.temperature;\n"
-            "  const unit = attrs.temperature_unit || '°C';\n"
-            "  const cond = attrs.condition || attrs.weather || entity.state || '';\n"
-            "  const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});\n"
-            "  const t = temp != null ? `${temp}${unit === '°C' ? '°' : ' ' + unit}` : '';\n"
-            "  return [t, cond, time].filter(Boolean).join(' · ');\n"
+            "  return String(attrs.condition || attrs.weather || entity.state || '').toLowerCase();\n"
             "]]]"
         ),
         "styles": {
@@ -349,23 +356,32 @@ def hero_weather_card(weather_entity: str) -> dict:
                 {"box-shadow": "none"},
                 {"border": "none"},
                 {"padding": "0"},
+                {"padding-right": "2px"},
                 {"margin": "0"},
                 {"margin-left": "auto"},
                 {"width": "auto"},
-                {"min-width": "88px"},
+                {"max-width": "84px"},
+                {"flex-shrink": "0"},
             ],
             "grid": [
-                {"grid-template-areas": "'i' 'l'"},
+                {"grid-template-areas": "'i' 'n' 'l'"},
                 {"grid-template-columns": "1fr"},
-                {"grid-template-rows": "min-content min-content"},
+                {"grid-template-rows": "min-content min-content min-content"},
                 {"justify-items": "end"},
                 {"text-align": "right"},
             ],
             "icon": [
-                {"width": "40px"},
-                {"height": "40px"},
+                {"width": "36px"},
+                {"height": "36px"},
                 {"color": "var(--md-sys-color-primary)"},
                 {"justify-self": "end"},
+            ],
+            "name": [
+                {"font-size": "20px"},
+                {"font-weight": "700"},
+                {"color": "var(--md-sys-color-on-surface)"},
+                {"justify-self": "end"},
+                {"line-height": "1.1"},
             ],
             "label": [
                 {"font-size": "12px"},
@@ -373,7 +389,10 @@ def hero_weather_card(weather_entity: str) -> dict:
                 {"color": "var(--md-sys-color-on-surface-variant)"},
                 {"justify-self": "end"},
                 {"text-align": "right"},
-                {"white-space": "nowrap"},
+                {"text-transform": "capitalize"},
+                {"line-height": "1.2"},
+                {"white-space": "normal"},
+                {"overflow-wrap": "anywhere"},
             ],
         },
     }
@@ -388,7 +407,7 @@ HERO_GLASS_MOD = {
         "  -webkit-backdrop-filter: blur(18px) saturate(140%);\n"
         "  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n"
         "  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n"
-        "  padding: 18px 20px;\n"
+        "  padding: 16px 18px 16px 20px;\n"
         "  margin: 0;\n"
         "}\n"
         "#root {\n"
@@ -407,6 +426,8 @@ HERO_GLASS_MOD = {
         "#root > div > *:nth-child(3) {\n"
         "  flex: 0 0 auto !important;\n"
         "  margin-left: auto !important;\n"
+        "  max-width: 88px !important;\n"
+        "  overflow: visible !important;\n"
         "}\n"
     )
 }
