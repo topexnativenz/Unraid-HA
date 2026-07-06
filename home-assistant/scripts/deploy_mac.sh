@@ -48,6 +48,9 @@ if [[ -z "${BRANCH}" ]]; then
   exit 1
 fi
 
+# Deploy regenerates these — discard before pull so git sync never blocks on them.
+reset_flux_deploy_generated_files "$GIT_ROOT" "$HA_DIR"
+
 echo ""
 echo "==> [1/4] Git sync ($BRANCH)"
 
@@ -78,6 +81,19 @@ else
   echo "    Up to date"
 fi
 echo "    Commit: $(git -C "$GIT_ROOT" rev-parse --short HEAD) — $(git -C "$GIT_ROOT" log -1 --format=%s | head -c 60)"
+
+BUILD_SCRIPT="$HA_DIR/flux-ui-dashboard/scripts/build_flux_ui.py"
+if ! grep -q 'hero_avatar_card' "$BUILD_SCRIPT" 2>/dev/null; then
+  echo ""
+  echo "ERROR: This branch is missing the hero bitmoji layout fix (hero_avatar_card)."
+  echo "  Your last deploy likely used an old commit — git pull did not complete."
+  echo "  Fix:"
+  echo "    git fetch origin cursor/floating-music-player-bf3a"
+  echo "    git checkout cursor/floating-music-player-bf3a"
+  echo "    git pull origin cursor/floating-music-player-bf3a"
+  echo "    bash home-assistant/scripts/deploy_mac.sh"
+  exit 1
+fi
 
 if [[ ! -f "$HA_DIR/flux-ui-dashboard/packages/flux_ui_rooms.yaml" ]]; then
   echo "ERROR: Missing flux_ui_rooms.yaml — checkout cursor/floating-music-player-bf3a"
