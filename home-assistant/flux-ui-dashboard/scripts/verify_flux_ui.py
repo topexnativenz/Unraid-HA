@@ -234,9 +234,13 @@ def verify_build(path: Path) -> list[str]:
                 "Mediocre card cannot use Jinja entity_id — use static entity per conditional panel"
             )
         if "custom:mediocre-massive-media-player-card" in overview_blob:
-            if overview_blob.count('"entity_id":') < len(media_players):
+            expected_panels = len(media_players) + sum(
+                1 for p in media_players if p.get("apple_tv")
+            )
+            if overview_blob.count('"entity_id":') < expected_panels:
                 errors.append(
-                    "Music player popup missing per-zone mediocre entity_id cards"
+                    "Music player popup missing per-zone mediocre entity_id cards "
+                    f"(expected {expected_panels}, includes Apple TV TV-mode panels)"
                 )
         if '"name": "Music Player"' in overview_blob:
             mp_start = overview_blob.find('"name": "Music Player"')

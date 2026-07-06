@@ -26,6 +26,8 @@ SONOS_HINTS = re.compile(
     r"sonos|speaker|playbar|playbase|beam|arc|move|roam|one|five|era|symfonisk",
     re.I,
 )
+ATV_HINTS = re.compile(r"apple.?tv|appletv|\batv\b", re.I)
+ATV_STOPWORDS = frozenset({"sonos", "media", "player", "apple", "tv", "the", "room"})
 
 
 def fetch_states(token: str, ha_url: str) -> list[dict]:
@@ -103,6 +105,57 @@ def registry_sonos_media_entities(registry: list[dict]) -> set[str]:
         if platform == "sonos":
             out.add(eid)
     return out
+
+
+def registry_apple_tv_media_entities(registry: list[dict]) -> set[str]:
+    """Entity IDs registered under the Apple TV integration."""
+    out: set[str] = set()
+    for ent in registry:
+        eid = ent.get("entity_id") or ""
+        if not eid.startswith("media_player."):
+            continue
+        platform = (ent.get("platform") or "").lower()
+        if platform == "apple_tv":
+            out.add(eid)
+    return out
+
+
+def label_tokens(label: str) -> set[str]:
+    return {t for t in re.findall(r"[a-z0-9]+", label.lower()) if t not in ATV_STOPWORDS and len(t) > 1}
+
+
+def score_atv_match(sonos_label: str, atv_label: str, keywords: list[str]) -> int:
+    """Score how well an Apple TV entity matches a Sonos zone (room name overlap)."""
+    s = sonos_label.lower()
+    a = atv_label.lower()
+    score = 0
+    for kw in keywords:
+        if kw in s and kw in a:
+            score += 8
+    score += len(label_tokens(sonos_label) & label_tokens(atv_label)) * 3
+    if ATV_HINTS.search(a):
+        score += 1
+    return score
+
+
+def match_apple_tv(
+    sonos_label: str,
+    atv_entities: list[str],
+    *,
+    states: dict[str, dict],
+    registry: list[dict],
+    keywords: list[str],
+) -> str | None:
+    best: tuple[int, str] | None = None
+    for eid in atv_entities:
+        state = states.get(eid) or {"entity_id": eid, "attributes": {}}
+        label = friendly_label(state, registry)
+        score = score_atv_match(sonos_label, label, keywords)
+        if score <= 0:
+            continue
+        if not best or score > best[0]:
+            best = (score, eid)
+    return best[1] if best else None
 
 
 def is_sonos_candidate(state: dict, *, registry_ids: set[str] | None = None) -> bool:
@@ -219,10 +272,22 @@ def discover_from_states(
     notes: list[str] = []
     updated: list[dict] = []
 
+    atv_registry_ids = sorted(registry_apple_tv_media_entities(registry))
+    atv_state_by_id = {s["entity_id"]: s for s in states if s["entity_id"] in atv_registry_ids}
+
     print("Sonos / media_player candidates in HA:\n")
     for s in sorted(candidates, key=lambda x: x["entity_id"]):
         label = friendly_label(s, registry)
         print(f"  {s['entity_id']:<48} state={s['state']:<10} {label}")
+
+    if atv_registry_ids:
+        print("\nApple TV / media_player candidates in HA:\n")
+        for eid in atv_registry_ids:
+            s = atv_state_by_id.get(eid) or {"entity_id": eid, "state": "unknown", "attributes": {}}
+            label = friendly_label(s, registry)
+            print(f"  {eid:<48} state={s['state']:<10} {label}")
+    else:
+        print("\nNo Apple TV media_player entities found in HA entity registry.\n")
 
     for state in sorted(candidates, key=lambda x: friendly_label(x, registry)):
         eid = state["entity_id"]
@@ -242,13 +307,42 @@ def discover_from_states(
         if room_score:
             notes.append(f"{eid}: room keyword match (score={room_score})")
 
-        updated.append(
-            {
-                "entity": eid,
-                "name": name,
-                "enabled": state["state"] not in ("unavailable",),
-            }
-        )
+        entry: dict = {
+            "entity": eid,
+            "name": name,
+            "enabled": state["state"] not in ("unavailable",),
+        }
+
+        prior_atv = prior.get("apple_tv")
+        if prior.get("pin_apple_tv") and prior_atv:
+            apple_tv = prior_atv
+        elif prior_atv and prior_atv in atv_registry_ids:
+            apple_tv = prior_atv
+        elif atv_registry_ids:
+            apple_tv = match_apple_tv(
+                label,
+                atv_registry_ids,
+                states=state_by_id,
+                registry=registry,
+                keywords=keywords,
+            )
+        else:
+            apple_tv = None
+
+        if apple_tv:
+            entry["apple_tv"] = apple_tv
+            atv_state = atv_state_by_id.get(apple_tv) or {"attributes": {}}
+            atv_label = friendly_label(atv_state, registry)
+            if prior.get("apple_tv_name"):
+                entry["apple_tv_name"] = prior["apple_tv_name"]
+            else:
+                entry["apple_tv_name"] = atv_label
+            if prior_atv != apple_tv:
+                notes.append(f"{eid}: linked Apple TV {apple_tv!r} ({atv_label})")
+            elif not prior_atv:
+                notes.append(f"{eid}: auto-linked Apple TV {apple_tv!r} ({atv_label})")
+
+        updated.append(entry)
 
     default_entity: str | None = load_media_config().get("default_entity")
     if default_entity and not any(p["entity"] == default_entity for p in updated):
@@ -312,6 +406,8 @@ def write_media_players(players: list[dict], default_entity: str | None) -> None
         "# Sonos media players for Flux UI floating music bar + popup.\n"
         "# Run: python3 home-assistant/flux-ui-dashboard/scripts/discover_sonos.py --apply\n"
         "# Names refresh from HA friendly_name on each --apply (set pin_name: true to keep a custom label).\n"
+        "# Optional apple_tv links each Sonos zone to its Apple TV for TV/HDMI sound (title, art, popup).\n"
+        "# Set pin_apple_tv: true to keep a manual apple_tv entity when re-running --apply.\n"
         "#\n"
         "# Apple Music and Spotify stream through Sonos in HA — each speaker is a media_player entity.\n"
         "# Tap mini player to select zone; swipe carousel to switch zones (artwork syncs via carousel-sync.js).\n"
