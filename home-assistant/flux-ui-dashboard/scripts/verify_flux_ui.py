@@ -173,14 +173,18 @@ def verify_build(path: Path) -> list[str]:
     if "custom:button-card" not in blob:
         errors.append("Missing custom:button-card")
 
-    if '"template": "flux_greeting"' not in overview_blob:
-        errors.append("Hero text card missing flux_greeting template")
+    if '"template": "flux_greeting"' not in overview_blob and "Morning" not in overview_blob:
+        errors.append("Hero card missing greeting text")
 
-    if '"type": "horizontal-stack"' not in overview_blob or "/local/flux-ui/bitmoji/" not in overview_blob:
-        errors.append("Hero row missing split bitmoji avatar layout")
+    if "/local/flux-ui/bitmoji/" not in overview_blob:
+        errors.append("Hero row missing bitmoji avatar layout")
 
-    if '"margin-left": "auto"' not in overview_blob[:15000]:
-        errors.append("Hero row missing right-side weather card")
+    if '"grid-template-areas": "\'i n w\' \'i l w\'"' not in overview_blob.replace(" ", ""):
+        if "'i n w'" not in overview_blob or "'i l w'" not in overview_blob:
+            errors.append("Hero row missing unified 3-column grid (avatar | greeting | weather)")
+
+    if '"custom_fields"' not in overview_blob[:15000] or '"weather"' not in overview_blob[:15000]:
+        errors.append("Hero row missing weather custom field")
 
     if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")

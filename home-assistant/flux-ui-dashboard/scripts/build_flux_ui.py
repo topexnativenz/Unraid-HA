@@ -245,85 +245,8 @@ def hero_bitmoji_picture_js(cfg: dict) -> str:
     )
 
 
-def hero_avatar_card(cfg: dict) -> dict:
-    """Bitmoji avatar — separate card with no weather entity (button-card skips picture on weather.*)."""
-    hero = (cfg.get("context") or {}).get("hero") or {}
-    default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
-    avatar = hero_bitmoji_picture_js(cfg)
-    return {
-        "type": "custom:button-card",
-        "show_icon": False,
-        "show_name": False,
-        "show_label": False,
-        "show_state": False,
-        "show_entity_picture": True,
-        "entity_picture": avatar,
-        "picture": default,
-        "tap_action": {"action": "none"},
-        "hold_action": {"action": "none"},
-        "styles": {
-            "card": [
-                {"background": "transparent"},
-                {"box-shadow": "none"},
-                {"border": "none"},
-                {"padding": "0"},
-                {"width": "72px"},
-                {"height": "72px"},
-                {"margin": "0"},
-            ],
-            "grid": [
-                {"grid-template-areas": "'i'"},
-                {"grid-template-columns": "72px"},
-                {"grid-template-rows": "72px"},
-            ],
-            "img_cell": [
-                {"width": "72px"},
-                {"height": "72px"},
-                {"min-width": "72px"},
-                {"border-radius": "50%"},
-                {"overflow": "hidden"},
-            ],
-            "entity_picture": [
-                {"width": "72px"},
-                {"height": "72px"},
-                {"object-fit": "cover"},
-                {"object-position": "center top"},
-                {"border-radius": "50%"},
-                {"display": "block"},
-            ],
-        },
-    }
-
-
-def hero_text_card() -> dict:
-    """Greeting + time — weather icon/temp on the right column."""
-    return {
-        "type": "custom:button-card",
-        "template": "flux_greeting",
-        "show_icon": False,
-        "show_entity_picture": False,
-        "show_label": True,
-        "tap_action": {"action": "none"},
-        "name": (
-            "[[[\n"
-            "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
-            "  const uname = u.name || 'Guest';\n"
-            "  const h = new Date().getHours();\n"
-            "  let g = 'Morning';\n"
-            "  if (h >= 22 || h < 5) g = 'Night';\n"
-            "  else if (h >= 18) g = 'Evening';\n"
-            "  else if (h >= 12) g = 'Afternoon';\n"
-            "  return `${g}, ${uname}!`;\n"
-            "]]]"
-        ),
-        "label": (
-            "[[[ return new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); ]]]"
-        ),
-    }
-
-
 def hero_weather_card(weather_entity: str) -> dict:
-    """Right-aligned weather — icon, temp, condition (compact, no truncation)."""
+    """Compact weather column — nested in hero grid (entity must not be on parent card)."""
     return {
         "type": "custom:button-card",
         "entity": weather_entity,
@@ -356,12 +279,10 @@ def hero_weather_card(weather_entity: str) -> dict:
                 {"box-shadow": "none"},
                 {"border": "none"},
                 {"padding": "0"},
-                {"padding-right": "2px"},
                 {"margin": "0"},
-                {"margin-left": "auto"},
-                {"width": "auto"},
-                {"max-width": "84px"},
-                {"flex-shrink": "0"},
+                {"width": "100%"},
+                {"max-width": "100%"},
+                {"overflow": "hidden"},
             ],
             "grid": [
                 {"grid-template-areas": "'i' 'n' 'l'"},
@@ -369,84 +290,164 @@ def hero_weather_card(weather_entity: str) -> dict:
                 {"grid-template-rows": "min-content min-content min-content"},
                 {"justify-items": "end"},
                 {"text-align": "right"},
+                {"width": "100%"},
             ],
             "icon": [
-                {"width": "36px"},
-                {"height": "36px"},
+                {"width": "32px"},
+                {"height": "32px"},
                 {"color": "var(--md-sys-color-primary)"},
                 {"justify-self": "end"},
             ],
             "name": [
-                {"font-size": "20px"},
+                {"font-size": "18px"},
                 {"font-weight": "700"},
                 {"color": "var(--md-sys-color-on-surface)"},
                 {"justify-self": "end"},
                 {"line-height": "1.1"},
+                {"white-space": "nowrap"},
             ],
             "label": [
-                {"font-size": "12px"},
+                {"font-size": "11px"},
                 {"font-weight": "500"},
                 {"color": "var(--md-sys-color-on-surface-variant)"},
                 {"justify-self": "end"},
                 {"text-align": "right"},
                 {"text-transform": "capitalize"},
                 {"line-height": "1.2"},
-                {"white-space": "normal"},
-                {"overflow-wrap": "anywhere"},
+                {"white-space": "nowrap"},
+                {"overflow": "hidden"},
+                {"text-overflow": "ellipsis"},
+                {"max-width": "100%"},
             ],
         },
     }
 
 
-HERO_GLASS_MOD = {
+HERO_WEATHER_FIELD_MOD = {
     "style": (
         "ha-card {\n"
-        "  border-radius: 28px;\n"
-        "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 78%, transparent);\n"
-        "  backdrop-filter: blur(18px) saturate(140%);\n"
-        "  -webkit-backdrop-filter: blur(18px) saturate(140%);\n"
-        "  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n"
-        "  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n"
-        "  padding: 16px 18px 16px 20px;\n"
-        "  margin: 0;\n"
-        "}\n"
-        "#root {\n"
+        "  background: transparent !important;\n"
+        "  box-shadow: none !important;\n"
+        "  border: none !important;\n"
+        "  padding: 0 !important;\n"
+        "  margin: 0 !important;\n"
         "  width: 100% !important;\n"
-        "}\n"
-        "#root > div {\n"
-        "  display: flex !important;\n"
-        "  align-items: center !important;\n"
-        "  width: 100% !important;\n"
-        "  gap: 12px;\n"
-        "}\n"
-        "#root > div > *:nth-child(2) {\n"
-        "  flex: 1 1 auto !important;\n"
-        "  min-width: 0 !important;\n"
-        "}\n"
-        "#root > div > *:nth-child(3) {\n"
-        "  flex: 0 0 auto !important;\n"
-        "  margin-left: auto !important;\n"
-        "  max-width: 88px !important;\n"
-        "  overflow: visible !important;\n"
+        "  max-width: 100% !important;\n"
+        "  overflow: hidden !important;\n"
         "}\n"
     )
 }
 
 
+def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
+    """Single glass hero — avatar, greeting, and weather in one grid (avoids horizontal-stack overflow)."""
+    hero = (cfg.get("context") or {}).get("hero") or {}
+    default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
+    avatar = hero_bitmoji_picture_js(cfg)
+    return {
+        "type": "custom:button-card",
+        "template": "flux_glass",
+        "show_icon": False,
+        "show_entity_picture": True,
+        "entity_picture": avatar,
+        "picture": default,
+        "show_name": True,
+        "show_label": True,
+        "show_state": False,
+        "tap_action": {"action": "none"},
+        "hold_action": {"action": "none"},
+        "triggers_update": "all",
+        "name": (
+            "[[[\n"
+            "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
+            "  const uname = u.name || 'Guest';\n"
+            "  const h = new Date().getHours();\n"
+            "  let g = 'Morning';\n"
+            "  if (h >= 22 || h < 5) g = 'Night';\n"
+            "  else if (h >= 18) g = 'Evening';\n"
+            "  else if (h >= 12) g = 'Afternoon';\n"
+            "  return `${g}, ${uname}!`;\n"
+            "]]]"
+        ),
+        "label": (
+            "[[[ return new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); ]]]"
+        ),
+        "custom_fields": {
+            "weather": {
+                "card": hero_weather_card(weather_entity),
+                "card_mod": HERO_WEATHER_FIELD_MOD,
+            }
+        },
+        "styles": {
+            "card": [
+                {"padding": "16px 20px 16px 18px"},
+                {"overflow": "hidden"},
+                {"box-sizing": "border-box"},
+                {"width": "100%"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'i n w' 'i l w'"},
+                {"grid-template-columns": "72px minmax(0, 1fr) 72px"},
+                {"grid-template-rows": "min-content min-content"},
+                {"column-gap": "10px"},
+                {"row-gap": "4px"},
+                {"align-items": "center"},
+                {"width": "100%"},
+            ],
+            "img_cell": [
+                {"width": "72px"},
+                {"height": "72px"},
+                {"min-width": "72px"},
+                {"border-radius": "50%"},
+                {"overflow": "hidden"},
+                {"justify-self": "start"},
+                {"align-self": "center"},
+            ],
+            "entity_picture": [
+                {"width": "72px"},
+                {"height": "72px"},
+                {"object-fit": "cover"},
+                {"object-position": "center top"},
+                {"border-radius": "50%"},
+                {"display": "block"},
+            ],
+            "name": [
+                {"font-size": "22px"},
+                {"font-weight": "700"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+                {"color": "var(--md-sys-color-on-surface)"},
+                {"white-space": "nowrap"},
+                {"overflow": "hidden"},
+                {"text-overflow": "ellipsis"},
+                {"min-width": "0"},
+            ],
+            "label": [
+                {"font-size": "13px"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+            ],
+            "custom_fields": {
+                "weather": [
+                    {"grid-area": "w"},
+                    {"grid-row": "1 / span 2"},
+                    {"justify-self": "end"},
+                    {"align-self": "center"},
+                    {"width": "72px"},
+                    {"max-width": "72px"},
+                    {"min-width": "0"},
+                    {"overflow": "hidden"},
+                ],
+            },
+        },
+    }
+
+
 def build_hero(weather_entity: str, cfg: dict) -> dict:
     return {
         "type": "grid",
-        "cards": [
-            {
-                "type": "horizontal-stack",
-                "cards": [
-                    hero_avatar_card(cfg),
-                    hero_text_card(),
-                    hero_weather_card(weather_entity),
-                ],
-                "card_mod": HERO_GLASS_MOD,
-            }
-        ],
+        "cards": [hero_unified_card(weather_entity, cfg)],
     }
 
 

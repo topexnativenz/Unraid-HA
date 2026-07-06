@@ -83,9 +83,9 @@ fi
 echo "    Commit: $(git -C "$GIT_ROOT" rev-parse --short HEAD) — $(git -C "$GIT_ROOT" log -1 --format=%s | head -c 60)"
 
 BUILD_SCRIPT="$HA_DIR/flux-ui-dashboard/scripts/build_flux_ui.py"
-if ! grep -q 'hero_avatar_card' "$BUILD_SCRIPT" 2>/dev/null; then
+if ! grep -q 'hero_unified_card' "$BUILD_SCRIPT" 2>/dev/null; then
   echo ""
-  echo "ERROR: This branch is missing the hero bitmoji layout fix (hero_avatar_card)."
+  echo "ERROR: This branch is missing the hero layout fix (hero_unified_card)."
   echo "  Your last deploy likely used an old commit — git pull did not complete."
   echo "  Fix:"
   echo "    git fetch origin cursor/floating-music-player-bf3a"
