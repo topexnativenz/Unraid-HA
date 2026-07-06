@@ -238,8 +238,12 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(
                     "Music player popup missing per-zone mediocre entity_id cards"
                 )
-        if "input_select.select_option" not in overview_blob:
-            errors.append("Music player missing input_select.select_option zone actions")
+        if '"name": "Music Player"' in overview_blob:
+            mp_start = overview_blob.find('"name": "Music Player"')
+            mp_end = overview_blob.find('"popup_style"', mp_start)
+            popup_blob = overview_blob[mp_start:mp_end] if mp_end > mp_start else ""
+            if popup_blob and '"cards": [{"type": "custom:mushroom-chips-card"' not in popup_blob:
+                errors.append("Music popup must start with a single mushroom-chips-card zone picker")
         if "/local/flux-ui/carousel-sync.js" not in blob:
             errors.append(
                 "Missing carousel-sync.js module — Sonos swipe will not sync popup artwork"

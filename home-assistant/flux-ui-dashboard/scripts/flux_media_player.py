@@ -206,11 +206,15 @@ def _navbar_player_actions(name: str) -> dict[str, dict]:
 def _select_zone_action(zone: str) -> dict:
     """Select Sonos zone via input_select (no script dependency)."""
     return {
-        "action": "call-service",
-        "service": "input_select.select_option",
+        "action": "perform-action",
+        "perform_action": "input_select.select_option",
         "target": {"entity_id": MEDIA_SELECT_ENTITY},
         "data": {"option": zone},
     }
+
+
+def _script_action(script_entity: str) -> dict:
+    return {"action": "perform-action", "perform_action": script_entity}
 
 
 def _open_player_action(_zone: str) -> dict:
@@ -298,71 +302,49 @@ def _visible_zone_cycle_jinja(players: list[dict], step: int) -> str:
     )
 
 
-def _multiple_visible_jinja(players: list[dict]) -> str:
-    setup = _visible_entities_jinja_setup(players)
-    parts = [f"(1 if '{p['entity']}' in ns.visible else 0)" for p in players]
-    return setup + "\n{{ " + " + ".join(parts) + " > 1 }}"
-
-
-def _zone_nav_chip(icon: str, script_entity: str, players: list[dict]) -> dict:
-    return {
-        "type": "conditional",
-        "conditions": [
-            {"condition": "template", "value_template": _multiple_visible_jinja(players)},
-        ],
-        "card": {
-            "type": "custom:mushroom-template-card",
-            "icon": icon,
-            "icon_color": "primary",
-            "tap_action": {
-                "action": "call-service",
-                "service": script_entity,
-            },
-            "card_mod": {"style": "ha-card { box-shadow: none; background: transparent; }"},
-        },
-    }
-
-
 def _player_selector_chips(players: list[dict]) -> dict:
+    """Single chip row — zone picker + prev/next (no conditional wrappers; those cause config errors)."""
     chips: list[dict] = []
     if len(players) > 1:
-        chips.append(_zone_nav_chip("mdi:chevron-left", ZONE_PREV_SCRIPT, players))
+        chips.append(
+            {
+                "type": "template",
+                "icon": "mdi:chevron-left",
+                "icon_color": "primary",
+                "tap_action": _script_action(ZONE_PREV_SCRIPT),
+            }
+        )
     for player in players:
-        entity = player["entity"]
         name = player["name"]
         chips.append(
             {
-                "type": "conditional",
-                "conditions": [
-                    {
-                        "condition": "template",
-                        "value_template": _player_visible_template(players, entity),
-                    }
-                ],
-                "card": {
-                    "type": "custom:mushroom-chips-card",
-                    "alignment": "center",
-                    "chips": [
-                        {
-                            "type": "template",
-                            "icon": player.get("icon", "mdi:speaker"),
-                            "content": name,
-                            "tap_action": _select_zone_action(name),
-                            "icon_color": (
-                                "{{ 'primary' if is_state('"
-                                + MEDIA_SELECT_ENTITY
-                                + "', '"
-                                + name
-                                + "') else 'grey' }}"
-                            ),
-                        }
-                    ],
-                },
+                "type": "template",
+                "icon": player.get("icon", "mdi:speaker"),
+                "content": name,
+                "tap_action": _select_zone_action(name),
+                "icon_color": (
+                    "{{ 'primary' if is_state('"
+                    + MEDIA_SELECT_ENTITY
+                    + "', '"
+                    + name
+                    + "') else 'grey' }}"
+                ),
             }
         )
     if len(players) > 1:
-        chips.append(_zone_nav_chip("mdi:chevron-right", ZONE_NEXT_SCRIPT, players))
-    return {"type": "vertical-stack", "cards": chips}
+        chips.append(
+            {
+                "type": "template",
+                "icon": "mdi:chevron-right",
+                "icon_color": "primary",
+                "tap_action": _script_action(ZONE_NEXT_SCRIPT),
+            }
+        )
+    return {
+        "type": "custom:mushroom-chips-card",
+        "alignment": "center",
+        "chips": chips,
+    }
 
 
 def _mushroom_player_card(entity: str, name: str) -> dict:
@@ -378,17 +360,14 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
     }
 
 
-def _player_panel(player: dict, players: list[dict], *, use_mediocre: bool) -> dict:
+def _player_panel(player: dict, *, use_mediocre: bool) -> dict:
+    """One panel per zone — shown when input_select matches (synced from navbar carousel)."""
     entity = player["entity"]
     name = player["name"]
     card = _mediocre_player_card(entity, name) if use_mediocre else _mushroom_player_card(entity, name)
     return {
         "type": "conditional",
         "conditions": [
-            {
-                "condition": "template",
-                "value_template": _player_visible_template(players, entity),
-            },
             {
                 "condition": "state",
                 "entity": MEDIA_SELECT_ENTITY,
@@ -407,7 +386,7 @@ def build_music_player_popup(cfg: dict, *, use_mediocre: bool = True) -> dict | 
 
     popup_cards: list[dict] = [
         _player_selector_chips(players),
-        *[_player_panel(p, players, use_mediocre=use_mediocre) for p in players],
+        *[_player_panel(p, use_mediocre=use_mediocre) for p in players],
     ]
 
     return {
