@@ -36,8 +36,8 @@ players:
     name: Upstairs Office SONOS
     enabled: true
   # Standalone HomePod — shows when playing AirPlay direct (not via Sonos).
+  # No icon: navbar-card replaces album artwork with a custom icon when set.
   - entity: media_player.upstairs_office_2_upstairs_office_atv
     name: Upstairs Office HomePod
     source: apple
-    icon: mdi:speaker
     enabled: true

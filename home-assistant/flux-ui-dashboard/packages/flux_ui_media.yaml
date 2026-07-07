@@ -998,19 +998,9 @@ template:
       or ''tv'' in state_attr(''media_player.garage_sonos'', ''app_name'') | default('''')
       | lower or ''hdmi'' in state_attr(''media_player.garage_sonos'', ''app_name'')
       | default('''') | lower or state_attr(''media_player.garage_sonos'', ''media_title'')
-      | default('''') | lower == ''tv'')) and not ((state_attr(''media_player.garage_sonos'',
-      ''media_content_type'') | default('''') | lower in [''music'', ''artist'', ''album'',
-      ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
-      ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
-      ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
-      ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
-      ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
-      ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
-      ''media_series_title'') | default('''')))) }}'
+      | default('''') | lower == ''tv'')) and (is_state(''media_player.black_lounge_black_lounge_atv'',
+      ''playing'') or is_state(''media_player.black_lounge_black_lounge_atv'', ''paused''))
+      }}'
   - name: flux_ui_tv_kitchen_sonos
     unique_id: flux_ui_tv_kitchen_sonos
     state: '{{ ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
@@ -1018,19 +1008,9 @@ template:
       or ''tv'' in state_attr(''media_player.kitchen_sonos'', ''app_name'') | default('''')
       | lower or ''hdmi'' in state_attr(''media_player.kitchen_sonos'', ''app_name'')
       | default('''') | lower or state_attr(''media_player.kitchen_sonos'', ''media_title'')
-      | default('''') | lower == ''tv'')) and not ((state_attr(''media_player.kitchen_sonos'',
-      ''media_content_type'') | default('''') | lower in [''music'', ''artist'', ''album'',
-      ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'',
-      ''media_artist'') | default('''') and state_attr(''media_player.kitchen_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kitchen_sonos'',
-      ''media_artist'') | default('''') and not state_attr(''media_player.kitchen_sonos'',
-      ''media_series_title'') | default('''')) or (state_attr(''media_player.kitchen_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
-      ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
-      ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
-      ''media_series_title'') | default('''')))) }}'
+      | default('''') | lower == ''tv'')) and (is_state(''media_player.home_cinema_home_cinema_atv'',
+      ''playing'') or is_state(''media_player.home_cinema_home_cinema_atv'', ''paused''))
+      }}'
   - name: flux_ui_tv_main_lounge_sonos
     unique_id: flux_ui_tv_main_lounge_sonos
     state: '{{ ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
@@ -1038,19 +1018,8 @@ template:
       or ''tv'' in state_attr(''media_player.main_lounge_sonos'', ''app_name'') |
       default('''') | lower or ''hdmi'' in state_attr(''media_player.main_lounge_sonos'',
       ''app_name'') | default('''') | lower or state_attr(''media_player.main_lounge_sonos'',
-      ''media_title'') | default('''') | lower == ''tv'')) and not ((state_attr(''media_player.main_lounge_sonos'',
-      ''media_content_type'') | default('''') | lower in [''music'', ''artist'', ''album'',
-      ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
-      ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
-      ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
-      ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
-      ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
-      ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
-      ''media_series_title'') | default('''')))) }}'
+      ''media_title'') | default('''') | lower == ''tv'')) and (is_state(''media_player.sleepout'',
+      ''playing'') or is_state(''media_player.sleepout'', ''paused'')) }}'
   - name: flux_ui_tv_kids_room_sonos
     unique_id: flux_ui_tv_kids_room_sonos
     state: '{{ ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
@@ -1058,19 +1027,9 @@ template:
       or ''tv'' in state_attr(''media_player.kids_room_sonos'', ''app_name'') | default('''')
       | lower or ''hdmi'' in state_attr(''media_player.kids_room_sonos'', ''app_name'')
       | default('''') | lower or state_attr(''media_player.kids_room_sonos'', ''media_title'')
-      | default('''') | lower == ''tv'')) and not ((state_attr(''media_player.kids_room_sonos'',
-      ''media_content_type'') | default('''') | lower in [''music'', ''artist'', ''album'',
-      ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
-      ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
-      ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
-      ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
-      ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
-      ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
-      ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
-      ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
-      ''media_series_title'') | default('''')))) }}'
+      | default('''') | lower == ''tv'')) and (is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+      ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+      ''paused'')) }}'
 automation:
 - id: flux_ui_media_player_sync
   alias: Flux UI sync media player to active Sonos zone

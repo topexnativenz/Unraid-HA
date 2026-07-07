@@ -166,9 +166,16 @@ def _is_music_expr(entity: str) -> str:
 
 
 def _is_atv_mode_expr(sonos_entity: str, atv_entity: str) -> str:
-    """Show linked ATV/HomePod panel only for TV/HDMI — never when Sonos plays music."""
-    _ = atv_entity  # panel entity is static; mode is driven by Sonos state only.
-    return f"({_is_sonos_tv_expr(sonos_entity)}) and not ({_is_music_expr(sonos_entity)})"
+    """TV-mode: Sonos relays TV/HDMI AND the linked ATV/HomePod is actually playing.
+
+    Requiring the ATV to be live avoids empty Apple TV panels when the sound
+    source is the TV itself (broadcast, console) rather than the Apple TV.
+    """
+    tv = _is_sonos_tv_expr(sonos_entity)
+    atv_live = (
+        f"(is_state('{atv_entity}', 'playing') or is_state('{atv_entity}', 'paused'))"
+    )
+    return f"({tv}) and {atv_live}"
 
 
 def tv_mode_sensor_object_id(player: dict) -> str:
@@ -253,13 +260,9 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         "  if (!sonos) return null;\n"
         "  var atv = states[atvId];\n"
         "  if (!atv) return null;\n"
-        "  var sa = sonos.attributes || {};\n"
-        "  var aa = atv.attributes || {};\n"
         "  var sonosLive = sonos.state === 'playing' || sonos.state === 'paused';\n"
         "  var atvLive = atv.state === 'playing' || atv.state === 'paused';\n"
-        "  var atvHasMedia = !!(aa.media_title || aa.media_series_title || aa.entity_picture);\n"
-        "  if (!sonosLive || isMusic(sa)) return null;\n"
-        "  if (isSonosTv(sa) && (atvLive || atvHasMedia)) return atv;\n"
+        "  if (sonosLive && atvLive && isSonosTv(sonos.attributes)) return atv;\n"
         "  return null;\n"
         "}\n"
         "function atvTitle(atv) {\n"
@@ -395,7 +398,7 @@ def _player_show_jinja(players: list[dict], entity: str) -> str:
 
 
 def _navbar_player_actions(name: str) -> dict[str, dict]:
-    """Open popup — disable default media_player toggle on double-tap."""
+    """Select this zone, then open the popup — static per slide, no DOM sniffing."""
     open_action = _open_player_action(name)
     no_action = {"action": "none"}
     return {
@@ -419,11 +422,23 @@ def _script_action(script_entity: str) -> dict:
     return {"action": "perform-action", "perform_action": script_entity}
 
 
-def _open_player_action(_zone: str) -> dict:
-    """Open music popup — carousel-sync.js selects the visible zone before navigate."""
+def _open_player_action(zone: str) -> dict:
+    """custom-js-action: select this slide's zone in input_select, then open the popup.
+
+    Each navbar slide knows its own zone, so tapping always opens the popup on the
+    right player — no DOM carousel-index sniffing required.
+    """
+    code = (
+        "[[[\n"
+        "hass.callService('input_select', 'select_option', "
+        f"{{ entity_id: {MEDIA_SELECT_ENTITY!r}, option: {zone!r} }});\n"
+        f"history.pushState(null, '', {FLUX_UI_MUSIC_PLAYER_PATH!r});\n"
+        "window.dispatchEvent(new Event('location-changed'));\n"
+        "]]]"
+    )
     return {
-        "action": "navigate",
-        "navigation_path": FLUX_UI_MUSIC_PLAYER_PATH,
+        "action": "custom-js-action",
+        "code": code,
     }
 
 
@@ -472,10 +487,7 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
             "subtitle": _navbar_player_subtitle_js(entity, name, players),
             **_navbar_player_actions(name),
         }
-        if player.get("icon"):
-            entry["icon"] = player["icon"]
-        elif player_source(player) == "apple":
-            entry["icon"] = "mdi:speaker"
+        # No `icon` here — navbar-card replaces the album artwork with it.
         entries.append(entry)
 
     return {
