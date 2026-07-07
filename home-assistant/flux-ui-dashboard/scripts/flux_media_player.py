@@ -135,7 +135,7 @@ def _is_music_js_fn() -> str:
 
 
 def _is_sonos_tv_jinja(entity: str) -> str:
-    """Jinja: Sonos is relaying TV/HDMI (shows generic 'TV' instead of real content)."""
+    """Jinja expression (no outer braces): Sonos relaying TV/HDMI."""
     return (
         "{% set _t = state_attr('" + entity + "', 'media_content_type') | default('') | lower %}"
         "{% set _app = state_attr('" + entity + "', 'app_name') | default('') | lower %}"
@@ -143,6 +143,15 @@ def _is_sonos_tv_jinja(entity: str) -> str:
         "{{ _t in ['video','tvshow','movie','channel','episode'] "
         "or 'tv' in _app or 'hdmi' in _app or _title == 'tv' }}"
     )
+
+
+def _is_sonos_tv_value_template(entity: str, *, negate: bool = False) -> str:
+    """Conditional-card value_template — must not wrap _is_sonos_tv_jinja in extra {{ }}."""
+    inner = _is_sonos_tv_jinja(entity).rstrip()
+    if negate:
+        # {% set ... %}{{ expr }} -> {% set ... %}{{ not (expr) }}
+        inner = inner.replace("{{ ", "{{ not (").replace(" }}", ") }}")
+    return inner
 
 
 def _is_sonos_tv_js_fn() -> str:
@@ -179,48 +188,114 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         f"const ATV_NAMES = {json.dumps(atv_names)};\n"
         + _is_sonos_tv_js_fn()
         + "\n"
-        "const atvForSonos = (sonosId) => ATV_BY_SONOS[sonosId] || null;\n"
-        "const atvName = (atvId) => {\n"
+        "function atvForSonos(sonosId) { return ATV_BY_SONOS[sonosId] || null; }\n"
+        "function atvName(atvId) {\n"
         "  if (!atvId) return 'Apple TV';\n"
-        "  return ATV_NAMES[atvId] || states[atvId]?.attributes?.friendly_name || 'Apple TV';\n"
-        "};\n"
-        "const activeAtv = (sonosId) => {\n"
-        "  const atvId = atvForSonos(sonosId);\n"
+        "  if (ATV_NAMES[atvId]) return ATV_NAMES[atvId];\n"
+        "  var st = states[atvId];\n"
+        "  if (st && st.attributes && st.attributes.friendly_name) return st.attributes.friendly_name;\n"
+        "  return 'Apple TV';\n"
+        "}\n"
+        "function activeAtv(sonosId) {\n"
+        "  var atvId = atvForSonos(sonosId);\n"
         "  if (!atvId) return null;\n"
-        "  const sonos = states[sonosId];\n"
+        "  var sonos = states[sonosId];\n"
         "  if (!sonos || !isSonosTv(sonos.attributes)) return null;\n"
-        "  const atv = states[atvId];\n"
+        "  var atv = states[atvId];\n"
         "  if (!atv) return null;\n"
-        "  const aa = atv.attributes || {};\n"
-        "  if (['playing','paused'].includes(atv.state)) return atv;\n"
+        "  var aa = atv.attributes || {};\n"
+        "  if (atv.state === 'playing' || atv.state === 'paused') return atv;\n"
         "  if (aa.media_title || aa.media_series_title || aa.entity_picture) return atv;\n"
         "  return null;\n"
-        "};\n"
-        "const atvTitle = (atv) => {\n"
-        "  const a = atv?.attributes || {};\n"
+        "}\n"
+        "function atvTitle(atv) {\n"
+        "  var a = (atv && atv.attributes) ? atv.attributes : {};\n"
         "  return a.media_series_title || a.media_title || '';\n"
-        "};\n"
-        "const atvSubtitle = (atv) => {\n"
-        "  const a = atv?.attributes || {};\n"
-        "  const series = a.media_series_title || '';\n"
-        "  let detail = '';\n"
+        "}\n"
+        "function atvSubtitle(atv) {\n"
+        "  var a = (atv && atv.attributes) ? atv.attributes : {};\n"
+        "  var series = a.media_series_title || '';\n"
+        "  var detail = '';\n"
         "  if (series && a.media_title && a.media_title !== series) detail = a.media_title;\n"
         "  else if (a.media_artist) detail = a.media_artist;\n"
-        "  const season = a.media_season;\n"
-        "  const episode = a.media_episode;\n"
-        "  if (series && season != null && episode != null) {\n"
-        "    const ep = `S${season} E${episode}`;\n"
-        "    detail = detail ? `${detail} · ${ep}` : ep;\n"
+        "  if (series && a.media_season != null && a.media_episode != null) {\n"
+        "    var ep = 'S' + a.media_season + ' E' + a.media_episode;\n"
+        "    detail = detail ? detail + ' · ' + ep : ep;\n"
         "  }\n"
         "  return detail;\n"
-        "};\n"
+        "}\n"
     )
 
 
-def _navbar_player_entity_js(entity: str, players: list[dict]) -> str:
-    """Use linked Apple TV entity for artwork when Sonos relays TV sound."""
+def _navbar_player_title_js(entity: str, zone_name: str, players: list[dict]) -> str:
+    """Track/show title when playing; Sonos zone name when idle."""
+    if not any(p.get("apple_tv") for p in players):
+        return (
+            "[[[ "
+            f"const s = states[{entity!r}]; "
+            f"const player = {zone_name!r}; "
+            "if (!s) return player;"
+            "const attrs = s.attributes || {};"
+            "const track = attrs.media_title || attrs.media_series_title || '';"
+            "return track || player; "
+            "]]]"
+        )
     setup = _apple_tv_setup_js(players)
-    return f"[[[\n{setup}const atv = activeAtv({entity!r});\nreturn atv ? atv.entity_id : {entity!r};\n]]]"
+    return (
+        "[[[\n"
+        + setup
+        + f"var s = states[{entity!r}];\n"
+        f"var player = {zone_name!r};\n"
+        f"var atv = activeAtv({entity!r});\n"
+        "if (atv) { var t = atvTitle(atv); if (t) return t; }\n"
+        "if (!s) return player;\n"
+        "var attrs = s.attributes || {};\n"
+        "var track = attrs.media_title || attrs.media_series_title || '';\n"
+        "if (track && String(track).toLowerCase() !== 'tv') return track;\n"
+        "return player;\n"
+        "]]]"
+    )
+
+
+def _navbar_player_subtitle_js(entity: str, zone_name: str, players: list[dict]) -> str:
+    """Artist or episode detail; Apple TV name when relaying TV sound (not Sonos zone)."""
+    if not any(p.get("apple_tv") for p in players):
+        return (
+            "[[[ "
+            f"const s = states[{entity!r}]; "
+            f"const player = {zone_name!r}; "
+            "if (!s) return '';"
+            "const attrs = s.attributes || {};"
+            "let artist = attrs.media_artist || attrs.media_album_artist || '';"
+            "if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';"
+            "const track = attrs.media_title || attrs.media_series_title || '';"
+            "if (artist) return artist + ' · ' + player;"
+            "if (track) return player;"
+            "return ''; "
+            "]]]"
+        )
+    setup = _apple_tv_setup_js(players)
+    return (
+        "[[[\n"
+        + setup
+        + f"var s = states[{entity!r}];\n"
+        f"var player = {zone_name!r};\n"
+        f"var atv = activeAtv({entity!r});\n"
+        "if (atv) {\n"
+        "  var detail = atvSubtitle(atv);\n"
+        "  var device = atvName(atv.entity_id);\n"
+        "  return detail ? detail + ' · ' + device : device;\n"
+        "}\n"
+        "if (!s) return '';\n"
+        "var attrs = s.attributes || {};\n"
+        "var artist = attrs.media_artist || attrs.media_album_artist || '';\n"
+        "if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';\n"
+        "var track = attrs.media_title || attrs.media_series_title || '';\n"
+        "if (artist) return artist + ' · ' + player;\n"
+        "if (track && String(track).toLowerCase() !== 'tv') return player;\n"
+        "return '';\n"
+        "]]]"
+    )
 
 
 def _visible_entities_js(players: list[dict]) -> str:
@@ -247,51 +322,6 @@ def _visible_entities_js(players: list[dict]) -> str:
 def _player_show_jinja(players: list[dict], entity: str) -> str:
     """Navbar carousel visibility — matches carousel-sync.js and popup jinja templates."""
     return f"[[[\n{_visible_entities_js(players)}return visible.includes({entity!r});\n]]]"
-
-
-def _navbar_player_title_js(entity: str, zone_name: str, players: list[dict]) -> str:
-    """Track/show title when playing; Sonos zone name when idle."""
-    setup = _apple_tv_setup_js(players)
-    return (
-        "[[[ "
-        + setup
-        + f"const s = states[{entity!r}]; "
-        f"const player = {zone_name!r}; "
-        "const atv = activeAtv(" + repr(entity) + ");"
-        "if (atv) { const t = atvTitle(atv); if (t) return t; }"
-        "if (!s) return player;"
-        "const attrs = s.attributes || {};"
-        "const track = attrs.media_title || attrs.media_series_title || '';"
-        "if (track && String(track).toLowerCase() !== 'tv') return track;"
-        "return player; "
-        "]]]"
-    )
-
-
-def _navbar_player_subtitle_js(entity: str, zone_name: str, players: list[dict]) -> str:
-    """Artist or episode detail; Apple TV name when relaying TV sound (not Sonos zone)."""
-    setup = _apple_tv_setup_js(players)
-    return (
-        "[[[ "
-        + setup
-        + f"const s = states[{entity!r}]; "
-        f"const player = {zone_name!r}; "
-        "const atv = activeAtv(" + repr(entity) + ");"
-        "if (atv) {"
-        "  const detail = atvSubtitle(atv);"
-        "  const device = atvName(atv.entity_id);"
-        "  return detail ? detail + ' · ' + device : device;"
-        "}"
-        "if (!s) return '';"
-        "const attrs = s.attributes || {};"
-        "let artist = attrs.media_artist || attrs.media_album_artist || '';"
-        "if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';"
-        "const track = attrs.media_title || attrs.media_series_title || '';"
-        "if (artist) return artist + ' · ' + player;"
-        "if (track && String(track).toLowerCase() !== 'tv') return player;"
-        "return ''; "
-        "]]]"
-    )
 
 
 def _navbar_player_actions(name: str) -> dict[str, dict]:
@@ -358,12 +388,11 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         return None
 
     entries: list[dict[str, Any]] = []
-    has_apple_tv = any(p.get("apple_tv") for p in players)
     for player in players:
         entity = player["entity"]
         name = player["name"]
         entry: dict[str, Any] = {
-            "entity": _navbar_player_entity_js(entity, players) if has_apple_tv else entity,
+            "entity": entity,
             "show": _player_show_jinja(players, entity),
             "title": _navbar_player_title_js(entity, name, players),
             "subtitle": _navbar_player_subtitle_js(entity, name, players),
@@ -371,8 +400,6 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         }
         if player.get("icon"):
             entry["icon"] = player["icon"]
-        elif player.get("apple_tv"):
-            entry["icon"] = "mdi:apple"
         entries.append(entry)
 
     return {
@@ -492,14 +519,14 @@ def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") ->
         conditions.append(
             {
                 "condition": "template",
-                "value_template": "{{ " + _is_sonos_tv_jinja(entity) + " }}",
+                "value_template": _is_sonos_tv_value_template(entity),
             }
         )
     elif atv:
         conditions.append(
             {
                 "condition": "template",
-                "value_template": "{{ not (" + _is_sonos_tv_jinja(entity) + ") }}",
+                "value_template": _is_sonos_tv_value_template(entity, negate=True),
             }
         )
     return {

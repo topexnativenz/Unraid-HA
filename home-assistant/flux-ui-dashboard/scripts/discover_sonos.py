@@ -124,7 +124,14 @@ def label_tokens(label: str) -> set[str]:
     return {t for t in re.findall(r"[a-z0-9]+", label.lower()) if t not in ATV_STOPWORDS and len(t) > 1}
 
 
-def score_atv_match(sonos_label: str, atv_label: str, keywords: list[str]) -> int:
+def score_atv_match(
+    sonos_label: str,
+    atv_label: str,
+    keywords: list[str],
+    *,
+    sonos_eid: str = "",
+    atv_eid: str = "",
+) -> int:
     """Score how well an Apple TV entity matches a Sonos zone (room name overlap)."""
     s = sonos_label.lower()
     a = atv_label.lower()
@@ -135,6 +142,18 @@ def score_atv_match(sonos_label: str, atv_label: str, keywords: list[str]) -> in
     score += len(label_tokens(sonos_label) & label_tokens(atv_label)) * 3
     if ATV_HINTS.search(a):
         score += 1
+    if sonos_eid and atv_eid:
+        sonos_slug = re.sub(r"_sonos(_2)?$", "", sonos_eid.replace("media_player.", ""))
+        atv_slug = atv_eid.replace("media_player.", "")
+        for suffix in ("_apple_tv", "apple_tv_", "_appletv", "appletv_"):
+            atv_slug = atv_slug.replace(suffix, "")
+        sonos_parts = set(re.findall(r"[a-z0-9]+", sonos_slug.lower())) - ATV_STOPWORDS
+        atv_parts = set(re.findall(r"[a-z0-9]+", atv_slug.lower())) - ATV_STOPWORDS
+        overlap = sonos_parts & atv_parts
+        if overlap:
+            score += len(overlap) * 4
+        if sonos_slug and atv_slug and (sonos_slug in atv_slug or atv_slug in sonos_slug):
+            score += 6
     return score
 
 
@@ -145,12 +164,19 @@ def match_apple_tv(
     states: dict[str, dict],
     registry: list[dict],
     keywords: list[str],
+    sonos_eid: str = "",
 ) -> str | None:
     best: tuple[int, str] | None = None
     for eid in atv_entities:
         state = states.get(eid) or {"entity_id": eid, "attributes": {}}
         label = friendly_label(state, registry)
-        score = score_atv_match(sonos_label, label, keywords)
+        score = score_atv_match(
+            sonos_label,
+            label,
+            keywords,
+            sonos_eid=sonos_eid,
+            atv_eid=eid,
+        )
         if score <= 0:
             continue
         if not best or score > best[0]:
@@ -325,6 +351,7 @@ def discover_from_states(
                 states=state_by_id,
                 registry=registry,
                 keywords=keywords,
+                sonos_eid=eid,
             )
         else:
             apple_tv = None
@@ -341,6 +368,10 @@ def discover_from_states(
                 notes.append(f"{eid}: linked Apple TV {apple_tv!r} ({atv_label})")
             elif not prior_atv:
                 notes.append(f"{eid}: auto-linked Apple TV {apple_tv!r} ({atv_label})")
+        elif atv_registry_ids:
+            notes.append(
+                f"{eid}: no Apple TV auto-match — set apple_tv manually in media_players.yaml"
+            )
 
         updated.append(entry)
 
