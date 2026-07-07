@@ -27,7 +27,33 @@ SONOS_HINTS = re.compile(
     re.I,
 )
 ATV_HINTS = re.compile(r"apple.?tv|appletv|\batv\b", re.I)
-ATV_STOPWORDS = frozenset({"sonos", "media", "player", "apple", "tv", "the", "room"})
+ATV_STOPWORDS = frozenset({"sonos", "media", "player", "apple", "tv", "the", "room", "homepod"})
+# Generic room words — matching only these causes false links (e.g. lounge → every ATV).
+GENERIC_ROOM_WORDS = frozenset(
+    {
+        "lounge",
+        "room",
+        "media",
+        "office",
+        "kitchen",
+        "bedroom",
+        "home",
+        "living",
+        "dining",
+        "main",
+        "area",
+        "house",
+        "cinema",
+    }
+)
+MIN_ATV_MATCH_SCORE = 10
+# Sonos entity slug fragment → tokens expected in the Apple TV entity id or friendly name.
+SONOS_ATV_SLUG_HINTS: dict[str, list[str]] = {
+    "garage": ["black_lounge", "black"],
+    "main_lounge": ["sleepout"],
+    "kids_room": ["upstairs_office", "upstairs"],
+    "kitchen": ["kitchen", "home_cinema", "cinema"],
+}
 
 
 def fetch_states(token: str, ha_url: str) -> list[dict]:
@@ -132,56 +158,102 @@ def score_atv_match(
     sonos_eid: str = "",
     atv_eid: str = "",
 ) -> int:
-    """Score how well an Apple TV entity matches a Sonos zone (room name overlap)."""
+    """Score how well an Apple TV entity matches a Sonos zone."""
     s = sonos_label.lower()
     a = atv_label.lower()
     score = 0
-    for kw in keywords:
-        if kw in s and kw in a:
-            score += 8
-    score += len(label_tokens(sonos_label) & label_tokens(atv_label)) * 3
-    if ATV_HINTS.search(a):
-        score += 1
+
+    # Friendly-name tokens are the strongest signal (e.g. Sleepout SONOS ↔ Sleepout).
+    name_overlap = label_tokens(sonos_label) & label_tokens(atv_label)
+    if name_overlap:
+        score += len(name_overlap) * 20
+
+    # Significant token appears in the other friendly name.
+    for token in label_tokens(sonos_label):
+        if len(token) >= 4 and token in a:
+            score += 12
+
     if sonos_eid and atv_eid:
         sonos_slug = re.sub(r"_sonos(_2)?$", "", sonos_eid.replace("media_player.", ""))
         atv_slug = atv_eid.replace("media_player.", "")
-        for suffix in ("_apple_tv", "apple_tv_", "_appletv", "appletv_"):
+        for suffix in ("_apple_tv", "apple_tv_", "_appletv", "appletv_", "_atv", "atv_"):
             atv_slug = atv_slug.replace(suffix, "")
-        sonos_parts = set(re.findall(r"[a-z0-9]+", sonos_slug.lower())) - ATV_STOPWORDS
-        atv_parts = set(re.findall(r"[a-z0-9]+", atv_slug.lower())) - ATV_STOPWORDS
+
+        # Explicit slug hints (main_lounge → sleepout, garage → black_lounge, …).
+        for hint in SONOS_ATV_SLUG_HINTS.get(sonos_slug, []):
+            if hint in atv_slug.lower() or hint in a:
+                score += 25
+
+        # Exact slug match (media_player.sleepout ↔ main_lounge when label matches).
+        if atv_slug and (atv_slug in sonos_slug or sonos_slug in atv_slug):
+            score += 18
+
+        sonos_parts = set(re.findall(r"[a-z0-9]+", sonos_slug.lower())) - ATV_STOPWORDS - GENERIC_ROOM_WORDS
+        atv_parts = set(re.findall(r"[a-z0-9]+", atv_slug.lower())) - ATV_STOPWORDS - GENERIC_ROOM_WORDS
         overlap = sonos_parts & atv_parts
         if overlap:
-            score += len(overlap) * 4
-        if sonos_slug and atv_slug and (sonos_slug in atv_slug or atv_slug in sonos_slug):
+            score += len(overlap) * 8
+
+    # Room keywords only when specific (not generic lounge/room/kitchen on its own).
+    for kw in keywords:
+        if kw in GENERIC_ROOM_WORDS or len(kw) < 4:
+            continue
+        if kw in s and kw in a:
             score += 6
+
     return score
 
 
-def match_apple_tv(
-    sonos_label: str,
-    atv_entities: list[str],
+def assign_apple_tv_links(
+    sonos_states: list[dict],
+    atv_entity_ids: list[str],
     *,
     states: dict[str, dict],
     registry: list[dict],
     keywords: list[str],
-    sonos_eid: str = "",
-) -> str | None:
-    best: tuple[int, str] | None = None
-    for eid in atv_entities:
-        state = states.get(eid) or {"entity_id": eid, "attributes": {}}
-        label = friendly_label(state, registry)
-        score = score_atv_match(
-            sonos_label,
-            label,
-            keywords,
-            sonos_eid=sonos_eid,
-            atv_eid=eid,
-        )
-        if score <= 0:
+    overrides: dict[str, str] | None = None,
+) -> dict[str, tuple[str, str, int]]:
+    """Greedy one-to-one Sonos → Apple TV assignment (each ATV used at most once)."""
+    overrides = overrides or {}
+    pairs: list[tuple[int, str, str, str]] = []
+
+    for sonos in sonos_states:
+        sonos_eid = sonos["entity_id"]
+        if sonos_eid in overrides:
+            atv_eid = overrides[sonos_eid]
+            atv_state = states.get(atv_eid) or {"attributes": {}}
+            atv_label = friendly_label(atv_state, registry)
+            pairs.append((1000, sonos_eid, atv_eid, atv_label))
             continue
-        if not best or score > best[0]:
-            best = (score, eid)
-    return best[1] if best else None
+
+        sonos_label = friendly_label(sonos, registry)
+        for atv_eid in atv_entity_ids:
+            atv_state = states.get(atv_eid) or {"entity_id": atv_eid, "attributes": {}}
+            atv_label = friendly_label(atv_state, registry)
+            score = score_atv_match(
+                sonos_label,
+                atv_label,
+                keywords,
+                sonos_eid=sonos_eid,
+                atv_eid=atv_eid,
+            )
+            if score >= MIN_ATV_MATCH_SCORE:
+                # Prefer Apple TVs that are actively playing when scores tie.
+                if atv_state.get("state") in ("playing", "paused"):
+                    score += 3
+                pairs.append((score, sonos_eid, atv_eid, atv_label))
+
+    pairs.sort(key=lambda row: row[0], reverse=True)
+    assigned_sonos: set[str] = set()
+    assigned_atv: set[str] = set()
+    mapping: dict[str, tuple[str, str, int]] = {}
+    for score, sonos_eid, atv_eid, atv_label in pairs:
+        if sonos_eid in assigned_sonos or atv_eid in assigned_atv:
+            continue
+        mapping[sonos_eid] = (atv_eid, atv_label, score)
+        assigned_sonos.add(sonos_eid)
+        assigned_atv.add(atv_eid)
+    return mapping
 
 
 def is_sonos_candidate(state: dict, *, registry_ids: set[str] | None = None) -> bool:
@@ -248,6 +320,13 @@ def load_media_config() -> dict:
     return yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
 
 
+def apple_tv_overrides(cfg: dict | None = None) -> dict[str, str]:
+    """Optional explicit Sonos → Apple TV map from media_players.yaml."""
+    data = cfg if cfg is not None else load_media_config()
+    raw = data.get("apple_tv_overrides") or {}
+    return {str(k): str(v) for k, v in raw.items()}
+
+
 def dedupe_sonos_players(candidates: list[dict]) -> list[dict]:
     """Prefer one entity per speaker — skip _2 / _sonos_2 duplicates and unavailable copies."""
     by_base: dict[str, dict] = {}
@@ -294,12 +373,25 @@ def discover_from_states(
 
     candidates = dedupe_sonos_players(candidates)
     keywords = room_keywords()
-    existing = {p.get("entity"): p for p in load_media_config().get("players", [])}
+    existing_cfg = load_media_config()
+    existing = {p.get("entity"): p for p in existing_cfg.get("players", [])}
+    overrides = apple_tv_overrides(existing_cfg)
     notes: list[str] = []
     updated: list[dict] = []
 
     atv_registry_ids = sorted(registry_apple_tv_media_entities(registry))
     atv_state_by_id = {s["entity_id"]: s for s in states if s["entity_id"] in atv_registry_ids}
+
+    atv_assignments: dict[str, tuple[str, str, int]] = {}
+    if atv_registry_ids:
+        atv_assignments = assign_apple_tv_links(
+            candidates,
+            atv_registry_ids,
+            states=state_by_id,
+            registry=registry,
+            keywords=keywords,
+            overrides=overrides,
+        )
 
     print("Sonos / media_player candidates in HA:\n")
     for s in sorted(candidates, key=lambda x: x["entity_id"]):
@@ -342,35 +434,36 @@ def discover_from_states(
         prior_atv = prior.get("apple_tv")
         if prior.get("pin_apple_tv") and prior_atv:
             apple_tv = prior_atv
-        elif prior_atv and prior_atv in atv_registry_ids:
-            apple_tv = prior_atv
-        elif atv_registry_ids:
-            apple_tv = match_apple_tv(
-                label,
-                atv_registry_ids,
-                states=state_by_id,
-                registry=registry,
-                keywords=keywords,
-                sonos_eid=eid,
-            )
+            atv_label = friendly_label(atv_state_by_id.get(apple_tv, {}), registry)
+            match_score = 0
+        elif eid in overrides:
+            apple_tv = overrides[eid]
+            atv_label = friendly_label(atv_state_by_id.get(apple_tv, {}), registry)
+            match_score = 1000
+        elif eid in atv_assignments:
+            apple_tv, atv_label, match_score = atv_assignments[eid]
         else:
             apple_tv = None
+            atv_label = ""
+            match_score = 0
 
         if apple_tv:
             entry["apple_tv"] = apple_tv
-            atv_state = atv_state_by_id.get(apple_tv) or {"attributes": {}}
-            atv_label = friendly_label(atv_state, registry)
             if prior.get("apple_tv_name"):
                 entry["apple_tv_name"] = prior["apple_tv_name"]
             else:
                 entry["apple_tv_name"] = atv_label
             if prior_atv != apple_tv:
-                notes.append(f"{eid}: linked Apple TV {apple_tv!r} ({atv_label})")
+                notes.append(
+                    f"{eid}: linked Apple TV {apple_tv!r} ({atv_label}, score={match_score})"
+                )
             elif not prior_atv:
-                notes.append(f"{eid}: auto-linked Apple TV {apple_tv!r} ({atv_label})")
+                notes.append(
+                    f"{eid}: auto-linked Apple TV {apple_tv!r} ({atv_label}, score={match_score})"
+                )
         elif atv_registry_ids:
             notes.append(
-                f"{eid}: no Apple TV auto-match — set apple_tv manually in media_players.yaml"
+                f"{eid}: no Apple TV auto-match — add apple_tv_overrides in media_players.yaml"
             )
 
         updated.append(entry)
@@ -430,15 +523,19 @@ def audit_artwork(states: list[dict], *, registry: list[dict] | None = None) -> 
 
 def write_media_players(players: list[dict], default_entity: str | None) -> None:
     cfg = load_media_config()
+    overrides = apple_tv_overrides(cfg)
     cfg["enabled"] = cfg.get("enabled", True)
     cfg["default_entity"] = default_entity
     cfg["players"] = players
+    if overrides:
+        cfg["apple_tv_overrides"] = overrides
     header = (
         "# Sonos media players for Flux UI floating music bar + popup.\n"
         "# Run: python3 home-assistant/flux-ui-dashboard/scripts/discover_sonos.py --apply\n"
         "# Names refresh from HA friendly_name on each --apply (set pin_name: true to keep a custom label).\n"
         "# Optional apple_tv links each Sonos zone to its Apple TV for TV/HDMI sound (title, art, popup).\n"
-        "# Set pin_apple_tv: true to keep a manual apple_tv entity when re-running --apply.\n"
+        "# apple_tv_overrides: explicit map (recommended for sleepout → media_player.sleepout).\n"
+        "# Set pin_apple_tv: true on a player to keep a manual apple_tv when re-running --apply.\n"
         "#\n"
         "# Apple Music and Spotify stream through Sonos in HA — each speaker is a media_player entity.\n"
         "# Tap mini player to select zone; swipe carousel to switch zones (artwork syncs via carousel-sync.js).\n"

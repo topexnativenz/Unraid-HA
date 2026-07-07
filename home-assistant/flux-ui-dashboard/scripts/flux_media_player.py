@@ -145,15 +145,36 @@ def _is_sonos_tv_expr(entity: str) -> str:
     )
 
 
-def _panel_visible_template(name: str, entity: str, *, tv_mode: bool) -> str:
-    """Single template condition — zone selected AND (TV mode or music mode).
+def _is_atv_mode_expr(sonos_entity: str, atv_entity: str) -> str:
+    """Jinja expression: show Apple TV panel (TV/HDMI on Sonos, or both playing with ATV metadata)."""
+    tv = _is_sonos_tv_expr(sonos_entity)
+    sonos_on = (
+        f"(is_state('{sonos_entity}', 'playing') or is_state('{sonos_entity}', 'paused'))"
+    )
+    atv_on = (
+        f"(is_state('{atv_entity}', 'playing') or is_state('{atv_entity}', 'paused')) "
+        f"and (state_attr('{atv_entity}', 'media_title') "
+        f"or state_attr('{atv_entity}', 'media_series_title') "
+        f"or state_attr('{atv_entity}', 'entity_picture'))"
+    )
+    return f"({tv}) or ({sonos_on} and {atv_on})"
 
-    Bubble popups reject multi-condition cards; one combined template avoids config errors.
-    """
+
+def _panel_visible_template(
+    name: str, entity: str, *, tv_mode: bool, atv_entity: str | None = None
+) -> str:
+    """Single template condition — zone selected AND (TV mode or music mode)."""
     zone = f"is_state('{MEDIA_SELECT_ENTITY}', {json.dumps(name)})"
-    tv = _is_sonos_tv_expr(entity)
-    expr = f"{zone} and {tv}" if tv_mode else f"{zone} and not ({tv})"
-    return "{{ " + expr + " }}"
+    if tv_mode and atv_entity:
+        mode = _is_atv_mode_expr(entity, atv_entity)
+    elif tv_mode:
+        mode = _is_sonos_tv_expr(entity)
+    else:
+        if atv_entity:
+            mode = f"not ({_is_atv_mode_expr(entity, atv_entity)})"
+        else:
+            mode = f"not ({_is_sonos_tv_expr(entity)})"
+    return "{{ " + zone + " and " + mode + " }}"
 
 
 def _is_sonos_tv_js_fn() -> str:
@@ -202,12 +223,21 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         "  var atvId = atvForSonos(sonosId);\n"
         "  if (!atvId) return null;\n"
         "  var sonos = states[sonosId];\n"
-        "  if (!sonos || !isSonosTv(sonos.attributes)) return null;\n"
+        "  if (!sonos) return null;\n"
         "  var atv = states[atvId];\n"
         "  if (!atv) return null;\n"
+        "  var sa = sonos.attributes || {};\n"
         "  var aa = atv.attributes || {};\n"
-        "  if (atv.state === 'playing' || atv.state === 'paused') return atv;\n"
-        "  if (aa.media_title || aa.media_series_title || aa.entity_picture) return atv;\n"
+        "  var sonosLive = sonos.state === 'playing' || sonos.state === 'paused';\n"
+        "  var atvLive = atv.state === 'playing' || atv.state === 'paused';\n"
+        "  var atvHasMedia = !!(aa.media_title || aa.media_series_title || aa.entity_picture);\n"
+        "  var sonosTitle = String(sa.media_title || '').toLowerCase();\n"
+        "  if (sonosLive && isSonosTv(sa)) {\n"
+        "    if (atvLive || atvHasMedia) return atv;\n"
+        "  }\n"
+        "  if (sonosLive && atvLive && atvHasMedia) {\n"
+        "    if (!sonosTitle || sonosTitle === 'tv' || isSonosTv(sa)) return atv;\n"
+        "  }\n"
         "  return null;\n"
         "}\n"
         "function atvTitle(atv) {\n"
@@ -529,7 +559,10 @@ def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") ->
             {
                 "condition": "template",
                 "value_template": _panel_visible_template(
-                    name, entity, tv_mode=(source == "apple_tv")
+                    name,
+                    entity,
+                    tv_mode=(source == "apple_tv"),
+                    atv_entity=atv,
                 ),
             }
         ]
