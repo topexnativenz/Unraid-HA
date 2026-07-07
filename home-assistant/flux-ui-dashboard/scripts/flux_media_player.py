@@ -134,24 +134,26 @@ def _is_music_js_fn() -> str:
     )
 
 
-def _is_sonos_tv_jinja(entity: str) -> str:
-    """Jinja expression (no outer braces): Sonos relaying TV/HDMI."""
+def _is_sonos_tv_expr(entity: str) -> str:
+    """Jinja expression (no braces): true when Sonos relays TV/HDMI."""
+    content = f"state_attr('{entity}', 'media_content_type') | default('') | lower"
+    app = f"state_attr('{entity}', 'app_name') | default('') | lower"
+    title = f"state_attr('{entity}', 'media_title') | default('') | lower"
     return (
-        "{% set _t = state_attr('" + entity + "', 'media_content_type') | default('') | lower %}"
-        "{% set _app = state_attr('" + entity + "', 'app_name') | default('') | lower %}"
-        "{% set _title = state_attr('" + entity + "', 'media_title') | default('') | lower %}"
-        "{{ _t in ['video','tvshow','movie','channel','episode'] "
-        "or 'tv' in _app or 'hdmi' in _app or _title == 'tv' }}"
+        f"({content} in ['video', 'tvshow', 'movie', 'channel', 'episode'] "
+        f"or 'tv' in {app} or 'hdmi' in {app} or {title} == 'tv')"
     )
 
 
-def _is_sonos_tv_value_template(entity: str, *, negate: bool = False) -> str:
-    """Conditional-card value_template — must not wrap _is_sonos_tv_jinja in extra {{ }}."""
-    inner = _is_sonos_tv_jinja(entity).rstrip()
-    if negate:
-        # {% set ... %}{{ expr }} -> {% set ... %}{{ not (expr) }}
-        inner = inner.replace("{{ ", "{{ not (").replace(" }}", ") }}")
-    return inner
+def _panel_visible_template(name: str, entity: str, *, tv_mode: bool) -> str:
+    """Single template condition — zone selected AND (TV mode or music mode).
+
+    Bubble popups reject multi-condition cards; one combined template avoids config errors.
+    """
+    zone = f"is_state('{MEDIA_SELECT_ENTITY}', {json.dumps(name)})"
+    tv = _is_sonos_tv_expr(entity)
+    expr = f"{zone} and {tv}" if tv_mode else f"{zone} and not ({tv})"
+    return "{{ " + expr + " }}"
 
 
 def _is_sonos_tv_js_fn() -> str:
@@ -224,6 +226,18 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         "  }\n"
         "  return detail;\n"
         "}\n"
+    )
+
+
+def _navbar_player_entity_js(entity: str, players: list[dict]) -> str:
+    """Switch navbar artwork to linked Apple TV when Sonos relays TV sound."""
+    setup = _apple_tv_setup_js(players)
+    return (
+        "[[[\n"
+        + setup
+        + f"var atv = activeAtv({entity!r});\n"
+        f"return atv ? atv.entity_id : {entity!r};\n"
+        "]]]"
     )
 
 
@@ -392,7 +406,9 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         entity = player["entity"]
         name = player["name"]
         entry: dict[str, Any] = {
-            "entity": entity,
+            "entity": (
+                _navbar_player_entity_js(entity, players) if player.get("apple_tv") else entity
+            ),
             "show": _player_show_jinja(players, entity),
             "title": _navbar_player_title_js(entity, name, players),
             "subtitle": _navbar_player_subtitle_js(entity, name, players),
@@ -508,27 +524,23 @@ def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") ->
         if use_mediocre
         else _mushroom_player_card(panel_entity, panel_name)
     )
-    conditions: list[dict] = [
-        {
-            "condition": "state",
-            "entity": MEDIA_SELECT_ENTITY,
-            "state": name,
-        },
-    ]
-    if source == "apple_tv" and atv:
-        conditions.append(
+    if atv:
+        conditions: list[dict] = [
             {
                 "condition": "template",
-                "value_template": _is_sonos_tv_value_template(entity),
+                "value_template": _panel_visible_template(
+                    name, entity, tv_mode=(source == "apple_tv")
+                ),
             }
-        )
-    elif atv:
-        conditions.append(
+        ]
+    else:
+        conditions = [
             {
-                "condition": "template",
-                "value_template": _is_sonos_tv_value_template(entity, negate=True),
-            }
-        )
+                "condition": "state",
+                "entity": MEDIA_SELECT_ENTITY,
+                "state": name,
+            },
+        ]
     return {
         "type": "conditional",
         "conditions": conditions,

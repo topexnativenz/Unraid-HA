@@ -246,6 +246,17 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(
                     "Music player TV-mode conditional has invalid nested Jinja — popup will show config errors"
                 )
+            if '"condition": "state"' in overview_blob and '"condition": "template"' in overview_blob:
+                mp_start = overview_blob.find('"name": "Music Player"')
+                mp_end = overview_blob.find('"popup_style"', mp_start)
+                popup_blob = overview_blob[mp_start:mp_end] if mp_end > mp_start else ""
+                if popup_blob.count('"condition": "state"') > 0 and popup_blob.count(
+                    '"condition": "template"'
+                ) > len(media_players):
+                    errors.append(
+                        "Music popup must use single combined template conditions for TV mode "
+                        "(multi-condition panels break inside bubble popups)"
+                    )
         if '"name": "Music Player"' in overview_blob:
             mp_start = overview_blob.find('"name": "Music Player"')
             mp_end = overview_blob.find('"popup_style"', mp_start)
