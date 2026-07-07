@@ -54,7 +54,27 @@ def enabled_players(cfg: dict) -> list[dict]:
     mp = _media_cfg(cfg)
     if not mp.get("enabled", True):
         return []
-    return [p for p in mp.get("players", []) if p.get("enabled", True) and p.get("entity")]
+    overrides = mp.get("apple_tv_overrides") or {}
+    out: list[dict] = []
+    for p in mp.get("players", []):
+        if not p.get("enabled", True) or not p.get("entity"):
+            continue
+        entry = dict(p)
+        if is_sonos_zone(entry) and not entry.get("apple_tv"):
+            linked = overrides.get(entry["entity"])
+            if linked:
+                entry["apple_tv"] = linked
+        out.append(entry)
+    return out
+
+
+def player_source(player: dict) -> str:
+    """sonos = Sonos zone (optional apple_tv link for TV sound). apple = ATV/HomePod direct."""
+    return player.get("source", "sonos")
+
+
+def is_sonos_zone(player: dict) -> bool:
+    return player_source(player) == "sonos"
 
 
 def media_player_active(cfg: dict) -> bool:
@@ -145,19 +165,25 @@ def _is_sonos_tv_expr(entity: str) -> str:
     )
 
 
+def _is_music_expr(entity: str) -> str:
+    """Jinja expression (no braces): true when entity is playing music, not TV/video."""
+    t = f"state_attr('{entity}', 'media_content_type') | default('') | lower"
+    app = f"state_attr('{entity}', 'app_name') | default('') | lower"
+    artist = f"state_attr('{entity}', 'media_artist') | default('')"
+    series = f"state_attr('{entity}', 'media_series_title') | default('')"
+    return (
+        f"({t} in ['music', 'artist', 'album', 'playlist', 'podcast', 'track', 'genre'] "
+        f"or ({artist} and {t} not in ['video', 'tvshow', 'movie', 'channel', 'episode']) "
+        f"or ({artist} and not {series}) "
+        f"or ({t} not in ['video', 'tvshow', 'movie', 'channel', 'episode'] "
+        f"and 'tv' not in {app} and 'hdmi' not in {app} and not {series}))"
+    )
+
+
 def _is_atv_mode_expr(sonos_entity: str, atv_entity: str) -> str:
-    """Jinja expression: show Apple TV panel (TV/HDMI on Sonos, or both playing with ATV metadata)."""
-    tv = _is_sonos_tv_expr(sonos_entity)
-    sonos_on = (
-        f"(is_state('{sonos_entity}', 'playing') or is_state('{sonos_entity}', 'paused'))"
-    )
-    atv_on = (
-        f"(is_state('{atv_entity}', 'playing') or is_state('{atv_entity}', 'paused')) "
-        f"and (state_attr('{atv_entity}', 'media_title') "
-        f"or state_attr('{atv_entity}', 'media_series_title') "
-        f"or state_attr('{atv_entity}', 'entity_picture'))"
-    )
-    return f"({tv}) or ({sonos_on} and {atv_on})"
+    """Show linked ATV/HomePod panel only for TV/HDMI — never when Sonos plays music."""
+    _ = atv_entity  # panel entity is static; mode is driven by Sonos state only.
+    return f"({_is_sonos_tv_expr(sonos_entity)}) and not ({_is_music_expr(sonos_entity)})"
 
 
 def _panel_visible_template(
@@ -211,6 +237,8 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         f"const ATV_NAMES = {json.dumps(atv_names)};\n"
         + _is_sonos_tv_js_fn()
         + "\n"
+        + _is_music_js_fn()
+        + "\n"
         "function atvForSonos(sonosId) { return ATV_BY_SONOS[sonosId] || null; }\n"
         "function atvName(atvId) {\n"
         "  if (!atvId) return 'Apple TV';\n"
@@ -231,13 +259,8 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         "  var sonosLive = sonos.state === 'playing' || sonos.state === 'paused';\n"
         "  var atvLive = atv.state === 'playing' || atv.state === 'paused';\n"
         "  var atvHasMedia = !!(aa.media_title || aa.media_series_title || aa.entity_picture);\n"
-        "  var sonosTitle = String(sa.media_title || '').toLowerCase();\n"
-        "  if (sonosLive && isSonosTv(sa)) {\n"
-        "    if (atvLive || atvHasMedia) return atv;\n"
-        "  }\n"
-        "  if (sonosLive && atvLive && atvHasMedia) {\n"
-        "    if (!sonosTitle || sonosTitle === 'tv' || isSonosTv(sa)) return atv;\n"
-        "  }\n"
+        "  if (!sonosLive || isMusic(sa)) return null;\n"
+        "  if (isSonosTv(sa) && (atvLive || atvHasMedia)) return atv;\n"
         "  return null;\n"
         "}\n"
         "function atvTitle(atv) {\n"
@@ -272,8 +295,10 @@ def _navbar_player_entity_js(entity: str, players: list[dict]) -> str:
 
 
 def _navbar_player_title_js(entity: str, zone_name: str, players: list[dict]) -> str:
-    """Track/show title when playing; Sonos zone name when idle."""
-    if not any(p.get("apple_tv") for p in players):
+    """Track/show title when playing; zone name when idle."""
+    player = next((p for p in players if p.get("entity") == entity), None)
+    use_atv = player and is_sonos_zone(player) and player.get("apple_tv")
+    if not use_atv:
         return (
             "[[[ "
             f"const s = states[{entity!r}]; "
@@ -302,8 +327,10 @@ def _navbar_player_title_js(entity: str, zone_name: str, players: list[dict]) ->
 
 
 def _navbar_player_subtitle_js(entity: str, zone_name: str, players: list[dict]) -> str:
-    """Artist or episode detail; Apple TV name when relaying TV sound (not Sonos zone)."""
-    if not any(p.get("apple_tv") for p in players):
+    """Artist or episode detail; Apple TV/HomePod name when relaying TV sound."""
+    player = next((p for p in players if p.get("entity") == entity), None)
+    use_atv = player and is_sonos_zone(player) and player.get("apple_tv")
+    if not use_atv:
         return (
             "[[[ "
             f"const s = states[{entity!r}]; "
@@ -437,7 +464,9 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         name = player["name"]
         entry: dict[str, Any] = {
             "entity": (
-                _navbar_player_entity_js(entity, players) if player.get("apple_tv") else entity
+                _navbar_player_entity_js(entity, players)
+                if is_sonos_zone(player) and player.get("apple_tv")
+                else entity
             ),
             "show": _player_show_jinja(players, entity),
             "title": _navbar_player_title_js(entity, name, players),
@@ -446,6 +475,8 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
         }
         if player.get("icon"):
             entry["icon"] = player["icon"]
+        elif player_source(player) == "apple":
+            entry["icon"] = "mdi:speaker"
         entries.append(entry)
 
     return {
@@ -497,7 +528,9 @@ def _player_selector_chips(players: list[dict]) -> dict:
         chips.append(
             {
                 "type": "template",
-                "icon": player.get("icon", "mdi:speaker"),
+                "icon": player.get("icon") or (
+                    "mdi:speaker" if player_source(player) == "apple" else "mdi:speaker"
+                ),
                 "content": name,
                 "tap_action": _select_zone_action(name),
                 "icon_color": (
@@ -539,10 +572,11 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
 
 
 def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") -> dict:
-    """One panel per zone — Sonos for music, linked Apple TV when relaying TV sound."""
+    """Sonos zone: music on Sonos entity, TV sound on linked apple_tv. apple: single panel."""
     entity = player["entity"]
     name = player["name"]
-    atv = player.get("apple_tv")
+    sonos = is_sonos_zone(player)
+    atv = player.get("apple_tv") if sonos else None
     if source == "apple_tv" and atv:
         panel_entity = atv
         panel_name = player.get("apple_tv_name") or name
@@ -554,7 +588,7 @@ def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") ->
         if use_mediocre
         else _mushroom_player_card(panel_entity, panel_name)
     )
-    if atv:
+    if sonos and atv:
         conditions: list[dict] = [
             {
                 "condition": "template",
@@ -592,7 +626,7 @@ def build_music_player_popup(cfg: dict, *, use_mediocre: bool = True) -> dict | 
     ]
     for player in players:
         popup_cards.append(_player_panel(player, use_mediocre=use_mediocre, source="sonos"))
-        if player.get("apple_tv"):
+        if is_sonos_zone(player) and player.get("apple_tv"):
             popup_cards.append(_player_panel(player, use_mediocre=use_mediocre, source="apple_tv"))
 
     return {

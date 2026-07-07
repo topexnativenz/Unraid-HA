@@ -19,7 +19,7 @@ MEDIA_PACKAGE = ROOT / "packages" / "flux_ui_media.yaml"
 ROOMS = ROOT / "rooms.yaml"
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from flux_media_player import ARTWORK_ATTRS, media_zone_scripts  # noqa: E402
+from flux_media_player import ARTWORK_ATTRS, is_sonos_zone, media_zone_scripts  # noqa: E402
 from ha_common import DEFAULT_HA, get_token, run_async, ws_call  # noqa: E402
 
 SONOS_HINTS = re.compile(
@@ -468,7 +468,16 @@ def discover_from_states(
 
         updated.append(entry)
 
-    default_entity: str | None = load_media_config().get("default_entity")
+    sonos_ids = {e["entity"] for e in updated}
+    for prior in existing_cfg.get("players", []):
+        eid = prior.get("entity")
+        if not eid or eid in sonos_ids:
+            continue
+        if prior.get("source") == "apple":
+            updated.append(prior)
+            notes.append(f"{eid}: kept standalone Apple TV/HomePod player {prior.get('name')!r}")
+
+    default_entity: str | None = existing_cfg.get("default_entity")
     if default_entity and not any(p["entity"] == default_entity for p in updated):
         notes.append(f"default_entity {default_entity!r} not found — resetting")
         default_entity = None
@@ -553,7 +562,11 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
                 initial = p["name"]
                 break
 
-    entities = [p["entity"] for p in players if p.get("enabled", True) and p.get("entity")]
+    entities = [
+        p["entity"]
+        for p in players
+        if p.get("enabled", True) and p.get("entity") and is_sonos_zone(p)
+    ]
     header = (
         "# Flux UI media player selection (Sonos zones)\n"
         "# Options are rewritten by discover_sonos.py --apply\n"
@@ -574,6 +587,8 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
         choose: list[dict] = []
         for player in players:
             if not player.get("enabled", True) or not player.get("entity"):
+                continue
+            if not is_sonos_zone(player):
                 continue
             choose.append(
                 {

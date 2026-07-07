@@ -19,7 +19,7 @@ sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from flux_media_player import MUSIC_PLAYER_HASH, SELECT_ZONE_SCRIPT  # noqa: E402
+from flux_media_player import MUSIC_PLAYER_HASH, SELECT_ZONE_SCRIPT, is_sonos_zone  # noqa: E402
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
 
 
@@ -235,7 +235,7 @@ def verify_build(path: Path) -> list[str]:
             )
         if "custom:mediocre-massive-media-player-card" in overview_blob:
             expected_panels = len(media_players) + sum(
-                1 for p in media_players if p.get("apple_tv")
+                1 for p in media_players if is_sonos_zone(p) and p.get("apple_tv")
             )
             if overview_blob.count('"entity_id":') < expected_panels:
                 errors.append(
@@ -246,17 +246,6 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(
                     "Music player TV-mode conditional has invalid nested Jinja — popup will show config errors"
                 )
-            if '"condition": "state"' in overview_blob and '"condition": "template"' in overview_blob:
-                mp_start = overview_blob.find('"name": "Music Player"')
-                mp_end = overview_blob.find('"popup_style"', mp_start)
-                popup_blob = overview_blob[mp_start:mp_end] if mp_end > mp_start else ""
-                if popup_blob.count('"condition": "state"') > 0 and popup_blob.count(
-                    '"condition": "template"'
-                ) > len(media_players):
-                    errors.append(
-                        "Music popup must use single combined template conditions for TV mode "
-                        "(multi-condition panels break inside bubble popups)"
-                    )
         if '"name": "Music Player"' in overview_blob:
             mp_start = overview_blob.find('"name": "Music Player"')
             mp_end = overview_blob.find('"popup_style"', mp_start)

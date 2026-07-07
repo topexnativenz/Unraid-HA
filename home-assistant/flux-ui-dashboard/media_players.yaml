@@ -1,22 +1,24 @@
-# Sonos media players for Flux UI floating music bar + popup.
+# Sonos + Apple TV / HomePod media players for Flux UI music bar + popup.
 # Run: python3 home-assistant/flux-ui-dashboard/scripts/discover_sonos.py --apply
-# Names refresh from HA friendly_name on each --apply (set pin_name: true to keep a custom label).
 #
-# apple_tv_overrides: explicit Sonos → Apple TV map (used by discover on every deploy).
-# discover also auto-matches by room name; overrides win when set.
-# Set pin_apple_tv: true on a player to freeze its apple_tv link across --apply runs.
+# Sonos zones (source: sonos, default):
+#   - Music (Apple Music, Spotify) → Sonos mediocre card
+#   - TV/HDMI sound → linked apple_tv entity (ATV or HomePod)
 #
-# Apple Music and Spotify stream through Sonos in HA — each speaker is a media_player entity.
-# Tap mini player to select zone; swipe carousel to switch zones (artwork syncs via carousel-sync.js).
-# Hold to open full player popup.
+# apple_tv_overrides: explicit Sonos → ATV/HomePod map (survives discover --apply).
+# pin_apple_tv: true on a Sonos player to freeze its apple_tv link.
+#
+# Standalone Apple players (source: apple):
+#   - Direct AirPlay to ATV/HomePod — own carousel slot, single mediocre card.
+#   - Preserved across discover --apply (not removed).
 
 enabled: true
 
 default_entity: media_player.garage_sonos
 
-# Explicit Apple TV links — critical where HA entity ids don't match Sonos slug (e.g. sleepout).
 apple_tv_overrides:
   media_player.garage_sonos: media_player.black_lounge_black_lounge_atv
+  media_player.kitchen_sonos: media_player.home_cinema_home_cinema_atv
   media_player.main_lounge_sonos: media_player.sleepout
   media_player.kids_room_sonos: media_player.upstairs_office_2_upstairs_office_atv
 
@@ -32,4 +34,10 @@ players:
     enabled: true
   - entity: media_player.kids_room_sonos
     name: Upstairs Office SONOS
+    enabled: true
+  # Standalone HomePod — shows when playing AirPlay direct (not via Sonos).
+  - entity: media_player.upstairs_office_2_upstairs_office_atv
+    name: Upstairs Office HomePod
+    source: apple
+    icon: mdi:speaker
     enabled: true
