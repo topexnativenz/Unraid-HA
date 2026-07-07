@@ -1,7 +1,8 @@
 # Entity map for Flux UI overview — mirrors home-assistant/mobile-dashboard Home tab.
 # Climate section is copied from live Mobile Home on deploy when SMB is available.
 
-weather: weather.forecast_home
+# NZ MetService (HACS: ciejer/metservice-weather). Updated by discover_weather.py --apply
+weather: weather.metservice
 
 quick_actions:
   gate:

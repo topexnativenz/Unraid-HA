@@ -1,0 +1,14 @@
+# Copy to entities.local.yaml (gitignored) or run:
+#   python3 home-assistant/garage-doors/scripts/discover_garage_doors.py --apply
+#
+# LAN-specific Tapo sensor IDs merged over entities.yaml at build time.
+
+doors:
+  - name: House Garage
+    sensor: binary_sensor.house_garage_door_sensor_door
+    enabled: true
+  - name: Main Shed
+    sensor: binary_sensor.contact_sensor_door
+    enabled: true
+  - name: Second Shed
+    enabled: false

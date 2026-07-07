@@ -8,14 +8,16 @@ Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.c
 
 | Area | Description |
 |------|-------------|
-| Hero | Greeting + `weather.forecast_home` |
+| Hero | Greeting + bitmoji + NZ MetService weather (`discover_weather.py --apply`) |
 | Home status | Live chips: lights on count, garage state |
 | **Home / Events / Active tabs** | `custom:simple-tabs` filter (ElementZoom reference) |
 | **Home tab** | Quick Actions, Climate, Favourite lights |
 | **Events tab** | `calendar-card-pro` timeline (or mushroom fallback) |
 | **Active tab** | Active now lights + doors open alert (shown when anything is on/open) |
+| **Floating music player** | Sonos mini bar above bottom nav; tap opens full player with zone picker |
+| **Weather panel** | Navbar **Weather** → `#weather-panel` — ElementZoom layout: Forecast (`weather-forecast-extended-card`), Rainfall/UV/Wind (`apexcharts-card`), Radar (Windy), Lunar (`lunar-phase-card`). Template sensors in `packages/flux_ui_weather.yaml`. |
 
-Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`rooms.yaml`](rooms.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
+Config: [`overview_tabs.yaml`](overview_tabs.yaml), [`context.yaml`](context.yaml), [`weather_panel.yaml`](weather_panel.yaml), [`rooms.yaml`](rooms.yaml), [`media_players.yaml`](media_players.yaml). See [`ROADMAP.md`](ROADMAP.md) for Phase 4.
 
 Entity map: [`entities.yaml`](entities.yaml)
 
@@ -34,12 +36,49 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active tab — lights currently on |
 | [agoberg85/home-assistant-simple-tabs](https://github.com/agoberg85/home-assistant-simple-tabs) | **Home / Events / Active** overview tabs ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
 | [alexpfau/calendar-card-pro](https://github.com/alexpfau/calendar-card-pro) | Events tab timeline ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |
-| [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav |
+| [joseluis9595/lovelace-navbar-card](https://github.com/joseluis9595/lovelace-navbar-card) | Bottom nav + floating music bar |
+| [antontanderup/mediocre-hass-media-player-cards](https://github.com/antontanderup/mediocre-hass-media-player-cards) | Full music popup (mushroom fallback) |
+| [Clooos/bubble-card](https://github.com/Clooos/bubble-card) | Music + weather panel popup shells |
+| [RomRider/apexcharts-card](https://github.com/RomRider/apexcharts-card) | Weather panel Rainfall / UV / Wind charts |
+| [Thyraz/weather-forecast-extended](https://github.com/Thyraz/weather-forecast-extended) | Weather panel Forecast hero + daily/hourly rows |
+| [ngocjohn/lunar-phase-card](https://github.com/ngocjohn/lunar-phase-card) | Weather panel Lunar tab |
 | [maykar/kiosk-mode](https://github.com/maykar/kiosk-mode) | Hide HA header on mobile |
 | [Nerwyn/material-you-theme](https://github.com/Nerwyn/material-you-theme) | Full MD3 theming (optional) |
 | [Nerwyn/material-you-utilities](https://github.com/Nerwyn/material-you-utilities) | MD3 helpers (optional) |
 
-Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA. **Tapo sensor IDs** are configured in [`garage-doors/entities.yaml`](../garage-doors/entities.yaml) — icons show open/closed from contact sensors, not button toggles.
+Garage pulse buttons require [`garage_doors_pulse.yaml`](../garage-doors/packages/garage_doors_pulse.yaml) on HA. **Tapo sensor IDs** are discovered to [`garage-doors/entities.local.yaml`](../garage-doors/entities.local.yaml.example) (gitignored) — icons show open/closed from contact sensors, not button toggles.
+
+### Install Mediocre Media Player Cards (music popup)
+
+Not in the default HACS store — add as a **custom repository**:
+
+1. Open **HACS** → **⋮** (top right) → **Custom repositories**
+2. Repository: `https://github.com/antontanderup/mediocre-hass-media-player-cards`
+3. Category: **Dashboard** → **Add**
+4. **HACS** → **Frontend** → search **Mediocre Hass Media Player Cards** → **Download**
+5. **Settings** → **Dashboards** → **⋮** → **Reload resources** (or restart HA)
+6. Re-run deploy: `bash home-assistant/scripts/deploy_mac.sh`
+
+Without this, the music popup uses mushroom media player (works, fewer features). Deploy auto-registers the JS if HACS installed it.
+
+### Weather panel HACS + integrations
+
+Install these **before** deploy (ElementZoom [weather panel](https://github.com/ElementZoom/Material-Design-3-Dynamic-Mobile-Dashboard/blob/main/assets/weather%20panel) parity):
+
+| Item | Source |
+|------|--------|
+| **MetService NZ** | HACS integration [ciejer/metservice-weather](https://github.com/ciejer/metservice-weather) |
+| **Lunar phase** | HACS integration [ngocjohn/lunar-phase](https://github.com/ngocjohn/lunar-phase) (optional — Lunar tab works from coordinates alone) |
+| **ApexCharts Card** | HACS frontend [RomRider/apexcharts-card](https://github.com/RomRider/apexcharts-card) |
+| **Weather Forecast Extended** | HACS frontend [Thyraz/weather-forecast-extended](https://github.com/Thyraz/weather-forecast-extended) |
+| **Lunar Phase Card** | HACS frontend [ngocjohn/lunar-phase-card](https://github.com/ngocjohn/lunar-phase-card) |
+| **Stack In Card** | Already listed above (`custom-cards/stack-in-card`) |
+
+Deploy generates `packages/flux_ui_weather.yaml` — template sensors that call `weather.get_forecasts` on your MetService entity every 15 minutes (required since HA 2024.4 removed inline forecast attributes). **No local weather station** — all current conditions come from MetService integration sensors (UV, humidity, wind, warnings).
+
+Run `python3 scripts/discover_weather.py --apply` (included in deploy) to auto-wire your live MetService entity + sensors from HA.
+
+Edit [`weather_panel.yaml`](weather_panel.yaml) for **Radar/Lunar map coordinates** if HA home location differs. Optional: `aqi_entity` (WAQI).
 
 ## Visual design (MD3 / Flux)
 
@@ -49,7 +88,7 @@ MD3 styling includes:
 - **Wallpaper background** (`/local/flux-ui/wallpapers/dark-purple.webp`)
 - **Glass cards** — blur, tinted surfaces, 28px corners
 - **button-card templates** — hero, quick actions, light tiles
-- **Bottom navbar** — Home / Rooms / Scenes / Camera / More (navbar-card HACS)
+- **Bottom navbar** — Home / Rooms / Weather / Camera / More (navbar-card HACS)
 - **Kiosk mode** — hides HA header on mobile
 
 After deploy: open Flux UI, hard-refresh browser (Cmd+Shift+R). On iOS Companion: **Reset Frontend Cache**.
@@ -58,29 +97,33 @@ Optional: install [Material You Theme](https://github.com/Nerwyn/material-you-th
 
 ## Deploy (E2E)
 
-From your Mac on the same LAN as HA:
+### Cloud agents / iOS Cursor (recommended)
+
+Every agent task runs live deploy automatically — **no Mac script required**:
+
+```bash
+bash home-assistant/scripts/deploy_cloud.sh
+```
+
+Set `HA_URL` + `HA_TOKEN` in Cursor Cloud Agent secrets (see `.secrets/ha.env.example`).
+
+### Mac on LAN (optional)
 
 ```bash
 cd /Users/topexnative/Projects/unraid-array-design
-
-# Full pipeline: garage → Flux UI MD3 → Mobile Home
-bash home-assistant/scripts/run_all_e2e.sh
+bash home-assistant/scripts/deploy_mac.sh
 ```
 
 Or pull latest MD3 branch first:
 
 ```bash
-bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
+bash home-assistant/scripts/deploy_mac.sh --restart-ha
 ```
 
-```bash
-# Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
-export HA_TOKEN="your-long-lived-token"   # optional if mcp.json exists
-export HA_URL="http://192.168.1.239:8123" # optional
+Legacy manual deploy:
 
-git stash
-git pull origin cursor/flux-ui-md3-dashboard-bf3a
-bash home-assistant/flux-ui-dashboard/scripts/setup_e2e.sh
+```bash
+bash home-assistant/scripts/run_all_e2e.sh
 ```
 
 One-shot script: downloads Mushroom + card-mod JS → builds overview → verifies entities → mounts Samba → copies theme/www/storage → registers dashboard via WebSocket → live verify.

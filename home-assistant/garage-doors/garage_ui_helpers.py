@@ -7,15 +7,36 @@ from pathlib import Path
 import yaml
 
 GARAGE_ENTITIES = Path(__file__).resolve().parent / "entities.yaml"
+GARAGE_ENTITIES_LOCAL = Path(__file__).resolve().parent / "entities.local.yaml"
 
 # Tapo / HA door sensors may report on/off, open/closed, or detected/clear.
 DOOR_OPEN_STATES = ("on", "open", "opened", "detected", "true")
 DOOR_CLOSED_STATES = ("off", "closed", "close", "clear", "false", "undetected")
 
 
+def _merge_door_overrides(base_doors: list[dict], overrides: list[dict]) -> list[dict]:
+    """Apply LAN-specific sensor IDs from entities.local.yaml (written by discover --apply)."""
+    by_name = {d["name"]: d for d in overrides if d.get("name")}
+    merged: list[dict] = []
+    for door in base_doors:
+        out = dict(door)
+        override = by_name.get(door["name"])
+        if override:
+            for key in ("sensor", "enabled", "invert"):
+                if key in override:
+                    out[key] = override[key]
+        merged.append(out)
+    return merged
+
+
 def load_garage_doors(*, include_disabled: bool = False) -> list[dict]:
     data = yaml.safe_load(GARAGE_ENTITIES.read_text())
     doors = data.get("doors", [])
+    if GARAGE_ENTITIES_LOCAL.exists():
+        local = yaml.safe_load(GARAGE_ENTITIES_LOCAL.read_text()) or {}
+        local_doors = local.get("doors", [])
+        if local_doors:
+            doors = _merge_door_overrides(doors, local_doors)
     if include_disabled:
         return doors
     return [d for d in doors if d.get("enabled", True)]

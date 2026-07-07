@@ -99,7 +99,7 @@ def build_home_status_section(cfg: dict) -> dict:
     return {
         "type": "grid",
         "cards": [
-            _title("Home status", "Live"),
+            _title("Home status"),
             wrap_glass(
                 {
                     "type": "custom:mushroom-chips-card",
@@ -143,7 +143,7 @@ def build_active_lights_section(cfg: dict) -> dict:
     return {
         "type": "grid",
         "cards": [
-            _title("Active now", "Lights on"),
+            _title("Active now"),
             wrap_glass({**card, "grid_options": {"columns": 12}}),
         ],
     }

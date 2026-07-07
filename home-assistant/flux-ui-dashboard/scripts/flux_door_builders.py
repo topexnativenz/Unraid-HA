@@ -17,12 +17,12 @@ from garage_ui_helpers import (  # noqa: E402
 from md3_templates import wrap_glass, wrap_title
 
 
-def flux_door_tile(door: dict, *, columns: int = 4) -> dict:
+def flux_door_tile(door: dict, *, columns: int | None = None) -> dict:
     """Large MD3 door tile — green closed, pulsing red/pink when open."""
     sensor = door["sensor"]
     invert = door.get("invert", False)
     name = door["name"]
-    return {
+    tile: dict = {
         "type": "custom:button-card",
         "template": "flux_door",
         "entity": sensor,
@@ -71,35 +71,36 @@ def flux_door_tile(door: dict, *, columns: int = 4) -> dict:
         "styles": {
             "icon": [{"color": open_color_js(sensor, invert=invert)}],
         },
-        "grid_options": {"columns": columns},
     }
+    if columns is not None:
+        tile["grid_options"] = {"columns": columns}
+    return tile
 
 
 def build_doors_status_section(doors: list[dict], *, title: str = "Doors", subtitle: str = "Tapo contact sensors") -> dict:
     """Always-visible door row — updates live when Tapo sensors change."""
     if not doors:
-        return {"type": "grid", "cards": []}
+        return {"type": "vertical-stack", "cards": [], "grid_options": {"columns": 12}}
     return {
-        "type": "grid",
+        "type": "vertical-stack",
         "cards": [
             wrap_title(
                 {
                     "type": "custom:mushroom-title-card",
                     "title": title,
                     "subtitle": subtitle,
-                    "grid_options": {"columns": 12},
                 }
             ),
             wrap_glass(
                 {
                     "type": "grid",
-                    "columns": 3,
+                    "columns": min(3, len(doors)),
                     "square": False,
-                    "cards": [flux_door_tile(d, columns=4) for d in doors],
-                    "grid_options": {"columns": 12},
+                    "cards": [flux_door_tile(d) for d in doors],
                 }
             ),
         ],
+        "grid_options": {"columns": 12},
     }
 
 
@@ -132,7 +133,6 @@ def build_doors_open_alert_section(doors: list[dict], *, for_tab_panel: bool = F
         {
             "type": "custom:mushroom-title-card",
             "title": "Doors open",
-            "subtitle": "Check before leaving",
             **({} if for_tab_panel else {"grid_options": {"columns": 12}}),
         }
     )
