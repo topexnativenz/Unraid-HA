@@ -502,6 +502,41 @@ def discover(token: str, ha_url: str, **kwargs) -> tuple[list[dict], str | None,
     return discover_from_states(states, registry=registry, **kwargs)
 
 
+def audit_apple_tv(states: list[dict], *, registry: list[dict] | None = None) -> None:
+    """Print live state + Now Playing attributes for every Apple TV media_player."""
+    atv_ids = sorted(registry_apple_tv_media_entities(registry or []))
+    if not atv_ids:
+        print("No Apple TV media_player entities in the HA registry.")
+        return
+    state_by_id = {s["entity_id"]: s for s in states}
+    print("\nApple TV audit (state + Now Playing metadata):\n")
+    for eid in atv_ids:
+        state = state_by_id.get(eid) or {"entity_id": eid, "state": "missing", "attributes": {}}
+        attrs = state.get("attributes") or {}
+        label = friendly_label(state, registry)
+        print(f"  {eid}  ({label})")
+        print(f"    state={state['state']!r}")
+        for key in (
+            "app_name",
+            "media_title",
+            "media_series_title",
+            "media_artist",
+            "media_content_type",
+            "media_season",
+            "media_episode",
+            "entity_picture",
+        ):
+            val = attrs.get(key)
+            if val:
+                preview = str(val)
+                if len(preview) > 90:
+                    preview = preview[:87] + "..."
+                print(f"    {key}: {preview}")
+        if not any(attrs.get(k) for k in ("app_name", "media_title", "entity_picture")):
+            print("    (no Now Playing metadata — check the Apple TV integration connection)")
+        print()
+
+
 def audit_artwork(states: list[dict], *, registry: list[dict] | None = None) -> None:
     """Report album-art-related attributes for every Sonos media_player."""
     registry_ids = registry_sonos_media_entities(registry or [])
@@ -739,6 +774,11 @@ def main() -> int:
         help="Print entity_picture / album art attributes for each Sonos entity",
     )
     parser.add_argument(
+        "--audit-apple-tv",
+        action="store_true",
+        help="Print live state + Now Playing metadata for each Apple TV entity",
+    )
+    parser.add_argument(
         "--reload-sonos",
         action="store_true",
         help="Reload Sonos integration before discover (picks up Sonos app renames)",
@@ -773,6 +813,10 @@ def main() -> int:
 
     if args.audit_artwork:
         audit_artwork(states, registry=registry)
+        return 0
+
+    if args.audit_apple_tv:
+        audit_apple_tv(states, registry=registry)
         return 0
 
     players, default_entity, discover_notes = discover_from_states(

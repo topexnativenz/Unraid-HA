@@ -166,16 +166,26 @@ def _is_music_expr(entity: str) -> str:
 
 
 def _is_atv_mode_expr(sonos_entity: str, atv_entity: str) -> str:
-    """TV-mode: Sonos relays TV/HDMI AND the linked ATV/HomePod is actually playing.
+    """TV-mode: Sonos relays TV/HDMI AND the linked ATV/HomePod looks active.
 
-    Requiring the ATV to be live avoids empty Apple TV panels when the sound
-    source is the TV itself (broadcast, console) rather than the Apple TV.
+    Active = playing/paused, or any awake state with Now Playing metadata.
+    Apple TVs often report 'idle'/'on' (or lag behind) while content plays —
+    metadata presence is the reliable signal. Excludes off/standby so an
+    empty ATV card never covers TV-source sound (broadcast, console).
     """
     tv = _is_sonos_tv_expr(sonos_entity)
-    atv_live = (
-        f"(is_state('{atv_entity}', 'playing') or is_state('{atv_entity}', 'paused'))"
+    st = f"states('{atv_entity}')"
+    has_media = (
+        f"(state_attr('{atv_entity}', 'media_title') "
+        f"or state_attr('{atv_entity}', 'media_series_title') "
+        f"or state_attr('{atv_entity}', 'entity_picture') "
+        f"or state_attr('{atv_entity}', 'app_name'))"
     )
-    return f"({tv}) and {atv_live}"
+    atv_active = (
+        f"({st} in ['playing', 'paused'] "
+        f"or ({st} not in ['off', 'standby', 'unavailable', 'unknown'] and {has_media}))"
+    )
+    return f"({tv}) and {atv_active}"
 
 
 def tv_mode_sensor_object_id(player: dict) -> str:
@@ -261,13 +271,17 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
         "  var atv = states[atvId];\n"
         "  if (!atv) return null;\n"
         "  var sonosLive = sonos.state === 'playing' || sonos.state === 'paused';\n"
+        "  if (!sonosLive || !isSonosTv(sonos.attributes)) return null;\n"
+        "  var aa = atv.attributes || {};\n"
         "  var atvLive = atv.state === 'playing' || atv.state === 'paused';\n"
-        "  if (sonosLive && atvLive && isSonosTv(sonos.attributes)) return atv;\n"
+        "  var atvAwake = !['off', 'standby', 'unavailable', 'unknown'].includes(atv.state);\n"
+        "  var hasMedia = !!(aa.media_title || aa.media_series_title || aa.entity_picture || aa.app_name);\n"
+        "  if (atvLive || (atvAwake && hasMedia)) return atv;\n"
         "  return null;\n"
         "}\n"
         "function atvTitle(atv) {\n"
         "  var a = (atv && atv.attributes) ? atv.attributes : {};\n"
-        "  return a.media_series_title || a.media_title || '';\n"
+        "  return a.media_series_title || a.media_title || a.app_name || '';\n"
         "}\n"
         "function atvSubtitle(atv) {\n"
         "  var a = (atv && atv.attributes) ? atv.attributes : {};\n"
