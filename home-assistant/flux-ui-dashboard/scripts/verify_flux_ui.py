@@ -242,9 +242,13 @@ def verify_build(path: Path) -> list[str]:
                     "Music player popup missing per-zone mediocre entity_id cards "
                     f"(expected {expected_panels}, includes Apple TV TV-mode panels)"
                 )
-            if '"{{ {{' in overview_blob or "value_template\": \"{{ {{" in overview_blob:
+            mp_start = overview_blob.find('"name": "Music Player"')
+            mp_end = overview_blob.find('"popup_style"', mp_start)
+            popup_blob = overview_blob[mp_start:mp_end] if mp_end > mp_start else ""
+            if '"condition": "template"' in popup_blob:
                 errors.append(
-                    "Music player TV-mode conditional has invalid nested Jinja — popup will show config errors"
+                    "Music popup uses condition: template — conditional cards only support "
+                    "state conditions; use binary_sensor.flux_ui_tv_* instead"
                 )
         if '"name": "Music Player"' in overview_blob:
             mp_start = overview_blob.find('"name": "Music Player"')

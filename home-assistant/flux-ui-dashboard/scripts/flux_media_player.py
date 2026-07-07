@@ -81,25 +81,10 @@ def media_player_active(cfg: dict) -> bool:
     return len(enabled_players(cfg)) > 0
 
 
-def _is_music_entity_jinja(entity: str) -> str:
-    """Jinja expression: true when media_player content looks like music, not TV."""
-    return (
-        "{% set _t = state_attr('" + entity + "', 'media_content_type') | default('') | lower %}"
-        "{% set _app = state_attr('" + entity + "', 'app_name') | default('') | lower %}"
-        "{% set _artist = state_attr('" + entity + "', 'media_artist') | default('') %}"
-        "{% set _series = state_attr('" + entity + "', 'media_series_title') | default('') %}"
-        "{{ _t in ['music', 'artist', 'album', 'playlist', 'podcast', 'track', 'genre'] "
-        "or (_artist and _t not in ['video', 'tvshow', 'movie', 'channel', 'episode']) "
-        "or (_artist and not _series) "
-        "or (_t not in ['video', 'tvshow', 'movie', 'channel', 'episode'] "
-        "and 'tv' not in _app and 'hdmi' not in _app and not _series) }}"
-    )
-
-
 def _any_music_playing_jinja(players: list[dict]) -> str:
     parts = [
         f"((is_state('{p['entity']}', 'playing') or is_state('{p['entity']}', 'paused')) "
-        f"and ({_is_music_entity_jinja(p['entity'])}))"
+        f"and ({_is_music_expr(p['entity'])}))"
         for p in players
     ]
     return "(" + " or ".join(parts) + ")" if parts else "false"
@@ -111,7 +96,7 @@ def _visible_entities_jinja_setup(players: list[dict]) -> str:
     active_lines = []
     for p in players:
         e = p["entity"]
-        is_music = _is_music_entity_jinja(e)
+        is_music = _is_music_expr(e)
         active_lines.append(
             f"{{% if (is_state('{e}', 'playing') or is_state('{e}', 'paused')) "
             f"and (not ({any_music}) or ({is_music})) %}}"
@@ -186,21 +171,35 @@ def _is_atv_mode_expr(sonos_entity: str, atv_entity: str) -> str:
     return f"({_is_sonos_tv_expr(sonos_entity)}) and not ({_is_music_expr(sonos_entity)})"
 
 
-def _panel_visible_template(
-    name: str, entity: str, *, tv_mode: bool, atv_entity: str | None = None
-) -> str:
-    """Single template condition — zone selected AND (TV mode or music mode)."""
-    zone = f"is_state('{MEDIA_SELECT_ENTITY}', {json.dumps(name)})"
-    if tv_mode and atv_entity:
-        mode = _is_atv_mode_expr(entity, atv_entity)
-    elif tv_mode:
-        mode = _is_sonos_tv_expr(entity)
-    else:
-        if atv_entity:
-            mode = f"not ({_is_atv_mode_expr(entity, atv_entity)})"
-        else:
-            mode = f"not ({_is_sonos_tv_expr(entity)})"
-    return "{{ " + zone + " and " + mode + " }}"
+def tv_mode_sensor_object_id(player: dict) -> str:
+    """Template binary_sensor object id for a Sonos zone's TV mode."""
+    slug = player["entity"].replace("media_player.", "")
+    return f"flux_ui_tv_{slug}"
+
+
+def tv_mode_sensor_entity(player: dict) -> str:
+    return f"binary_sensor.{tv_mode_sensor_object_id(player)}"
+
+
+def tv_mode_template_sensors(players: list[dict]) -> list[dict]:
+    """Template binary_sensors for packages/flux_ui_media.yaml.
+
+    Conditional cards only support state conditions (no Jinja), so TV-mode
+    detection lives in backend template sensors the popup can test by state.
+    """
+    sensors: list[dict] = []
+    for player in players:
+        if not is_sonos_zone(player) or not player.get("apple_tv"):
+            continue
+        entity = player["entity"]
+        sensors.append(
+            {
+                "name": tv_mode_sensor_object_id(player),
+                "unique_id": tv_mode_sensor_object_id(player),
+                "state": "{{ " + _is_atv_mode_expr(entity, player["apple_tv"]) + " }}",
+            }
+        )
+    return sensors
 
 
 def _is_sonos_tv_js_fn() -> str:
@@ -572,7 +571,12 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
 
 
 def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") -> dict:
-    """Sonos zone: music on Sonos entity, TV sound on linked apple_tv. apple: single panel."""
+    """Sonos zone: music on Sonos entity, TV sound on linked apple_tv. apple: single panel.
+
+    Conditional cards support ONLY state/numeric_state/screen/user conditions —
+    `condition: template` renders "Configuration error". TV mode is therefore a
+    backend template binary_sensor tested by state here.
+    """
     entity = player["entity"]
     name = player["name"]
     sonos = is_sonos_zone(player)
@@ -588,26 +592,24 @@ def _player_panel(player: dict, *, use_mediocre: bool, source: str = "sonos") ->
         if use_mediocre
         else _mushroom_player_card(panel_entity, panel_name)
     )
+    conditions: list[dict] = [
+        {
+            "condition": "state",
+            "entity": MEDIA_SELECT_ENTITY,
+            "state": name,
+        },
+    ]
     if sonos and atv:
-        conditions: list[dict] = [
-            {
-                "condition": "template",
-                "value_template": _panel_visible_template(
-                    name,
-                    entity,
-                    tv_mode=(source == "apple_tv"),
-                    atv_entity=atv,
-                ),
-            }
-        ]
-    else:
-        conditions = [
-            {
-                "condition": "state",
-                "entity": MEDIA_SELECT_ENTITY,
-                "state": name,
-            },
-        ]
+        tv_sensor = tv_mode_sensor_entity(player)
+        if source == "apple_tv":
+            conditions.append(
+                {"condition": "state", "entity": tv_sensor, "state": "on"}
+            )
+        else:
+            # state_not — music panel still shows if the sensor is unknown/unavailable.
+            conditions.append(
+                {"condition": "state", "entity": tv_sensor, "state_not": "on"}
+            )
     return {
         "type": "conditional",
         "conditions": conditions,

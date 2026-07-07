@@ -38,6 +38,22 @@ MEDIA_SCRIPTS = (
 )
 
 
+def tv_mode_entities() -> tuple[str, ...]:
+    """TV-mode binary sensors expected from packages/flux_ui_media.yaml."""
+    import yaml
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from flux_media_player import enabled_players, tv_mode_sensor_entity, is_sonos_zone
+
+    if not MEDIA_PLAYERS.exists():
+        return ()
+    media_cfg = yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
+    players = enabled_players({"media_players": media_cfg})
+    return tuple(
+        tv_mode_sensor_entity(p) for p in players if is_sonos_zone(p) and p.get("apple_tv")
+    )
+
+
 async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
     res = await ws_call(token, ha_url, [{"type": "get_states"}])
     if not res[0].get("success"):
@@ -160,6 +176,11 @@ async def main_async(ha_url: str, token: str | None, *, restart: bool) -> int:
             print(f"    {status:7} {sid}")
             if not exists:
                 scripts_ok = False
+
+        for tv_eid in tv_mode_entities():
+            exists = await entity_exists(token, ha_url, tv_eid)
+            status = "ok" if exists else "missing"
+            print(f"    {status:7} {tv_eid} (Apple TV mode)")
 
         if all(found[e] for e in REQUIRED) and scripts_ok:
             if weather.get(WEATHER_ENTITIES[0]):

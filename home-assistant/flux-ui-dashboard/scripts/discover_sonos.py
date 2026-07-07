@@ -19,7 +19,12 @@ MEDIA_PACKAGE = ROOT / "packages" / "flux_ui_media.yaml"
 ROOMS = ROOT / "rooms.yaml"
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from flux_media_player import ARTWORK_ATTRS, is_sonos_zone, media_zone_scripts  # noqa: E402
+from flux_media_player import (  # noqa: E402
+    ARTWORK_ATTRS,
+    is_sonos_zone,
+    media_zone_scripts,
+    tv_mode_template_sensors,
+)
 from ha_common import DEFAULT_HA, get_token, run_async, ws_call  # noqa: E402
 
 SONOS_HINTS = re.compile(
@@ -562,9 +567,20 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
                 initial = p["name"]
                 break
 
+    # Resolve apple_tv from overrides so TV-mode sensors exist even without per-player links.
+    overrides = apple_tv_overrides()
+    resolved: list[dict] = []
+    for p in players:
+        entry = dict(p)
+        if entry.get("entity") and not entry.get("apple_tv") and entry.get("source", "sonos") == "sonos":
+            linked = overrides.get(entry["entity"])
+            if linked:
+                entry["apple_tv"] = linked
+        resolved.append(entry)
+
     entities = [
         p["entity"]
-        for p in players
+        for p in resolved
         if p.get("enabled", True) and p.get("entity") and is_sonos_zone(p)
     ]
     header = (
@@ -583,6 +599,9 @@ def write_package(players: list[dict], default_entity: str | None) -> None:
         },
         "script": media_zone_scripts(players),
     }
+    tv_sensors = tv_mode_template_sensors(resolved)
+    if tv_sensors:
+        data["template"] = [{"binary_sensor": tv_sensors}]
     if entities:
         choose: list[dict] = []
         for player in players:
