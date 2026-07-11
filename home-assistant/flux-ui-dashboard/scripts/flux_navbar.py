@@ -33,6 +33,14 @@ def room_camera_navigation_path(room_slug: str) -> str:
     return f"{URL_PREFIX}/{room_camera_view_path(room_slug)}"
 
 
+def room_climate_view_path(room_slug: str) -> str:
+    return f"{room_view_path(room_slug)}-climate"
+
+
+def room_climate_navigation_path(room_slug: str) -> str:
+    return f"{URL_PREFIX}/{room_climate_view_path(room_slug)}"
+
+
 # ElementZoom-style navbar CSS (blur pill, slide-up).
 NAVBAR_STYLES = """
 .navbar-card {

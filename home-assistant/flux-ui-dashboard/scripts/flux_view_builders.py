@@ -311,20 +311,11 @@ def _room_header(room: dict, *, active_tab: str = "room") -> list[dict]:
         build_room_features_row,
         build_room_status_chips_auto,
         build_room_subnav,
+        build_room_top_bar,
     )
 
-    title = room.get("card_name") or room["name"]
     return [
-        _title(title, room.get("subtitle", "")),
-        {
-            "type": "custom:button-card",
-            "template": "flux_action",
-            "name": "Back to Rooms",
-            "icon": "mdi:arrow-left",
-            "label": "All areas",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/rooms"},
-            "grid_options": {"columns": 12},
-        },
+        build_room_top_bar(room),
         build_room_status_chips_auto(room),
         build_room_features_row(room),
         build_room_subnav(room, active=active_tab),

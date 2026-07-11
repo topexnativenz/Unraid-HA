@@ -44,13 +44,14 @@ rooms:
       - {name: Kitchen, icon: mdi:stove, entity: light.dining_room}
       - {name: Media, icon: mdi:television, entity: light.media_room}
     lights:
-      - {entity: light.living_center, name: Living}
       - {entity: light.dining_room, name: Dining}
-      - {entity: light.dining_centre, name: Kitchen centre}
-      - {entity: light.dining_pic_light, name: Table top}
+      - {entity: light.bar, name: Bar}
+      - {entity: light.kitchen, name: Kitchen}
+      - {entity: light.scullery, name: Pantry}
       - {entity: light.main_atrium, name: Main area}
+      - {entity: light.walkway, name: Walkway}
       - {entity: light.white_lounge, name: White lounge}
-      - {entity: light.media_room, name: Media room}
+      - {entity: light.black_lounge, name: Black lounge}
 
   - name: Master bedroom
     card_name: Master

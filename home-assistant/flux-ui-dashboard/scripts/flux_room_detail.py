@@ -6,7 +6,7 @@ from flux_door_builders import build_doors_status_section
 from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
 from flux_navbar import (
     URL_PREFIX,
-    room_camera_navigation_path,
+    room_climate_navigation_path,
     room_grid_navigation_path,
     room_navigation_path,
 )
@@ -49,6 +49,55 @@ SUBNAV_MOD = {
         "}\n"
     )
 }
+
+
+def build_room_top_bar(room: dict) -> dict:
+    """Reference top bar — round back button, centered room title, menu stub."""
+    title = room.get("card_name") or room["name"]
+    return {
+        "type": "grid",
+        "columns": 12,
+        "square": False,
+        "cards": [
+            wrap_glass(
+                {
+                    "type": "custom:button-card",
+                    "template": "flux_icon_button",
+                    "icon": "mdi:arrow-left",
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{URL_PREFIX}/rooms",
+                    },
+                    "grid_options": {"columns": 2},
+                }
+            ),
+            wrap_title(
+                {
+                    "type": "custom:mushroom-title-card",
+                    "title": title,
+                    "alignment": "center",
+                    "grid_options": {"columns": 8},
+                    "card_mod": {
+                        "style": (
+                            "ha-card { padding-top: 4px !important; }\n"
+                            ".header { justify-content: center !important; text-align: center; }\n"
+                        )
+                    },
+                }
+            ),
+            wrap_glass(
+                {
+                    "type": "custom:button-card",
+                    "template": "flux_icon_button",
+                    "icon": "mdi:dots-horizontal",
+                    "tap_action": {"action": "none"},
+                    "styles": {"card": [{"opacity": "0.55"}]},
+                    "grid_options": {"columns": 2},
+                }
+            ),
+        ],
+        "grid_options": {"columns": 12},
+    }
 
 
 def build_room_status_chips_auto(room: dict) -> dict:
@@ -128,23 +177,26 @@ def build_room_features_row(room: dict) -> dict:
 
 
 def build_room_subnav(room: dict, *, active: str = "room") -> dict:
-    """Room / Grid / Camera segmented sub-navigation."""
+    """Room / Climate / Lights segmented pills — active pill shows its label."""
     path = room["path"]
 
     def chip(content: str, icon: str, nav_path: str, tab: str) -> dict:
         is_active = active == tab
-        return {
+        c: dict = {
             "type": "template",
             "icon": icon,
-            "content": content,
             "icon_color": "pink" if is_active else "disabled",
             "tap_action": {"action": "navigate", "navigation_path": nav_path},
         }
+        if is_active:
+            # Reference: selected pill expands with a label, others icon-only.
+            c["content"] = content
+        return c
 
     chips = [
         chip("Room", "mdi:home", room_navigation_path(path), "room"),
-        chip("Grid", "mdi:view-grid", room_grid_navigation_path(path), "grid"),
-        chip("Camera", "mdi:cctv", room_camera_navigation_path(path), "camera"),
+        chip("Climate", "mdi:thermostat", room_climate_navigation_path(path), "climate"),
+        chip("Lights", "mdi:lightbulb-group", room_grid_navigation_path(path), "lights"),
     ]
     nav_card: dict = {
         "type": "custom:mushroom-chips-card",
@@ -240,16 +292,7 @@ def build_room_lights_section(room: dict) -> dict:
 def build_room_detail_page(room: dict, *, garage_doors: list[dict] | None = None) -> dict:
     """Full room detail matching ElementZoom reference (Living screenshot)."""
     cards: list[dict] = [
-        _title(room.get("card_name") or room["name"], room.get("subtitle", "")),
-        {
-            "type": "custom:button-card",
-            "template": "flux_action",
-            "name": "Back to Rooms",
-            "icon": "mdi:arrow-left",
-            "label": "All areas",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/rooms"},
-            "grid_options": {"columns": 12},
-        },
+        build_room_top_bar(room),
         build_room_status_chips_auto(room),
         build_room_features_row(room),
         build_room_subnav(room, active="room"),
@@ -261,4 +304,109 @@ def build_room_detail_page(room: dict, *, garage_doors: list[dict] | None = None
     fab = build_room_light_groups_fab(room)
     if fab:
         cards.append(fab)
+    return {"type": "grid", "cards": cards}
+
+
+def build_room_climate_page(room: dict, *, active_tab: str = "climate") -> dict:
+    """Climate subview — reference layout stubs (Control card + Climate History)."""
+    climate_entity = room.get("climate_entity")
+    temp = room.get("temperature_entity")
+    humidity = room.get("humidity_entity")
+
+    cards: list[dict] = [
+        build_room_top_bar(room),
+        build_room_status_chips_auto(room),
+        build_room_features_row(room),
+        build_room_subnav(room, active=active_tab),
+        {
+            "type": "grid",
+            "columns": 12,
+            "square": False,
+            "cards": [
+                wrap_title(
+                    {
+                        "type": "custom:mushroom-title-card",
+                        "title": "Control",
+                        "grid_options": {"columns": 7},
+                    }
+                ),
+                wrap_glass(
+                    {
+                        "type": "custom:mushroom-chips-card",
+                        "alignment": "end",
+                        "chips": [
+                            {
+                                "type": "template",
+                                "icon": "mdi:water-percent",
+                                "icon_color": "red",
+                                "content": (
+                                    "{{ states('" + humidity + "') | round(1) }}% - Humid"
+                                    if humidity
+                                    else "— % Humid"
+                                ),
+                            }
+                        ],
+                        "grid_options": {"columns": 5},
+                    }
+                ),
+            ],
+            "grid_options": {"columns": 12},
+        },
+    ]
+
+    if climate_entity:
+        cards.append(
+            wrap_glass(
+                {
+                    "type": "thermostat",
+                    "entity": climate_entity,
+                    "features": [{"type": "climate-hvac-modes"}],
+                    "grid_options": {"columns": 12},
+                }
+            )
+        )
+    else:
+        # Stub — replaced with a live thermostat card once climate_entity is set in rooms.yaml.
+        cards.append(
+            wrap_glass(
+                {
+                    "type": "custom:button-card",
+                    "template": "flux_glass",
+                    "show_icon": True,
+                    "show_name": True,
+                    "show_label": True,
+                    "icon": "mdi:thermostat",
+                    "name": room.get("card_name") or room["name"],
+                    "label": (
+                        "[[[ return states["
+                        + repr(temp)
+                        + "] ? `Heat/Cool · ${states["
+                        + repr(temp)
+                        + "].state} °C` : 'Heat/Cool · no sensor'; ]]]"
+                        if temp
+                        else "Heat/Cool — set climate_entity in rooms.yaml"
+                    ),
+                    "styles": {
+                        "card": [{"min-height": "140px"}, {"opacity": "0.75"}],
+                        "name": [{"font-size": "28px"}, {"font-weight": "700"}],
+                        "label": [{"font-size": "13px"}],
+                    },
+                    "grid_options": {"columns": 12},
+                }
+            )
+        )
+
+    cards.append(_title("Climate History", ""))
+    cards.append(
+        wrap_glass(
+            {
+                "type": "markdown",
+                "content": (
+                    "Climate history will appear here once a `climate_entity` "
+                    "is configured for this room in `rooms.yaml`."
+                ),
+                "grid_options": {"columns": 12},
+            }
+        )
+    )
     return {"type": "grid", "cards": cards}

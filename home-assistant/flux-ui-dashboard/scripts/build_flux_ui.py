@@ -22,7 +22,7 @@ from flux_view_builders import (
     build_room_grid_page,
     build_scenes_view,
 )
-from flux_room_detail import build_room_detail_page
+from flux_room_detail import build_room_climate_page, build_room_detail_page
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
     GLASS_CARD_MOD,
@@ -35,6 +35,7 @@ from flux_navbar import (
     URL_PREFIX,
     navbar_section,
     room_camera_view_path,
+    room_climate_view_path,
     room_grid_view_path,
     room_view_path,
 )
@@ -449,10 +450,21 @@ def build_config(
         )
         views.append(
             flux_view(
-                title=f"{room.get('card_name') or room['name']} — Grid",
+                title=f"{room.get('card_name') or room['name']} — Lights",
                 path=room_grid_view_path(slug),
-                icon="mdi:view-grid",
-                sections=[build_room_grid_page(room, active_tab="grid")],
+                icon="mdi:lightbulb-group",
+                sections=[build_room_grid_page(room, active_tab="lights")],
+                use_navbar_card=use_navbar_card,
+                subview=True,
+                back_path=back,
+            )
+        )
+        views.append(
+            flux_view(
+                title=f"{room.get('card_name') or room['name']} — Climate",
+                path=room_climate_view_path(slug),
+                icon="mdi:thermostat",
+                sections=[build_room_climate_page(room, active_tab="climate")],
                 use_navbar_card=use_navbar_card,
                 subview=True,
                 back_path=back,

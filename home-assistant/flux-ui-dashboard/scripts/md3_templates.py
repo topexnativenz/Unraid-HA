@@ -324,6 +324,36 @@ BUTTON_CARD_TEMPLATES: dict = {
             },
         ],
     },
+    "flux_icon_button": {
+        "template": "flux_glass",
+        "show_icon": True,
+        "show_name": False,
+        "show_label": False,
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i'"},
+                {"grid-template-columns": "1fr"},
+                {"justify-items": "center"},
+                {"align-items": "center"},
+            ],
+            "img_cell": [
+                {"background-color": "rgba(208, 188, 255, 0.16)"},
+                {"border-radius": "999px"},
+                {"width": "40px"},
+                {"height": "40px"},
+            ],
+            "icon": [{"width": "20px"}, {"color": "var(--md-sys-color-on-surface)"}],
+            "card": [
+                {"padding": "6px"},
+                {"min-height": "52px"},
+                {"max-height": "52px"},
+                {"border-radius": "999px"},
+                {"display": "flex"},
+                {"align-items": "center"},
+                {"justify-content": "center"},
+            ],
+        },
+    },
     "flux_feature": {
         "template": "flux_glass",
         "show_icon": True,
