@@ -31,6 +31,7 @@ def verify_build(path: Path) -> list[str]:
 
     raw = json.loads(path.read_text())
     config = raw["data"]["config"]
+    is_tablet = raw.get("key") == "lovelace.flux_ui_tablet" or "tablet" in path.name
     views = config.get("views", [])
     paths = {v.get("path") for v in views}
     for required in ("overview", "rooms", "scenes", "cameras", "lights"):
@@ -53,18 +54,49 @@ def verify_build(path: Path) -> list[str]:
             or '"template": "flux_overview_tab"' in overview_blob
         ),
     }
-    if len(overview_sections) < 6:
-        if not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(overview_sections) < 6:
+
+    if is_tablet:
+        if overview.get("type") != "custom:grid-layout":
+            errors.append("Tablet overview must use type custom:grid-layout")
+        cards = overview.get("cards") or []
+        if len(cards) < 6:
+            errors.append(f"Tablet overview expected >= 6 cards, got {len(cards)}")
+        for needle in (
+            "weather-forecast",
+            "history-graph",
+            "/flux-ui-tablet/overview",
+            '"label": "Home"',
+            '"label": "Rooms"',
+            '"label": "Camera"',
+            '"label": "More"',
+        ):
+            if needle not in blob:
+                errors.append(f"Tablet build missing {needle}")
+        if "custom:navbar-card" not in overview_blob and "mushroom-chips-card" not in overview_blob:
+            errors.append("Tablet overview missing bottom navbar card")
+    else:
+        if len(overview_sections) < 6:
+            if not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(overview_sections) < 6:
+                errors.append(
+                    f"Expected at least 6 overview sections (vertical layout), got {len(overview_sections)}"
+                )
+            elif usage["has_simple_tabs"] and len(overview_sections) < 3:
+                errors.append(
+                    f"Expected at least 3 overview sections with tabs layout, got {len(overview_sections)}"
+                )
+            elif usage["has_native_tabs"] and len(overview_sections) < 3:
+                errors.append(
+                    f"Expected at least 3 overview sections with native tabs, got {len(overview_sections)}"
+                )
+        if "Home status" not in blob:
+            errors.append("Missing Phase 3 home status section")
+        if not usage["has_simple_tabs"] and not usage["has_native_tabs"]:
             errors.append(
-                f"Expected at least 6 overview sections (vertical layout), got {len(overview_sections)}"
+                "Missing ElementZoom overview tabs — expected custom:simple-tabs or native tab bar"
             )
-        elif usage["has_simple_tabs"] and len(overview_sections) < 3:
+        if usage["has_native_tabs"] and "input_select.flux_ui_overview_tab" not in overview_blob:
             errors.append(
-                f"Expected at least 3 overview sections with tabs layout, got {len(overview_sections)}"
-            )
-        elif usage["has_native_tabs"] and len(overview_sections) < 3:
-            errors.append(
-                f"Expected at least 3 overview sections with native tabs, got {len(overview_sections)}"
+                "Native tabs use input_select.flux_ui_overview_tab — deploy packages/flux_ui_overview.yaml"
             )
 
     if overview.get("theme") != "flux-ui-md3":
@@ -73,6 +105,11 @@ def verify_build(path: Path) -> list[str]:
     for view in views:
         if view.get("theme") != "flux-ui-md3":
             errors.append(f"View {view.get('path')} missing flux-ui-md3 theme")
+        if view.get("type") == "custom:grid-layout":
+            cards_blob = json.dumps(view.get("cards") or [])
+            if "navbar-card" not in cards_blob and "mushroom-chips-card" not in cards_blob:
+                errors.append(f"View {view.get('path')} missing navbar card")
+            continue
         sections = view.get("sections") or []
         if sections:
             tail = json.dumps(sections[-1])
@@ -92,7 +129,7 @@ def verify_build(path: Path) -> list[str]:
     for name in ("flux_glass", "flux_action", "flux_light", "flux_room", "flux_feature"):
         if name not in templates:
             errors.append(f"Missing button_card template: {name}")
-    if usage["has_native_tabs"] and "flux_overview_tab" not in templates:
+    if not is_tablet and usage["has_native_tabs"] and "flux_overview_tab" not in templates:
         errors.append("Missing button_card template: flux_overview_tab")
     if "flux_hero" not in templates and "flux_greeting" not in templates:
         errors.append("Missing flux_hero or flux_greeting template")
@@ -113,29 +150,20 @@ def verify_build(path: Path) -> list[str]:
         if light in blob:
             found_lights.add(light)
 
-    if found_gate != len(entities_cfg["quick_actions"]["gate"]):
-        errors.append(f"Gate entities: found {found_gate}, expected {len(entities_cfg['quick_actions']['gate'])}")
-    if found_garage_sensors != len(entities_cfg["quick_actions"]["garage"]):
-        errors.append(
-            f"Garage Tapo sensors: found {found_garage_sensors}, "
-            f"expected {len(entities_cfg['quick_actions']['garage'])}"
-        )
-    if found_lights != expected_lights:
-        missing = expected_lights - found_lights
-        errors.append(f"Missing favourite lights: {sorted(missing)}")
-
-    if "Home status" not in blob:
-        errors.append("Missing Phase 3 home status section")
-
-    if not usage["has_simple_tabs"] and not usage["has_native_tabs"]:
-        errors.append(
-            "Missing ElementZoom overview tabs — expected custom:simple-tabs or native tab bar"
-        )
-
-    if usage["has_native_tabs"] and "input_select.flux_ui_overview_tab" not in overview_blob:
-        errors.append(
-            "Native tabs use input_select.flux_ui_overview_tab — deploy packages/flux_ui_overview.yaml"
-        )
+    # Mobile overview embeds gate/garage/favourites; tablet home uses rooms/cameras instead.
+    if not is_tablet:
+        if found_gate != len(entities_cfg["quick_actions"]["gate"]):
+            errors.append(
+                f"Gate entities: found {found_gate}, expected {len(entities_cfg['quick_actions']['gate'])}"
+            )
+        if found_garage_sensors != len(entities_cfg["quick_actions"]["garage"]):
+            errors.append(
+                f"Garage Tapo sensors: found {found_garage_sensors}, "
+                f"expected {len(entities_cfg['quick_actions']['garage'])}"
+            )
+        if found_lights != expected_lights:
+            missing = expected_lights - found_lights
+            errors.append(f"Missing favourite lights: {sorted(missing)}")
 
     if "_flux_ui" in blob:
         errors.append("Invalid lovelace root key _flux_ui — remove from build output")
@@ -161,7 +189,7 @@ def verify_build(path: Path) -> list[str]:
     if '"template": "flux_light"' not in blob:
         errors.append("Missing flux_light toggle tiles")
 
-    if '"template": "flux_door"' not in blob:
+    if not is_tablet and '"template": "flux_door"' not in blob:
         errors.append("Missing flux_door tiles for garage/shed quick actions")
 
     if "states['binary_sensor." in blob and "isDoorOpen" in blob:

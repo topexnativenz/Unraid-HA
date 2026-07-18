@@ -37,11 +37,14 @@ python3 home-assistant/flux-ui-dashboard/scripts/verify_completeness.py
 bash home-assistant/scripts/run_all_e2e.sh
 ```
 
-## Phase 4 (next)
+## Phase 4 (in progress)
+- **Tablet 16:9 overview** — `custom:grid-layout` ElementZoom landscape home
+  (greeting + climate graph + forecast + calendar + room row + cameras + bottom nav)
+  Dashboard: `/flux-ui-tablet/overview` (`build_flux_ui.py --tablet`)
 - Camera overlay on garage motion
 - Media-aware layout (Spotify now playing)
 - Material You dynamic colours
-- Tablet layout-card dashboard
 - Alarm / weather priority header
 - Wire room feature row entities (Presence / Movie / Adaptive)
 - Populate `room_sensors.yaml` via live discovery
+- Populate `cameras.yaml` with Eufy feeds + light chips

@@ -59,6 +59,32 @@ VIEW_CARD_MOD = {
     )
 }
 
+# 15.6" 1920×1080 landscape — full-bleed, no phone max-width.
+TABLET_VIEW_CARD_MOD = {
+    "style": (
+        "ha-view {\n"
+        "  background: center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n"
+        "}\n"
+        "#view {\n"
+        "  background: transparent !important;\n"
+        "  max-width: none;\n"
+        "  width: 100%;\n"
+        "  margin: 0;\n"
+        "  padding-top: 4px;\n"
+        "  padding-left: 8px;\n"
+        "  padding-right: 8px;\n"
+        "  padding-bottom: 96px;\n"
+        "}\n"
+        "@keyframes flux-door-pulse {\n"
+        "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"
+        "  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n"
+        "}\n"
+        "hui-view-sections {\n"
+        "  padding-bottom: 88px;\n"
+        "}\n"
+    )
+}
+
 BUTTON_CARD_TEMPLATES: dict = {
     "flux_glass": {
         "styles": {

@@ -3,6 +3,14 @@
 
 weather: weather.forecast_home
 
+# Optional entities for the 16:9 tablet climate panel (ElementZoom landscape home).
+# Leave blank to use weather.forecast_home only; set when house sensors exist.
+tablet:
+  # indoor_temperature: sensor.house_average_temperature
+  # outdoor_temperature: sensor.outdoor_temperature
+  # climate_entity: climate.heat_pump
+  outdoor_temperature: weather.forecast_home
+
 quick_actions:
   gate:
     - entity: lock.gate_intercom_gate_open

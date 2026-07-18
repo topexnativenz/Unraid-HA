@@ -5,6 +5,13 @@ from __future__ import annotations
 from md3_templates import GLASS_CARD_MOD
 
 URL_PREFIX = "/flux-ui"
+TABLET_URL_PREFIX = "/flux-ui-tablet"
+
+
+def set_url_prefix(prefix: str) -> None:
+    """Point navbar + room navigation at mobile (/flux-ui) or tablet (/flux-ui-tablet)."""
+    global URL_PREFIX
+    URL_PREFIX = prefix.rstrip("/") or "/flux-ui"
 
 
 def room_view_path(room_slug: str) -> str:
@@ -67,25 +74,26 @@ ha-ripple {
 
 def flux_routes() -> list[dict]:
     """Primary nav routes — same structure as ElementZoom Flux mobile."""
+    prefix = URL_PREFIX
     return [
         {
-            "url": f"{URL_PREFIX}/overview",
+            "url": f"{prefix}/overview",
             "label": "Home",
             "icon": "mdi:home-outline",
             "icon_selected": "mdi:home",
         },
         {
-            "url": f"{URL_PREFIX}/rooms",
+            "url": f"{prefix}/rooms",
             "label": "Rooms",
             "icon": "mdi:sofa-outline",
             "icon_selected": "mdi:sofa",
             "selected": (
-                "[[[ return window.location.pathname === '/flux-ui/rooms' "
-                "|| window.location.pathname.startsWith('/flux-ui/room-'); ]]]"
+                f"[[[ return window.location.pathname === '{prefix}/rooms' "
+                f"|| window.location.pathname.startsWith('{prefix}/room-'); ]]]"
             ),
         },
         {
-            "url": f"{URL_PREFIX}/scenes",
+            "url": f"{prefix}/scenes",
             "label": "Scenes",
             "icon": "mdi:layers-outline",
             "icon_selected": "mdi:layers",
@@ -94,17 +102,17 @@ def flux_routes() -> list[dict]:
                 {
                     "icon": "mdi:lightbulb-group-outline",
                     "label": "Scenes",
-                    "url": f"{URL_PREFIX}/scenes",
+                    "url": f"{prefix}/scenes",
                 },
                 {
                     "icon": "mdi:palette-outline",
                     "label": "Lights",
-                    "url": f"{URL_PREFIX}/lights",
+                    "url": f"{prefix}/lights",
                 },
             ],
         },
         {
-            "url": f"{URL_PREFIX}/cameras",
+            "url": f"{prefix}/cameras",
             "label": "Camera",
             "icon": "mdi:cctv",
             "icon_selected": "mdi:cctv",

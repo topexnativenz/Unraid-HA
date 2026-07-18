@@ -302,6 +302,41 @@ def build_config(
     config = raw["data"]["config"]
     blob = json.dumps(config)
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
+
+    if tablet:
+        if overview.get("type") != "custom:grid-layout":
+            print("\nERROR: Tablet overview must be custom:grid-layout.", file=sys.stderr)
+            raise SystemExit(1)
+        cards = overview.get("cards") or []
+        if len(cards) < 6:
+            print(
+                f"\nERROR: Tablet overview has {len(cards)} cards — expected greeting/"
+                "climate/forecast/calendar/rooms/cameras/navbar.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        for needle in (
+            "custom:navbar-card",
+            "weather-forecast",
+            "history-graph",
+            "/flux-ui-tablet/overview",
+            '"template": "flux_room"',
+        ):
+            if needle not in blob:
+                print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
+                raise SystemExit(1)
+        if "flux_hero" not in blob:
+            print("\nERROR: Tablet build missing flux_hero greeting.", file=sys.stderr)
+            raise SystemExit(1)
+        if use_kiosk and "kiosk_mode" not in config:
+            print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
+            raise SystemExit(1)
+        print(
+            f"Built tablet config: grid-layout overview, {len(cards)} cards, "
+            f"{len(config['views'])} views"
+        )
+        return config
+
     sections = len(overview.get("sections", []))
     usage = overview_tab_usage(config)
     min_sections = 3 if usage["has_simple_tabs"] or usage["has_native_tabs"] else 6

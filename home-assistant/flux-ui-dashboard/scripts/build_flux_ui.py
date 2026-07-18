@@ -26,19 +26,23 @@ from flux_room_detail import build_room_climate_page, build_room_detail_page
 from md3_templates import (
     BUTTON_CARD_TEMPLATES,
     GLASS_CARD_MOD,
+    TABLET_VIEW_CARD_MOD,
     TITLE_CARD_MOD,
     VIEW_CARD_MOD,
     wrap_glass,
     wrap_title,
 )
 from flux_navbar import (
+    TABLET_URL_PREFIX,
     URL_PREFIX,
     navbar_section,
     room_camera_view_path,
     room_climate_view_path,
     room_grid_view_path,
     room_view_path,
+    set_url_prefix,
 )
+from flux_tablet_overview import build_tablet_overview_view
 from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
@@ -132,17 +136,20 @@ def flux_view(
     use_navbar_card: bool,
     subview: bool = False,
     back_path: str | None = None,
+    tablet: bool = False,
 ) -> dict:
     view: dict = {
         "title": title,
         "icon": icon,
         "path": path,
         "type": "sections",
-        "max_columns": 2,
+        "max_columns": 4 if tablet else 2,
         "theme": "flux-ui-md3",
-        "card_mod": VIEW_CARD_MOD,
+        "card_mod": TABLET_VIEW_CARD_MOD if tablet else VIEW_CARD_MOD,
         "sections": sections + [navbar_section(use_navbar_card=use_navbar_card)],
     }
+    if tablet:
+        view["dense_section_placement"] = True
     if subview:
         view["subview"] = True
     if back_path:
@@ -371,6 +378,35 @@ def build_config(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    tablet: bool = False,
+) -> dict:
+    # Ensure room tiles + navbar resolve to the correct dashboard URL prefix.
+    set_url_prefix(TABLET_URL_PREFIX if tablet else "/flux-ui")
+    try:
+        return _build_config_inner(
+            climate_section=climate_section,
+            camera_section=camera_section,
+            use_navbar_card=use_navbar_card,
+            use_kiosk=use_kiosk,
+            use_auto_entities=use_auto_entities,
+            use_simple_tabs=use_simple_tabs,
+            use_calendar_pro=use_calendar_pro,
+            tablet=tablet,
+        )
+    finally:
+        set_url_prefix("/flux-ui")
+
+
+def _build_config_inner(
+    *,
+    climate_section: dict | None = None,
+    camera_section: dict | None = None,
+    use_navbar_card: bool = True,
+    use_kiosk: bool = True,
+    use_auto_entities: bool = True,
+    use_simple_tabs: bool = True,
+    use_calendar_pro: bool = True,
+    tablet: bool = False,
 ) -> dict:
     cfg = load_entities()
     weather = cfg.get("weather", "weather.forecast_home")
@@ -380,59 +416,78 @@ def build_config(
         else climate_fallback_section(weather)
     )
 
-    overview = build_overview_sections(
-        cfg,
-        weather,
-        climate,
-        use_auto_entities=use_auto_entities,
-        use_simple_tabs=use_simple_tabs,
-        use_calendar_pro=use_calendar_pro,
-    )
+    if tablet:
+        overview_view = build_tablet_overview_view(
+            cfg,
+            weather,
+            climate_section=climate if climate_section else None,
+            use_navbar_card=use_navbar_card,
+            use_calendar_pro=use_calendar_pro,
+            use_auto_entities=use_auto_entities,
+        )
+        views: list[dict] = [overview_view]
+    else:
+        overview = build_overview_sections(
+            cfg,
+            weather,
+            climate,
+            use_auto_entities=use_auto_entities,
+            use_simple_tabs=use_simple_tabs,
+            use_calendar_pro=use_calendar_pro,
+        )
+        views = [
+            flux_view(
+                title="Overview",
+                path="overview",
+                icon="mdi:home",
+                sections=overview,
+                use_navbar_card=use_navbar_card,
+            ),
+        ]
 
-    views: list[dict] = [
-        flux_view(
-            title="Overview",
-            path="overview",
-            icon="mdi:home",
-            sections=overview,
-            use_navbar_card=use_navbar_card,
-        ),
-        flux_view(
-            title="Rooms",
-            path="rooms",
-            icon="mdi:sofa",
-            sections=[build_rooms_index(cfg)],
-            use_navbar_card=use_navbar_card,
-        ),
-        flux_view(
-            title="Scenes",
-            path="scenes",
-            icon="mdi:layers",
-            sections=[build_scenes_view(cfg, use_auto_entities=use_auto_entities)],
-            use_navbar_card=use_navbar_card,
-        ),
-        flux_view(
-            title="Lights",
-            path="lights",
-            icon="mdi:lightbulb-group",
-            sections=[build_lights_view(cfg, use_auto_entities=use_auto_entities)],
-            use_navbar_card=use_navbar_card,
-        ),
-        flux_view(
-            title="Cameras",
-            path="cameras",
-            icon="mdi:cctv",
-            sections=[
-                build_cameras_view(
-                    cfg,
-                    camera_section,
-                    use_auto_entities=use_auto_entities,
-                    apply_md3=apply_md3_to_cards,
-                )
-            ],
-            use_navbar_card=use_navbar_card,
-        ),
-    ]
+    views.extend(
+        [
+            flux_view(
+                title="Rooms",
+                path="rooms",
+                icon="mdi:sofa",
+                sections=[build_rooms_index(cfg)],
+                use_navbar_card=use_navbar_card,
+                tablet=tablet,
+            ),
+            flux_view(
+                title="Scenes",
+                path="scenes",
+                icon="mdi:layers",
+                sections=[build_scenes_view(cfg, use_auto_entities=use_auto_entities)],
+                use_navbar_card=use_navbar_card,
+                tablet=tablet,
+            ),
+            flux_view(
+                title="Lights",
+                path="lights",
+                icon="mdi:lightbulb-group",
+                sections=[build_lights_view(cfg, use_auto_entities=use_auto_entities)],
+                use_navbar_card=use_navbar_card,
+                tablet=tablet,
+            ),
+            flux_view(
+                title="Cameras",
+                path="cameras",
+                icon="mdi:cctv",
+                sections=[
+                    build_cameras_view(
+                        cfg,
+                        camera_section,
+                        use_auto_entities=use_auto_entities,
+                        apply_md3=apply_md3_to_cards,
+                    )
+                ],
+                use_navbar_card=use_navbar_card,
+                tablet=tablet,
+            ),
+        ]
+    )
 
     for room in cfg.get("rooms", []):
         slug = room["path"]
@@ -446,6 +501,7 @@ def build_config(
                 use_navbar_card=use_navbar_card,
                 subview=True,
                 back_path=back,
+                tablet=tablet,
             )
         )
         views.append(
@@ -457,6 +513,7 @@ def build_config(
                 use_navbar_card=use_navbar_card,
                 subview=True,
                 back_path=back,
+                tablet=tablet,
             )
         )
         views.append(
@@ -468,6 +525,7 @@ def build_config(
                 use_navbar_card=use_navbar_card,
                 subview=True,
                 back_path=back,
+                tablet=tablet,
             )
         )
         views.append(
@@ -479,11 +537,12 @@ def build_config(
                 use_navbar_card=use_navbar_card,
                 subview=True,
                 back_path=back,
+                tablet=tablet,
             )
         )
 
     out: dict = {
-        "title": "Flux UI",
+        "title": "Flux UI 16:9" if tablet else "Flux UI",
         "button_card_templates": copy.deepcopy(BUTTON_CARD_TEMPLATES),
         "views": views,
     }
@@ -564,23 +623,26 @@ def main() -> None:
         use_auto_entities=not args.no_auto_entities,
         use_simple_tabs=not args.no_simple_tabs,
         use_calendar_pro=not args.no_calendar_pro,
+        tablet=args.tablet,
     )
-    usage = overview_tab_usage(config)
-    print(
-        f"Overview tabs: engine={tab_engine(cfg)} "
-        f"simple-tabs={usage['has_simple_tabs']} native={usage['has_native_tabs']}"
-    )
-
-    storage_key = "lovelace.flux_ui"
     if args.tablet:
-        # 16:9 landscape (15.6" 1920x1080 wall tablet): same views/functions,
-        # sections flow into multiple columns across the width.
-        storage_key = "lovelace.flux_ui_tablet"
+        print("Tablet overview: custom:grid-layout (ElementZoom 16:9 landscape)")
+    else:
+        usage = overview_tab_usage(config)
+        print(
+            f"Overview tabs: engine={tab_engine(cfg)} "
+            f"simple-tabs={usage['has_simple_tabs']} native={usage['has_native_tabs']}"
+        )
+
+    storage_key = "lovelace.flux_ui_tablet" if args.tablet else "lovelace.flux_ui"
+    if args.tablet and args.output == ROOT / "generated" / "lovelace.flux_ui.json":
+        args.output = ROOT / "generated" / "lovelace.flux_ui_tablet.json"
+
+    # Non-overview section views: honour --tablet-columns override.
+    if args.tablet and args.tablet_columns != 4:
         for view in config["views"]:
-            view["max_columns"] = args.tablet_columns
-            view["dense_section_placement"] = True
-        if args.output == ROOT / "generated" / "lovelace.flux_ui.json":
-            args.output = ROOT / "generated" / "lovelace.flux_ui_tablet.json"
+            if view.get("type") == "sections":
+                view["max_columns"] = args.tablet_columns
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
@@ -591,10 +653,11 @@ def main() -> None:
     }
     args.output.write_text(json.dumps(payload, indent=2))
     overview = next(v for v in config["views"] if v["path"] == "overview")
-    print(
-        f"Wrote {args.output} ({len(config['views'])} views, "
-        f"{len(overview['sections'])} overview sections)"
-    )
+    if overview.get("type") == "custom:grid-layout":
+        detail = f"{len(overview.get('cards', []))} overview cards (grid-layout)"
+    else:
+        detail = f"{len(overview.get('sections', []))} overview sections"
+    print(f"Wrote {args.output} ({len(config['views'])} views, {detail})")
 
 
 if __name__ == "__main__":
