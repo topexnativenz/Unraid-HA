@@ -530,6 +530,11 @@ def main() -> None:
         action="store_true",
         help="Use mushroom calendar fallback instead of calendar-card-pro Events tab",
     )
+    parser.add_argument(
+        "--tablet",
+        action="store_true",
+        help="16:9 landscape build — 3-column sections, storage key lovelace.flux_ui_tablet",
+    )
     args = parser.parse_args()
 
     climate_section = None
@@ -559,11 +564,22 @@ def main() -> None:
         f"Overview tabs: engine={tab_engine(cfg)} "
         f"simple-tabs={usage['has_simple_tabs']} native={usage['has_native_tabs']}"
     )
+
+    storage_key = "lovelace.flux_ui"
+    if args.tablet:
+        # 16:9 landscape (wall tablet): same views/functions, sections flow into 3 columns.
+        storage_key = "lovelace.flux_ui_tablet"
+        for view in config["views"]:
+            view["max_columns"] = 3
+            view["dense_section_placement"] = True
+        if args.output == ROOT / "generated" / "lovelace.flux_ui.json":
+            args.output = ROOT / "generated" / "lovelace.flux_ui_tablet.json"
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,
         "minor_version": 1,
-        "key": "lovelace.flux_ui",
+        "key": storage_key,
         "data": {"config": config},
     }
     args.output.write_text(json.dumps(payload, indent=2))

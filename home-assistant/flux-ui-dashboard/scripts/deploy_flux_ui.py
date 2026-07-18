@@ -37,6 +37,12 @@ URL_PATH = "flux-ui"
 STORAGE_KEY = "lovelace.flux_ui"
 MOBILE_STORAGE = "lovelace.mobile_home"
 
+# 16:9 landscape (wall tablet) variant — same functions, 3-column sections.
+TABLET_URL_PATH = "flux-ui-tablet"
+TABLET_STORAGE_KEY = "lovelace.flux_ui_tablet"
+TABLET_TITLE = "Flux UI 16:9"
+TABLET_DASHBOARD_ID = "flux_ui_tablet"
+
 
 def copy_packages(mount: str) -> None:
     src = ROOT / "packages"
@@ -117,25 +123,59 @@ def write_storage(mount: str, config: dict) -> None:
     (storage_dir / STORAGE_KEY).write_text(json.dumps(payload, indent=2))
     print(f"  wrote .storage/{STORAGE_KEY}")
 
+    _register_dashboard(
+        storage_dir,
+        dashboard_id="flux_ui",
+        url_path=URL_PATH,
+        title="Flux UI",
+        icon="mdi:view-dashboard-variant",
+    )
+
+
+def write_tablet_storage(mount: str, config: dict) -> None:
+    storage_dir = Path(mount) / ".storage"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+
+    payload = {
+        "version": 1,
+        "minor_version": 1,
+        "key": TABLET_STORAGE_KEY,
+        "data": {"config": config},
+    }
+    (storage_dir / TABLET_STORAGE_KEY).write_text(json.dumps(payload, indent=2))
+    print(f"  wrote .storage/{TABLET_STORAGE_KEY}")
+
+    _register_dashboard(
+        storage_dir,
+        dashboard_id=TABLET_DASHBOARD_ID,
+        url_path=TABLET_URL_PATH,
+        title=TABLET_TITLE,
+        icon="mdi:tablet-dashboard",
+    )
+
+
+def _register_dashboard(
+    storage_dir: Path, *, dashboard_id: str, url_path: str, title: str, icon: str
+) -> None:
     dashboards_file = storage_dir / "lovelace_dashboards"
     if dashboards_file.exists():
         raw = json.loads(dashboards_file.read_text())
         items = raw.get("data", {}).get("items", [])
-        if not any(i.get("url_path") == URL_PATH for i in items):
+        if not any(i.get("url_path") == url_path for i in items):
             items.append(
                 {
-                    "id": "flux_ui",
+                    "id": dashboard_id,
                     "show_in_sidebar": True,
-                    "icon": "mdi:view-dashboard-variant",
-                    "title": "Flux UI",
+                    "icon": icon,
+                    "title": title,
                     "require_admin": False,
                     "mode": "storage",
-                    "url_path": URL_PATH,
+                    "url_path": url_path,
                 }
             )
             raw["data"]["items"] = items
             dashboards_file.write_text(json.dumps(raw, indent=2))
-            print("  registered flux-ui in lovelace_dashboards")
+            print(f"  registered {url_path} in lovelace_dashboards")
 
 
 async def has_resource(token: str, ha_url: str, needle: str) -> bool:
@@ -241,9 +281,12 @@ def build_config(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    tablet: bool = False,
 ) -> dict:
-    out = ROOT / "generated" / "lovelace.flux_ui.json"
+    out = ROOT / "generated" / ("lovelace.flux_ui_tablet.json" if tablet else "lovelace.flux_ui.json")
     cmd = ["python3", str(BUILD), "--output", str(out)]
+    if tablet:
+        cmd.append("--tablet")
     if mobile_storage and mobile_storage.exists():
         cmd.extend(["--mobile-home-storage", str(mobile_storage)])
     if not use_navbar_card:
@@ -290,11 +333,37 @@ def build_config(
     return config
 
 
-async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
+async def ensure_tablet_dashboard(token: str, ha_url: str) -> None:
+    """Create the 16:9 dashboard entry live (sidebar shows without restart)."""
+    listed = (await ws_call(token, ha_url, [{"type": "lovelace/dashboards/list"}]))[0]
+    items = listed.get("result") or []
+    if any(d.get("url_path") == TABLET_URL_PATH for d in items):
+        return
     res = await ws_call(
         token,
         ha_url,
-        [{"type": "lovelace/config/save", "url_path": URL_PATH, "config": config}],
+        [
+            {
+                "type": "lovelace/dashboards/create",
+                "url_path": TABLET_URL_PATH,
+                "title": TABLET_TITLE,
+                "icon": "mdi:tablet-dashboard",
+                "show_in_sidebar": True,
+                "require_admin": False,
+                "mode": "storage",
+            }
+        ],
+    )
+    if not res[0].get("success"):
+        raise RuntimeError(f"Could not create {TABLET_URL_PATH} dashboard: {res[0].get('error')}")
+    print(f"  created dashboard {TABLET_URL_PATH} ({TABLET_TITLE})")
+
+
+async def save_dashboard(token: str, ha_url: str, config: dict, *, url_path: str = URL_PATH) -> None:
+    res = await ws_call(
+        token,
+        ha_url,
+        [{"type": "lovelace/config/save", "url_path": url_path, "config": config}],
     )
     if not res[0].get("success"):
         raise RuntimeError(f"lovelace/config/save failed: {res[0].get('error')}")
@@ -302,10 +371,16 @@ async def save_dashboard(token: str, ha_url: str, config: dict) -> None:
     verify = await ws_call(
         token,
         ha_url,
-        [{"type": "lovelace/config", "url_path": URL_PATH, "force": True}],
+        [{"type": "lovelace/config", "url_path": url_path, "force": True}],
     )
     if not verify[0].get("success"):
-        raise RuntimeError(f"Could not verify saved flux-ui config: {verify[0].get('error')}")
+        raise RuntimeError(f"Could not verify saved {url_path} config: {verify[0].get('error')}")
+
+    if url_path != URL_PATH:
+        views = verify[0]["result"].get("views", [])
+        cols = {v.get("max_columns") for v in views}
+        print(f"Live {url_path}: {len(views)} views, max_columns={sorted(c for c in cols if c)}")
+        return
 
     live_config = verify[0]["result"]
     usage = overview_tab_usage(live_config)
@@ -489,10 +564,35 @@ async def deploy_async(args: argparse.Namespace) -> int:
         use_calendar_pro=use_calendar_pro,
     )
 
+    tablet_config: dict | None = None
+    if not args.skip_tablet:
+        print("Building Flux UI 16:9 tablet variant…")
+        tablet_config = build_config(
+            mobile_storage,
+            use_navbar_card=use_navbar,
+            use_kiosk=use_kiosk,
+            use_auto_entities=use_auto_entities,
+            use_simple_tabs=use_simple_tabs,
+            use_calendar_pro=use_calendar_pro,
+            tablet=True,
+        )
+
     if mounted:
         write_storage(args.mount, config)
+        if tablet_config:
+            write_tablet_storage(args.mount, tablet_config)
 
     subprocess.run(["python3", str(VERIFY)], check=True)
+    if tablet_config:
+        subprocess.run(
+            [
+                "python3",
+                str(VERIFY),
+                "--json",
+                str(ROOT / "generated" / "lovelace.flux_ui_tablet.json"),
+            ],
+            check=True,
+        )
 
     if args.offline or not ha_up:
         if mounted:
@@ -508,6 +608,10 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     await save_dashboard(token, args.ha_url, config)
 
+    if tablet_config:
+        await ensure_tablet_dashboard(token, args.ha_url)
+        await save_dashboard(token, args.ha_url, tablet_config, url_path=TABLET_URL_PATH)
+
     subprocess.run(
         ["python3", str(VERIFY), "--live", "--ha-url", args.ha_url, "--token", token],
         check=True,
@@ -517,6 +621,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
         unmount(args.mount)
 
     print(f"Flux UI deployed at {args.ha_url}/{URL_PATH}/overview")
+    if tablet_config:
+        print(f"Flux UI 16:9 deployed at {args.ha_url}/{TABLET_URL_PATH}/overview")
     print("Kiosk mode: mobile header hidden on Flux UI (swipe left for sidebar, More → Profile).")
     print("Hard-refresh or reset Companion frontend cache if header still visible.")
     return 0
@@ -531,6 +637,11 @@ def main() -> int:
     parser.add_argument("--skip-mount", action="store_true")
     parser.add_argument("--skip-assets", action="store_true")
     parser.add_argument("--offline", action="store_true", help="Never push to HA API")
+    parser.add_argument(
+        "--skip-tablet",
+        action="store_true",
+        help="Skip the 16:9 tablet dashboard (flux-ui-tablet)",
+    )
     parser.add_argument(
         "--offline-ok",
         action="store_true",

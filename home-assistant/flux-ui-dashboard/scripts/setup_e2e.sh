@@ -31,3 +31,4 @@ fi
 
 echo ""
 echo "Done. Open: ${HA_URL:-http://192.168.1.239:8123}/flux-ui/overview"
+echo "16:9 tablet: ${HA_URL:-http://192.168.1.239:8123}/flux-ui-tablet/overview"
