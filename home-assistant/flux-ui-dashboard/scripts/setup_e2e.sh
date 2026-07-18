@@ -27,6 +27,13 @@ if [[ -z "${HA_TOKEN:-}" ]] && [[ ! -f "${HOME}/.cursor/mcp.json" ]] && [[ ! -f 
   python3 "$ROOT/scripts/deploy_flux_ui.py" --offline-ok "$@"
 else
   python3 "$ROOT/scripts/deploy_flux_ui.py" "$@"
+
+  # 16:9 tablet dashboard is the default for the wall-tablet HA user.
+  TABLET_DEFAULT_USER="${TABLET_DEFAULT_USER:-smarthome}"
+  echo "==> Setting default dashboard for HA user '${TABLET_DEFAULT_USER}' → flux-ui-tablet"
+  python3 "$ROOT/scripts/set_default_dashboard.py" \
+    --user "$TABLET_DEFAULT_USER" --dashboard flux-ui-tablet \
+    || echo "Warning: could not set default dashboard for '${TABLET_DEFAULT_USER}' (see above)."
 fi
 
 echo ""
