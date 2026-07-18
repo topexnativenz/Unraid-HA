@@ -2,9 +2,15 @@
 
 Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard). Installed **alongside** Mobile Home; does not modify `mobile-home` or its default panel settings.
 
-## Phase 3 (current): Context-aware overview + ElementZoom tabs
+## Phase 4 tablet (16:9)
 
-Overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) (`dashboard/mobile/views/01-overview.yaml`):
+`/flux-ui-tablet` follows the [ElementZoom MD3 Dynamic Tablet Dashboard](https://github.com/ElementZoom/Material-Design-3-Dynamic-Tablet-Dashboard) author framework (`dashboard.yaml` Overview grid): greeting · Climate/Toggles/Scenes `simple-tabs` · weather forecast · calendar · room selector · room cards · cameras · bottom nav.
+
+Build: `python3 scripts/build_flux_ui.py --tablet` → `generated/lovelace.flux_ui_tablet.json`.
+
+## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
+
+Mobile overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) (`dashboard/mobile/views/01-overview.yaml`):
 
 | Area | Description |
 |------|-------------|
