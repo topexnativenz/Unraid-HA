@@ -317,10 +317,14 @@ def build_config(
             raise SystemExit(1)
         for needle in (
             "custom:navbar-card",
+            "custom:simple-tabs",
             "weather-forecast",
             "history-graph",
             "/flux-ui-tablet/overview",
             '"template": "flux_room"',
+            "room_selector",
+            "calendar_notification",
+            "simple_tab",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)

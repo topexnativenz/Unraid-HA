@@ -1,17 +1,25 @@
-"""ElementZoom-style 16:9 tablet overview — landscape grid, not stretched mobile.
+"""ElementZoom MD3 tablet overview — author framework layout.
 
-Reference layout (Material Design 3 Dynamic Tablet Dashboard):
-  greeting | climate | weather forecast | calendar
-  rooms row (full width)
-  cameras row (full width)
-  bottom navbar (same Flux routes as mobile)
+Reference:
+  https://github.com/ElementZoom/Material-Design-3-Dynamic-Tablet-Dashboard
+  dashboard.yaml → Overview (custom:grid-layout)
+
+Author grid-template-areas:
+  greeting | simple_tab | weather | calendar_notification
+  room_selector | . | . | calendar_notification
+  rooms… | calendar_notification
+  cameras… | calendar_notification
+
+Flux keeps the floating bottom navbar (Home / Rooms / Scenes / Camera / More).
 """
 
 from __future__ import annotations
 
+from flux_action_builders import garage_action, lock_action, scene_action
 from flux_layouts import flux_room_tile
 from flux_navbar import URL_PREFIX, build_navbar_card
-from flux_overview_tabs import build_events_tab_cards
+from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
+from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from md3_templates import GLASS_CARD_MOD, TABLET_VIEW_CARD_MOD, wrap_glass
 
 
@@ -19,12 +27,36 @@ def _area(name: str) -> dict:
     return {"grid-area": name}
 
 
-def _glass_mod() -> dict:
-    return {"style": GLASS_CARD_MOD["style"]}
+def _transparent_title(title: str, *, size: str = "16px") -> dict:
+    return {
+        "type": "custom:mushroom-title-card",
+        "title": title,
+        "alignment": "start",
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  padding: 0 0 4px 0 !important;\n"
+                "}\n"
+                f".header {{ font-size: {size} !important; font-weight: 600 !important; }}\n"
+            )
+        },
+    }
 
 
-def _datetime_card(weather_entity: str) -> dict:
-    """Top-left: weekday/date/time + current conditions."""
+def _greeting_stack(weather_entity: str) -> dict:
+    """Author greeting column — date/time, weather pill, personalized hello."""
+    high_low = (
+        "{% set f = state_attr('" + weather_entity + "', 'forecast') %}"
+        "{% if f and f[0] is mapping %}"
+        "{{ f[0].get('temperature', '—') }}° / {{ f[0].get('templow', '—') }}°"
+        "{% else %}"
+        "{% set t = state_attr('" + weather_entity + "', 'temperature') %}"
+        "{{ t }}°"
+        "{% endif %}"
+    )
     return {
         "type": "vertical-stack",
         "view_layout": _area("greeting"),
@@ -32,13 +64,7 @@ def _datetime_card(weather_entity: str) -> dict:
             {
                 "type": "custom:mushroom-title-card",
                 "alignment": "start",
-                "title": "{{ now().strftime('%a %b %-d · %-I:%M %p') }}",
-                "subtitle": (
-                    "{% set t = state_attr('" + weather_entity + "', 'temperature') %}"
-                    "{% set c = states('" + weather_entity + "') | title %}"
-                    "{% set hi = state_attr('" + weather_entity + "', 'forecast') %}"
-                    "{{ t }}° · {{ c }}"
-                ),
+                "title": "{{ now().strftime('%a %b %-d - %-I:%M %p') }}",
                 "card_mod": {
                     "style": (
                         "ha-card {\n"
@@ -52,11 +78,6 @@ def _datetime_card(weather_entity: str) -> dict:
                         "  font-size: 22px !important;\n"
                         "  color: var(--md-sys-color-on-surface) !important;\n"
                         "}\n"
-                        ".subheader {\n"
-                        "  color: var(--md-sys-color-primary) !important;\n"
-                        "  font-weight: 600 !important;\n"
-                        "  font-size: 14px !important;\n"
-                        "}\n"
                         "@keyframes fluxFadeInDown {\n"
                         "  from { opacity: 0; transform: translateY(-8px); }\n"
                         "  to { opacity: 1; transform: translateY(0); }\n"
@@ -65,14 +86,65 @@ def _datetime_card(weather_entity: str) -> dict:
                 },
             },
             {
+                "type": "custom:mushroom-chips-card",
+                "alignment": "start",
+                "chips": [
+                    {
+                        "type": "template",
+                        "entity": weather_entity,
+                        "icon": "mdi:weather-partly-cloudy",
+                        "content": (
+                            "{% set t = state_attr('" + weather_entity + "', 'temperature') %}"
+                            "{% set c = states('" + weather_entity + "') | title %}"
+                            "{{ t }}°C, {{ c }}"
+                        ),
+                        "tap_action": {"action": "more-info", "entity": weather_entity},
+                        "card_mod": {
+                            "style": (
+                                "ha-card {\n"
+                                "  --chip-background: color-mix(in srgb, "
+                                "var(--md-sys-color-on-primary) 25%, transparent) !important;\n"
+                                "  --color: var(--md-sys-color-primary) !important;\n"
+                                "  border-radius: 24px !important;\n"
+                                "  font-weight: 600 !important;\n"
+                                "}\n"
+                            )
+                        },
+                    },
+                    {
+                        "type": "template",
+                        "content": high_low,
+                        "icon": "mdi:thermometer-lines",
+                        "tap_action": {"action": "more-info", "entity": weather_entity},
+                        "card_mod": {
+                            "style": (
+                                "ha-card {\n"
+                                "  --chip-background: color-mix(in srgb, "
+                                "var(--md-sys-color-on-primary) 25%, transparent) !important;\n"
+                                "  --color: var(--md-sys-color-primary) !important;\n"
+                                "  border-radius: 24px !important;\n"
+                                "  font-weight: 600 !important;\n"
+                                "}\n"
+                            )
+                        },
+                    },
+                ],
+                "card_mod": {
+                    "style": (
+                        "ha-card {\n"
+                        "  background: transparent !important;\n"
+                        "  box-shadow: none !important;\n"
+                        "  border: none !important;\n"
+                        "}\n"
+                        ".chip-container { gap: 8px !important; }\n"
+                    )
+                },
+            },
+            {
                 "type": "custom:button-card",
                 "template": "flux_hero",
                 "entity": weather_entity,
-                "icon": (
-                    "[[[ return entity.attributes?.condition "
-                    "? `weather-${entity.attributes.condition}` "
-                    ": 'mdi:weather-partly-cloudy'; ]]]"
-                ),
+                "show_icon": False,
                 "name": (
                     "[[[\n"
                     "  const h = new Date().getHours();\n"
@@ -83,18 +155,16 @@ def _datetime_card(weather_entity: str) -> dict:
                     "  return `${g}, ${user.name}!`;\n"
                     "]]]"
                 ),
-                "label": (
-                    "[[[\n"
-                    "  const temp = entity.attributes?.temperature;\n"
-                    "  const cond = entity.attributes?.friendly_name "
-                    "|| entity.attributes?.condition || '';\n"
-                    "  return temp != null ? `${cond} · ${temp}°` : String(cond);\n"
-                    "]]]"
-                ),
+                "label": "Live home status",
+                "tap_action": {
+                    "action": "navigate",
+                    "navigation_path": f"{URL_PREFIX}/active",
+                },
                 "styles": {
                     "card": [
-                        {"min-height": "88px"},
+                        {"min-height": "72px"},
                         {"height": "auto"},
+                        {"padding": "12px 16px"},
                     ],
                 },
             },
@@ -102,104 +172,52 @@ def _datetime_card(weather_entity: str) -> dict:
     }
 
 
-def _mode_pills() -> dict:
-    """Center-top segmented control — Climate active (ElementZoom simple_tab header)."""
-    prefix = URL_PREFIX
-    chips = [
-        ("Climate", "mdi:thermostat", f"{prefix}/overview", True),
-        ("Rooms", "mdi:sofa-outline", f"{prefix}/rooms", False),
-        ("Lights", "mdi:lightbulb-group-outline", f"{prefix}/lights", False),
-        ("Camera", "mdi:cctv", f"{prefix}/cameras", False),
-    ]
-    chip_cards: list[dict] = []
-    for label, icon, path, active in chips:
-        bg = (
-            "var(--md-sys-color-primary)"
-            if active
-            else "color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent)"
-        )
-        fg = (
-            "var(--md-sys-color-on-primary)"
-            if active
-            else "var(--md-sys-color-on-surface-variant)"
-        )
-        chip_cards.append(
-            {
-                "type": "template",
-                "icon": icon,
-                "content": label,
-                "icon_color": fg,
-                "tap_action": {"action": "navigate", "navigation_path": path},
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        f"  --chip-background: {bg} !important;\n"
-                        f"  --color: {fg} !important;\n"
-                        "  border-radius: 28px !important;\n"
-                        "  border: 1px solid color-mix(in srgb, "
-                        "var(--md-sys-color-outline-variant) 35%, transparent) !important;\n"
-                        "  min-height: 40px !important;\n"
-                        "  justify-content: center !important;\n"
-                        "}\n"
-                    )
-                },
-            }
-        )
-    return {
-        "type": "custom:mushroom-chips-card",
-        "alignment": "center",
-        "chips": chip_cards,
-        "card_mod": {
-            "style": (
-                "ha-card {\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  margin: 0 0 8px 0 !important;\n"
-                "}\n"
-                ".chip-container { gap: 8px !important; justify-content: center !important; }\n"
-            )
-        },
-    }
-
-
-def _climate_panel(cfg: dict, weather_entity: str, climate_section: dict | None) -> dict:
-    """Wide climate card: mode pills + temps + history graph + optional imported climate."""
+def _climate_tab_cards(cfg: dict, weather_entity: str) -> list[dict]:
     tablet = cfg.get("tablet") or {}
     indoor = tablet.get("indoor_temperature")
     outdoor = tablet.get("outdoor_temperature") or weather_entity
     climate_entity = tablet.get("climate_entity")
 
-    inner: list[dict] = [_mode_pills()]
-
-    temp_row: list[dict] = []
+    temp_cards: list[dict] = []
     if indoor:
-        temp_row.append(
-            wrap_glass(
-                {
-                    "type": "custom:mushroom-entity-card",
-                    "entity": indoor,
-                    "name": "Indoor",
-                    "icon": "mdi:home-thermometer",
-                    "layout": "horizontal",
-                    "fill_container": True,
-                }
-            )
-        )
-    temp_row.append(
-        wrap_glass(
+        temp_cards.append(
             {
                 "type": "custom:mushroom-entity-card",
-                "entity": outdoor,
-                "name": "Outdoor",
-                "icon": "mdi:thermometer",
+                "entity": indoor,
+                "name": "Indoor",
+                "icon": "mdi:home-thermometer",
                 "layout": "horizontal",
                 "fill_container": True,
             }
         )
+    temp_cards.append(
+        {
+            "type": "custom:mushroom-entity-card",
+            "entity": outdoor,
+            "name": "Outdoor",
+            "icon": "mdi:thermometer",
+            "layout": "horizontal",
+            "fill_container": True,
+        }
     )
+
+    cards: list[dict] = [
+        {
+            "type": "grid",
+            "columns": len(temp_cards),
+            "square": False,
+            "cards": [wrap_glass(c) for c in temp_cards],
+        },
+        wrap_glass(
+            {
+                "type": "history-graph",
+                "hours_to_show": 24,
+                "entities": [{"entity": e} for e in ([indoor] if indoor else []) + [outdoor]],
+            }
+        ),
+    ]
     if climate_entity:
-        temp_row.append(
+        cards.append(
             wrap_glass(
                 {
                     "type": "thermostat",
@@ -211,82 +229,141 @@ def _climate_panel(cfg: dict, weather_entity: str, climate_section: dict | None)
                 }
             )
         )
+    return cards
 
-    inner.append({"type": "grid", "columns": min(3, len(temp_row)), "square": False, "cards": temp_row})
 
-    graph_entities = [e for e in (indoor, outdoor) if e]
-    if not graph_entities:
-        graph_entities = [weather_entity]
-    inner.append(
+def _toggles_tab_cards(cfg: dict) -> list[dict]:
+    """Author 'Toggles' tab — gates, garage, quick scripts."""
+    cards: list[dict] = []
+    for item in cfg.get("quick_actions", {}).get("gate", []):
+        card = lock_action(item["entity"], item["name"], columns=12)
+        card.pop("grid_options", None)
+        cards.append(card)
+    for item in cfg.get("quick_actions", {}).get("garage", []):
+        card = garage_action(item, columns=12)
+        card.pop("grid_options", None)
+        cards.append(card)
+    for item in cfg.get("quick_actions", {}).get("actions", []):
+        card = scene_action(
+            item["name"],
+            item["subtitle"],
+            item["icon"],
+            item["service"],
+            item["target"],
+            columns=12,
+        )
+        card.pop("grid_options", None)
+        cards.append(card)
+    if not cards:
+        cards.append(
+            wrap_glass(
+                {
+                    "type": "markdown",
+                    "content": "No quick toggles configured in `entities.yaml`.",
+                }
+            )
+        )
+    return [{"type": "grid", "columns": 2, "square": False, "cards": cards}]
+
+
+def _scenes_tab_cards() -> list[dict]:
+    prefix = URL_PREFIX
+    return [
+        {
+            "type": "custom:mushroom-chips-card",
+            "alignment": "center",
+            "chips": [
+                {
+                    "type": "template",
+                    "icon": "mdi:palette",
+                    "content": "Open presets",
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{prefix}/scenes",
+                    },
+                },
+                {
+                    "type": "template",
+                    "icon": "mdi:lightbulb-group",
+                    "content": "Lights",
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{prefix}/lights",
+                    },
+                },
+            ],
+        },
         wrap_glass(
             {
-                "type": "history-graph",
-                "hours_to_show": 24,
-                "entities": [{"entity": e} for e in graph_entities],
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  background: transparent !important;\n"
-                        "  box-shadow: none !important;\n"
-                        "  border: none !important;\n"
-                        "  min-height: 160px;\n"
-                        "}\n"
-                    )
-                },
+                "type": "markdown",
+                "content": (
+                    "**Hue / scene presets** live on the Scenes page — "
+                    "same ElementZoom Preset grid as the tablet reference."
+                ),
             }
-        )
-    )
+        ),
+    ]
 
-    if climate_section and climate_section.get("cards"):
-        # Drop titles from imported Mobile Home climate — panel already has header.
-        for card in climate_section["cards"]:
-            if card.get("type") == "custom:mushroom-title-card":
-                continue
-            if card.get("type") == "grid":
-                continue
-            inner.append(card)
+
+def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) -> dict:
+    """Author simple_tab area — Climate / Toggles / Scenes via custom:simple-tabs."""
+    climate_cards = _climate_tab_cards(cfg, weather_entity)
+    toggles_cards = _toggles_tab_cards(cfg)
+    scenes_cards = _scenes_tab_cards()
+
+    if use_simple_tabs:
+        shell = _simple_tabs_shell(
+            [
+                {
+                    "title": "Climate",
+                    "icon": "mdi:thermostat",
+                    "cards": [{"type": "vertical-stack", "cards": climate_cards}],
+                },
+                {
+                    "title": "Toggles",
+                    "icon": "mdi:toggle-switch",
+                    "cards": [{"type": "vertical-stack", "cards": toggles_cards}],
+                },
+                {
+                    "title": "Scenes",
+                    "icon": "mdi:palette",
+                    "cards": [{"type": "vertical-stack", "cards": scenes_cards}],
+                },
+            ]
+        )
+        shell["hide_inactive_tab_titles"] = True
+        shell["view_layout"] = _area("simple_tab")
+        shell["card_mod"] = {
+            "style": GLASS_CARD_MOD["style"]
+            + (
+                "ha-card {\n"
+                "  padding: 8px !important;\n"
+                "  min-height: 280px;\n"
+                "}\n"
+            )
+        }
+        return shell
 
     return {
         "type": "vertical-stack",
-        "view_layout": _area("climate"),
-        "cards": [
-            wrap_glass(
-                {
-                    "type": "vertical-stack",
-                    "cards": inner,
-                }
-            )
-        ],
+        "view_layout": _area("simple_tab"),
+        "cards": [_transparent_title("Climate"), *climate_cards],
     }
 
 
-def _weather_forecast_card(weather_entity: str) -> dict:
+def _weather_forecast(weather_entity: str) -> dict:
+    """Author weather area — forecast title + daily forecast card."""
     return {
         "type": "vertical-stack",
-        "view_layout": _area("forecast"),
+        "view_layout": _area("weather"),
         "cards": [
-            {
-                "type": "custom:mushroom-title-card",
-                "title": "Weather Forecast",
-                "alignment": "start",
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  background: transparent !important;\n"
-                        "  box-shadow: none !important;\n"
-                        "  border: none !important;\n"
-                        "  padding-bottom: 0 !important;\n"
-                        "}\n"
-                        ".header { font-size: 16px !important; font-weight: 600 !important; }\n"
-                    )
-                },
-            },
+            _transparent_title("Weather Forecast", size="18px"),
             wrap_glass(
                 {
                     "type": "weather-forecast",
                     "entity": weather_entity,
                     "forecast_type": "daily",
-                    "show_current": True,
+                    "show_current": False,
                     "show_forecast": True,
                 }
             ),
@@ -294,104 +371,200 @@ def _weather_forecast_card(weather_entity: str) -> dict:
     }
 
 
-def _calendar_rail(cfg: dict, *, use_calendar_pro: bool) -> dict:
+def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
+    """Author calendar_notification column — spans full height on the right."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
-    # Compact for right rail on tablet.
     for card in events:
         if card.get("type") == "custom:calendar-card-pro":
             card["days_to_show"] = 5
-            card["compact_events_to_show"] = 6
+            card["compact_events_to_show"] = 8
     return {
         "type": "vertical-stack",
-        "view_layout": _area("calendar"),
+        "view_layout": _area("calendar_notification"),
         "cards": [
+            _transparent_title("Calendar", size="18px"),
+            wrap_glass({"type": "vertical-stack", "cards": events}),
+        ],
+    }
+
+
+def _room_selector() -> dict:
+    """Author room_selector — Default / Others / Outdoor chips."""
+    chips = _category_tab_chips()
+    chips.pop("grid_options", None)
+    chips["view_layout"] = _area("room_selector")
+    return chips
+
+
+def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
+    return [r for r in rooms if (r.get("category") or "default") == slug]
+
+
+def _room_pair_row(rooms: list[dict]) -> dict:
+    tiles = []
+    for room in rooms:
+        tile = flux_room_tile(room, columns=12)
+        tile.pop("grid_options", None)
+        tiles.append(tile)
+    if not tiles:
+        return wrap_glass(
             {
-                "type": "custom:mushroom-title-card",
-                "title": "Calendar",
+                "type": "markdown",
+                "content": "No rooms in this category.",
+            }
+        )
+    return {
+        "type": "grid",
+        "columns": min(3, len(tiles)),
+        "square": False,
+        "cards": tiles,
+    }
+
+
+def _rooms_band(cfg: dict) -> dict:
+    """Author room1/2/3 band — category-filtered room cards (state conditions)."""
+    rooms = cfg.get("rooms") or []
+    panels: list[dict] = []
+    for cat in ROOM_CATEGORIES:
+        option = cat["option"]
+        slug = cat["slug"]
+        category_rooms = _rooms_for_category(rooms, slug)
+        # Default also shows when helper is unknown/unavailable (first boot).
+        if option == "Default":
+            conditions = [
+                {
+                    "condition": "or",
+                    "conditions": [
+                        {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": "Default"},
+                        {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": "unknown"},
+                        {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": "unavailable"},
+                    ],
+                }
+            ]
+        else:
+            conditions = [
+                {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": option},
+            ]
+        panels.append(
+            {
+                "type": "conditional",
+                "conditions": conditions,
+                "card": _room_pair_row(category_rooms),
+            }
+        )
+    return {
+        "type": "vertical-stack",
+        "view_layout": _area("rooms"),
+        "cards": panels,
+    }
+
+
+def _camera_feed_card(camera: dict) -> dict:
+    """Author camera_*_with_chips — title row + live feed + light chips underneath."""
+    entity = camera["entity"]
+    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
+    lights = camera.get("lights") or camera.get("entities") or []
+    light_ids: list[str] = []
+    for item in lights:
+        if isinstance(item, str):
+            light_ids.append(item)
+        elif isinstance(item, dict) and item.get("entity"):
+            light_ids.append(item["entity"])
+
+    chips: list[dict] = []
+    for lid in light_ids[:3]:
+        chips.append(
+            {
+                "type": "template",
+                "entity": lid,
+                "icon": "mdi:lightbulb",
+                "content": "{{ state_attr('" + lid + "', 'friendly_name') or '" + lid.split('.')[-1] + "' }}",
+                "tap_action": {"action": "toggle", "entity": lid},
+                "card_mod": {
+                    "style": (
+                        "ha-card {\n"
+                        "  --chip-background: {% if is_state('" + lid + "', 'on') %}"
+                        "var(--md-sys-color-primary){% else %}"
+                        "color-mix(in srgb, var(--md-sys-color-on-primary) 50%, transparent)"
+                        "{% endif %} !important;\n"
+                        "  --color: {% if is_state('" + lid + "', 'on') %}"
+                        "var(--md-sys-color-on-primary){% else %}"
+                        "var(--md-sys-color-primary){% endif %} !important;\n"
+                        "}\n"
+                    )
+                },
+            }
+        )
+
+    stack: list[dict] = [
+        {
+            "type": "custom:mushroom-title-card",
+            "title": f"{name} ›",
+            "card_mod": {
+                "style": (
+                    "ha-card {\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "  padding: 0 0 2px 0 !important;\n"
+                    "}\n"
+                    ".header { font-size: 15px !important; font-weight: 600 !important; }\n"
+                )
+            },
+        },
+        wrap_glass(
+            {
+                "type": "picture-glance",
+                "title": "",
+                "entities": [],
+                "camera_image": entity,
+                "camera_view": "live",
+                "show_state": False,
+                "tap_action": {"action": "more-info", "entity": entity},
+            }
+        ),
+    ]
+    if chips:
+        stack.append(
+            {
+                "type": "custom:mushroom-chips-card",
                 "alignment": "start",
+                "chips": chips,
                 "card_mod": {
                     "style": (
                         "ha-card {\n"
                         "  background: transparent !important;\n"
                         "  box-shadow: none !important;\n"
                         "  border: none !important;\n"
+                        "  margin-top: 4px !important;\n"
                         "}\n"
-                        ".header { font-size: 16px !important; font-weight: 600 !important; }\n"
                     )
                 },
-            },
-            wrap_glass({"type": "vertical-stack", "cards": events}),
-        ],
-    }
+            }
+        )
+    return {"type": "vertical-stack", "cards": stack}
 
 
-def _rooms_row(cfg: dict) -> dict:
-    rooms = cfg.get("rooms") or []
-    # Prefer default-category rooms first (Garage, Living, Master…), then others.
-    ordered = sorted(
-        rooms,
-        key=lambda r: (0 if (r.get("category") or "default") == "default" else 1, r.get("name", "")),
-    )
-    tiles = []
-    for room in ordered[:6]:
-        tile = flux_room_tile(room, columns=12)
-        tile.pop("grid_options", None)
-        tiles.append(tile)
-    cols = max(2, min(6, len(tiles) or 1))
-    return {
-        "type": "grid",
-        "columns": cols,
-        "square": False,
-        "view_layout": _area("rooms"),
-        "cards": tiles
-        or [
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": "No rooms configured in `rooms.yaml`.",
-                }
-            )
-        ],
-    }
-
-
-def _camera_with_lights(camera: dict) -> dict:
-    """picture-glance with optional light chips under the feed."""
-    entity = camera["entity"]
-    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    light_entities: list[dict] = []
-    for item in camera.get("lights") or camera.get("entities") or []:
-        if isinstance(item, str):
-            light_entities.append({"entity": item})
-        elif isinstance(item, dict) and item.get("entity"):
-            light_entities.append({"entity": item["entity"]})
-
-    return wrap_glass(
-        {
-            "type": "picture-glance",
-            "title": name,
-            "entities": light_entities,
-            "camera_image": entity,
-            "camera_view": "live",
-            "show_state": False,
-            "tap_action": {"action": "more-info"},
-        }
-    )
-
-
-def _cameras_row(cfg: dict, *, use_auto_entities: bool) -> dict:
+def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     cameras_cfg = cfg.get("cameras_config") or {}
     manual = list(cameras_cfg.get("cameras") or [])
-    cards: list[dict] = []
     if manual:
-        for cam in manual[:4]:
-            cards.append(_camera_with_lights(cam))
-    elif use_auto_entities and cameras_cfg.get("auto_discover", True):
+        feeds = [_camera_feed_card(cam) for cam in manual[:4]]
+        return {
+            "type": "grid",
+            "columns": min(4, len(feeds)),
+            "square": False,
+            "view_layout": _area("cameras"),
+            "cards": feeds,
+        }
+
+    if use_auto_entities and cameras_cfg.get("auto_discover", True):
         return {
             "type": "custom:auto-entities",
             "view_layout": _area("cameras"),
             "card": {"type": "grid", "columns": 4, "square": False},
             "card_param": "cards",
+            "max_entities": 4,
             "filter": {
                 "include": [
                     {
@@ -407,34 +580,27 @@ def _cameras_row(cfg: dict, *, use_auto_entities: bool) -> dict:
                 ]
             },
             "sort": {"method": "friendly_name"},
-            "max_entities": 4,
-            "card_mod": _glass_mod(),
+            "card_mod": {"style": GLASS_CARD_MOD["style"]},
         }
-    else:
-        cards.append(
+
+    return {
+        "type": "vertical-stack",
+        "view_layout": _area("cameras"),
+        "cards": [
             wrap_glass(
                 {
                     "type": "markdown",
                     "content": (
-                        "No cameras configured.\n\n"
-                        "Add feeds to `cameras.yaml` (optional `lights:` chips per camera)."
+                        "Add camera feeds to `cameras.yaml` "
+                        "(optional `lights:` chips — ElementZoom camera_generic_with_chips)."
                     ),
                 }
             )
-        )
-
-    cols = max(1, min(4, len(cards)))
-    return {
-        "type": "grid",
-        "columns": cols,
-        "square": False,
-        "view_layout": _area("cameras"),
-        "cards": cards,
+        ],
     }
 
 
-def _navbar_card(*, use_navbar_card: bool) -> dict:
-    """Same floating bottom nav as mobile — Home / Rooms / Scenes / Camera / More."""
+def _navbar(*, use_navbar_card: bool) -> dict:
     nav = build_navbar_card(use_navbar_card=use_navbar_card)
     nav["view_layout"] = _area("navbar")
     return nav
@@ -448,8 +614,10 @@ def build_tablet_overview_view(
     use_navbar_card: bool = True,
     use_calendar_pro: bool = True,
     use_auto_entities: bool = True,
+    use_simple_tabs: bool = True,
 ) -> dict:
-    """Full landscape overview view (custom:grid-layout)."""
+    """Full landscape overview — ElementZoom author grid + Flux bottom nav."""
+    del climate_section  # tablet climate is built from entities.yaml tablet: block
     return {
         "title": "Overview",
         "icon": "mdi:home",
@@ -458,25 +626,27 @@ def build_tablet_overview_view(
         "theme": "flux-ui-md3",
         "card_mod": TABLET_VIEW_CARD_MOD,
         "layout": {
-            "margin": "4px 12px 0 12px",
-            "grid-gap": "12px",
-            "grid-template-columns": "22% 34% 22% 22%",
-            "grid-template-rows": "auto auto auto auto",
+            # Match ElementZoom tablet overview columns (25% × 4).
+            "margin": "4px 10px 0 10px",
+            "grid-gap": "10px",
+            "grid-template-columns": "25% 25% 25% 25%",
+            "grid-template-rows": "auto",
             "grid-template-areas": (
-                '"greeting climate forecast calendar"\n'
-                '"greeting climate calendar calendar"\n'
-                '"rooms rooms rooms rooms"\n'
-                '"cameras cameras cameras cameras"\n'
+                '"greeting simple_tab weather calendar_notification"\n'
+                '"room_selector simple_tab weather calendar_notification"\n'
+                '"rooms rooms rooms calendar_notification"\n'
+                '"cameras cameras cameras calendar_notification"\n'
                 '"navbar navbar navbar navbar"'
             ),
         },
         "cards": [
-            _datetime_card(weather_entity),
-            _climate_panel(cfg, weather_entity, climate_section),
-            _weather_forecast_card(weather_entity),
-            _calendar_rail(cfg, use_calendar_pro=use_calendar_pro),
-            _rooms_row(cfg),
-            _cameras_row(cfg, use_auto_entities=use_auto_entities),
-            _navbar_card(use_navbar_card=use_navbar_card),
+            _greeting_stack(weather_entity),
+            _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
+            _weather_forecast(weather_entity),
+            _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),
+            _room_selector(),
+            _rooms_band(cfg),
+            _cameras_band(cfg, use_auto_entities=use_auto_entities),
+            _navbar(use_navbar_card=use_navbar_card),
         ],
     }

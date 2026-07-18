@@ -64,6 +64,10 @@ def verify_build(path: Path) -> list[str]:
         for needle in (
             "weather-forecast",
             "history-graph",
+            "custom:simple-tabs",
+            "room_selector",
+            "calendar_notification",
+            "simple_tab",
             "/flux-ui-tablet/overview",
             '"label": "Home"',
             '"label": "Rooms"',
@@ -74,6 +78,11 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Tablet build missing {needle}")
         if "custom:navbar-card" not in overview_blob and "mushroom-chips-card" not in overview_blob:
             errors.append("Tablet overview missing bottom navbar card")
+        if '"path": "active"' not in blob and '"path": "active"' not in json.dumps(views):
+            if not any(v.get("path") == "active" for v in views):
+                errors.append("Tablet build missing Active activity view")
+        if '"path": "scenes"' not in blob and not any(v.get("path") == "scenes" for v in views):
+            errors.append("Tablet build missing Scenes/Preset view")
     else:
         if len(overview_sections) < 6:
             if not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(overview_sections) < 6:

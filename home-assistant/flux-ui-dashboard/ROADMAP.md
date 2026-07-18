@@ -38,9 +38,15 @@ bash home-assistant/scripts/run_all_e2e.sh
 ```
 
 ## Phase 4 (in progress)
-- **Tablet 16:9 overview** — `custom:grid-layout` ElementZoom landscape home
-  (greeting + climate graph + forecast + calendar + room row + cameras + bottom nav)
+- **Tablet 16:9** — ElementZoom MD3 Dynamic Tablet Dashboard author framework
+  - Overview `custom:grid-layout` areas: greeting / simple_tab / weather / calendar_notification /
+    room_selector / rooms / cameras (+ Flux bottom navbar)
+  - `simple-tabs` Climate · Toggles · Scenes (in-panel)
+  - Room detail landscape: lights | climate | photo
+  - Scenes Preset › mood/image grid (`scenes.yaml` preset_categories)
+  - Active activity view (security/notifications strip)
   Dashboard: `/flux-ui-tablet/overview` (`build_flux_ui.py --tablet`)
+  Reference: https://github.com/ElementZoom/Material-Design-3-Dynamic-Tablet-Dashboard
 - Camera overlay on garage motion
 - Media-aware layout (Spotify now playing)
 - Material You dynamic colours
@@ -48,3 +54,4 @@ bash home-assistant/scripts/run_all_e2e.sh
 - Wire room feature row entities (Presence / Movie / Adaptive)
 - Populate `room_sensors.yaml` via live discovery
 - Populate `cameras.yaml` with Eufy feeds + light chips
+- Add room `photo:` paths under `/local/flux-ui/rooms/`

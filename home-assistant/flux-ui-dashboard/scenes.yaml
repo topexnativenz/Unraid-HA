@@ -1,14 +1,30 @@
-# Flux UI Scenes tab — HA scene entities + quick lighting scripts.
-# Add your scene.* entities here; quick actions from entities.yaml are always shown.
+# Flux UI Scenes — HA scene entities + ElementZoom-style tablet presets.
+#
+# Tablet Preset page (flux-ui-tablet/scenes) uses preset_categories when set;
+# otherwise falls back to `scenes` below, then mood stub rows (Sunset/Mountain/…).
 
 scenes: []
 # Example:
 #   - entity: scene.movie_night
 #     name: Movie night
 #     icon: mdi:movie
-#   - entity: scene.dinner
-#     name: Dinner
-#     icon: mdi:silverware-fork-knife
+#     image: /local/flux-ui/presets/movie.webp
+#     colors: ["#FFB74D", "#81C784", "#64B5F6"]
 
-# When true and auto-entities is installed, also list all scene.* entities not listed above.
+# Optional ElementZoom Preset categories (tablet 16:9 Scenes view)
+preset_categories: []
+# Example:
+#   - name: Sunset
+#     presets:
+#       - entity: scene.amber_dusk
+#         name: Amber dusk
+#         image: /local/flux-ui/presets/sunset-1.webp
+#         colors: ["#E67E22", "#F5B041", "#5B2C6F"]
+#   - name: Coastal
+#     presets:
+#       - entity: scene.harbour
+#         name: Harbour
+#         image: /local/flux-ui/presets/coastal-1.webp
+
+# When true and auto-entities is installed, mobile Scenes also lists all scene.* entities.
 auto_discover: true

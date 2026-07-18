@@ -29,7 +29,7 @@ Entity map: [`entities.yaml`](entities.yaml)
 | [piitaya/lovelace-mushroom](https://github.com/piitaya/lovelace-mushroom) | Overview cards |
 | [thomasloven/lovelace-card-mod](https://github.com/thomasloven/lovelace-card-mod) | MD3 glass styling |
 | [custom-cards/button-card](https://github.com/custom-cards/button-card) | Future Flux views |
-| [thomasloven/lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | Future tablet layout |
+| [thomasloven/lovelace-layout-card](https://github.com/thomasloven/lovelace-layout-card) | 16:9 tablet `grid-layout` overview |
 | [custom-cards/stack-in-card](https://github.com/custom-cards/stack-in-card) | Card stacking |
 | [thomasloven/lovelace-auto-entities](https://github.com/thomasloven/lovelace-auto-entities) | Active tab — lights currently on |
 | [agoberg85/home-assistant-simple-tabs](https://github.com/agoberg85/home-assistant-simple-tabs) | **Home / Events / Active** overview tabs ([ElementZoom ref](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard)) |

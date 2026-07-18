@@ -43,6 +43,8 @@ from flux_navbar import (
     set_url_prefix,
 )
 from flux_tablet_overview import build_tablet_overview_view
+from flux_tablet_room import build_tablet_room_detail_view
+from flux_tablet_scenes import build_tablet_active_view, build_tablet_scenes_view
 from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
@@ -424,8 +426,48 @@ def _build_config_inner(
             use_navbar_card=use_navbar_card,
             use_calendar_pro=use_calendar_pro,
             use_auto_entities=use_auto_entities,
+            use_simple_tabs=use_simple_tabs,
         )
-        views: list[dict] = [overview_view]
+        views: list[dict] = [
+            overview_view,
+            flux_view(
+                title="Rooms",
+                path="rooms",
+                icon="mdi:sofa",
+                sections=[build_rooms_index(cfg)],
+                use_navbar_card=use_navbar_card,
+                tablet=True,
+            ),
+            build_tablet_scenes_view(cfg, use_navbar_card=use_navbar_card),
+            flux_view(
+                title="Lights",
+                path="lights",
+                icon="mdi:lightbulb-group",
+                sections=[build_lights_view(cfg, use_auto_entities=use_auto_entities)],
+                use_navbar_card=use_navbar_card,
+                tablet=True,
+            ),
+            flux_view(
+                title="Cameras",
+                path="cameras",
+                icon="mdi:cctv",
+                sections=[
+                    build_cameras_view(
+                        cfg,
+                        camera_section,
+                        use_auto_entities=use_auto_entities,
+                        apply_md3=apply_md3_to_cards,
+                    )
+                ],
+                use_navbar_card=use_navbar_card,
+                tablet=True,
+            ),
+            build_tablet_active_view(
+                cfg,
+                use_navbar_card=use_navbar_card,
+                use_auto_entities=use_auto_entities,
+            ),
+        ]
     else:
         overview = build_overview_sections(
             cfg,
@@ -443,17 +485,12 @@ def _build_config_inner(
                 sections=overview,
                 use_navbar_card=use_navbar_card,
             ),
-        ]
-
-    views.extend(
-        [
             flux_view(
                 title="Rooms",
                 path="rooms",
                 icon="mdi:sofa",
                 sections=[build_rooms_index(cfg)],
                 use_navbar_card=use_navbar_card,
-                tablet=tablet,
             ),
             flux_view(
                 title="Scenes",
@@ -461,7 +498,6 @@ def _build_config_inner(
                 icon="mdi:layers",
                 sections=[build_scenes_view(cfg, use_auto_entities=use_auto_entities)],
                 use_navbar_card=use_navbar_card,
-                tablet=tablet,
             ),
             flux_view(
                 title="Lights",
@@ -469,7 +505,6 @@ def _build_config_inner(
                 icon="mdi:lightbulb-group",
                 sections=[build_lights_view(cfg, use_auto_entities=use_auto_entities)],
                 use_navbar_card=use_navbar_card,
-                tablet=tablet,
             ),
             flux_view(
                 title="Cameras",
@@ -484,26 +519,33 @@ def _build_config_inner(
                     )
                 ],
                 use_navbar_card=use_navbar_card,
-                tablet=tablet,
             ),
         ]
-    )
 
     for room in cfg.get("rooms", []):
         slug = room["path"]
         back = f"{URL_PREFIX}/rooms"
-        views.append(
-            flux_view(
-                title=room["name"],
-                path=room_view_path(slug),
-                icon=room.get("icon", "mdi:home-outline"),
-                sections=[build_room_detail(room, cfg)],
-                use_navbar_card=use_navbar_card,
-                subview=True,
-                back_path=back,
-                tablet=tablet,
+        doors = cfg.get("quick_actions", {}).get("garage", []) if slug == "garage" else None
+        if tablet:
+            views.append(
+                build_tablet_room_detail_view(
+                    room,
+                    garage_doors=doors,
+                    use_navbar_card=use_navbar_card,
+                )
             )
-        )
+        else:
+            views.append(
+                flux_view(
+                    title=room["name"],
+                    path=room_view_path(slug),
+                    icon=room.get("icon", "mdi:home-outline"),
+                    sections=[build_room_detail(room, cfg)],
+                    use_navbar_card=use_navbar_card,
+                    subview=True,
+                    back_path=back,
+                )
+            )
         views.append(
             flux_view(
                 title=f"{room.get('card_name') or room['name']} — Lights",
