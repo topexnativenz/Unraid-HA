@@ -533,7 +533,13 @@ def main() -> None:
     parser.add_argument(
         "--tablet",
         action="store_true",
-        help="16:9 landscape build — 3-column sections, storage key lovelace.flux_ui_tablet",
+        help="16:9 landscape build — multi-column sections, storage key lovelace.flux_ui_tablet",
+    )
+    parser.add_argument(
+        "--tablet-columns",
+        type=int,
+        default=4,
+        help="Section columns for the tablet build (default 4 — 15.6\" 1920x1080)",
     )
     args = parser.parse_args()
 
@@ -567,10 +573,11 @@ def main() -> None:
 
     storage_key = "lovelace.flux_ui"
     if args.tablet:
-        # 16:9 landscape (wall tablet): same views/functions, sections flow into 3 columns.
+        # 16:9 landscape (15.6" 1920x1080 wall tablet): same views/functions,
+        # sections flow into multiple columns across the width.
         storage_key = "lovelace.flux_ui_tablet"
         for view in config["views"]:
-            view["max_columns"] = 3
+            view["max_columns"] = args.tablet_columns
             view["dense_section_placement"] = True
         if args.output == ROOT / "generated" / "lovelace.flux_ui.json":
             args.output = ROOT / "generated" / "lovelace.flux_ui_tablet.json"
