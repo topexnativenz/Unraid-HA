@@ -2,22 +2,17 @@
 
 Reference:
   https://github.com/ElementZoom/Material-Design-3-Dynamic-Tablet-Dashboard
-  dashboard.yaml → Overview (custom:grid-layout)
 
-Author grid-template-areas:
-  greeting | simple_tab | weather | calendar_notification
-  room_selector | . | . | calendar_notification
-  rooms… | calendar_notification
-  cameras… | calendar_notification
-
-Flux keeps the floating bottom navbar (Home / Rooms / Scenes / Camera / More).
+Uses sections + custom:layout-card (not view-type custom:grid-layout).
+View-level grid-layout often renders blank with only a fixed navbar-card
+visible on some HA / layout-card versions — layout-card-as-card is reliable.
 """
 
 from __future__ import annotations
 
 from flux_action_builders import garage_action, lock_action, scene_action
 from flux_layouts import flux_room_tile
-from flux_navbar import URL_PREFIX, build_navbar_card
+from flux_navbar import URL_PREFIX, navbar_section
 from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from md3_templates import GLASS_CARD_MOD, TABLET_VIEW_CARD_MOD, wrap_glass
@@ -64,57 +59,76 @@ def _greeting_stack(weather_entity: str) -> dict:
             {
                 "type": "custom:mushroom-title-card",
                 "alignment": "start",
-                "title": "{{ now().strftime('%a %b %-d - %-I:%M %p') }}",
+                # Plain text — mushroom-title does not evaluate Jinja.
+                "title": "Home",
+                "subtitle": "Live overview",
                 "card_mod": {
                     "style": (
                         "ha-card {\n"
                         "  background: transparent !important;\n"
                         "  box-shadow: none !important;\n"
                         "  border: none !important;\n"
-                        "  animation: fluxFadeInDown 0.8s ease-out;\n"
                         "}\n"
                         ".header {\n"
                         "  font-weight: 700 !important;\n"
                         "  font-size: 22px !important;\n"
                         "  color: var(--md-sys-color-on-surface) !important;\n"
                         "}\n"
-                        "@keyframes fluxFadeInDown {\n"
-                        "  from { opacity: 0; transform: translateY(-8px); }\n"
-                        "  to { opacity: 1; transform: translateY(0); }\n"
-                        "}\n"
                     )
                 },
+            },
+            {
+                "type": "custom:button-card",
+                "template": "flux_glass",
+                "show_icon": False,
+                "show_name": True,
+                "show_label": True,
+                "name": (
+                    "[[[ return new Date().toLocaleString([], {"
+                    "weekday:'short', month:'short', day:'numeric',"
+                    "hour:'numeric', minute:'2-digit'}); ]]]"
+                ),
+                "label": (
+                    "[[[\n"
+                    f"  const w = states['{weather_entity}'];\n"
+                    "  if (!w) return 'Weather unavailable';\n"
+                    "  const t = w.attributes?.temperature;\n"
+                    "  const c = (w.state || '').replace(/_/g,' ');\n"
+                    "  const hi = w.attributes?.forecast?.[0]?.temperature;\n"
+                    "  const lo = w.attributes?.forecast?.[0]?.templow;\n"
+                    "  const range = (hi != null && lo != null) ? `${hi}° / ${lo}°` : '';\n"
+                    "  return [t != null ? `${t}°C, ${c}` : c, range].filter(Boolean).join(' · ');\n"
+                    "]]]"
+                ),
+                "styles": {
+                    "card": [
+                        {"min-height": "64px"},
+                        {"padding": "12px 16px"},
+                    ],
+                    "name": [{"font-size": "18px"}, {"font-weight": "700"}, {"justify-self": "start"}],
+                    "label": [
+                        {"justify-self": "start"},
+                        {"color": "var(--md-sys-color-primary)"},
+                        {"font-weight": "600"},
+                    ],
+                    "grid": [{"grid-template-areas": "'n' 'l'"}, {"grid-template-columns": "1fr"}],
+                },
+                "triggers_update": "all",
             },
             {
                 "type": "custom:mushroom-chips-card",
                 "alignment": "start",
                 "chips": [
                     {
-                        "type": "template",
+                        "type": "entity",
                         "entity": weather_entity,
                         "icon": "mdi:weather-partly-cloudy",
-                        "content": (
-                            "{% set t = state_attr('" + weather_entity + "', 'temperature') %}"
-                            "{% set c = states('" + weather_entity + "') | title %}"
-                            "{{ t }}°C, {{ c }}"
-                        ),
-                        "tap_action": {"action": "more-info", "entity": weather_entity},
-                        "card_mod": {
-                            "style": (
-                                "ha-card {\n"
-                                "  --chip-background: color-mix(in srgb, "
-                                "var(--md-sys-color-on-primary) 25%, transparent) !important;\n"
-                                "  --color: var(--md-sys-color-primary) !important;\n"
-                                "  border-radius: 24px !important;\n"
-                                "  font-weight: 600 !important;\n"
-                                "}\n"
-                            )
-                        },
+                        "content_info": "state",
                     },
                     {
                         "type": "template",
-                        "content": high_low,
                         "icon": "mdi:thermometer-lines",
+                        "content": high_low,
                         "tap_action": {"action": "more-info", "entity": weather_entity},
                         "card_mod": {
                             "style": (
@@ -155,7 +169,7 @@ def _greeting_stack(weather_entity: str) -> dict:
                     "  return `${g}, ${user.name}!`;\n"
                     "]]]"
                 ),
-                "label": "Live home status",
+                "label": "Tap for active devices",
                 "tap_action": {
                     "action": "navigate",
                     "navigation_path": f"{URL_PREFIX}/active",
@@ -201,6 +215,7 @@ def _climate_tab_cards(cfg: dict, weather_entity: str) -> list[dict]:
         }
     )
 
+    graph_entities = [e for e in (indoor, outdoor) if e]
     cards: list[dict] = [
         {
             "type": "grid",
@@ -212,7 +227,7 @@ def _climate_tab_cards(cfg: dict, weather_entity: str) -> list[dict]:
             {
                 "type": "history-graph",
                 "hours_to_show": 24,
-                "entities": [{"entity": e} for e in ([indoor] if indoor else []) + [outdoor]],
+                "entities": [{"entity": e} for e in graph_entities],
             }
         ),
     ]
@@ -233,7 +248,6 @@ def _climate_tab_cards(cfg: dict, weather_entity: str) -> list[dict]:
 
 
 def _toggles_tab_cards(cfg: dict) -> list[dict]:
-    """Author 'Toggles' tab — gates, garage, quick scripts."""
     cards: list[dict] = []
     for item in cfg.get("quick_actions", {}).get("gate", []):
         card = lock_action(item["entity"], item["name"], columns=12)
@@ -306,7 +320,6 @@ def _scenes_tab_cards() -> list[dict]:
 
 
 def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) -> dict:
-    """Author simple_tab area — Climate / Toggles / Scenes via custom:simple-tabs."""
     climate_cards = _climate_tab_cards(cfg, weather_entity)
     toggles_cards = _toggles_tab_cards(cfg)
     scenes_cards = _scenes_tab_cards()
@@ -338,7 +351,7 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
             + (
                 "ha-card {\n"
                 "  padding: 8px !important;\n"
-                "  min-height: 280px;\n"
+                "  min-height: 260px;\n"
                 "}\n"
             )
         }
@@ -352,7 +365,6 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
 
 
 def _weather_forecast(weather_entity: str) -> dict:
-    """Author weather area — forecast title + daily forecast card."""
     return {
         "type": "vertical-stack",
         "view_layout": _area("weather"),
@@ -372,7 +384,6 @@ def _weather_forecast(weather_entity: str) -> dict:
 
 
 def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
-    """Author calendar_notification column — spans full height on the right."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     for card in events:
         if card.get("type") == "custom:calendar-card-pro":
@@ -389,7 +400,6 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
 
 
 def _room_selector() -> dict:
-    """Author room_selector — Default / Others / Outdoor chips."""
     chips = _category_tab_chips()
     chips.pop("grid_options", None)
     chips["view_layout"] = _area("room_selector")
@@ -407,12 +417,7 @@ def _room_pair_row(rooms: list[dict]) -> dict:
         tile.pop("grid_options", None)
         tiles.append(tile)
     if not tiles:
-        return wrap_glass(
-            {
-                "type": "markdown",
-                "content": "No rooms in this category.",
-            }
-        )
+        return wrap_glass({"type": "markdown", "content": "No rooms in this category."})
     return {
         "type": "grid",
         "columns": min(3, len(tiles)),
@@ -422,14 +427,12 @@ def _room_pair_row(rooms: list[dict]) -> dict:
 
 
 def _rooms_band(cfg: dict) -> dict:
-    """Author room1/2/3 band — category-filtered room cards (state conditions)."""
     rooms = cfg.get("rooms") or []
     panels: list[dict] = []
     for cat in ROOM_CATEGORIES:
         option = cat["option"]
         slug = cat["slug"]
         category_rooms = _rooms_for_category(rooms, slug)
-        # Default also shows when helper is unknown/unavailable (first boot).
         if option == "Default":
             conditions = [
                 {
@@ -460,7 +463,6 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Author camera_*_with_chips — title row + live feed + light chips underneath."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     lights = camera.get("lights") or camera.get("entities") or []
@@ -478,7 +480,11 @@ def _camera_feed_card(camera: dict) -> dict:
                 "type": "template",
                 "entity": lid,
                 "icon": "mdi:lightbulb",
-                "content": "{{ state_attr('" + lid + "', 'friendly_name') or '" + lid.split('.')[-1] + "' }}",
+                "content": (
+                    "{{ state_attr('" + lid + "', 'friendly_name') or '"
+                    + lid.split(".")[-1]
+                    + "' }}"
+                ),
                 "tap_action": {"action": "toggle", "entity": lid},
                 "card_mod": {
                     "style": (
@@ -600,10 +606,28 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     }
 
 
-def _navbar(*, use_navbar_card: bool) -> dict:
-    nav = build_navbar_card(use_navbar_card=use_navbar_card)
-    nav["view_layout"] = _area("navbar")
-    return nav
+def _layout_card(cards: list[dict]) -> dict:
+    """ElementZoom grid as a layout-card (reliable) rather than a view type."""
+    return {
+        "type": "custom:layout-card",
+        "layout_type": "custom:grid-layout",
+        "layout": {
+            "margin": "0",
+            "padding": "4px 4px 0 4px",
+            "grid-gap": "10px",
+            # fr units avoid 0-width columns when parent width is unsettled.
+            "grid-template-columns": "1fr 1.2fr 1fr 1fr",
+            "grid-template-rows": "auto auto auto auto",
+            "grid-template-areas": (
+                '"greeting simple_tab weather calendar_notification"\n'
+                '"room_selector simple_tab weather calendar_notification"\n'
+                '"rooms rooms rooms calendar_notification"\n'
+                '"cameras cameras cameras calendar_notification"'
+            ),
+        },
+        "cards": cards,
+        "grid_options": {"columns": 12},
+    }
 
 
 def build_tablet_overview_view(
@@ -616,37 +640,28 @@ def build_tablet_overview_view(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
 ) -> dict:
-    """Full landscape overview — ElementZoom author grid + Flux bottom nav."""
-    del climate_section  # tablet climate is built from entities.yaml tablet: block
+    """Landscape overview — layout-card grid + separate bottom navbar section."""
+    del climate_section
+    content_cards = [
+        _greeting_stack(weather_entity),
+        _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
+        _weather_forecast(weather_entity),
+        _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),
+        _room_selector(),
+        _rooms_band(cfg),
+        _cameras_band(cfg, use_auto_entities=use_auto_entities),
+    ]
     return {
         "title": "Overview",
         "icon": "mdi:home",
         "path": "overview",
-        "type": "custom:grid-layout",
+        "type": "sections",
+        "max_columns": 4,
+        "dense_section_placement": True,
         "theme": "flux-ui-md3",
         "card_mod": TABLET_VIEW_CARD_MOD,
-        "layout": {
-            # Match ElementZoom tablet overview columns (25% × 4).
-            "margin": "4px 10px 0 10px",
-            "grid-gap": "10px",
-            "grid-template-columns": "25% 25% 25% 25%",
-            "grid-template-rows": "auto",
-            "grid-template-areas": (
-                '"greeting simple_tab weather calendar_notification"\n'
-                '"room_selector simple_tab weather calendar_notification"\n'
-                '"rooms rooms rooms calendar_notification"\n'
-                '"cameras cameras cameras calendar_notification"\n'
-                '"navbar navbar navbar navbar"'
-            ),
-        },
-        "cards": [
-            _greeting_stack(weather_entity),
-            _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
-            _weather_forecast(weather_entity),
-            _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),
-            _room_selector(),
-            _rooms_band(cfg),
-            _cameras_band(cfg, use_auto_entities=use_auto_entities),
-            _navbar(use_navbar_card=use_navbar_card),
+        "sections": [
+            {"type": "grid", "cards": [_layout_card(content_cards)]},
+            navbar_section(use_navbar_card=use_navbar_card),
         ],
     }

@@ -304,18 +304,24 @@ def build_config(
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
 
     if tablet:
-        if overview.get("type") != "custom:grid-layout":
-            print("\nERROR: Tablet overview must be custom:grid-layout.", file=sys.stderr)
-            raise SystemExit(1)
-        cards = overview.get("cards") or []
-        if len(cards) < 6:
+        if overview.get("type") != "sections":
             print(
-                f"\nERROR: Tablet overview has {len(cards)} cards — expected greeting/"
-                "climate/forecast/calendar/rooms/cameras/navbar.\n",
+                "\nERROR: Tablet overview must be sections + layout-card "
+                "(view-type grid-layout renders blank with navbar-only).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        sections = overview.get("sections") or []
+        if len(sections) < 2:
+            print(
+                f"\nERROR: Tablet overview has {len(sections)} sections — "
+                "expected layout-card section + navbar.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
         for needle in (
+            "custom:layout-card",
+            "custom:grid-layout",
             "custom:navbar-card",
             "custom:simple-tabs",
             "weather-forecast",
@@ -336,8 +342,8 @@ def build_config(
             print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
             raise SystemExit(1)
         print(
-            f"Built tablet config: grid-layout overview, {len(cards)} cards, "
-            f"{len(config['views'])} views"
+            f"Built tablet config: sections+layout-card overview, "
+            f"{len(sections)} sections, {len(config['views'])} views"
         )
         return config
 

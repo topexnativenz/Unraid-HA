@@ -29,7 +29,8 @@ else
   python3 "$ROOT/scripts/deploy_flux_ui.py" "$@"
 
   # 16:9 tablet dashboard is the default for the wall-tablet HA user.
-  TABLET_DEFAULT_USER="${TABLET_DEFAULT_USER:-smarthome}"
+  # Display name in HA is typically "SmartHome Display 1" (alias: smarthome).
+  TABLET_DEFAULT_USER="${TABLET_DEFAULT_USER:-SmartHome Display 1}"
   echo "==> Setting default dashboard for HA user '${TABLET_DEFAULT_USER}' → flux-ui-tablet"
   python3 "$ROOT/scripts/set_default_dashboard.py" \
     --user "$TABLET_DEFAULT_USER" --dashboard flux-ui-tablet \

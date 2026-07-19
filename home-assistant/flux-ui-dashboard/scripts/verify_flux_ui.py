@@ -56,12 +56,17 @@ def verify_build(path: Path) -> list[str]:
     }
 
     if is_tablet:
-        if overview.get("type") != "custom:grid-layout":
-            errors.append("Tablet overview must use type custom:grid-layout")
-        cards = overview.get("cards") or []
-        if len(cards) < 6:
-            errors.append(f"Tablet overview expected >= 6 cards, got {len(cards)}")
+        if overview.get("type") != "sections":
+            errors.append(
+                "Tablet overview must use sections + layout-card "
+                "(not view-type custom:grid-layout — blank/navbar-only bug)"
+            )
+        sections = overview.get("sections") or []
+        if len(sections) < 2:
+            errors.append(f"Tablet overview expected >= 2 sections, got {len(sections)}")
         for needle in (
+            "custom:layout-card",
+            "layout_type",
             "weather-forecast",
             "history-graph",
             "custom:simple-tabs",
@@ -78,10 +83,9 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Tablet build missing {needle}")
         if "custom:navbar-card" not in overview_blob and "mushroom-chips-card" not in overview_blob:
             errors.append("Tablet overview missing bottom navbar card")
-        if '"path": "active"' not in blob and '"path": "active"' not in json.dumps(views):
-            if not any(v.get("path") == "active" for v in views):
-                errors.append("Tablet build missing Active activity view")
-        if '"path": "scenes"' not in blob and not any(v.get("path") == "scenes" for v in views):
+        if not any(v.get("path") == "active" for v in views):
+            errors.append("Tablet build missing Active activity view")
+        if not any(v.get("path") == "scenes" for v in views):
             errors.append("Tablet build missing Scenes/Preset view")
     else:
         if len(overview_sections) < 6:
@@ -114,11 +118,6 @@ def verify_build(path: Path) -> list[str]:
     for view in views:
         if view.get("theme") != "flux-ui-md3":
             errors.append(f"View {view.get('path')} missing flux-ui-md3 theme")
-        if view.get("type") == "custom:grid-layout":
-            cards_blob = json.dumps(view.get("cards") or [])
-            if "navbar-card" not in cards_blob and "mushroom-chips-card" not in cards_blob:
-                errors.append(f"View {view.get('path')} missing navbar card")
-            continue
         sections = view.get("sections") or []
         if sections:
             tail = json.dumps(sections[-1])

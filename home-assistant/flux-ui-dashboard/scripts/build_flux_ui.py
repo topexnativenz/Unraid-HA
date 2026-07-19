@@ -668,7 +668,7 @@ def main() -> None:
         tablet=args.tablet,
     )
     if args.tablet:
-        print("Tablet overview: custom:grid-layout (ElementZoom 16:9 landscape)")
+        print("Tablet overview: sections + layout-card grid (ElementZoom 16:9)")
     else:
         usage = overview_tab_usage(config)
         print(
@@ -695,10 +695,9 @@ def main() -> None:
     }
     args.output.write_text(json.dumps(payload, indent=2))
     overview = next(v for v in config["views"] if v["path"] == "overview")
-    if overview.get("type") == "custom:grid-layout":
-        detail = f"{len(overview.get('cards', []))} overview cards (grid-layout)"
-    else:
-        detail = f"{len(overview.get('sections', []))} overview sections"
+    detail = f"{len(overview.get('sections', []))} overview sections"
+    if args.tablet and "custom:layout-card" in json.dumps(overview):
+        detail += " (layout-card grid)"
     print(f"Wrote {args.output} ({len(config['views'])} views, {detail})")
 
 

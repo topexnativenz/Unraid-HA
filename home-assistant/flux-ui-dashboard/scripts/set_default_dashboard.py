@@ -41,14 +41,41 @@ async def find_user_id(token: str, ha_url: str, name: str) -> str | None:
         raise RuntimeError(f"config/auth/list failed: {res[0].get('error')}")
     users = res[0].get("result") or []
     wanted = name.strip().lower()
-    for user in users:
-        if (user.get("name") or "").strip().lower() == wanted:
-            return user["id"]
-    # Fall back to username match (login name can differ from display name).
-    for user in users:
+
+    def _match(user: dict) -> bool:
+        display = (user.get("name") or "").strip().lower()
+        if display == wanted:
+            return True
         for cred in user.get("credentials") or []:
             if (cred.get("username") or "").strip().lower() == wanted:
+                return True
+        return False
+
+    for user in users:
+        if _match(user):
+            return user["id"]
+
+    # Aliases: deploy shorthand "smarthome" → wall-tablet display accounts.
+    aliases = {
+        "smarthome": ("smarthome display 1", "smarthome display", "panel"),
+        "smarthome display": ("smarthome display 1",),
+        "tablet": ("smarthome display 1", "panel"),
+    }
+    for alias in aliases.get(wanted, ()):
+        for user in users:
+            display = (user.get("name") or "").strip().lower()
+            if display == alias or alias in display:
+                print(f"Matched user {user.get('name')!r} via alias {wanted!r}")
                 return user["id"]
+
+    # Substring fallback (e.g. smarthome ⊂ SmartHome Display 1).
+    if len(wanted) >= 4:
+        for user in users:
+            display = (user.get("name") or "").strip().lower()
+            if wanted in display or display in wanted:
+                print(f"Matched user {user.get('name')!r} via fuzzy name {wanted!r}")
+                return user["id"]
+
     print("Users in HA:")
     for user in users:
         print(f"  {user.get('name')!r} (id={user.get('id')}, active={user.get('is_active')})")
