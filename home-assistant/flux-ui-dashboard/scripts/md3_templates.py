@@ -59,7 +59,7 @@ VIEW_CARD_MOD = {
     )
 }
 
-# 15.6" 1920×1080 landscape — full-bleed, no phone max-width.
+# 15.6" 1920×1080 landscape — full-bleed sections (override HA ~500px column cap).
 TABLET_VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
@@ -67,20 +67,34 @@ TABLET_VIEW_CARD_MOD = {
         "}\n"
         "#view {\n"
         "  background: transparent !important;\n"
-        "  max-width: none;\n"
-        "  width: 100%;\n"
-        "  margin: 0;\n"
-        "  padding-top: 4px;\n"
-        "  padding-left: 8px;\n"
-        "  padding-right: 8px;\n"
-        "  padding-bottom: 96px;\n"
+        "  max-width: none !important;\n"
+        "  width: 100% !important;\n"
+        "  margin: 0 !important;\n"
+        "  padding: 4px 12px 96px 12px !important;\n"
+        "}\n"
+        "/* Widen HA sections columns for 16:9 wall tablets (~500px default). */\n"
+        "hui-sections-view,\n"
+        "hui-view-sections {\n"
+        "  --ha-view-sections-column-min-width: 220px;\n"
+        "  --ha-view-sections-column-max-width: 480px;\n"
+        "  --ha-view-sections-column-gap: 12px;\n"
+        "  width: 100% !important;\n"
+        "  max-width: none !important;\n"
+        "  padding-bottom: 88px;\n"
+        "}\n"
+        "hui-sections-view > .container,\n"
+        "hui-view-sections .container,\n"
+        ".container {\n"
+        "  width: 100% !important;\n"
+        "  max-width: none !important;\n"
+        "}\n"
+        "hui-section {\n"
+        "  width: 100% !important;\n"
+        "  max-width: none !important;\n"
         "}\n"
         "@keyframes flux-door-pulse {\n"
         "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"
         "  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n"
-        "}\n"
-        "hui-view-sections {\n"
-        "  padding-bottom: 88px;\n"
         "}\n"
     )
 }

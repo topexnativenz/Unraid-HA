@@ -331,6 +331,7 @@ def build_config(
             "room_selector",
             "calendar_notification",
             "simple_tab",
+            '"column_span": 4',
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)

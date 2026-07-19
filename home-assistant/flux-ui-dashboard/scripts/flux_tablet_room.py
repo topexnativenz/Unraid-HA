@@ -14,6 +14,7 @@ from flux_room_detail import (
     build_room_subnav,
     build_room_top_bar,
 )
+from flux_tablet_layout import TABLET_MAX_COLUMNS, tablet_section
 from md3_templates import TABLET_VIEW_CARD_MOD, wrap_glass, wrap_title
 
 
@@ -188,14 +189,14 @@ def build_tablet_room_detail_view(
         "icon": room.get("icon", "mdi:home-outline"),
         "path": f"room-{room['path']}",
         "type": "sections",
-        "max_columns": 4,
+        "max_columns": TABLET_MAX_COLUMNS,
         "dense_section_placement": True,
         "theme": "flux-ui-md3",
         "subview": True,
         "back_path": f"{URL_PREFIX}/rooms",
         "card_mod": TABLET_VIEW_CARD_MOD,
         "sections": [
-            {"type": "grid", "cards": [layout]},
-            navbar_section(use_navbar_card=use_navbar_card),
+            tablet_section([layout]),
+            tablet_section(navbar_section(use_navbar_card=use_navbar_card)["cards"]),
         ],
     }

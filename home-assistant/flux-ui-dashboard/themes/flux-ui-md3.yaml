@@ -43,3 +43,9 @@ flux-ui-md3:
 
   background-image: "center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp')"
   lovelace-background: var(--background-image)
+
+  # 16:9 tablet sections — HA defaults (~500px) squash landscape content.
+  # 4 × 480px ≈ 1920px wall-tablet width.
+  ha-view-sections-column-min-width: 220px
+  ha-view-sections-column-max-width: 480px
+  ha-view-sections-column-gap: 12px

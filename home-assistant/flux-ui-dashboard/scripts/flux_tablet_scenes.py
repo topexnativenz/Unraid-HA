@@ -6,7 +6,8 @@ Uses button-card templates (no streamline-card required).
 
 from __future__ import annotations
 
-from flux_navbar import URL_PREFIX, build_navbar_card
+from flux_navbar import URL_PREFIX, navbar_section
+from flux_tablet_layout import TABLET_MAX_COLUMNS, tablet_section
 from flux_view_builders import scene_action_card, section_title
 from md3_templates import TABLET_VIEW_CARD_MOD, wrap_glass, wrap_title
 
@@ -194,19 +195,19 @@ def build_tablet_scenes_view(cfg: dict, *, use_navbar_card: bool = True) -> dict
     if quick:
         rows.append({"type": "grid", "columns": 2, "square": False, "cards": quick})
 
-    nav = build_navbar_card(use_navbar_card=use_navbar_card)
-    rows.append(nav)
-
     return {
         "title": "Scenes",
         "icon": "mdi:layers",
         "path": "scenes",
         "type": "sections",
-        "max_columns": 4,
+        "max_columns": TABLET_MAX_COLUMNS,
         "dense_section_placement": True,
         "theme": "flux-ui-md3",
         "card_mod": TABLET_VIEW_CARD_MOD,
-        "sections": [{"type": "grid", "cards": rows}],
+        "sections": [
+            tablet_section(rows),
+            tablet_section(navbar_section(use_navbar_card=use_navbar_card)["cards"]),
+        ],
     }
 
 
@@ -234,17 +235,17 @@ def build_tablet_active_view(cfg: dict, *, use_navbar_card: bool = True, use_aut
             }
         )
     )
-    nav = build_navbar_card(use_navbar_card=use_navbar_card)
-    nav["grid_options"] = {"columns": 12}
-    cards.append(nav)
     return {
         "title": "Active",
         "icon": "mdi:shield-home",
         "path": "active",
         "type": "sections",
-        "max_columns": 4,
+        "max_columns": TABLET_MAX_COLUMNS,
         "dense_section_placement": True,
         "theme": "flux-ui-md3",
         "card_mod": TABLET_VIEW_CARD_MOD,
-        "sections": [{"type": "grid", "cards": cards}],
+        "sections": [
+            tablet_section(cards),
+            tablet_section(navbar_section(use_navbar_card=use_navbar_card)["cards"]),
+        ],
     }

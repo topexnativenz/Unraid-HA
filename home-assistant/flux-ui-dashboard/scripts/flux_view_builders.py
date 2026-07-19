@@ -222,19 +222,21 @@ def build_cameras_view(
             wrap_glass(
                 {
                     "type": "custom:auto-entities",
-                    "card": {"type": "grid", "columns": 1, "square": False},
+                    "card": {"type": "grid", "columns": 2, "square": False},
                     "card_param": "cards",
                     "filter": {
                         "include": [
                             {
                                 "domain": "camera",
                                 "options": {
-                                    "type": "picture-glance",
-                                    "entities": [],
+                                    # picture-entity accepts auto-entities' entity;
+                                    # picture-glance needs camera_image → config errors.
+                                    "type": "picture-entity",
                                     "camera_view": "live",
+                                    "show_name": True,
                                     "show_state": False,
                                     "tap_action": {"action": "more-info"},
-                                    "grid_options": {"columns": 12},
+                                    "grid_options": {"columns": 6},
                                 },
                             }
                         ]
@@ -273,12 +275,12 @@ def build_cameras_view(
                             {
                                 "domain": "camera",
                                 "options": {
-                                    "type": "picture-glance",
-                                    "entities": [],
+                                    "type": "picture-entity",
                                     "camera_view": "live",
+                                    "show_name": True,
                                     "show_state": False,
                                     "tap_action": {"action": "more-info"},
-                                    "grid_options": {"columns": 12},
+                                    "grid_options": {"columns": 6},
                                 },
                             }
                         ],

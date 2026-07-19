@@ -42,6 +42,7 @@ from flux_navbar import (
     room_view_path,
     set_url_prefix,
 )
+from flux_tablet_layout import TABLET_MAX_COLUMNS, ensure_tablet_section_spans
 from flux_tablet_overview import build_tablet_overview_view
 from flux_tablet_room import build_tablet_room_detail_view
 from flux_tablet_scenes import build_tablet_active_view, build_tablet_scenes_view
@@ -140,15 +141,18 @@ def flux_view(
     back_path: str | None = None,
     tablet: bool = False,
 ) -> dict:
+    all_sections = list(sections) + [navbar_section(use_navbar_card=use_navbar_card)]
+    if tablet:
+        all_sections = ensure_tablet_section_spans(all_sections, column_span=TABLET_MAX_COLUMNS)
     view: dict = {
         "title": title,
         "icon": icon,
         "path": path,
         "type": "sections",
-        "max_columns": 4 if tablet else 2,
+        "max_columns": TABLET_MAX_COLUMNS if tablet else 2,
         "theme": "flux-ui-md3",
         "card_mod": TABLET_VIEW_CARD_MOD if tablet else VIEW_CARD_MOD,
-        "sections": sections + [navbar_section(use_navbar_card=use_navbar_card)],
+        "sections": all_sections,
     }
     if tablet:
         view["dense_section_placement"] = True

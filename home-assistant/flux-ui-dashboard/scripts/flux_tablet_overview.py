@@ -15,6 +15,7 @@ from flux_layouts import flux_room_tile
 from flux_navbar import URL_PREFIX, navbar_section
 from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
+from flux_tablet_layout import TABLET_MAX_COLUMNS, tablet_section
 from md3_templates import GLASS_CARD_MOD, TABLET_VIEW_CARD_MOD, wrap_glass
 
 
@@ -565,6 +566,8 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         }
 
     if use_auto_entities and cameras_cfg.get("auto_discover", True):
+        # picture-entity works with auto-entities' injected entity; picture-glance
+        # needs camera_image and shows "Configuration error" otherwise.
         return {
             "type": "custom:auto-entities",
             "view_layout": _area("cameras"),
@@ -576,9 +579,9 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                     {
                         "domain": "camera",
                         "options": {
-                            "type": "picture-glance",
-                            "entities": [],
+                            "type": "picture-entity",
                             "camera_view": "live",
+                            "show_name": True,
                             "show_state": False,
                             "tap_action": {"action": "more-info"},
                         },
@@ -656,12 +659,12 @@ def build_tablet_overview_view(
         "icon": "mdi:home",
         "path": "overview",
         "type": "sections",
-        "max_columns": 4,
+        "max_columns": TABLET_MAX_COLUMNS,
         "dense_section_placement": True,
         "theme": "flux-ui-md3",
         "card_mod": TABLET_VIEW_CARD_MOD,
         "sections": [
-            {"type": "grid", "cards": [_layout_card(content_cards)]},
-            navbar_section(use_navbar_card=use_navbar_card),
+            tablet_section([_layout_card(content_cards)]),
+            tablet_section(navbar_section(use_navbar_card=use_navbar_card)["cards"]),
         ],
     }

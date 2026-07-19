@@ -73,6 +73,7 @@ def verify_build(path: Path) -> list[str]:
             "room_selector",
             "calendar_notification",
             "simple_tab",
+            '"column_span": 4',
             "/flux-ui-tablet/overview",
             '"label": "Home"',
             '"label": "Rooms"',
@@ -81,6 +82,15 @@ def verify_build(path: Path) -> list[str]:
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        # Every tablet section should span the full 16:9 row.
+        for view in views:
+            for section in view.get("sections") or []:
+                if isinstance(section, dict) and section.get("column_span") != 4:
+                    errors.append(
+                        f"View {view.get('path')} section missing column_span=4 "
+                        f"(got {section.get('column_span')!r})"
+                    )
+                    break
         if "custom:navbar-card" not in overview_blob and "mushroom-chips-card" not in overview_blob:
             errors.append("Tablet overview missing bottom navbar card")
         if not any(v.get("path") == "active" for v in views):
