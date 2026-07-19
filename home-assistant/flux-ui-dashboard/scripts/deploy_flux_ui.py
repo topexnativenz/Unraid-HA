@@ -304,22 +304,22 @@ def build_config(
     overview = next((v for v in config["views"] if v.get("path") == "overview"), config["views"][0])
 
     if tablet:
-        if overview.get("type") != "sections":
+        if overview.get("type") != "panel":
             print(
-                "\nERROR: Tablet overview must be sections + layout-card "
-                "(view-type grid-layout renders blank with navbar-only).\n",
+                "\nERROR: Tablet overview must be type panel + layout-card "
+                "(sections views stay phone-column width).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        sections = overview.get("sections") or []
-        if len(sections) < 2:
+        cards = overview.get("cards") or []
+        if len(cards) != 1:
             print(
-                f"\nERROR: Tablet overview has {len(sections)} sections — "
-                "expected layout-card section + navbar.\n",
+                f"\nERROR: Panel overview must have exactly 1 root card, got {len(cards)}.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
         for needle in (
+            '"type": "panel"',
             "custom:layout-card",
             "custom:grid-layout",
             "custom:navbar-card",
@@ -331,7 +331,7 @@ def build_config(
             "room_selector",
             "calendar_notification",
             "simple_tab",
-            '"column_span": 4',
+            '"width": "100%"',
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
@@ -342,9 +342,16 @@ def build_config(
         if use_kiosk and "kiosk_mode" not in config:
             print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
             raise SystemExit(1)
+        non_panel = [v.get("path") for v in config["views"] if v.get("type") != "panel"]
+        if non_panel:
+            print(
+                f"\nERROR: All tablet views must be panel for 16:9; non-panel: {non_panel[:8]}\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         print(
-            f"Built tablet config: sections+layout-card overview, "
-            f"{len(sections)} sections, {len(config['views'])} views"
+            f"Built tablet config: panel+layout-card overview, "
+            f"{len(config['views'])} full-bleed panel views"
         )
         return config
 

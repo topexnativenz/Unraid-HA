@@ -150,8 +150,8 @@ def _category_tab_chips() -> dict:
     }
 
 
-def _room_grid_for_category(rooms: list[dict]) -> dict:
-    """Two-column grid of flux_room tiles — ElementZoom horizontal-stack pairs."""
+def _room_grid_for_category(rooms: list[dict], *, columns: int = 2) -> dict:
+    """Room tile grid — 2-col phone / 3–4-col tablet landscape."""
     if not rooms:
         return {
             "type": "custom:mushroom-title-card",
@@ -159,16 +159,17 @@ def _room_grid_for_category(rooms: list[dict]) -> dict:
             "subtitle": "Set category: default | others | outdoor in rooms.yaml",
             "grid_options": {"columns": 12},
         }
+    tile_cols = 12 // max(1, columns)
     return {
         "type": "grid",
-        "columns": 2,
+        "columns": columns,
         "square": False,
-        "cards": [flux_room_tile(room, columns=6) for room in rooms],
+        "cards": [flux_room_tile(room, columns=tile_cols) for room in rooms],
         "grid_options": {"columns": 12},
     }
 
 
-def _category_panel(rooms: list[dict], *, option: str, slug: str) -> dict:
+def _category_panel(rooms: list[dict], *, option: str, slug: str, columns: int = 2) -> dict:
     category_rooms = _rooms_for_category(rooms, slug)
     return {
         "type": "conditional",
@@ -178,17 +179,20 @@ def _category_panel(rooms: list[dict], *, option: str, slug: str) -> dict:
                 "value_template": _tab_active_template(option),
             }
         ],
-        "card": _room_grid_for_category(category_rooms),
+        "card": _room_grid_for_category(category_rooms, columns=columns),
     }
 
 
-def build_rooms_index_section(rooms: list[dict]) -> dict:
-    """ElementZoom Rooms view — centered title, category tabs, filtered 2-col cards."""
+def build_rooms_index_section(rooms: list[dict], *, columns: int = 2) -> dict:
+    """ElementZoom Rooms view — centered title, category tabs, filtered room cards."""
     return {
         "type": "grid",
         "cards": [
             _rooms_page_title(),
             _category_tab_chips(),
-            *[_category_panel(rooms, option=c["option"], slug=c["slug"]) for c in ROOM_CATEGORIES],
+            *[
+                _category_panel(rooms, option=c["option"], slug=c["slug"], columns=columns)
+                for c in ROOM_CATEGORIES
+            ],
         ],
     }

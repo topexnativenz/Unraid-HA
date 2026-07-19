@@ -59,7 +59,7 @@ VIEW_CARD_MOD = {
     )
 }
 
-# 15.6" 1920×1080 landscape — full-bleed sections (override HA ~500px column cap).
+# 15.6" 1920×1080 landscape — panel views fill the viewport (no sections column cap).
 TABLET_VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
@@ -70,25 +70,16 @@ TABLET_VIEW_CARD_MOD = {
         "  max-width: none !important;\n"
         "  width: 100% !important;\n"
         "  margin: 0 !important;\n"
-        "  padding: 4px 12px 96px 12px !important;\n"
+        "  padding: 0 !important;\n"
         "}\n"
-        "/* Widen HA sections columns for 16:9 wall tablets (~500px default). */\n"
-        "hui-sections-view,\n"
-        "hui-view-sections {\n"
-        "  --ha-view-sections-column-min-width: 220px;\n"
-        "  --ha-view-sections-column-max-width: 480px;\n"
-        "  --ha-view-sections-column-gap: 12px;\n"
+        "hui-panel-view,\n"
+        "hui-view-panel {\n"
         "  width: 100% !important;\n"
         "  max-width: none !important;\n"
-        "  padding-bottom: 88px;\n"
+        "  height: 100% !important;\n"
         "}\n"
-        "hui-sections-view > .container,\n"
-        "hui-view-sections .container,\n"
-        ".container {\n"
-        "  width: 100% !important;\n"
-        "  max-width: none !important;\n"
-        "}\n"
-        "hui-section {\n"
+        "hui-panel-view > *,\n"
+        "hui-view-panel > * {\n"
         "  width: 100% !important;\n"
         "  max-width: none !important;\n"
         "}\n"

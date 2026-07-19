@@ -1,22 +1,18 @@
-"""ElementZoom MD3 tablet overview — author framework layout.
+"""ElementZoom MD3 tablet overview — full-bleed 16:9 panel + layout-card.
 
-Reference:
-  https://github.com/ElementZoom/Material-Design-3-Dynamic-Tablet-Dashboard
-
-Uses sections + custom:layout-card (not view-type custom:grid-layout).
-View-level grid-layout often renders blank with only a fixed navbar-card
-visible on some HA / layout-card versions — layout-card-as-card is reliable.
+Uses type: panel (one card, full viewport width). Sections views cannot
+reliably fill a 1920×1080 landscape canvas.
 """
 
 from __future__ import annotations
 
 from flux_action_builders import garage_action, lock_action, scene_action
 from flux_layouts import flux_room_tile
-from flux_navbar import URL_PREFIX, navbar_section
+from flux_navbar import URL_PREFIX
 from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
-from flux_tablet_layout import TABLET_MAX_COLUMNS, tablet_section
-from md3_templates import GLASS_CARD_MOD, TABLET_VIEW_CARD_MOD, wrap_glass
+from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
+from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
@@ -43,7 +39,6 @@ def _transparent_title(title: str, *, size: str = "16px") -> dict:
 
 
 def _greeting_stack(weather_entity: str) -> dict:
-    """Author greeting column — date/time, weather pill, personalized hello."""
     high_low = (
         "{% set f = state_attr('" + weather_entity + "', 'forecast') %}"
         "{% if f and f[0] is mapping %}"
@@ -60,7 +55,6 @@ def _greeting_stack(weather_entity: str) -> dict:
             {
                 "type": "custom:mushroom-title-card",
                 "alignment": "start",
-                # Plain text — mushroom-title does not evaluate Jinja.
                 "title": "Home",
                 "subtitle": "Live overview",
                 "card_mod": {
@@ -102,10 +96,7 @@ def _greeting_stack(weather_entity: str) -> dict:
                     "]]]"
                 ),
                 "styles": {
-                    "card": [
-                        {"min-height": "64px"},
-                        {"padding": "12px 16px"},
-                    ],
+                    "card": [{"min-height": "64px"}, {"padding": "12px 16px"}],
                     "name": [{"font-size": "18px"}, {"font-weight": "700"}, {"justify-self": "start"}],
                     "label": [
                         {"justify-self": "start"},
@@ -271,12 +262,7 @@ def _toggles_tab_cards(cfg: dict) -> list[dict]:
         cards.append(card)
     if not cards:
         cards.append(
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": "No quick toggles configured in `entities.yaml`.",
-                }
-            )
+            wrap_glass({"type": "markdown", "content": "No quick toggles configured."})
         )
     return [{"type": "grid", "columns": 2, "square": False, "cards": cards}]
 
@@ -307,16 +293,7 @@ def _scenes_tab_cards() -> list[dict]:
                     },
                 },
             ],
-        },
-        wrap_glass(
-            {
-                "type": "markdown",
-                "content": (
-                    "**Hue / scene presets** live on the Scenes page — "
-                    "same ElementZoom Preset grid as the tablet reference."
-                ),
-            }
-        ),
+        }
     ]
 
 
@@ -349,12 +326,7 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
         shell["view_layout"] = _area("simple_tab")
         shell["card_mod"] = {
             "style": GLASS_CARD_MOD["style"]
-            + (
-                "ha-card {\n"
-                "  padding: 8px !important;\n"
-                "  min-height: 260px;\n"
-                "}\n"
-            )
+            + "ha-card { padding: 8px !important; min-height: 260px; }\n"
         }
         return shell
 
@@ -419,9 +391,10 @@ def _room_pair_row(rooms: list[dict]) -> dict:
         tiles.append(tile)
     if not tiles:
         return wrap_glass({"type": "markdown", "content": "No rooms in this category."})
+    # Reference tablet home: up to 6 room cards in one landscape row.
     return {
         "type": "grid",
-        "columns": min(3, len(tiles)),
+        "columns": min(6, max(2, len(tiles))),
         "square": False,
         "cards": tiles,
     }
@@ -487,19 +460,6 @@ def _camera_feed_card(camera: dict) -> dict:
                     + "' }}"
                 ),
                 "tap_action": {"action": "toggle", "entity": lid},
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  --chip-background: {% if is_state('" + lid + "', 'on') %}"
-                        "var(--md-sys-color-primary){% else %}"
-                        "color-mix(in srgb, var(--md-sys-color-on-primary) 50%, transparent)"
-                        "{% endif %} !important;\n"
-                        "  --color: {% if is_state('" + lid + "', 'on') %}"
-                        "var(--md-sys-color-on-primary){% else %}"
-                        "var(--md-sys-color-primary){% endif %} !important;\n"
-                        "}\n"
-                    )
-                },
             }
         )
 
@@ -513,7 +473,6 @@ def _camera_feed_card(camera: dict) -> dict:
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
                     "  border: none !important;\n"
-                    "  padding: 0 0 2px 0 !important;\n"
                     "}\n"
                     ".header { font-size: 15px !important; font-weight: 600 !important; }\n"
                 )
@@ -521,11 +480,10 @@ def _camera_feed_card(camera: dict) -> dict:
         },
         wrap_glass(
             {
-                "type": "picture-glance",
-                "title": "",
-                "entities": [],
-                "camera_image": entity,
+                "type": "picture-entity",
+                "entity": entity,
                 "camera_view": "live",
+                "show_name": False,
                 "show_state": False,
                 "tap_action": {"action": "more-info", "entity": entity},
             }
@@ -537,16 +495,6 @@ def _camera_feed_card(camera: dict) -> dict:
                 "type": "custom:mushroom-chips-card",
                 "alignment": "start",
                 "chips": chips,
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  background: transparent !important;\n"
-                        "  box-shadow: none !important;\n"
-                        "  border: none !important;\n"
-                        "  margin-top: 4px !important;\n"
-                        "}\n"
-                    )
-                },
             }
         )
     return {"type": "vertical-stack", "cards": stack}
@@ -566,8 +514,6 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         }
 
     if use_auto_entities and cameras_cfg.get("auto_discover", True):
-        # picture-entity works with auto-entities' injected entity; picture-glance
-        # needs camera_image and shows "Configuration error" otherwise.
         return {
             "type": "custom:auto-entities",
             "view_layout": _area("cameras"),
@@ -599,37 +545,10 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             wrap_glass(
                 {
                     "type": "markdown",
-                    "content": (
-                        "Add camera feeds to `cameras.yaml` "
-                        "(optional `lights:` chips — ElementZoom camera_generic_with_chips)."
-                    ),
+                    "content": "Add camera feeds to `cameras.yaml`.",
                 }
             )
         ],
-    }
-
-
-def _layout_card(cards: list[dict]) -> dict:
-    """ElementZoom grid as a layout-card (reliable) rather than a view type."""
-    return {
-        "type": "custom:layout-card",
-        "layout_type": "custom:grid-layout",
-        "layout": {
-            "margin": "0",
-            "padding": "4px 4px 0 4px",
-            "grid-gap": "10px",
-            # fr units avoid 0-width columns when parent width is unsettled.
-            "grid-template-columns": "1fr 1.2fr 1fr 1fr",
-            "grid-template-rows": "auto auto auto auto",
-            "grid-template-areas": (
-                '"greeting simple_tab weather calendar_notification"\n'
-                '"room_selector simple_tab weather calendar_notification"\n'
-                '"rooms rooms rooms calendar_notification"\n'
-                '"cameras cameras cameras calendar_notification"'
-            ),
-        },
-        "cards": cards,
-        "grid_options": {"columns": 12},
     }
 
 
@@ -643,7 +562,7 @@ def build_tablet_overview_view(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
 ) -> dict:
-    """Landscape overview — layout-card grid + separate bottom navbar section."""
+    """Full-bleed 16:9 overview — panel view + layout-card grid."""
     del climate_section
     content_cards = [
         _greeting_stack(weather_entity),
@@ -654,17 +573,24 @@ def build_tablet_overview_view(
         _rooms_band(cfg),
         _cameras_band(cfg, use_auto_entities=use_auto_entities),
     ]
-    return {
-        "title": "Overview",
-        "icon": "mdi:home",
-        "path": "overview",
-        "type": "sections",
-        "max_columns": TABLET_MAX_COLUMNS,
-        "dense_section_placement": True,
-        "theme": "flux-ui-md3",
-        "card_mod": TABLET_VIEW_CARD_MOD,
-        "sections": [
-            tablet_section([_layout_card(content_cards)]),
-            tablet_section(navbar_section(use_navbar_card=use_navbar_card)["cards"]),
-        ],
-    }
+    layout = tablet_layout_card(
+        content_cards,
+        layout={
+            # Four equal landscape bands — ElementZoom author areas.
+            "grid-template-columns": "1.1fr 1.35fr 1.1fr 1.1fr",
+            "grid-template-rows": "auto auto minmax(200px, auto) minmax(160px, auto)",
+            "grid-template-areas": (
+                '"greeting simple_tab weather calendar_notification"\n'
+                '"room_selector simple_tab weather calendar_notification"\n'
+                '"rooms rooms rooms calendar_notification"\n'
+                '"cameras cameras cameras calendar_notification"'
+            ),
+        },
+    )
+    root = tablet_panel_stack(layout, use_navbar_card=use_navbar_card)
+    return tablet_panel_view(
+        title="Overview",
+        path="overview",
+        icon="mdi:home",
+        root_card=root,
+    )

@@ -42,7 +42,11 @@ from flux_navbar import (
     room_view_path,
     set_url_prefix,
 )
-from flux_tablet_layout import TABLET_MAX_COLUMNS, ensure_tablet_section_spans
+from flux_tablet_layout import (
+    flatten_section_cards,
+    tablet_panel_stack,
+    tablet_panel_view,
+)
 from flux_tablet_overview import build_tablet_overview_view
 from flux_tablet_room import build_tablet_room_detail_view
 from flux_tablet_scenes import build_tablet_active_view, build_tablet_scenes_view
@@ -141,21 +145,29 @@ def flux_view(
     back_path: str | None = None,
     tablet: bool = False,
 ) -> dict:
-    all_sections = list(sections) + [navbar_section(use_navbar_card=use_navbar_card)]
     if tablet:
-        all_sections = ensure_tablet_section_spans(all_sections, column_span=TABLET_MAX_COLUMNS)
+        # Panel view = true full-bleed 16:9 (sections views stay phone-column width).
+        cards = flatten_section_cards(sections)
+        root = tablet_panel_stack(*cards, use_navbar_card=use_navbar_card)
+        return tablet_panel_view(
+            title=title,
+            path=path,
+            icon=icon,
+            root_card=root,
+            subview=subview,
+            back_path=back_path,
+        )
+
     view: dict = {
         "title": title,
         "icon": icon,
         "path": path,
         "type": "sections",
-        "max_columns": TABLET_MAX_COLUMNS if tablet else 2,
+        "max_columns": 2,
         "theme": "flux-ui-md3",
-        "card_mod": TABLET_VIEW_CARD_MOD if tablet else VIEW_CARD_MOD,
-        "sections": all_sections,
+        "card_mod": VIEW_CARD_MOD,
+        "sections": list(sections) + [navbar_section(use_navbar_card=use_navbar_card)],
     }
-    if tablet:
-        view["dense_section_placement"] = True
     if subview:
         view["subview"] = True
     if back_path:
@@ -303,8 +315,9 @@ def build_overview_sections(
     return sections
 
 
-def build_rooms_index(cfg: dict) -> dict:
-    return build_rooms_index_section(cfg.get("rooms", []))
+def build_rooms_index(cfg: dict, *, tablet: bool = False) -> dict:
+    # Tablet panel is full-bleed — use 3-col room cards (ElementZoom landscape density).
+    return build_rooms_index_section(cfg.get("rooms", []), columns=3 if tablet else 2)
 
 
 def extract_section_from_mobile_home(config: dict, *, path: str | None = None, title: str | None = None) -> dict | None:
@@ -672,7 +685,7 @@ def main() -> None:
         tablet=args.tablet,
     )
     if args.tablet:
-        print("Tablet overview: sections + layout-card grid (ElementZoom 16:9)")
+        print("Tablet overview: panel + layout-card (full-bleed 16:9)")
     else:
         usage = overview_tab_usage(config)
         print(
@@ -684,12 +697,6 @@ def main() -> None:
     if args.tablet and args.output == ROOT / "generated" / "lovelace.flux_ui.json":
         args.output = ROOT / "generated" / "lovelace.flux_ui_tablet.json"
 
-    # Non-overview section views: honour --tablet-columns override.
-    if args.tablet and args.tablet_columns != 4:
-        for view in config["views"]:
-            if view.get("type") == "sections":
-                view["max_columns"] = args.tablet_columns
-
     args.output.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "version": 1,
@@ -699,9 +706,10 @@ def main() -> None:
     }
     args.output.write_text(json.dumps(payload, indent=2))
     overview = next(v for v in config["views"] if v["path"] == "overview")
-    detail = f"{len(overview.get('sections', []))} overview sections"
-    if args.tablet and "custom:layout-card" in json.dumps(overview):
-        detail += " (layout-card grid)"
+    if overview.get("type") == "panel":
+        detail = "panel overview (full-bleed 16:9)"
+    else:
+        detail = f"{len(overview.get('sections', []))} overview sections"
     print(f"Wrote {args.output} ({len(config['views'])} views, {detail})")
 
 

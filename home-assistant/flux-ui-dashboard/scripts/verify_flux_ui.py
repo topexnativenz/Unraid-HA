@@ -56,24 +56,24 @@ def verify_build(path: Path) -> list[str]:
     }
 
     if is_tablet:
-        if overview.get("type") != "sections":
+        if overview.get("type") != "panel":
             errors.append(
-                "Tablet overview must use sections + layout-card "
-                "(not view-type custom:grid-layout — blank/navbar-only bug)"
+                "Tablet overview must use type panel + layout-card "
+                "(sections views cannot fill 16:9 width)"
             )
-        sections = overview.get("sections") or []
-        if len(sections) < 2:
-            errors.append(f"Tablet overview expected >= 2 sections, got {len(sections)}")
+        if len(overview.get("cards") or []) != 1:
+            errors.append("Tablet panel overview must have exactly one root card")
         for needle in (
+            '"type": "panel"',
             "custom:layout-card",
             "layout_type",
+            '"width": "100%"',
             "weather-forecast",
             "history-graph",
             "custom:simple-tabs",
             "room_selector",
             "calendar_notification",
             "simple_tab",
-            '"column_span": 4',
             "/flux-ui-tablet/overview",
             '"label": "Home"',
             '"label": "Rooms"',
@@ -82,15 +82,10 @@ def verify_build(path: Path) -> list[str]:
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
-        # Every tablet section should span the full 16:9 row.
         for view in views:
-            for section in view.get("sections") or []:
-                if isinstance(section, dict) and section.get("column_span") != 4:
-                    errors.append(
-                        f"View {view.get('path')} section missing column_span=4 "
-                        f"(got {section.get('column_span')!r})"
-                    )
-                    break
+            if view.get("type") != "panel":
+                errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")
+                break
         if "custom:navbar-card" not in overview_blob and "mushroom-chips-card" not in overview_blob:
             errors.append("Tablet overview missing bottom navbar card")
         if not any(v.get("path") == "active" for v in views):
@@ -128,6 +123,11 @@ def verify_build(path: Path) -> list[str]:
     for view in views:
         if view.get("theme") != "flux-ui-md3":
             errors.append(f"View {view.get('path')} missing flux-ui-md3 theme")
+        if view.get("type") == "panel":
+            panel_blob = json.dumps(view.get("cards") or [])
+            if "navbar-card" not in panel_blob and "mushroom-chips-card" not in panel_blob:
+                errors.append(f"View {view.get('path')} missing navbar in panel root")
+            continue
         sections = view.get("sections") or []
         if sections:
             tail = json.dumps(sections[-1])

@@ -1,21 +1,18 @@
-"""ElementZoom tablet room detail — landscape 3-column Living Area layout.
-
-Uses sections + layout-card (same reliability fix as tablet overview).
-"""
+"""ElementZoom tablet room detail — full-bleed 16:9 panel (lights | climate | photo)."""
 
 from __future__ import annotations
 
 from flux_door_builders import build_doors_status_section
 from flux_layouts import _lights_tile_grid
-from flux_navbar import URL_PREFIX, navbar_section
+from flux_navbar import URL_PREFIX
 from flux_room_detail import (
     build_room_features_row,
     build_room_status_chips_auto,
     build_room_subnav,
     build_room_top_bar,
 )
-from flux_tablet_layout import TABLET_MAX_COLUMNS, tablet_section
-from md3_templates import TABLET_VIEW_CARD_MOD, wrap_glass, wrap_title
+from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
+from md3_templates import wrap_glass, wrap_title
 
 
 def _area(name: str) -> dict:
@@ -99,13 +96,7 @@ def _climate_column(room: dict) -> dict:
 def _photo_column(room: dict) -> dict:
     photo = room.get("photo") or room.get("image")
     if photo:
-        card = wrap_glass(
-            {
-                "type": "picture",
-                "image": photo,
-                "tap_action": {"action": "none"},
-            }
-        )
+        card = wrap_glass({"type": "picture", "image": photo, "tap_action": {"action": "none"}})
     else:
         card = wrap_glass(
             {
@@ -135,6 +126,9 @@ def _lights_column(room: dict) -> dict:
     if lights:
         grid = _lights_tile_grid(lights)
         grid.pop("grid_options", None)
+        # Wider light grid on tablet.
+        if grid.get("type") == "grid":
+            grid["columns"] = 3
         cards.append(wrap_glass(grid))
     else:
         cards.append(wrap_glass({"type": "markdown", "content": "No lights configured."}))
@@ -147,7 +141,6 @@ def build_tablet_room_detail_view(
     garage_doors: list[dict] | None = None,
     use_navbar_card: bool = True,
 ) -> dict:
-    """Landscape room detail — layout-card body + navbar section."""
     header_cards: list[dict] = [
         build_room_top_bar(room),
         build_room_status_chips_auto(room),
@@ -158,45 +151,31 @@ def build_tablet_room_detail_view(
         header_cards.append(
             build_doors_status_section(garage_doors, title="Garage & sheds", subtitle="Live contacts")
         )
-
     for card in header_cards:
         if isinstance(card, dict):
             card.pop("grid_options", None)
 
-    layout = {
-        "type": "custom:layout-card",
-        "layout_type": "custom:grid-layout",
-        "layout": {
-            "margin": "0",
-            "grid-gap": "10px",
+    layout = tablet_layout_card(
+        [
+            {"type": "vertical-stack", "view_layout": _area("header"), "cards": header_cards},
+            _lights_column(room),
+            _climate_column(room),
+            _photo_column(room),
+        ],
+        layout={
             "grid-template-columns": "1fr 1fr 1fr",
             "grid-template-areas": (
                 '"header header header"\n'
                 '"lights climate photo"'
             ),
         },
-        "cards": [
-            {"type": "vertical-stack", "view_layout": _area("header"), "cards": header_cards},
-            _lights_column(room),
-            _climate_column(room),
-            _photo_column(room),
-        ],
-        "grid_options": {"columns": 12},
-    }
-
-    return {
-        "title": room["name"],
-        "icon": room.get("icon", "mdi:home-outline"),
-        "path": f"room-{room['path']}",
-        "type": "sections",
-        "max_columns": TABLET_MAX_COLUMNS,
-        "dense_section_placement": True,
-        "theme": "flux-ui-md3",
-        "subview": True,
-        "back_path": f"{URL_PREFIX}/rooms",
-        "card_mod": TABLET_VIEW_CARD_MOD,
-        "sections": [
-            tablet_section([layout]),
-            tablet_section(navbar_section(use_navbar_card=use_navbar_card)["cards"]),
-        ],
-    }
+    )
+    root = tablet_panel_stack(layout, use_navbar_card=use_navbar_card)
+    return tablet_panel_view(
+        title=room["name"],
+        path=f"room-{room['path']}",
+        icon=room.get("icon", "mdi:home-outline"),
+        root_card=root,
+        subview=True,
+        back_path=f"{URL_PREFIX}/rooms",
+    )

@@ -39,8 +39,9 @@ bash home-assistant/scripts/run_all_e2e.sh
 
 ## Phase 4 (in progress)
 - **Tablet 16:9** — ElementZoom MD3 Dynamic Tablet Dashboard author framework
-  - Overview `custom:grid-layout` areas: greeting / simple_tab / weather / calendar_notification /
-    room_selector / rooms / cameras (+ Flux bottom navbar)
+  - All tablet views are **`type: panel`** (full viewport width — sections cannot do 16:9)
+  - Overview `layout-card` grid: greeting / simple_tab / weather / calendar /
+    room_selector / rooms (up to 6) / cameras (+ Flux bottom navbar)
   - `simple-tabs` Climate · Toggles · Scenes (in-panel)
   - Room detail landscape: lights | climate | photo
   - Scenes Preset › mood/image grid (`scenes.yaml` preset_categories)
