@@ -338,9 +338,9 @@ _ROOM_SENSOR_COLUMN = (
 )
 
 
-def flux_light_tile(entity: str, name: str, *, columns: int = 6) -> dict:
+def flux_light_tile(entity: str, name: str, *, columns: int | None = None) -> dict:
     """Reference room-detail light tile: icon, name, Off/On status — 2-col grid."""
-    return {
+    tile: dict = {
         "type": "custom:button-card",
         "template": "flux_light",
         "entity": entity,
@@ -349,8 +349,10 @@ def flux_light_tile(entity: str, name: str, *, columns: int = 6) -> dict:
         "label": _LIGHT_LABEL,
         "tap_action": {"action": "toggle"},
         "hold_action": {"action": "more-info"},
-        "grid_options": {"columns": columns},
     }
+    if columns is not None:
+        tile["grid_options"] = {"columns": columns}
+    return tile
 
 
 def flux_light_auto_entities_options(*, columns: int = 6) -> dict:
@@ -367,13 +369,12 @@ def flux_light_auto_entities_options(*, columns: int = 6) -> dict:
 
 
 def _lights_tile_grid(lights: list[dict]) -> dict:
-    """Inner 2-column grid — same structure as Active now auto-entities card."""
+    """Inner 2-column grid — no child grid_options (breaks nested sections grids)."""
     return {
         "type": "grid",
         "columns": 2,
         "square": False,
-        "cards": [flux_light_tile(item["entity"], item["name"], columns=6) for item in lights],
-        "grid_options": {"columns": 12},
+        "cards": [flux_light_tile(item["entity"], item["name"]) for item in lights],
     }
 
 

@@ -179,7 +179,13 @@ def build_lights_view(cfg: dict, *, use_auto_entities: bool = True) -> dict:
     return {"type": "grid", "cards": cards}
 
 
-def _camera_card(camera: dict, *, columns: int = 12) -> dict:
+def _full_width(card: dict) -> dict:
+    card = dict(card)
+    card["grid_options"] = {"columns": 12}
+    return card
+
+
+def _camera_card(camera: dict) -> dict:
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
@@ -191,7 +197,6 @@ def _camera_card(camera: dict, *, columns: int = 12) -> dict:
             "camera_view": "live",
             "show_state": False,
             "tap_action": {"action": "more-info"},
-            "grid_options": {"columns": columns},
         }
     )
 
@@ -216,7 +221,7 @@ def build_cameras_view(
     cards: list[dict] = [section_title("Cameras", "Live feeds")]
     if manual:
         for cam in manual:
-            cards.append(_camera_card(cam))
+            cards.append(_full_width(_camera_card(cam)))
     elif use_auto_entities and cameras_cfg.get("auto_discover", True):
         cards.append(
             wrap_glass(
@@ -325,37 +330,39 @@ def _room_header(room: dict, *, active_tab: str = "room") -> list[dict]:
 
 
 def build_room_grid_page(room: dict, *, active_tab: str = "grid") -> dict:
-    """Room Grid subview — dense 3-column control grid for all room lights."""
+    """Room Lights subview — dense 3-column control grid for all room lights."""
     cards: list[dict] = _room_header(room, active_tab=active_tab)
 
     lights = room.get("lights") or []
     if lights:
-        grid_cards = [flux_light_tile(item["entity"], item["name"], columns=4) for item in lights]
+        grid_cards = [flux_light_tile(item["entity"], item["name"]) for item in lights]
         cards.append(
-            wrap_glass(
-                {
-                    "type": "grid",
-                    "columns": 3,
-                    "square": False,
-                    "cards": grid_cards,
-                    "grid_options": {"columns": 12},
-                }
+            _full_width(
+                wrap_glass(
+                    {
+                        "type": "grid",
+                        "columns": 3,
+                        "square": False,
+                        "cards": grid_cards,
+                    }
+                )
             )
         )
     else:
         cards.append(
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": "No lights configured for this room.",
-                    "grid_options": {"columns": 12},
-                }
+            _full_width(
+                wrap_glass(
+                    {
+                        "type": "markdown",
+                        "content": "No lights configured for this room.",
+                    }
+                )
             )
         )
 
     groups = room.get("light_groups") or []
     if groups:
-        cards.append(section_title("Shortcuts", "Light groups", compact=True))
+        cards.append(_full_width(section_title("Shortcuts", "Light groups", compact=True)))
         group_cards: list[dict] = []
         for group in groups:
             group_cards.append(
@@ -367,10 +374,11 @@ def build_room_grid_page(room: dict, *, active_tab: str = "grid") -> dict:
                     "icon": group.get("icon", "mdi:lightbulb-group"),
                     "label": "[[[ return entity.state === 'on' ? 'On' : 'Off'; ]]]",
                     "tap_action": {"action": "toggle"},
-                    "grid_options": {"columns": 6},
                 }
             )
-        cards.append({"type": "grid", "cards": group_cards})
+        cards.append(
+            _full_width({"type": "grid", "columns": 2, "square": False, "cards": group_cards})
+        )
 
     return {"type": "grid", "cards": cards}
 
@@ -382,31 +390,36 @@ def build_room_camera_page(room: dict, cfg: dict, *, active_tab: str = "camera")
     feeds = cameras_for_room(cfg, room["path"])
     if feeds:
         for cam in feeds:
-            cards.append(_camera_card(cam))
+            cards.append(_full_width(_camera_card(cam)))
     else:
         cards.append(
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": (
-                        f"No cameras assigned to **{room.get('card_name') or room['name']}** yet.\n\n"
-                        "Set `cameras:` on this room in `rooms.yaml`, or add `room: "
-                        f"{room['path']}` in `cameras.yaml`."
-                    ),
-                    "grid_options": {"columns": 12},
-                }
+            _full_width(
+                wrap_glass(
+                    {
+                        "type": "markdown",
+                        "content": (
+                            f"No cameras assigned to **{room.get('card_name') or room['name']}** yet.\n\n"
+                            "Set `cameras:` on this room in `rooms.yaml`, or add `room: "
+                            f"{room['path']}` in `cameras.yaml`."
+                        ),
+                    }
+                )
             )
         )
         cards.append(
-            {
-                "type": "custom:button-card",
-                "template": "flux_action",
-                "name": "All cameras",
-                "icon": "mdi:cctv",
-                "label": "Open camera tab",
-                "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/cameras"},
-                "grid_options": {"columns": 12},
-            }
+            _full_width(
+                {
+                    "type": "custom:button-card",
+                    "template": "flux_action",
+                    "name": "All cameras",
+                    "icon": "mdi:cctv",
+                    "label": "Open camera tab",
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{URL_PREFIX}/cameras",
+                    },
+                }
+            )
         )
 
     return {"type": "grid", "cards": cards}

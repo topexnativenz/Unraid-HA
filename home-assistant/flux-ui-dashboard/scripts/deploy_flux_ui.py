@@ -90,28 +90,66 @@ def copy_theme(mount: str) -> None:
             )
 
 
+def _mkdir_smb(path: Path) -> bool:
+    """Create a directory on the HA SMB share; return False if the share rejects it.
+
+    Some Samba mounts fail pathlib.mkdir(parents=True) on deep paths even when
+    shallower parents exist — create level-by-level and tolerate races.
+    """
+    if path.exists():
+        return True
+    parts: list[Path] = []
+    cur = path
+    while cur != cur.parent and not cur.exists():
+        parts.append(cur)
+        cur = cur.parent
+    for part in reversed(parts):
+        try:
+            part.mkdir(exist_ok=True)
+        except OSError as exc:
+            if part.exists():
+                continue
+            print(f"  WARNING: cannot create {part} on SMB ({exc})")
+            return False
+    return path.exists()
+
+
 def copy_frontend_assets(mount: str) -> None:
+    """Copy www assets to the HA config share. Never aborts the whole deploy."""
     src_community = ROOT / "www" / "community"
     if src_community.exists():
         for item in src_community.iterdir():
             if not item.is_dir():
                 continue
             dst = Path(mount) / "www" / "community" / item.name
-            dst.mkdir(parents=True, exist_ok=True)
+            if not _mkdir_smb(dst):
+                continue
             for js in item.glob("*.js"):
-                shutil.copy2(js, dst / js.name)
-                print(f"  copied www/community/{item.name}/{js.name}")
+                try:
+                    shutil.copy2(js, dst / js.name)
+                    print(f"  copied www/community/{item.name}/{js.name}")
+                except OSError as exc:
+                    print(f"  WARNING: skip www/community/{item.name}/{js.name} ({exc})")
 
     src_flux = ROOT / "www" / "flux-ui"
     if src_flux.exists():
         dst_flux = Path(mount) / "www" / "flux-ui"
+        if not _mkdir_smb(dst_flux):
+            print("  WARNING: cannot create www/flux-ui on SMB — skipping flux-ui assets")
+            return
         for f in src_flux.rglob("*"):
-            if f.is_file():
-                rel = f.relative_to(src_flux)
-                target = dst_flux / rel
-                target.parent.mkdir(parents=True, exist_ok=True)
+            if not f.is_file():
+                continue
+            rel = f.relative_to(src_flux)
+            target = dst_flux / rel
+            if not _mkdir_smb(target.parent):
+                print(f"  WARNING: skip www/flux-ui/{rel} (parent mkdir failed)")
+                continue
+            try:
                 shutil.copy2(f, target)
                 print(f"  copied www/flux-ui/{rel}")
+            except OSError as exc:
+                print(f"  WARNING: skip www/flux-ui/{rel} ({exc})")
 
 
 def write_storage(mount: str, config: dict) -> None:
@@ -772,15 +810,20 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     if mounted:
         # Re-copy packages after weather/Sonos discover regenerates package YAMLs.
-        copy_packages(args.mount)
-        copy_frontend_assets(args.mount)
-        if token and ha_up and not args.offline:
-            await ensure_weather_package_helpers(token, args.ha_url)
-            await ensure_media_package_helpers(token, args.ha_url)
-            await _sync_sonos_input_select(token, args.ha_url)
-        write_storage(args.mount, config)
-        if tablet_config:
-            write_tablet_storage(args.mount, tablet_config)
+        # SMB hiccups must never block lovelace/config/save below — that is what
+        # Companion apps actually load.
+        try:
+            copy_packages(args.mount)
+            copy_frontend_assets(args.mount)
+            if token and ha_up and not args.offline:
+                await ensure_weather_package_helpers(token, args.ha_url)
+                await ensure_media_package_helpers(token, args.ha_url)
+                await _sync_sonos_input_select(token, args.ha_url)
+            write_storage(args.mount, config)
+            if tablet_config:
+                write_tablet_storage(args.mount, tablet_config)
+        except Exception as exc:
+            print(f"WARNING: SMB storage write failed ({exc}) — continuing with live API save")
 
     if args.offline or not ha_up:
         if mounted:

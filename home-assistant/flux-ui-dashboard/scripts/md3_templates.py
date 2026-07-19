@@ -766,13 +766,26 @@ def wrap_flux_light_row(card: dict, *, entity: str) -> dict:
     }
 
 
+def merge_card_mod(card: dict, extra_style: str) -> dict:
+    """Append card-mod CSS without discarding existing styles."""
+    card = dict(card)
+    existing = card.get("card_mod") or {}
+    base = existing.get("style", "") if isinstance(existing, dict) else ""
+    card["card_mod"] = {"style": base + extra_style}
+    return card
+
+
 def wrap_glass(card: dict) -> dict:
     card = dict(card)
-    card["card_mod"] = GLASS_CARD_MOD
+    existing = card.get("card_mod") or {}
+    base = existing.get("style", "") if isinstance(existing, dict) else ""
+    card["card_mod"] = {"style": GLASS_CARD_MOD["style"] + base}
     return card
 
 
 def wrap_title(card: dict) -> dict:
     card = dict(card)
-    card["card_mod"] = TITLE_CARD_MOD
+    existing = card.get("card_mod") or {}
+    base = existing.get("style", "") if isinstance(existing, dict) else ""
+    card["card_mod"] = {"style": TITLE_CARD_MOD["style"] + base}
     return card
