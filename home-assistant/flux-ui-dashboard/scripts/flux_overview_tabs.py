@@ -157,7 +157,7 @@ def _tab_panel(label: str, cards: list[dict], *, visible_jinja: str | None = Non
     return wrapped
 
 
-def _simple_tabs_shell(tabs: list[dict]) -> dict:
+def _simple_tabs_shell(tabs: list[dict], *, enable_swipe: bool = True) -> dict:
     """ElementZoom-style full-width tab bar — https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard"""
     return {
         "type": "custom:simple-tabs",
@@ -177,7 +177,7 @@ def _simple_tabs_shell(tabs: list[dict]) -> dict:
         "button_border_color": "transparent",
         "button_hover_border_color": "transparent",
         "haptic_feedback": True,
-        "enable_swipe": True,
+        "enable_swipe": enable_swipe,
         "hide_inactive_tab_titles": False,
         "card_mod": {
             "style": {
@@ -411,6 +411,7 @@ def build_overview_tabs_section(
     use_auto_entities: bool,
     use_calendar_pro: bool,
     use_simple_tabs: bool = True,
+    enable_tab_swipe: bool = True,
 ) -> dict:
     engine = tab_engine(cfg)
     use_hacs = use_simple_tabs and engine in ("simple-tabs", "auto")
@@ -439,7 +440,7 @@ def build_overview_tabs_section(
             "type": "grid",
             "cards": [
                 {
-                    **_simple_tabs_shell(tabs),
+                    **_simple_tabs_shell(tabs, enable_swipe=enable_tab_swipe),
                     "grid_options": {"columns": 12},
                 }
             ],

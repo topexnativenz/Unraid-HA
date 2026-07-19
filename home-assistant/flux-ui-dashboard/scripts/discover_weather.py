@@ -255,6 +255,14 @@ def main() -> int:
         return 0
 
     changed = update_yaml_value(ENTITIES, {"weather": weather_entity})
+    # Keep tablet outdoor chip on the same live weather entity.
+    if ENTITIES.exists():
+        ent = yaml.safe_load(ENTITIES.read_text()) or {}
+        tablet = ent.setdefault("tablet", {})
+        if tablet.get("outdoor_temperature") != weather_entity:
+            tablet["outdoor_temperature"] = weather_entity
+            ENTITIES.write_text(yaml.safe_dump(ent, sort_keys=False, default_flow_style=False))
+            changed = True
     if OVERVIEW_TABS.exists():
         ot = yaml.safe_load(OVERVIEW_TABS.read_text()) or {}
         if ot.get("events", {}).get("weather_entity") != weather_entity:

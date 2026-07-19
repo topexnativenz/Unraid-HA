@@ -50,8 +50,16 @@ from flux_tablet_layout import (
 from flux_tablet_overview import build_tablet_overview_view
 from flux_tablet_room import build_tablet_room_detail_view
 from flux_tablet_scenes import build_tablet_active_view, build_tablet_scenes_view
+from flux_media_player import (
+    build_music_player_popup_section,
+    build_navbar_media_player,
+    extra_module_urls,
+    media_player_active,
+    write_carousel_sync_js,
+)
 from flux_weather_panel import build_weather_panel_section
 from kiosk_config import KIOSK_MODE
+from swipe_nav_config import SWIPE_NAV
 from phase3_builders import (
     build_active_lights_section,
     build_home_status_section,
@@ -71,6 +79,7 @@ ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
 OVERVIEW_TABS = ROOT / "overview_tabs.yaml"
 WEATHER_PANEL = ROOT / "weather_panel.yaml"
+MEDIA_PLAYERS = ROOT / "media_players.yaml"
 ROOMS = ROOT / "rooms.yaml"
 ROOM_SENSORS = ROOT / "room_sensors.yaml"
 SCENES = ROOT / "scenes.yaml"
@@ -128,6 +137,10 @@ def load_entities() -> dict:
         cfg["overview_tabs"] = yaml.safe_load(OVERVIEW_TABS.read_text())
     else:
         cfg["overview_tabs"] = {}
+    if MEDIA_PLAYERS.exists():
+        cfg["media_players"] = yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
+    else:
+        cfg["media_players"] = {}
     if WEATHER_PANEL.exists():
         cfg["weather_panel"] = yaml.safe_load(WEATHER_PANEL.read_text()) or {}
     else:
@@ -150,6 +163,7 @@ def flux_view(
     subview: bool = False,
     back_path: str | None = None,
     tablet: bool = False,
+    navbar_media_player: dict | None = None,
 ) -> dict:
     if tablet:
         # Panel view = true full-bleed 16:9 (sections views stay phone-column width).
@@ -172,7 +186,13 @@ def flux_view(
         "max_columns": 2,
         "theme": "flux-ui-md3",
         "card_mod": VIEW_CARD_MOD,
-        "sections": list(sections) + [navbar_section(use_navbar_card=use_navbar_card)],
+        "sections": list(sections)
+        + [
+            navbar_section(
+                use_navbar_card=use_navbar_card,
+                media_player=navbar_media_player,
+            )
+        ],
     }
     if subview:
         view["subview"] = True
@@ -471,6 +491,7 @@ def build_overview_sections(
     use_auto_entities: bool,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
 ) -> list[dict]:
     """Overview layout — ElementZoom Home/Events/Active tabs below hero + status chips."""
     sections: list[dict] = [
@@ -492,8 +513,12 @@ def build_overview_sections(
                 use_auto_entities=use_auto_entities,
                 use_calendar_pro=use_calendar_pro,
                 use_simple_tabs=use_simple_tabs and tab_engine(cfg) in ("simple-tabs", "auto"),
+                enable_tab_swipe=not media_player_active(cfg),
             )
         )
+        popup_section = build_music_player_popup_section(cfg, use_mediocre=use_mediocre_media)
+        if popup_section:
+            sections.append(popup_section)
         weather_section = build_weather_panel_section(cfg)
         if weather_section:
             sections.append(weather_section)
@@ -506,6 +531,9 @@ def build_overview_sections(
     open_garage = build_open_garage_section(cfg)
     if open_garage:
         sections.append(open_garage)
+    popup_section = build_music_player_popup_section(cfg, use_mediocre=use_mediocre_media)
+    if popup_section:
+        sections.append(popup_section)
     weather_section = build_weather_panel_section(cfg)
     if weather_section:
         sections.append(weather_section)
@@ -594,6 +622,7 @@ def build_config(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
     tablet: bool = False,
 ) -> dict:
     # Ensure room tiles + navbar resolve to the correct dashboard URL prefix.
@@ -607,6 +636,7 @@ def build_config(
             use_auto_entities=use_auto_entities,
             use_simple_tabs=use_simple_tabs,
             use_calendar_pro=use_calendar_pro,
+            use_mediocre_media=use_mediocre_media,
             tablet=tablet,
         )
     finally:
@@ -622,6 +652,7 @@ def _build_config_inner(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
     tablet: bool = False,
 ) -> dict:
     cfg = load_entities()
@@ -690,7 +721,9 @@ def _build_config_inner(
             use_auto_entities=use_auto_entities,
             use_simple_tabs=use_simple_tabs,
             use_calendar_pro=use_calendar_pro,
+            use_mediocre_media=use_mediocre_media,
         )
+        navbar_media = build_navbar_media_player(cfg) if media_player_active(cfg) else None
         views = [
             flux_view(
                 title="Overview",
@@ -698,6 +731,7 @@ def _build_config_inner(
                 icon="mdi:home",
                 sections=overview,
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=navbar_media,
             ),
             flux_view(
                 title="Rooms",
@@ -807,6 +841,13 @@ def _build_config_inner(
         out["button_card_templates"].pop("flux_overview_tab", None)
     if use_kiosk:
         out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)
+    if not tablet:
+        # Bottom navbar handles view changes; keep horizontal swipes for media carousel.
+        out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
+        modules = extra_module_urls(cfg)
+        if modules:
+            out["extra_module_url"] = modules
+            write_carousel_sync_js(cfg, ROOT / "www" / "flux-ui" / "carousel-sync.js")
     return out
 
 
@@ -846,6 +887,11 @@ def main() -> None:
         help="Use mushroom calendar fallback instead of calendar-card-pro Events tab",
     )
     parser.add_argument(
+        "--no-mediocre-media",
+        action="store_true",
+        help="Use mushroom media player in popup instead of mediocre-massive card",
+    )
+    parser.add_argument(
         "--tablet",
         action="store_true",
         help="16:9 landscape build — multi-column sections, storage key lovelace.flux_ui_tablet",
@@ -879,6 +925,7 @@ def main() -> None:
         use_auto_entities=not args.no_auto_entities,
         use_simple_tabs=not args.no_simple_tabs,
         use_calendar_pro=not args.no_calendar_pro,
+        use_mediocre_media=not args.no_mediocre_media,
         tablet=args.tablet,
     )
     if args.tablet:

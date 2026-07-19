@@ -1,0 +1,1103 @@
+# Flux UI media player selection (Sonos zones)
+# Options are rewritten by discover_sonos.py --apply
+# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
+
+input_select:
+  flux_ui_media_player:
+    name: Flux UI Media Player
+    options:
+    - Black Lounge SONOS
+    - Kitchen SONOS
+    - Sleepout SONOS
+    - Upstairs Office SONOS
+    - Upstairs Office HomePod
+    initial: Black Lounge SONOS
+    icon: mdi:speaker
+script:
+  flux_ui_select_media_zone:
+    alias: Flux UI select media zone
+    mode: queued
+    fields:
+      zone:
+        description: Sonos zone name (matches input_select option)
+        example: Black Lounge SONOS
+        selector:
+          text: {}
+    sequence:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.flux_ui_media_player
+      data:
+        option: '{{ zone }}'
+  flux_ui_media_zone_next:
+    alias: Flux UI next Sonos zone
+    mode: single
+    sequence:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.flux_ui_media_player
+      data:
+        option: '{% set ns = namespace(visible=[], zones=[]) %}
+
+          {% if (is_state(''media_player.garage_sonos'', ''playing'') or is_state(''media_player.garage_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.garage_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.kitchen_sonos'', ''playing'') or is_state(''media_player.kitchen_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.kitchen_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.main_lounge_sonos'', ''playing'') or is_state(''media_player.main_lounge_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.main_lounge_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.kids_room_sonos'', ''playing'') or is_state(''media_player.kids_room_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.kids_room_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.upstairs_office_2_upstairs_office_atv''] %}{% endif %}
+
+          {% if ns.visible | length <= 2 %}
+
+          {% if ''media_player.garage_sonos'' not in ns.visible and ns.visible | length
+          < 2 %}{% set ns.visible = ns.visible + [''media_player.garage_sonos''] %}{%
+          endif %}
+
+          {% if ''media_player.kitchen_sonos'' not in ns.visible and ns.visible |
+          length < 2 %}{% set ns.visible = ns.visible + [''media_player.kitchen_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.main_lounge_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.kids_room_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.upstairs_office_2_upstairs_office_atv'' not in ns.visible
+          and ns.visible | length < 2 %}{% set ns.visible = ns.visible + [''media_player.upstairs_office_2_upstairs_office_atv'']
+          %}{% endif %}
+
+          {% endif %}
+
+          {% if ''media_player.garage_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Black Lounge SONOS''] %}{% endif %}
+
+          {% if ''media_player.kitchen_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Kitchen SONOS''] %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' in ns.visible %}{% set ns.zones
+          = ns.zones + [''Sleepout SONOS''] %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' in ns.visible %}{% set ns.zones =
+          ns.zones + [''Upstairs Office SONOS''] %}{% endif %}
+
+          {% if ''media_player.upstairs_office_2_upstairs_office_atv'' in ns.visible
+          %}{% set ns.zones = ns.zones + [''Upstairs Office HomePod''] %}{% endif
+          %}
+
+          {% set cur = states(''input_select.flux_ui_media_player'') %}{% set i =
+          ns.zones.index(cur) if cur in ns.zones else 0 %}{% if ns.zones | length
+          > 0 %}{{ ns.zones[(i + 1) % (ns.zones | length)] }}{% else %}{{ cur }}{%
+          endif %}'
+  flux_ui_media_zone_prev:
+    alias: Flux UI previous Sonos zone
+    mode: single
+    sequence:
+    - service: input_select.select_option
+      target:
+        entity_id: input_select.flux_ui_media_player
+      data:
+        option: '{% set ns = namespace(visible=[], zones=[]) %}
+
+          {% if (is_state(''media_player.garage_sonos'', ''playing'') or is_state(''media_player.garage_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.garage_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.kitchen_sonos'', ''playing'') or is_state(''media_player.kitchen_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kitchen_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kitchen_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.kitchen_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.main_lounge_sonos'', ''playing'') or is_state(''media_player.main_lounge_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.main_lounge_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.kids_room_sonos'', ''playing'') or is_state(''media_player.kids_room_sonos'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.kids_room_sonos''] %}{% endif %}
+
+          {% if (is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and (not ((((is_state(''media_player.garage_sonos'', ''playing'')
+          or is_state(''media_player.garage_sonos'', ''paused'')) and ((state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.garage_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.garage_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.garage_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.garage_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kitchen_sonos'',
+          ''playing'') or is_state(''media_player.kitchen_sonos'', ''paused'')) and
+          ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'') | default('''')
+          | lower in [''music'', ''artist'', ''album'', ''playlist'', ''podcast'',
+          ''track'', ''genre''] or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode'']) or (state_attr(''media_player.kitchen_sonos'', ''media_artist'')
+          | default('''') and not state_attr(''media_player.kitchen_sonos'', ''media_series_title'')
+          | default('''')) or (state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+          | default('''') | lower not in [''video'', ''tvshow'', ''movie'', ''channel'',
+          ''episode''] and ''tv'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kitchen_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kitchen_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.main_lounge_sonos'',
+          ''playing'') or is_state(''media_player.main_lounge_sonos'', ''paused''))
+          and ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.main_lounge_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.main_lounge_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.main_lounge_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.kids_room_sonos'',
+          ''playing'') or is_state(''media_player.kids_room_sonos'', ''paused''))
+          and ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+          | default('''') | lower in [''music'', ''artist'', ''album'', ''playlist'',
+          ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.kids_room_sonos'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.kids_room_sonos'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.kids_room_sonos'',
+          ''media_series_title'') | default(''''))))) or ((is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''playing'') or is_state(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''paused'')) and ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))))) or ((state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower in [''music'', ''artist'',
+          ''album'', ''playlist'', ''podcast'', ''track'', ''genre''] or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode'']) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_artist'') | default('''') and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default('''')) or (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_content_type'') | default('''') | lower not in [''video'', ''tvshow'',
+          ''movie'', ''channel'', ''episode''] and ''tv'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and ''hdmi'' not in state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''app_name'') | default('''') | lower and not state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+          ''media_series_title'') | default(''''))))) %}{% set ns.visible = ns.visible
+          + [''media_player.upstairs_office_2_upstairs_office_atv''] %}{% endif %}
+
+          {% if ns.visible | length <= 2 %}
+
+          {% if ''media_player.garage_sonos'' not in ns.visible and ns.visible | length
+          < 2 %}{% set ns.visible = ns.visible + [''media_player.garage_sonos''] %}{%
+          endif %}
+
+          {% if ''media_player.kitchen_sonos'' not in ns.visible and ns.visible |
+          length < 2 %}{% set ns.visible = ns.visible + [''media_player.kitchen_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.main_lounge_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' not in ns.visible and ns.visible
+          | length < 2 %}{% set ns.visible = ns.visible + [''media_player.kids_room_sonos'']
+          %}{% endif %}
+
+          {% if ''media_player.upstairs_office_2_upstairs_office_atv'' not in ns.visible
+          and ns.visible | length < 2 %}{% set ns.visible = ns.visible + [''media_player.upstairs_office_2_upstairs_office_atv'']
+          %}{% endif %}
+
+          {% endif %}
+
+          {% if ''media_player.garage_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Black Lounge SONOS''] %}{% endif %}
+
+          {% if ''media_player.kitchen_sonos'' in ns.visible %}{% set ns.zones = ns.zones
+          + [''Kitchen SONOS''] %}{% endif %}
+
+          {% if ''media_player.main_lounge_sonos'' in ns.visible %}{% set ns.zones
+          = ns.zones + [''Sleepout SONOS''] %}{% endif %}
+
+          {% if ''media_player.kids_room_sonos'' in ns.visible %}{% set ns.zones =
+          ns.zones + [''Upstairs Office SONOS''] %}{% endif %}
+
+          {% if ''media_player.upstairs_office_2_upstairs_office_atv'' in ns.visible
+          %}{% set ns.zones = ns.zones + [''Upstairs Office HomePod''] %}{% endif
+          %}
+
+          {% set cur = states(''input_select.flux_ui_media_player'') %}{% set i =
+          ns.zones.index(cur) if cur in ns.zones else 0 %}{% if ns.zones | length
+          > 0 %}{{ ns.zones[(i + -1) % (ns.zones | length)] }}{% else %}{{ cur }}{%
+          endif %}'
+template:
+- binary_sensor:
+  - name: flux_ui_tv_garage_sonos
+    unique_id: flux_ui_tv_garage_sonos
+    state: '{{ ((state_attr(''media_player.garage_sonos'', ''media_content_type'')
+      | default('''') | lower in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode'']
+      or ''tv'' in state_attr(''media_player.garage_sonos'', ''app_name'') | default('''')
+      | lower or ''hdmi'' in state_attr(''media_player.garage_sonos'', ''app_name'')
+      | default('''') | lower or state_attr(''media_player.garage_sonos'', ''media_title'')
+      | default('''') | lower == ''tv'')) and (states(''media_player.black_lounge_black_lounge_atv'')
+      in [''playing'', ''paused''] or (states(''media_player.black_lounge_black_lounge_atv'')
+      not in [''off'', ''standby'', ''unavailable'', ''unknown''] and (state_attr(''media_player.black_lounge_black_lounge_atv'',
+      ''media_title'') or state_attr(''media_player.black_lounge_black_lounge_atv'',
+      ''media_series_title'') or state_attr(''media_player.black_lounge_black_lounge_atv'',
+      ''entity_picture'') or state_attr(''media_player.black_lounge_black_lounge_atv'',
+      ''app_name'')))) }}'
+  - name: flux_ui_tv_kitchen_sonos
+    unique_id: flux_ui_tv_kitchen_sonos
+    state: '{{ ((state_attr(''media_player.kitchen_sonos'', ''media_content_type'')
+      | default('''') | lower in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode'']
+      or ''tv'' in state_attr(''media_player.kitchen_sonos'', ''app_name'') | default('''')
+      | lower or ''hdmi'' in state_attr(''media_player.kitchen_sonos'', ''app_name'')
+      | default('''') | lower or state_attr(''media_player.kitchen_sonos'', ''media_title'')
+      | default('''') | lower == ''tv'')) and (states(''media_player.home_cinema_home_cinema_atv'')
+      in [''playing'', ''paused''] or (states(''media_player.home_cinema_home_cinema_atv'')
+      not in [''off'', ''standby'', ''unavailable'', ''unknown''] and (state_attr(''media_player.home_cinema_home_cinema_atv'',
+      ''media_title'') or state_attr(''media_player.home_cinema_home_cinema_atv'',
+      ''media_series_title'') or state_attr(''media_player.home_cinema_home_cinema_atv'',
+      ''entity_picture'') or state_attr(''media_player.home_cinema_home_cinema_atv'',
+      ''app_name'')))) }}'
+  - name: flux_ui_tv_main_lounge_sonos
+    unique_id: flux_ui_tv_main_lounge_sonos
+    state: '{{ ((state_attr(''media_player.main_lounge_sonos'', ''media_content_type'')
+      | default('''') | lower in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode'']
+      or ''tv'' in state_attr(''media_player.main_lounge_sonos'', ''app_name'') |
+      default('''') | lower or ''hdmi'' in state_attr(''media_player.main_lounge_sonos'',
+      ''app_name'') | default('''') | lower or state_attr(''media_player.main_lounge_sonos'',
+      ''media_title'') | default('''') | lower == ''tv'')) and (states(''media_player.sleepout'')
+      in [''playing'', ''paused''] or (states(''media_player.sleepout'') not in [''off'',
+      ''standby'', ''unavailable'', ''unknown''] and (state_attr(''media_player.sleepout'',
+      ''media_title'') or state_attr(''media_player.sleepout'', ''media_series_title'')
+      or state_attr(''media_player.sleepout'', ''entity_picture'') or state_attr(''media_player.sleepout'',
+      ''app_name'')))) }}'
+  - name: flux_ui_tv_kids_room_sonos
+    unique_id: flux_ui_tv_kids_room_sonos
+    state: '{{ ((state_attr(''media_player.kids_room_sonos'', ''media_content_type'')
+      | default('''') | lower in [''video'', ''tvshow'', ''movie'', ''channel'', ''episode'']
+      or ''tv'' in state_attr(''media_player.kids_room_sonos'', ''app_name'') | default('''')
+      | lower or ''hdmi'' in state_attr(''media_player.kids_room_sonos'', ''app_name'')
+      | default('''') | lower or state_attr(''media_player.kids_room_sonos'', ''media_title'')
+      | default('''') | lower == ''tv'')) and (states(''media_player.upstairs_office_2_upstairs_office_atv'')
+      in [''playing'', ''paused''] or (states(''media_player.upstairs_office_2_upstairs_office_atv'')
+      not in [''off'', ''standby'', ''unavailable'', ''unknown''] and (state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+      ''media_title'') or state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+      ''media_series_title'') or state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+      ''entity_picture'') or state_attr(''media_player.upstairs_office_2_upstairs_office_atv'',
+      ''app_name'')))) }}'
+automation:
+- id: flux_ui_media_player_sync
+  alias: Flux UI sync media player to active Sonos zone
+  description: Keep input_select on the Sonos zone that is actively playing.
+  mode: queued
+  max: 10
+  trigger:
+  - platform: state
+    entity_id:
+    - media_player.garage_sonos
+    - media_player.kitchen_sonos
+    - media_player.main_lounge_sonos
+    - media_player.kids_room_sonos
+    to:
+    - playing
+  action:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.garage_sonos'' }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Black Lounge SONOS
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.kitchen_sonos'' }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Kitchen SONOS
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.main_lounge_sonos''
+          }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Sleepout SONOS
+    - conditions:
+      - condition: template
+        value_template: '{{ trigger.entity_id == ''media_player.kids_room_sonos''
+          }}'
+      sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.flux_ui_media_player
+        data:
+          option: Upstairs Office SONOS

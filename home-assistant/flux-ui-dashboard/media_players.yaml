@@ -1,0 +1,43 @@
+# Sonos + Apple TV / HomePod media players for Flux UI music bar + popup.
+# Run: python3 home-assistant/flux-ui-dashboard/scripts/discover_sonos.py --apply
+#
+# Sonos zones (source: sonos, default):
+#   - Music (Apple Music, Spotify) → Sonos mediocre card
+#   - TV/HDMI sound → linked apple_tv entity (ATV or HomePod)
+#
+# apple_tv_overrides: explicit Sonos → ATV/HomePod map (survives discover --apply).
+# pin_apple_tv: true on a Sonos player to freeze its apple_tv link.
+#
+# Standalone Apple players (source: apple):
+#   - Direct AirPlay to ATV/HomePod — own carousel slot, single mediocre card.
+#   - Preserved across discover --apply (not removed).
+
+enabled: true
+
+default_entity: media_player.garage_sonos
+
+apple_tv_overrides:
+  media_player.garage_sonos: media_player.black_lounge_black_lounge_atv
+  media_player.kitchen_sonos: media_player.home_cinema_home_cinema_atv
+  media_player.main_lounge_sonos: media_player.sleepout
+  media_player.kids_room_sonos: media_player.upstairs_office_2_upstairs_office_atv
+
+players:
+  - entity: media_player.garage_sonos
+    name: Black Lounge SONOS
+    enabled: true
+  - entity: media_player.kitchen_sonos
+    name: Kitchen SONOS
+    enabled: true
+  - entity: media_player.main_lounge_sonos
+    name: Sleepout SONOS
+    enabled: true
+  - entity: media_player.kids_room_sonos
+    name: Upstairs Office SONOS
+    enabled: true
+  # Standalone HomePod — shows when playing AirPlay direct (not via Sonos).
+  # No icon: navbar-card replaces album artwork with a custom icon when set.
+  - entity: media_player.upstairs_office_2_upstairs_office_atv
+    name: Upstairs Office HomePod
+    source: apple
+    enabled: true

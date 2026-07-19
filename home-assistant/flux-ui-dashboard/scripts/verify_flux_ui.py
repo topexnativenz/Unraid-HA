@@ -12,13 +12,21 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
+MEDIA_PLAYERS = ROOT / "media_players.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 DEFAULT_JSON = ROOT / "generated" / "lovelace.flux_ui.json"
 sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
+from flux_media_player import MUSIC_PLAYER_HASH, is_sonos_zone  # noqa: E402
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
+
+
+def load_media_players() -> dict:
+    if not MEDIA_PLAYERS.exists():
+        return {}
+    return yaml.safe_load(MEDIA_PLAYERS.read_text()) or {}
 
 
 def load_entities() -> dict:
@@ -81,6 +89,9 @@ def verify_build(path: Path) -> list[str]:
             '"days_to_show": 7',
             '"show_empty_days": true',
             "overflow-y: auto",
+            '"title": "Common"',
+            '"default_tab": 1',
+            '"remember_tab": false',
             '"label": "Home"',
             '"label": "Rooms"',
             '"label": "Camera"',
@@ -192,8 +203,12 @@ def verify_build(path: Path) -> list[str]:
     if "_flux_ui" in blob:
         errors.append("Invalid lovelace root key _flux_ui — remove from build output")
 
-    if "weather.forecast_home" not in blob:
-        errors.append("Missing weather.forecast_home")
+    entities_cfg_weather = entities_cfg.get("weather")
+    if isinstance(entities_cfg_weather, str) and entities_cfg_weather.startswith("weather."):
+        if entities_cfg_weather not in blob:
+            errors.append(f"Missing configured weather entity: {entities_cfg_weather}")
+    elif "weather." not in blob:
+        errors.append("Missing weather.* entity in build output")
 
     for card_type in ("custom:button-card", "flux_hero"):
         if card_type not in blob:
@@ -249,6 +264,75 @@ def verify_build(path: Path) -> list[str]:
         if WEATHER_PANEL_HASH not in overview_blob:
             errors.append("Missing bottom weather panel (#weather-panel) on phone overview")
 
+        # Music player checks only when media_players.yaml lists enabled players.
+        # Offline builds use committed YAML — do not require live Sonos discovery.
+        media_cfg = load_media_players()
+        media_enabled = media_cfg.get("enabled", True)
+        media_players = [
+            p for p in media_cfg.get("players", []) if p.get("enabled", True) and p.get("entity")
+        ]
+        if media_enabled and media_players:
+            if MUSIC_PLAYER_HASH not in overview_blob:
+                errors.append("Missing music player bubble popup (#music-player) on overview")
+            if "custom:navbar-card" in overview_blob and '"media_player"' not in overview_blob:
+                errors.append("Overview navbar missing media_player widget for Sonos")
+            if "input_select.flux_ui_media_player" not in blob:
+                errors.append(
+                    "Missing input_select.flux_ui_media_player — deploy packages/flux_ui_media.yaml"
+                )
+            if "[[[ const players" in overview_blob or "_active_entity_js" in overview_blob:
+                errors.append(
+                    "Music player popup uses unsupported JS entity_id template — use per-zone conditional cards"
+                )
+            if "zone_entity" in overview_blob and "custom:mediocre-massive-media-player-card" in overview_blob:
+                errors.append(
+                    "Mediocre card cannot use Jinja entity_id — use static entity per conditional panel"
+                )
+            if "custom:mediocre-massive-media-player-card" in overview_blob:
+                expected_panels = len(media_players) + sum(
+                    1 for p in media_players if is_sonos_zone(p) and p.get("apple_tv")
+                )
+                if overview_blob.count('"entity_id":') < expected_panels:
+                    errors.append(
+                        "Music player popup missing per-zone mediocre entity_id cards "
+                        f"(expected {expected_panels}, includes Apple TV TV-mode panels)"
+                    )
+                mp_start = overview_blob.find('"name": "Music Player"')
+                mp_end = overview_blob.find('"popup_style"', mp_start)
+                popup_blob = overview_blob[mp_start:mp_end] if mp_end > mp_start else ""
+                if '"condition": "template"' in popup_blob:
+                    errors.append(
+                        "Music popup uses condition: template — conditional cards only support "
+                        "state conditions; use binary_sensor.flux_ui_tv_* instead"
+                    )
+            if '"name": "Music Player"' in overview_blob:
+                mp_start = overview_blob.find('"name": "Music Player"')
+                mp_end = overview_blob.find('"popup_style"', mp_start)
+                popup_blob = overview_blob[mp_start:mp_end] if mp_end > mp_start else ""
+                if popup_blob and '"cards": [{"type": "custom:mushroom-chips-card"' not in popup_blob:
+                    errors.append(
+                        "Music popup must start with a single mushroom-chips-card zone picker"
+                    )
+            if "/local/flux-ui/carousel-sync.js" not in blob:
+                errors.append(
+                    "Missing carousel-sync.js module — Sonos swipe will not sync popup artwork"
+                )
+            if "MIN_SLOTS = 2" not in overview_blob:
+                errors.append(
+                    "Music carousel missing MIN_SLOTS=2 visibility — idle zones will all show"
+                )
+            if "ACTIVE_STATES" not in overview_blob:
+                errors.append("Music carousel missing ACTIVE_STATES (playing+paused) visibility")
+            swipe_nav = config.get("swipe_nav") or {}
+            if swipe_nav.get("enable") is not False:
+                errors.append(
+                    "Missing swipe_nav enable:false — media carousel swipes conflict with view navigation"
+                )
+            if "media-player-viewport" not in blob or "touch-action: none" not in blob:
+                errors.append(
+                    "Navbar styles missing media-player-viewport touch-action — Sonos zone swipe may fail"
+                )
+
     return errors
 
 
@@ -257,8 +341,8 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
 
     errors: list[str] = []
     listed = (await ws_call(token, ha_url, [{"type": "lovelace/dashboards/list"}]))[0]
-    paths = {d.get("url_path") for d in listed.get("result", [])}
-    if "flux-ui" not in paths:
+    dash_paths = {d.get("url_path") for d in listed.get("result", [])}
+    if "flux-ui" not in dash_paths:
         errors.append("Dashboard flux-ui not registered")
 
     cfg = (await ws_call(token, ha_url, [{"type": "lovelace/config", "url_path": "flux-ui", "force": True}]))[0]
@@ -270,9 +354,9 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
     if not views:
         errors.append("flux-ui has no views")
     else:
-        paths = {v.get("path") for v in views}
+        view_paths = {v.get("path") for v in views}
         for required in ("overview", "rooms", "scenes", "cameras"):
-            if required not in paths:
+            if required not in view_paths:
                 errors.append(f"Live flux-ui missing view: {required}")
         overview = next((v for v in views if v.get("path") == "overview"), views[0])
         sections = overview.get("sections", [])
@@ -296,12 +380,33 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
             errors.append(f"Live overview has {len(sections)} sections (vertical layout needs >= 6)")
         if "flux_hero" not in live_blob and "flux_greeting" not in live_blob:
             errors.append("Live config missing flux hero")
+        if "/local/flux-ui/bitmoji/" not in live_blob:
+            errors.append("Live phone dashboard missing bitmoji hero — lovelace/config/save may have failed")
+        if WEATHER_PANEL_HASH not in overview_blob:
+            errors.append("Live phone dashboard missing #weather-panel")
+        if MUSIC_PLAYER_HASH not in overview_blob:
+            errors.append("Live phone dashboard missing #music-player")
         if '"label": "Rooms"' not in live_blob:
             errors.append("Live navbar missing Rooms route (old Flux/Mobile/Solar nav)")
         if "kiosk_mode" not in live_blob or "hide_header" not in live_blob:
             errors.append(
                 "Live config missing kiosk_mode — redeploy after kiosk-mode resource registered"
             )
+
+    if "flux-ui-tablet" in dash_paths:
+        tcfg = (
+            await ws_call(
+                token, ha_url, [{"type": "lovelace/config", "url_path": "flux-ui-tablet", "force": True}]
+            )
+        )[0]
+        if tcfg.get("success"):
+            tblob = json.dumps(tcfg["result"])
+            if '"title": "Common"' not in tblob:
+                errors.append("Live tablet dashboard missing Common tab")
+            if '"days_to_show": 7' not in tblob:
+                errors.append("Live tablet calendar not set to 7 days")
+            if '"type": "panel"' not in tblob:
+                errors.append("Live tablet overview is not panel type")
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))

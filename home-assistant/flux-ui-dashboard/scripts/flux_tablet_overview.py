@@ -332,6 +332,8 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
             ]
         )
         shell["default_tab"] = 1
+        # Do not restore a previous Climate selection across refreshes.
+        shell["remember_tab"] = False
         shell["hide_inactive_tab_titles"] = True
         shell["view_layout"] = _area("simple_tab")
         shell["card_mod"] = {

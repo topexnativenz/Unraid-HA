@@ -69,6 +69,13 @@ NAVBAR_STYLES = """
 ha-ripple {
   display: none !important;
 }
+/* Capture horizontal swipes for the Sonos zone carousel (navbar-card sets pan-y). */
+.media-player-viewport {
+  touch-action: none !important;
+}
+.media-player-carousel {
+  touch-action: none !important;
+}
 """
 
 
@@ -152,9 +159,13 @@ def flux_routes() -> list[dict]:
     ]
 
 
-def build_navbar_card(*, use_navbar_card: bool = True) -> dict:
+def build_navbar_card(
+    *,
+    use_navbar_card: bool = True,
+    media_player: dict | None = None,
+) -> dict:
     if use_navbar_card:
-        return {
+        nav: dict = {
             "type": "custom:navbar-card",
             "mobile": {"show_labels": True},
             "haptic": True,
@@ -167,6 +178,9 @@ def build_navbar_card(*, use_navbar_card: bool = True) -> dict:
             "routes": flux_routes(),
             "styles": NAVBAR_STYLES,
         }
+        if media_player:
+            nav["media_player"] = media_player
+        return nav
 
     # Mushroom fallback — same destinations, no popup support.
     chips = [
@@ -204,7 +218,11 @@ def build_navbar_card(*, use_navbar_card: bool = True) -> dict:
     }
 
 
-def navbar_section(*, use_navbar_card: bool = True) -> dict:
-    nav = build_navbar_card(use_navbar_card=use_navbar_card)
+def navbar_section(
+    *,
+    use_navbar_card: bool = True,
+    media_player: dict | None = None,
+) -> dict:
+    nav = build_navbar_card(use_navbar_card=use_navbar_card, media_player=media_player)
     nav["grid_options"] = {"columns": 12}
     return {"type": "grid", "cards": [nav]}

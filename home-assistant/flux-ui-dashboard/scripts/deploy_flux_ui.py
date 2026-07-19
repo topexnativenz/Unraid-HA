@@ -31,6 +31,7 @@ BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
 DISCOVER_WEATHER = ROOT / "scripts" / "discover_weather.py"
+DISCOVER_SONOS = ROOT / "scripts" / "discover_sonos.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
 VERIFY = ROOT / "scripts" / "verify_flux_ui.py"
@@ -231,6 +232,7 @@ def config_fingerprint(config: dict) -> dict[str, object]:
 
 OVERVIEW_TAB_ENTITY = "input_select.flux_ui_overview_tab"
 ROOMS_TAB_ENTITY = "input_select.flux_ui_rooms_tab"
+MEDIA_SELECT_ENTITY = "input_select.flux_ui_media_player"
 
 
 def print_fingerprint(config: dict, *, label: str) -> None:
@@ -317,6 +319,30 @@ async def ensure_weather_package_helpers(token: str, ha_url: str) -> None:
         )
 
 
+async def ensure_media_package_helpers(token: str, ha_url: str) -> bool:
+    """Wait for music player zone picker input_select after packages reload."""
+    if await wait_for_entity(token, ha_url, MEDIA_SELECT_ENTITY, attempts=8):
+        print(f"  loaded {MEDIA_SELECT_ENTITY}")
+        return True
+    print(
+        f"  WARNING: {MEDIA_SELECT_ENTITY} not loaded — music player zone picker disabled.\n"
+        "  Re-run: bash home-assistant/scripts/deploy_mac.sh --restart-ha"
+    )
+    return False
+
+
+async def _sync_sonos_input_select(token: str, ha_url: str) -> None:
+    """Push live input_select options to match media_players.yaml after package reload."""
+    from discover_sonos import load_media_config, sync_input_select_options_async
+
+    players = load_media_config().get("players", [])
+    if not players:
+        return
+    notes = await sync_input_select_options_async(token, ha_url, players)
+    for line in notes:
+        print(f"  {line}")
+
+
 def build_config(
     mobile_storage: Path | None,
     *,
@@ -325,6 +351,7 @@ def build_config(
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
     use_calendar_pro: bool = True,
+    use_mediocre_media: bool = True,
     tablet: bool = False,
 ) -> dict:
     out = ROOT / "generated" / ("lovelace.flux_ui_tablet.json" if tablet else "lovelace.flux_ui.json")
@@ -341,6 +368,8 @@ def build_config(
         cmd.append("--no-auto-entities")
     if not use_calendar_pro:
         cmd.append("--no-calendar-pro")
+    if not use_mediocre_media:
+        cmd.append("--no-mediocre-media")
     subprocess.run(cmd, check=True)
     raw = json.loads(out.read_text())
     config = raw["data"]["config"]
@@ -599,6 +628,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
     use_auto_entities = True
     use_simple_tabs = True
     use_calendar_pro = True
+    use_mediocre_media = True
     if token and ha_up:
         try:
             use_navbar = await has_navbar_resource(token, args.ha_url)
@@ -606,6 +636,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_auto_entities = await has_resource(token, args.ha_url, "auto-entities")
             use_simple_tabs = await has_resource(token, args.ha_url, "simple-tabs")
             use_calendar_pro = await has_resource(token, args.ha_url, "calendar-card-pro")
+            use_mediocre_media = await has_resource(token, args.ha_url, "mediocre")
             if not use_navbar:
                 print("navbar-card not in resources — mushroom chip nav fallback.")
             if not use_auto_entities:
@@ -617,6 +648,9 @@ async def deploy_async(args: argparse.Namespace) -> int:
             if not use_calendar_pro:
                 print("calendar-card-pro not in resources — Events tab uses mushroom fallback.")
                 print("  HACS → alexpfau/calendar-card-pro (ElementZoom reference)")
+            if not use_mediocre_media:
+                print("mediocre media player cards not in resources — popup uses mushroom fallback.")
+                print("  HACS → antontanderup/mediocre-hass-media-player-cards")
             if not await has_resource(token, args.ha_url, "weather-forecast-extended"):
                 print("weather-forecast-extended not in resources — Forecast tab will not render.")
                 print("  HACS → Thyraz/weather-forecast-extended")
@@ -628,6 +662,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_kiosk = True
             use_simple_tabs = True
             use_calendar_pro = True
+            use_mediocre_media = True
 
     if ha_up and token and not args.offline:
         print("Discovering Tapo garage/shed door sensors…")
@@ -674,6 +709,24 @@ async def deploy_async(args: argparse.Namespace) -> int:
             ],
             check=False,
         )
+        print("Discovering Sonos media players for music bar…")
+        discover = subprocess.run(
+            [
+                "python3",
+                str(DISCOVER_SONOS),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
+            check=False,
+        )
+        if discover.returncode != 0:
+            print(
+                "WARNING: Sonos discovery failed or no speakers — "
+                "music bar may be hidden until speakers appear in HA"
+            )
 
     config = build_config(
         mobile_storage,
@@ -682,6 +735,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
         use_auto_entities=use_auto_entities,
         use_simple_tabs=use_simple_tabs,
         use_calendar_pro=use_calendar_pro,
+        use_mediocre_media=use_mediocre_media,
     )
 
     tablet_config: dict | None = None
@@ -694,21 +748,18 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_auto_entities=use_auto_entities,
             use_simple_tabs=use_simple_tabs,
             use_calendar_pro=use_calendar_pro,
+            use_mediocre_media=use_mediocre_media,
             tablet=True,
         )
 
-    if mounted:
-        # Re-copy packages after weather discover regenerates flux_ui_weather.yaml.
-        copy_packages(args.mount)
-        copy_frontend_assets(args.mount)
-        if token and ha_up and not args.offline:
-            await ensure_weather_package_helpers(token, args.ha_url)
-        write_storage(args.mount, config)
-        if tablet_config:
-            write_tablet_storage(args.mount, tablet_config)
-
+    # Verify built JSON BEFORE writing HA storage / live API save.
+    # Previous bug: SMB storage was written, then verify failed on weather entity
+    # rename (forecast_home → homemetservice), so lovelace/config/save never ran
+    # and Companion apps kept serving the old dashboards.
+    print("Verifying built phone config…")
     subprocess.run(["python3", str(VERIFY)], check=True)
     if tablet_config:
+        print("Verifying built tablet config…")
         subprocess.run(
             [
                 "python3",
@@ -718,6 +769,18 @@ async def deploy_async(args: argparse.Namespace) -> int:
             ],
             check=True,
         )
+
+    if mounted:
+        # Re-copy packages after weather/Sonos discover regenerates package YAMLs.
+        copy_packages(args.mount)
+        copy_frontend_assets(args.mount)
+        if token and ha_up and not args.offline:
+            await ensure_weather_package_helpers(token, args.ha_url)
+            await ensure_media_package_helpers(token, args.ha_url)
+            await _sync_sonos_input_select(token, args.ha_url)
+        write_storage(args.mount, config)
+        if tablet_config:
+            write_tablet_storage(args.mount, tablet_config)
 
     if args.offline or not ha_up:
         if mounted:
@@ -731,12 +794,18 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     assert token is not None
 
+    print("Pushing phone dashboard via lovelace/config/save…")
     await save_dashboard(token, args.ha_url, config)
 
     if tablet_config:
         await ensure_tablet_dashboard(token, args.ha_url)
+        print("Pushing tablet dashboard via lovelace/config/save…")
         await save_dashboard(token, args.ha_url, tablet_config, url_path=TABLET_URL_PATH)
 
+    if token and ha_up and not args.offline:
+        await _sync_sonos_input_select(token, args.ha_url)
+
+    print("Verifying live dashboards…")
     subprocess.run(
         ["python3", str(VERIFY), "--live", "--ha-url", args.ha_url, "--token", token],
         check=True,
