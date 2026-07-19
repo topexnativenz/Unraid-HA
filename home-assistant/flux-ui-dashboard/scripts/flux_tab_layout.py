@@ -109,3 +109,64 @@ def tab_section_from_grid(section: dict) -> dict:
         return {"type": "vertical-stack", "cards": [title, tile_cards[0]]}
 
     return {"type": "vertical-stack", "cards": [title, tab_two_column_grid(tile_cards)]}
+
+
+def simple_tabs_shell(tabs: list[dict], *, enable_swipe: bool = True) -> dict:
+    """ElementZoom-style full-width tab bar — shared by overview and rooms."""
+    return {
+        "type": "custom:simple-tabs",
+        "pre-load": False,
+        "tabs_alignment": "center",
+        "card_padding": "0",
+        "bar_padding": "6px 8px",
+        "bar_border_radius": "28px",
+        "bar_border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 35%, transparent)",
+        "bar_background": "transparent",
+        "tabs_gap": "8px",
+        "button_padding": "14px 10px",
+        "button_background": "color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent)",
+        "button_active_background": "var(--md-sys-color-primary)",
+        "button_active_text_color": "var(--md-sys-color-on-primary)",
+        "button_text_color": "var(--primary-text-color)",
+        "button_border_color": "transparent",
+        "button_hover_border_color": "transparent",
+        "haptic_feedback": True,
+        "enable_swipe": enable_swipe,
+        "hide_inactive_tab_titles": False,
+        "card_mod": {
+            "style": {
+                ".": (
+                    "ha-card, :host {\n"
+                    "  width: 100% !important;\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "  margin: 0 !important;\n"
+                    "  padding: 0 !important;\n"
+                    "}\n"
+                    ".tabs-row {\n"
+                    "  width: 100% !important;\n"
+                    "}\n"
+                    ".tabs-viewport {\n"
+                    "  width: 100% !important;\n"
+                    "  max-width: 100% !important;\n"
+                    "}\n"
+                    ".tabs-container {\n"
+                    "  width: 100% !important;\n"
+                    "  min-width: 100% !important;\n"
+                    "}\n"
+                    ".tabs {\n"
+                    "  width: 100% !important;\n"
+                    "  display: flex !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    ".tab-button {\n"
+                    "  flex: 1 1 0 !important;\n"
+                    "  min-width: 0 !important;\n"
+                    "  justify-content: center !important;\n"
+                    "}\n"
+                ),
+            },
+        },
+        "tabs": tabs,
+    }

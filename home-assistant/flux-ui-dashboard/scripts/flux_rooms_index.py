@@ -1,19 +1,24 @@
-"""Rooms index — ElementZoom 02-rooms.yaml pattern (category tabs + 2-col room cards).
+"""Rooms index — ElementZoom simple-tabs (phone) + tablet category chips.
 
-Reference: https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
-  dashboard/mobile/views/02-rooms.yaml
+Phone uses custom:simple-tabs (no input_select / template conditionals) so HA
+does not show Configuration error cards.
+
+Tablet overview keeps mushroom chips + input_select.flux_ui_rooms_tab with
+native state conditions (see flux_tablet_overview._rooms_band).
 """
 
 from __future__ import annotations
 
 from flux_layouts import flux_room_tile
+from flux_tab_layout import simple_tabs_shell, strip_grid_options, tab_two_column_grid
 
 ROOMS_TAB_ENTITY = "input_select.flux_ui_rooms_tab"
 
+# title/option must match packages/flux_ui_rooms.yaml input_select options.
 ROOM_CATEGORIES: list[dict[str, str]] = [
-    {"option": "Default", "icon": "mdi:star", "slug": "default"},
-    {"option": "Others", "icon": "mdi:home", "slug": "others"},
-    {"option": "Outdoor", "icon": "mdi:tree", "slug": "outdoor"},
+    {"title": "Default", "option": "Default", "icon": "mdi:star", "slug": "default"},
+    {"title": "Others", "option": "Others", "icon": "mdi:home", "slug": "others"},
+    {"title": "Outdoor", "option": "Outdoor", "icon": "mdi:tree", "slug": "outdoor"},
 ]
 
 
@@ -22,7 +27,7 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
 
 
 def _tab_active_if(option: str) -> str:
-    """Jinja condition for {% if %} — no outer braces."""
+    """Jinja condition for chip card_mod {% if %} — no outer braces."""
     if option == "Default":
         return (
             "{% set tab = states('" + ROOMS_TAB_ENTITY + "') %}"
@@ -31,18 +36,7 @@ def _tab_active_if(option: str) -> str:
     return "is_state('" + ROOMS_TAB_ENTITY + "', '" + option + "')"
 
 
-def _tab_active_template(option: str) -> str:
-    """Full HA template for conditional card visibility."""
-    if option == "Default":
-        return (
-            "{% set tab = states('" + ROOMS_TAB_ENTITY + "') %}"
-            "{{ tab == 'Default' or tab in ['unknown', 'unavailable', none] }}"
-        )
-    return "{{ is_state('" + ROOMS_TAB_ENTITY + "', '" + option + "') }}"
-
-
 def _chip_active_style(option: str) -> str:
-    """card_mod style — active pill uses primary fill (ElementZoom room_toggles_chip_card)."""
     cond = _tab_active_if(option)
     return (
         "ha-card {\n"
@@ -102,7 +96,7 @@ def _rooms_page_title() -> dict:
 
 
 def _category_tab_chips() -> dict:
-    """Default / Others / Outdoor — ElementZoom room_toggles_chip_card pattern."""
+    """Tablet overview room selector — mushroom chips + input_select (state conditions)."""
     chips: list[dict] = []
     for cat in ROOM_CATEGORIES:
         option = cat["option"]
@@ -150,49 +144,72 @@ def _category_tab_chips() -> dict:
     }
 
 
-def _room_grid_for_category(rooms: list[dict], *, columns: int = 2) -> dict:
-    """Room tile grid — 2-col phone / 3–4-col tablet landscape."""
+def _room_tab_cards(rooms: list[dict], *, columns: int = 2) -> list[dict]:
+    """Room tiles for a simple-tabs panel — no grid_options (invalid in tab panels)."""
     if not rooms:
-        return {
-            "type": "custom:mushroom-title-card",
-            "title": "No rooms in this category",
-            "subtitle": "Set category: default | others | outdoor in rooms.yaml",
-            "grid_options": {"columns": 12},
-        }
+        return [
+            {
+                "type": "custom:mushroom-title-card",
+                "title": "No rooms in this category",
+            }
+        ]
+    # Phone: 2-col (columns=6 each). Tablet rooms view: 3-col (columns=4 each).
     tile_cols = 12 // max(1, columns)
+    return [strip_grid_options(flux_room_tile(room, columns=tile_cols)) for room in rooms]
+
+
+def _room_tab_panel(rooms: list[dict], *, columns: int = 2) -> dict:
+    cards = _room_tab_cards(rooms, columns=columns)
+    if len(cards) == 1:
+        return cards[0]
+    if columns <= 2:
+        return tab_two_column_grid(cards)
     return {
         "type": "grid",
         "columns": columns,
         "square": False,
-        "cards": [flux_room_tile(room, columns=tile_cols) for room in rooms],
-        "grid_options": {"columns": 12},
+        "cards": cards,
     }
 
 
-def _category_panel(rooms: list[dict], *, option: str, slug: str, columns: int = 2) -> dict:
-    category_rooms = _rooms_for_category(rooms, slug)
-    return {
-        "type": "conditional",
-        "conditions": [
+def build_rooms_index_section(
+    rooms: list[dict],
+    *,
+    use_simple_tabs: bool = True,
+    columns: int = 2,
+) -> dict:
+    """Phone/tablet Rooms view — simple-tabs categories (no template conditionals)."""
+    if use_simple_tabs:
+        tabs = [
             {
-                "condition": "template",
-                "value_template": _tab_active_template(option),
+                "title": cat["title"],
+                "icon": cat["icon"],
+                "cards": [
+                    _room_tab_panel(
+                        _rooms_for_category(rooms, cat["slug"]),
+                        columns=columns,
+                    )
+                ],
             }
-        ],
-        "card": _room_grid_for_category(category_rooms, columns=columns),
-    }
+            for cat in ROOM_CATEGORIES
+        ]
+        return {
+            "type": "grid",
+            "cards": [
+                _rooms_page_title(),
+                {
+                    **simple_tabs_shell(tabs, enable_swipe=True),
+                    "grid_options": {"columns": 12},
+                },
+            ],
+        }
 
-
-def build_rooms_index_section(rooms: list[dict], *, columns: int = 2) -> dict:
-    """ElementZoom Rooms view — centered title, category tabs, filtered room cards."""
+    # Fallback when simple-tabs HACS is missing: default-category grid only.
+    default_rooms = _rooms_for_category(rooms, "default")
     return {
         "type": "grid",
         "cards": [
             _rooms_page_title(),
-            _category_tab_chips(),
-            *[
-                _category_panel(rooms, option=c["option"], slug=c["slug"], columns=columns)
-                for c in ROOM_CATEGORIES
-            ],
+            _room_tab_panel(default_rooms, columns=columns),
         ],
     }

@@ -263,6 +263,18 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Missing bitmoji hero avatar (/local/flux-ui/bitmoji/…)")
         if WEATHER_PANEL_HASH not in overview_blob:
             errors.append("Missing bottom weather panel (#weather-panel) on phone overview")
+        if '"label": "Weather"' not in blob or "#weather-panel" not in blob:
+            errors.append("Phone navbar missing Weather middle route (#weather-panel)")
+        rooms_view = next((v for v in views if v.get("path") == "rooms"), None)
+        rooms_blob = json.dumps(rooms_view) if rooms_view else ""
+        if rooms_view and "custom:simple-tabs" not in rooms_blob:
+            errors.append("Rooms view missing custom:simple-tabs (configuration errors expected otherwise)")
+        if '"condition": "template"' in rooms_blob:
+            errors.append(
+                "Rooms view still uses condition:template — causes Configuration error cards"
+            )
+        if "mdi:gate-open" not in blob:
+            errors.append("Gate buttons missing vehicle gate-open icon state")
 
         # Music player checks only when media_players.yaml lists enabled players.
         # Offline builds use committed YAML — do not require live Sonos discovery.

@@ -540,9 +540,18 @@ def build_overview_sections(
     return sections
 
 
-def build_rooms_index(cfg: dict, *, tablet: bool = False) -> dict:
-    # Tablet panel is full-bleed — use 3-col room cards (ElementZoom landscape density).
-    return build_rooms_index_section(cfg.get("rooms", []), columns=3 if tablet else 2)
+def build_rooms_index(
+    cfg: dict,
+    *,
+    tablet: bool = False,
+    use_simple_tabs: bool = True,
+) -> dict:
+    # Phone: simple-tabs (no template conditionals). Tablet rooms view: 3-col tiles.
+    return build_rooms_index_section(
+        cfg.get("rooms", []),
+        use_simple_tabs=use_simple_tabs,
+        columns=3 if tablet else 2,
+    )
 
 
 def extract_section_from_mobile_home(config: dict, *, path: str | None = None, title: str | None = None) -> dict | None:
@@ -673,13 +682,18 @@ def _build_config_inner(
             use_auto_entities=use_auto_entities,
             use_simple_tabs=use_simple_tabs,
         )
+        navbar_media = None
         views: list[dict] = [
             overview_view,
             flux_view(
                 title="Rooms",
                 path="rooms",
                 icon="mdi:sofa",
-                sections=[build_rooms_index(cfg, tablet=True)],
+                sections=[
+                    build_rooms_index(
+                        cfg, tablet=True, use_simple_tabs=use_simple_tabs
+                    )
+                ],
                 use_navbar_card=use_navbar_card,
                 tablet=True,
             ),
@@ -723,6 +737,7 @@ def _build_config_inner(
             use_calendar_pro=use_calendar_pro,
             use_mediocre_media=use_mediocre_media,
         )
+        # Attach music bar on every phone view so zone swipe works after navigation.
         navbar_media = build_navbar_media_player(cfg) if media_player_active(cfg) else None
         views = [
             flux_view(
@@ -737,8 +752,9 @@ def _build_config_inner(
                 title="Rooms",
                 path="rooms",
                 icon="mdi:sofa",
-                sections=[build_rooms_index(cfg)],
+                sections=[build_rooms_index(cfg, use_simple_tabs=use_simple_tabs)],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=navbar_media,
             ),
             flux_view(
                 title="Scenes",
@@ -746,6 +762,7 @@ def _build_config_inner(
                 icon="mdi:layers",
                 sections=[build_scenes_view(cfg, use_auto_entities=use_auto_entities)],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=navbar_media,
             ),
             flux_view(
                 title="Lights",
@@ -753,6 +770,7 @@ def _build_config_inner(
                 icon="mdi:lightbulb-group",
                 sections=[build_lights_view(cfg, use_auto_entities=use_auto_entities)],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=navbar_media,
             ),
             flux_view(
                 title="Cameras",
@@ -767,8 +785,11 @@ def _build_config_inner(
                     )
                 ],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=navbar_media,
             ),
         ]
+
+    phone_media = None if tablet else navbar_media
 
     for room in cfg.get("rooms", []):
         slug = room["path"]
@@ -790,6 +811,7 @@ def _build_config_inner(
                     icon=room.get("icon", "mdi:home-outline"),
                     sections=[build_room_detail(room, cfg)],
                     use_navbar_card=use_navbar_card,
+                    navbar_media_player=phone_media,
                     subview=True,
                     back_path=back,
                 )
@@ -801,6 +823,7 @@ def _build_config_inner(
                 icon="mdi:lightbulb-group",
                 sections=[build_room_grid_page(room, active_tab="lights")],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=phone_media,
                 subview=True,
                 back_path=back,
                 tablet=tablet,
@@ -813,6 +836,7 @@ def _build_config_inner(
                 icon="mdi:thermostat",
                 sections=[build_room_climate_page(room, active_tab="climate")],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=phone_media,
                 subview=True,
                 back_path=back,
                 tablet=tablet,
@@ -825,6 +849,7 @@ def _build_config_inner(
                 icon="mdi:cctv",
                 sections=[build_room_camera_page(room, cfg, active_tab="camera")],
                 use_navbar_card=use_navbar_card,
+                navbar_media_player=phone_media,
                 subview=True,
                 back_path=back,
                 tablet=tablet,

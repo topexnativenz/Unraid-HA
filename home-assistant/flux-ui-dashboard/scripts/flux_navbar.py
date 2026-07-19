@@ -7,6 +7,11 @@ from md3_templates import GLASS_CARD_MOD
 URL_PREFIX = "/flux-ui"
 TABLET_URL_PREFIX = "/flux-ui-tablet"
 
+try:
+    from flux_weather_panel import FLUX_UI_WEATHER_PANEL_PATH
+except ImportError:
+    FLUX_UI_WEATHER_PANEL_PATH = "/flux-ui/overview#weather-panel"
+
 
 def set_url_prefix(prefix: str) -> None:
     """Point navbar + room navigation at mobile (/flux-ui) or tablet (/flux-ui-tablet)."""
@@ -49,6 +54,7 @@ def room_climate_navigation_path(room_slug: str) -> str:
 
 
 # ElementZoom-style navbar CSS (blur pill, slide-up).
+# touch-action:none on media carousel — navbar-card defaults to pan-y and steals swipes.
 NAVBAR_STYLES = """
 .navbar-card {
   background: color-mix(in srgb, var(--md-sys-color-on-primary) 25%, transparent);
@@ -69,37 +75,30 @@ NAVBAR_STYLES = """
 ha-ripple {
   display: none !important;
 }
-/* Capture horizontal swipes for the Sonos zone carousel (navbar-card sets pan-y). */
-.media-player-viewport {
+.media-player-viewport,
+.media-player-carousel,
+.media-player-viewport *,
+.media-player-carousel *,
+.navbar-media-player,
+.navbar-media-player * {
   touch-action: none !important;
-}
-.media-player-carousel {
-  touch-action: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 """
 
 
+def _is_tablet() -> bool:
+    return URL_PREFIX == TABLET_URL_PREFIX
+
+
 def flux_routes() -> list[dict]:
-    """Primary nav routes — same structure as ElementZoom Flux mobile."""
+    """Primary nav — phone: Weather middle slot; tablet: Scenes/Lights popup."""
     prefix = URL_PREFIX
-    return [
-        {
-            "url": f"{prefix}/overview",
-            "label": "Home",
-            "icon": "mdi:home-outline",
-            "icon_selected": "mdi:home",
-        },
-        {
-            "url": f"{prefix}/rooms",
-            "label": "Rooms",
-            "icon": "mdi:sofa-outline",
-            "icon_selected": "mdi:sofa",
-            "selected": (
-                f"[[[ return window.location.pathname === '{prefix}/rooms' "
-                f"|| window.location.pathname.startsWith('{prefix}/room-'); ]]]"
-            ),
-        },
-        {
+
+    middle: dict
+    if _is_tablet():
+        middle = {
             "url": f"{prefix}/scenes",
             "label": "Scenes",
             "icon": "mdi:layers-outline",
@@ -117,7 +116,75 @@ def flux_routes() -> list[dict]:
                     "url": f"{prefix}/lights",
                 },
             ],
+        }
+    else:
+        middle = {
+            "url": FLUX_UI_WEATHER_PANEL_PATH,
+            "label": "Weather",
+            "icon": "mdi:weather-partly-cloudy",
+            "icon_selected": "mdi:weather-partly-cloudy",
+        }
+
+    more_popup = [
+        {
+            "icon": "mdi:cellphone",
+            "label": "Mobile Home",
+            "url": "/mobile-home/home",
         },
+        {
+            "icon": "mdi:solar-power",
+            "label": "Solar",
+            "url": "/solar-dashboard",
+        },
+        {
+            "icon": "mdi:car-electric",
+            "label": "Tesla",
+            "url": "/mobile-home/tesla",
+        },
+        {
+            "icon": "mdi:account-circle-outline",
+            "label": "Profile",
+            "url": "/profile",
+        },
+        {
+            "icon": "mdi:cog-outline",
+            "label": "HA Settings",
+            "url": "/config/dashboard",
+        },
+    ]
+    if not _is_tablet():
+        more_popup = [
+            {
+                "icon": "mdi:layers-outline",
+                "label": "Scenes",
+                "url": f"{prefix}/scenes",
+            },
+            {
+                "icon": "mdi:palette-outline",
+                "label": "Lights",
+                "url": f"{prefix}/lights",
+            },
+            *more_popup,
+        ]
+
+    return [
+        {
+            "url": f"{prefix}/overview",
+            "label": "Home",
+            "icon": "mdi:home-outline",
+            "icon_selected": "mdi:home",
+        },
+        {
+            "url": f"{prefix}/rooms",
+            "label": "Rooms",
+            "icon": "mdi:sofa-outline",
+            "icon_selected": "mdi:sofa",
+            "selected": (
+                f"[[[ return window.location.pathname === '{prefix}/rooms' "
+                f"|| window.location.pathname.startsWith('{prefix}/room-'); ]]]"
+            ),
+        },
+        middle,
         {
             "url": f"{prefix}/cameras",
             "label": "Camera",
@@ -128,33 +195,7 @@ def flux_routes() -> list[dict]:
             "icon": "mdi:dots-horizontal",
             "label": "More",
             "tap_action": {"action": "open-popup"},
-            "popup": [
-                {
-                    "icon": "mdi:cellphone",
-                    "label": "Mobile Home",
-                    "url": "/mobile-home/home",
-                },
-                {
-                    "icon": "mdi:solar-power",
-                    "label": "Solar",
-                    "url": "/solar-dashboard",
-                },
-                {
-                    "icon": "mdi:car-electric",
-                    "label": "Tesla",
-                    "url": "/mobile-home/tesla",
-                },
-                {
-                    "icon": "mdi:account-circle-outline",
-                    "label": "Profile",
-                    "url": "/profile",
-                },
-                {
-                    "icon": "mdi:cog-outline",
-                    "label": "HA Settings",
-                    "url": "/config/dashboard",
-                },
-            ],
+            "popup": more_popup,
         },
     ]
 
@@ -183,31 +224,44 @@ def build_navbar_card(
         return nav
 
     # Mushroom fallback — same destinations, no popup support.
+    prefix = URL_PREFIX
+    if _is_tablet():
+        mid_chip = {
+            "type": "template",
+            "icon": "mdi:layers",
+            "content": "Scenes",
+            "tap_action": {"action": "navigate", "navigation_path": f"{prefix}/scenes"},
+        }
+    else:
+        mid_chip = {
+            "type": "template",
+            "icon": "mdi:weather-partly-cloudy",
+            "content": "Weather",
+            "tap_action": {
+                "action": "navigate",
+                "navigation_path": FLUX_UI_WEATHER_PANEL_PATH,
+            },
+        }
     chips = [
         {
             "type": "template",
             "icon": "mdi:home",
             "icon_color": "primary",
             "content": "Home",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/overview"},
+            "tap_action": {"action": "navigate", "navigation_path": f"{prefix}/overview"},
         },
         {
             "type": "template",
             "icon": "mdi:sofa",
             "content": "Rooms",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/rooms"},
+            "tap_action": {"action": "navigate", "navigation_path": f"{prefix}/rooms"},
         },
-        {
-            "type": "template",
-            "icon": "mdi:layers",
-            "content": "Scenes",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/scenes"},
-        },
+        mid_chip,
         {
             "type": "template",
             "icon": "mdi:cctv",
             "content": "Camera",
-            "tap_action": {"action": "navigate", "navigation_path": f"{URL_PREFIX}/cameras"},
+            "tap_action": {"action": "navigate", "navigation_path": f"{prefix}/cameras"},
         },
     ]
     return {
