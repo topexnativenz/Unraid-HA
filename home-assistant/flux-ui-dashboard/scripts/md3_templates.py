@@ -60,7 +60,6 @@ VIEW_CARD_MOD = {
 }
 
 # 15.6" 1920×1080 landscape — panel views fill the viewport (no sections column cap).
-# Vertical overflow scrolls with finger swipe (e.g. 7-day calendar taller than viewport).
 TABLET_VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
@@ -76,8 +75,6 @@ TABLET_VIEW_CARD_MOD = {
         "  overflow-x: hidden !important;\n"
         "  overflow-y: auto !important;\n"
         "  -webkit-overflow-scrolling: touch !important;\n"
-        "  overscroll-behavior-y: contain;\n"
-        "  touch-action: pan-y;\n"
         "}\n"
         "hui-panel-view,\n"
         "hui-view-panel {\n"
@@ -91,6 +88,45 @@ TABLET_VIEW_CARD_MOD = {
         "hui-view-panel > * {\n"
         "  width: 100% !important;\n"
         "  max-width: none !important;\n"
+        "}\n"
+        "@keyframes flux-door-pulse {\n"
+        "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"
+        "  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n"
+        "}\n"
+    )
+}
+
+# Overview only — lock page to one screen; calendar column scrolls internally.
+TABLET_OVERVIEW_VIEW_CARD_MOD = {
+    "style": (
+        "ha-view {\n"
+        "  background: center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n"
+        "}\n"
+        "#view {\n"
+        "  background: transparent !important;\n"
+        "  max-width: none !important;\n"
+        "  width: 100% !important;\n"
+        "  height: 100% !important;\n"
+        "  max-height: 100% !important;\n"
+        "  margin: 0 !important;\n"
+        "  padding: 0 !important;\n"
+        "  overflow: hidden !important;\n"
+        "}\n"
+        "hui-panel-view,\n"
+        "hui-view-panel {\n"
+        "  width: 100% !important;\n"
+        "  max-width: none !important;\n"
+        "  height: 100% !important;\n"
+        "  max-height: 100% !important;\n"
+        "  overflow: hidden !important;\n"
+        "}\n"
+        "hui-panel-view > *,\n"
+        "hui-view-panel > * {\n"
+        "  width: 100% !important;\n"
+        "  max-width: none !important;\n"
+        "  height: 100% !important;\n"
+        "  max-height: 100% !important;\n"
+        "  overflow: hidden !important;\n"
         "}\n"
         "@keyframes flux-door-pulse {\n"
         "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"

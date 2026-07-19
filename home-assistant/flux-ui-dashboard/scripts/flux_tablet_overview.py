@@ -369,7 +369,7 @@ def _weather_forecast(weather_entity: str) -> dict:
 
 
 def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
-    """Right-column week calendar — 7 days, must render inside layout-card grid."""
+    """Right-column week calendar — fills grid cell; body scrolls, page does not."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     weather = (
         cfg.get("weather")
@@ -405,17 +405,71 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         # Glass on the calendar card itself (not a nested vertical-stack wrapper)
         stack_cards.append(wrap_glass(cal))
 
+    # mod-card + flex stack: title stays put; only the calendar body scrolls.
     return {
-        "type": "vertical-stack",
+        "type": "custom:mod-card",
         "view_layout": _area("calendar_notification"),
-        "cards": stack_cards,
         "card_mod": {
             "style": (
-                ":host, ha-card {\n"
-                "  min-height: 320px;\n"
-                "  overflow: visible !important;\n"
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+                "ha-card {\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  overflow: hidden !important;\n"
                 "}\n"
             )
+        },
+        "card": {
+            "type": "vertical-stack",
+            "cards": stack_cards,
+            "card_mod": {
+                "style": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "ha-card {\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "#root {\n"
+                    "  display: flex !important;\n"
+                    "  flex-direction: column !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "#root > *:first-child {\n"
+                    "  flex: 0 0 auto !important;\n"
+                    "}\n"
+                    "#root > *:not(:first-child) {\n"
+                    "  flex: 1 1 auto !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow-x: hidden !important;\n"
+                    "  overflow-y: auto !important;\n"
+                    "  -webkit-overflow-scrolling: touch !important;\n"
+                    "}\n"
+                )
+            },
         },
     }
 
@@ -623,10 +677,14 @@ def build_tablet_overview_view(
     ]
     layout = tablet_layout_card(
         content_cards,
+        overview=True,
         layout={
-            # Four equal landscape bands — ElementZoom author areas.
+            # Fixed viewport bands — fr rows never grow with calendar content.
             "grid-template-columns": "1.1fr 1.35fr 1.1fr 1.1fr",
-            "grid-template-rows": "auto auto minmax(200px, auto) minmax(160px, auto)",
+            "grid-template-rows": (
+                "minmax(0, 1.15fr) minmax(0, 0.45fr) "
+                "minmax(0, 1.2fr) minmax(0, 1.2fr)"
+            ),
             "grid-template-areas": (
                 '"greeting simple_tab weather calendar_notification"\n'
                 '"room_selector simple_tab weather calendar_notification"\n'
@@ -635,10 +693,11 @@ def build_tablet_overview_view(
             ),
         },
     )
-    root = tablet_panel_stack(layout, use_navbar_card=use_navbar_card)
+    root = tablet_panel_stack(layout, use_navbar_card=use_navbar_card, overview=True)
     return tablet_panel_view(
         title="Overview",
         path="overview",
         icon="mdi:home",
         root_card=root,
+        overview=True,
     )
