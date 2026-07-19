@@ -368,8 +368,12 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     for card in events:
         if card.get("type") == "custom:calendar-card-pro":
-            card["days_to_show"] = 5
-            card["compact_events_to_show"] = 8
+            # Full week on tablet — no compact truncate (that looked like ~2 days).
+            card["days_to_show"] = 7
+            card["show_empty_days"] = True
+            card.pop("compact_events_to_show", None)
+            card.pop("compact_days_to_show", None)
+            card["tap_action"] = {"action": "none"}
     return {
         "type": "vertical-stack",
         "view_layout": _area("calendar_notification"),

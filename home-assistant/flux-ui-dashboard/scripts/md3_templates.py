@@ -60,6 +60,7 @@ VIEW_CARD_MOD = {
 }
 
 # 15.6" 1920×1080 landscape — panel views fill the viewport (no sections column cap).
+# Vertical overflow scrolls with finger swipe (e.g. 7-day calendar taller than viewport).
 TABLET_VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
@@ -71,12 +72,20 @@ TABLET_VIEW_CARD_MOD = {
         "  width: 100% !important;\n"
         "  margin: 0 !important;\n"
         "  padding: 0 !important;\n"
+        "  height: 100% !important;\n"
+        "  overflow-x: hidden !important;\n"
+        "  overflow-y: auto !important;\n"
+        "  -webkit-overflow-scrolling: touch !important;\n"
+        "  overscroll-behavior-y: contain;\n"
+        "  touch-action: pan-y;\n"
         "}\n"
         "hui-panel-view,\n"
         "hui-view-panel {\n"
         "  width: 100% !important;\n"
         "  max-width: none !important;\n"
-        "  height: 100% !important;\n"
+        "  min-height: 100% !important;\n"
+        "  height: auto !important;\n"
+        "  overflow: visible !important;\n"
         "}\n"
         "hui-panel-view > *,\n"
         "hui-view-panel > * {\n"

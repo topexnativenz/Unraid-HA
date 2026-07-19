@@ -376,6 +376,7 @@ def build_config(
             "calendar_notification",
             "simple_tab",
             '"width": "100%"',
+            '"days_to_show": 7',
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
