@@ -369,22 +369,54 @@ def _weather_forecast(weather_entity: str) -> dict:
 
 
 def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
+    """Right-column week calendar — 7 days, must render inside layout-card grid."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
+    weather = (
+        cfg.get("weather")
+        or ((cfg.get("weather_panel") or {}).get("weather_entity"))
+        or ((cfg.get("overview_tabs") or {}).get("events") or {}).get("weather_entity")
+    )
+    stack_cards: list[dict] = [_transparent_title("Calendar", size="18px")]
+
     for card in events:
-        if card.get("type") == "custom:calendar-card-pro":
-            # Full week on tablet — no compact truncate (that looked like ~2 days).
-            card["days_to_show"] = 7
-            card["show_empty_days"] = True
-            card.pop("compact_events_to_show", None)
-            card.pop("compact_days_to_show", None)
-            card["tap_action"] = {"action": "none"}
+        if card.get("type") != "custom:calendar-card-pro":
+            # Mushroom fallback stack from build_events_tab_cards
+            if card.get("type") == "vertical-stack":
+                stack_cards.extend(card.get("cards") or [])
+            else:
+                stack_cards.append(card)
+            continue
+
+        cal = dict(card)
+        # Full week in both compact + expanded modes (older calendar-card-pro
+        # versions blanked when compact_* was removed while expand was default).
+        cal["days_to_show"] = 7
+        cal["compact_days_to_show"] = 7
+        cal["compact_events_to_show"] = 40
+        cal["compact_events_complete_days"] = True
+        cal["show_empty_days"] = True
+        cal["tap_action"] = {"action": "expand"}
+        # Narrow tablet column — slightly smaller date column
+        cal["day_font_size"] = "20px"
+        cal["weekday_font_size"] = "11px"
+        cal["month_font_size"] = "10px"
+        if weather and isinstance(cal.get("weather"), dict):
+            cal["weather"] = {**cal["weather"], "entity": weather}
+        # Glass on the calendar card itself (not a nested vertical-stack wrapper)
+        stack_cards.append(wrap_glass(cal))
+
     return {
         "type": "vertical-stack",
         "view_layout": _area("calendar_notification"),
-        "cards": [
-            _transparent_title("Calendar", size="18px"),
-            wrap_glass({"type": "vertical-stack", "cards": events}),
-        ],
+        "cards": stack_cards,
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  min-height: 320px;\n"
+                "  overflow: visible !important;\n"
+                "}\n"
+            )
+        },
     }
 
 
