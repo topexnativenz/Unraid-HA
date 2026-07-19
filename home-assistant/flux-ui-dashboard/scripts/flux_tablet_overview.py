@@ -311,17 +311,18 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
     scenes_cards = _scenes_tab_cards()
 
     if use_simple_tabs:
+        # Common (toggles) first — default_tab 1 opens it instead of Climate.
         shell = _simple_tabs_shell(
             [
+                {
+                    "title": "Common",
+                    "icon": "mdi:toggle-switch",
+                    "cards": [{"type": "vertical-stack", "cards": toggles_cards}],
+                },
                 {
                     "title": "Climate",
                     "icon": "mdi:thermostat",
                     "cards": [{"type": "vertical-stack", "cards": climate_cards}],
-                },
-                {
-                    "title": "Toggles",
-                    "icon": "mdi:toggle-switch",
-                    "cards": [{"type": "vertical-stack", "cards": toggles_cards}],
                 },
                 {
                     "title": "Scenes",
@@ -330,6 +331,7 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
                 },
             ]
         )
+        shell["default_tab"] = 1
         shell["hide_inactive_tab_titles"] = True
         shell["view_layout"] = _area("simple_tab")
         shell["card_mod"] = {
@@ -341,7 +343,7 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
     return {
         "type": "vertical-stack",
         "view_layout": _area("simple_tab"),
-        "cards": [_transparent_title("Climate"), *climate_cards],
+        "cards": [_transparent_title("Common"), *toggles_cards],
     }
 
 
