@@ -4,7 +4,7 @@ Planning document for the **whole-home media stack**: Plex (playback), *arr* aut
 
 **Operational tasks, tower audit, and execution status:** [10-plex-arr-workstream.md](10-plex-arr-workstream.md) — use the **“Plex & *arr’s”** Cursor session for all implementation work.
 
-**Last updated:** 2026-05-23
+**Last updated:** 2026-07-19
 
 ---
 
@@ -28,7 +28,7 @@ Planning document for the **whole-home media stack**: Plex (playback), *arr* aut
 | Question | Answer |
 |----------|--------|
 | TV / mobile ecosystem | All **Apple** (Apple TV 4K, iPhone, iPad) |
-| Receivers / soundbars | **Sonos** for now; dedicated HT gear deferred until new home theatre build |
+| Receivers / soundbars | **Sonos** for now; **Sonos Amp + ceiling speakers** per TV room ([12-ceiling-speakers-per-room.md](12-ceiling-speakers-per-room.md)); dedicated HT gear deferred until new home theatre build |
 | Remote sharing | **Plex** shared with family; **lifetime Plex Pass** |
 | Streaming music services | **Apple Music** + **Spotify** via Sonos |
 | Sonos control | **Sonos app** for zones / grouping |
@@ -213,6 +213,10 @@ Trigger when new Unraid box is stable and capacity targets from [01-requirements
 
 ## Audio: Sonos + streaming + Plex
 
+### Ceiling speakers per TV room
+
+For rooms with **passive in-ceiling speakers**, use a **Sonos Amp** per TV: Apple TV → HDMI → TV → **HDMI eARC/ARC** → Amp → speaker wire → ceiling L/R. Full wiring, polarity, cable gauge, and rollout checklist: [12-ceiling-speakers-per-room.md](12-ceiling-speakers-per-room.md).
+
 ### Current workflow (keep)
 
 1. **Apple Music** and **Spotify** as primary music sources → play through **Sonos** (native services or Sonos app).
@@ -375,6 +379,7 @@ When the dedicated HT is built:
 | 2026-05-23 | **Plex** remains sole media server | Lifetime Plex Pass; all-Apple clients |
 | 2026-05-23 | **No Jellyfin** trial | User preference; Pass already covers needs |
 | 2026-05-23 | **Sonos** retained for whole-home audio | Works well; HT upgrade later |
+| 2026-07-19 | **Sonos Amp** drives per-room ceiling speakers from TV ARC | TVs are not power amps; keeps music on Sonos — [12-ceiling-speakers-per-room.md](12-ceiling-speakers-per-room.md) |
 | 2026-05-23 | Quality **phase 1 = fast WEB-1080p** | 4K TVs but prioritize release speed until new array |
 | 2026-05-23 | Deploy full *arr* + Overseerr + Recyclarr + Bazarr | Automation-first rebuild |
 | 2026-05-23 | **Plexamp** deferred to backlog | Apple Music / Spotify + Sonos sufficient today |
@@ -388,6 +393,7 @@ When the dedicated HT is built:
 |-----|------|
 | **Plex & *arr tasks (tower)** | [10-plex-arr-workstream.md](10-plex-arr-workstream.md) |
 | **iOS / Helmarr ops** | [11-ios-media-ops.md](11-ios-media-ops.md) |
+| **Ceiling speakers / TV audio** | [12-ceiling-speakers-per-room.md](12-ceiling-speakers-per-room.md) |
 | Requirements | [01-requirements.md](01-requirements.md) |
 | Hardware BOM | [02-hardware-bom.md](02-hardware-bom.md) |
 | Network / VLANs | [05-network-and-layout.md](05-network-and-layout.md) |

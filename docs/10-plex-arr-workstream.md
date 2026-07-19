@@ -250,6 +250,7 @@ User approved unattended execution in Plex & *arr session. DB repair deferred to
 | T3.3 | Remove unused Sonarr mount `/tv-shows-2` → legacy `TV` | `todo` |
 | T3.4 | Security: rotate exposed creds; remove stale `my-plex.xml` template | `todo` |
 | T3.5 | Home theatre room — AVR/codecs/HDMI (when built) | `todo` |
+| T3.6 | Per-room ceiling speakers — Sonos Amp + TV eARC/ARC | `todo` | See [12-ceiling-speakers-per-room.md](12-ceiling-speakers-per-room.md) |
 
 ---
 
