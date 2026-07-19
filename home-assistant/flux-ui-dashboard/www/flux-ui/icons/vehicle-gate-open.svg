@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Posts -->
+  <rect x="2" y="3" width="1.8" height="18" rx="0.4" fill="#ffffff"/>
+  <rect x="20.2" y="3" width="1.8" height="18" rx="0.4" fill="#ffffff"/>
+  <!-- Left leaf swung outward (perspective: narrow vertical panel by left post) -->
+  <path d="M4.2 5h2.6l1.2 1.5v11L6.8 19H4.2V5z" fill="none" stroke="#ffffff" stroke-width="1.35" stroke-linejoin="round"/>
+  <rect x="4.7" y="6.6" width="0.9" height="10.8" rx="0.25" fill="#ffffff"/>
+  <rect x="5.9" y="7" width="0.9" height="10" rx="0.25" fill="#ffffff"/>
+  <!-- Right leaf swung outward -->
+  <path d="M19.8 5h-2.6l-1.2 1.5v11l1.2 1.5h2.6V5z" fill="none" stroke="#ffffff" stroke-width="1.35" stroke-linejoin="round"/>
+  <rect x="18.4" y="6.6" width="0.9" height="10.8" rx="0.25" fill="#ffffff"/>
+  <rect x="17.2" y="7" width="0.9" height="10" rx="0.25" fill="#ffffff"/>
+  <!-- Open driveway gap -->
+  <path d="M9.2 18.8h5.6" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" opacity="0.9"/>
+</svg>

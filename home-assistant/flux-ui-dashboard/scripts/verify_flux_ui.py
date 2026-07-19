@@ -273,8 +273,14 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Rooms view still uses condition:template — causes Configuration error cards"
             )
-        if "mdi:gate-open" not in blob:
-            errors.append("Gate buttons missing vehicle gate-open icon state")
+        if "/local/flux-ui/icons/vehicle-gate-closed.svg" not in blob:
+            errors.append("Gate buttons missing double-swing closed icon asset")
+        if "/local/flux-ui/icons/vehicle-gate-open.svg" not in blob:
+            errors.append("Gate buttons missing double-swing open icon asset")
+        gate_icons = ROOT / "www" / "flux-ui" / "icons"
+        for name in ("vehicle-gate-closed.svg", "vehicle-gate-open.svg"):
+            if not (gate_icons / name).exists():
+                errors.append(f"Missing gate icon file www/flux-ui/icons/{name}")
 
         # Music player checks only when media_players.yaml lists enabled players.
         # Offline builds use committed YAML — do not require live Sonos discovery.

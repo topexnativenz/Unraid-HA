@@ -4,36 +4,46 @@ from __future__ import annotations
 
 from flux_door_builders import flux_door_tile
 
-# Vehicle gate colours — match garage door open/closed language.
+# Soft tinted card fills (state colour on the button body).
 _GATE_OPEN_BG = "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
 _GATE_OPEN_BORDER = "1px solid rgba(242, 184, 181, 0.85)"
-_GATE_OPEN_COLOR = "#F2B8B5"
 _GATE_CLOSED_BG = "color-mix(in srgb, #81C784 28%, var(--md-sys-color-surface-container) 72%)"
 _GATE_CLOSED_BORDER = "1px solid rgba(129, 199, 132, 0.55)"
-_GATE_CLOSED_COLOR = "#81C784"
 _GATE_UNLATCHED_BG = "color-mix(in srgb, #FFB74D 36%, var(--md-sys-color-surface-container) 64%)"
 _GATE_UNLATCHED_BORDER = "1px solid rgba(255, 183, 77, 0.75)"
-_GATE_UNLATCHED_COLOR = "#FFB74D"
+
+# High-contrast icon chips — dark saturated backgrounds + white double-swing SVGs.
+_CHIP_CLOSED = "#0D3B1E"  # deep green on green card
+_CHIP_OPEN = "#5C1010"  # deep rose on pink card
+_CHIP_UNLATCHED = "#4A2800"  # deep amber on amber card
+
+_GATE_CLOSED_PIC = "/local/flux-ui/icons/vehicle-gate-closed.svg"
+_GATE_OPEN_PIC = "/local/flux-ui/icons/vehicle-gate-open.svg"
 
 
 def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
-    """Gate Open / Gate Latch — vehicle-gate icons + open/closed/latched colours."""
+    """Gate Open / Gate Latch — double-swing vehicle gate icons + contrasting chips."""
     is_latch = "latch" in name.lower()
     closed_label = "Latched" if is_latch else "Closed"
     open_label = "Unlatched" if is_latch else "Open"
     open_bg = _GATE_UNLATCHED_BG if is_latch else _GATE_OPEN_BG
     open_border = _GATE_UNLATCHED_BORDER if is_latch else _GATE_OPEN_BORDER
-    open_color = _GATE_UNLATCHED_COLOR if is_latch else _GATE_OPEN_COLOR
+    open_chip = _CHIP_UNLATCHED if is_latch else _CHIP_OPEN
+    open_label_color = "#FFB74D" if is_latch else "#F2B8B5"
+    closed_label_color = "#81C784"
 
     return {
         "type": "custom:button-card",
         "template": "flux_action",
         "entity": entity,
         "name": name,
-        # locked = gate closed / latched; unlocked = gate open / unlatched
-        "icon": (
-            "[[[ return entity.state === 'locked' "
-            "? 'mdi:gate' : 'mdi:gate-open'; ]]]"
+        "show_icon": False,
+        "show_entity_picture": True,
+        # Double-swing driveway gates: leaves meet in centre when closed.
+        "entity_picture": (
+            "[[[\n"
+            f"  return entity.state === 'locked' ? '{_GATE_CLOSED_PIC}' : '{_GATE_OPEN_PIC}';\n"
+            "]]]"
         ),
         "label": (
             "[[[\n"
@@ -44,6 +54,25 @@ def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
         ),
         "tap_action": {"action": "toggle"},
         "triggers_update": "all",
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i n' 'i l'"},
+                {"grid-template-columns": "52px 1fr"},
+                {"grid-template-rows": "min-content min-content"},
+                {"column-gap": "12px"},
+            ],
+            "img_cell": [
+                {"border-radius": "16px"},
+                {"width": "52px"},
+                {"height": "52px"},
+                {"place-self": "center"},
+            ],
+            "entity_picture": [
+                {"width": "30px"},
+                {"height": "30px"},
+                {"object-fit": "contain"},
+            ],
+        },
         "state": [
             {
                 "value": "unlocked",
@@ -52,9 +81,11 @@ def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
                         {"background": open_bg},
                         {"border": open_border},
                     ],
-                    "icon": [{"color": open_color}],
-                    "img_cell": [{"background-color": f"color-mix(in srgb, {open_color} 22%, transparent)"}],
-                    "label": [{"color": open_color}, {"font-weight": "600"}],
+                    "img_cell": [
+                        {"background-color": open_chip},
+                        {"box-shadow": f"0 0 0 1px {open_chip}"},
+                    ],
+                    "label": [{"color": open_label_color}, {"font-weight": "700"}],
                     "name": [{"color": "var(--md-sys-color-on-surface)"}],
                 },
             },
@@ -65,11 +96,11 @@ def lock_action(entity: str, name: str, *, columns: int = 6) -> dict:
                         {"background": _GATE_CLOSED_BG},
                         {"border": _GATE_CLOSED_BORDER},
                     ],
-                    "icon": [{"color": _GATE_CLOSED_COLOR}],
                     "img_cell": [
-                        {"background-color": "rgba(129, 199, 132, 0.22)"}
+                        {"background-color": _CHIP_CLOSED},
+                        {"box-shadow": f"0 0 0 1px {_CHIP_CLOSED}"},
                     ],
-                    "label": [{"color": _GATE_CLOSED_COLOR}, {"font-weight": "600"}],
+                    "label": [{"color": closed_label_color}, {"font-weight": "700"}],
                     "name": [{"color": "var(--md-sys-color-on-surface)"}],
                 },
             },
