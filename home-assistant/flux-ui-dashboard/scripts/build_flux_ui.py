@@ -50,6 +50,7 @@ from flux_tablet_layout import (
 from flux_tablet_overview import build_tablet_overview_view
 from flux_tablet_room import build_tablet_room_detail_view
 from flux_tablet_scenes import build_tablet_active_view, build_tablet_scenes_view
+from flux_weather_panel import build_weather_panel_section
 from kiosk_config import KIOSK_MODE
 from phase3_builders import (
     build_active_lights_section,
@@ -69,6 +70,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ENTITIES = ROOT / "entities.yaml"
 CONTEXT = ROOT / "context.yaml"
 OVERVIEW_TABS = ROOT / "overview_tabs.yaml"
+WEATHER_PANEL = ROOT / "weather_panel.yaml"
 ROOMS = ROOT / "rooms.yaml"
 ROOM_SENSORS = ROOT / "room_sensors.yaml"
 SCENES = ROOT / "scenes.yaml"
@@ -126,6 +128,10 @@ def load_entities() -> dict:
         cfg["overview_tabs"] = yaml.safe_load(OVERVIEW_TABS.read_text())
     else:
         cfg["overview_tabs"] = {}
+    if WEATHER_PANEL.exists():
+        cfg["weather_panel"] = yaml.safe_load(WEATHER_PANEL.read_text()) or {}
+    else:
+        cfg["weather_panel"] = {}
     cfg["scenes_config"] = yaml.safe_load(SCENES.read_text()) if SCENES.exists() else {}
     cfg["cameras_config"] = yaml.safe_load(CAMERAS.read_text()) if CAMERAS.exists() else {}
     cfg["light_groups"] = (
@@ -208,38 +214,223 @@ def section_title(title: str, subtitle: str = "") -> dict:
     return wrap_title(card)
 
 
-def hero_card(weather_entity: str) -> dict:
-    """Single Flux-style hero: weather icon + greeting + conditions (no duplicate chips)."""
-    return {
+def hero_bitmoji_picture_js(cfg: dict) -> str:
+    """Avatar URL for button-card — configured bitmoji map, then person picture, then default."""
+    hero = (cfg.get("context") or {}).get("hero") or {}
+    by_user = hero.get("bitmoji_by_user") or {"Dave": "/local/flux-ui/bitmoji/dave.png"}
+    default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
+    map_json = json.dumps(by_user)
+    default_json = json.dumps(default)
+    return (
+        "[[[\n"
+        "  try {\n"
+        "    const u = (typeof user !== 'undefined' && user) ? user : {};\n"
+        "    const uname = String(u.name || 'Guest');\n"
+        f"    const map = {map_json};\n"
+        f"    const fallback = {default_json};\n"
+        "    if (map[uname]) return map[uname];\n"
+        "    const key = Object.keys(map).find((k) => k.toLowerCase() === uname.toLowerCase());\n"
+        "    if (key) return map[key];\n"
+        "    const uid = u.id;\n"
+        "    if (typeof states === 'object' && states && uid != null) {\n"
+        "      for (const eid of Object.keys(states)) {\n"
+        "        if (!eid.startsWith('person.')) continue;\n"
+        "        const st = states[eid];\n"
+        "        if (!st || !st.attributes) continue;\n"
+        "        if (st.attributes.user_id === uid) {\n"
+        "          const pic = st.attributes.entity_picture;\n"
+        "          if (pic && !String(pic).includes('branding/logo')) return pic;\n"
+        "        }\n"
+        "      }\n"
+        "    }\n"
+        "    return fallback;\n"
+        "  } catch (e) {\n"
+        f"    return {default_json};\n"
+        "  }\n"
+        "]]]"
+    )
+
+
+def hero_weather_html(weather_entity: str) -> str:
+    """Inline weather column — avoids button-card weather.* layout (large icon + friendly_name)."""
+    eid = json.dumps(weather_entity)
+    return (
+        "[[[\n"
+        f"  const e = states[{eid}];\n"
+        "  if (!e) return '';\n"
+        "  const attrs = e.attributes || {};\n"
+        "  const temp = attrs.temperature;\n"
+        "  const unit = attrs.temperature_unit || '°C';\n"
+        "  const tempStr = temp != null ? (unit === '°C' ? `${temp}°` : `${temp}°`) : '';\n"
+        "  const cond = String(attrs.condition || attrs.weather || e.state || '').toLowerCase();\n"
+        "  const icons = {\n"
+        "    sunny: 'mdi:weather-sunny', clear: 'mdi:weather-sunny',\n"
+        "    partlycloudy: 'mdi:weather-partly-cloudy', 'partly-cloudy': 'mdi:weather-partly-cloudy',\n"
+        "    cloudy: 'mdi:weather-cloudy', overcast: 'mdi:weather-cloudy',\n"
+        "    rainy: 'mdi:weather-rainy', pouring: 'mdi:weather-pouring', hail: 'mdi:weather-hail',\n"
+        "    lightning: 'mdi:weather-lightning', lightning_rainy: 'mdi:weather-lightning-rainy',\n"
+        "    snowy: 'mdi:weather-snowy', fog: 'mdi:weather-fog', windy: 'mdi:weather-windy',\n"
+        "  };\n"
+        "  const iconKey = cond.replace(/[\\s-]+/g, '');\n"
+        "  const icon = icons[iconKey] || icons[cond] || 'mdi:weather-partly-cloudy';\n"
+        "  return `\n"
+        "    <div style=\"display:flex;flex-direction:column;align-items:flex-end;justify-content:center;"
+        "gap:1px;width:100%;max-width:100%;overflow:hidden;box-sizing:border-box;line-height:1.1;\">\n"
+        "      <ha-icon icon=\"${icon}\" style=\"width:22px;height:22px;color:var(--md-sys-color-primary);\"></ha-icon>\n"
+        "      <span style=\"font-size:14px;font-weight:700;color:var(--md-sys-color-on-surface);"
+        "white-space:nowrap;\">${tempStr}</span>\n"
+        "      <span style=\"font-size:10px;font-weight:500;color:var(--md-sys-color-on-surface-variant);"
+        "text-transform:capitalize;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+        "max-width:100%;display:block;\">${cond}</span>\n"
+        "    </div>`;\n"
+        "]]]"
+    )
+
+
+HERO_CARD_MOD = {
+    "style": (
+        "ha-card {\n"
+        "  background: transparent !important;\n"
+        "  box-shadow: none !important;\n"
+        "  border: none !important;\n"
+        "  backdrop-filter: none !important;\n"
+        "  -webkit-backdrop-filter: none !important;\n"
+        "  overflow: visible !important;\n"
+        "  box-sizing: border-box !important;\n"
+        "  width: 100% !important;\n"
+        "  display: block !important;\n"
+        "}\n"
+        "ha-card > div {\n"
+        "  width: 100% !important;\n"
+        "}\n"
+        "#root {\n"
+        "  position: relative !important;\n"
+        "  min-width: 0 !important;\n"
+        "  width: 100% !important;\n"
+        "  max-width: 100% !important;\n"
+        "}\n"
+        "#root > div {\n"
+        "  width: 100% !important;\n"
+        "}\n"
+    )
+}
+
+
+def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
+    """Transparent hero row — avatar, greeting, weather pinned to the right edge."""
+    hero = (cfg.get("context") or {}).get("hero") or {}
+    default = hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png"
+    avatar = hero_bitmoji_picture_js(cfg)
+    card: dict = {
         "type": "custom:button-card",
-        "template": "flux_hero",
-        "entity": weather_entity,
-        "icon": "[[[ return entity.attributes?.condition ? `weather-${entity.attributes.condition}` : 'mdi:weather-partly-cloudy'; ]]]",
+        "show_icon": False,
+        "show_entity_picture": True,
+        "entity_picture": avatar,
+        "picture": default,
+        "show_name": True,
+        "show_label": True,
+        "show_state": False,
+        "tap_action": {"action": "none"},
+        "hold_action": {"action": "none"},
+        "triggers_update": ["all", weather_entity],
+        "grid_options": {"columns": 12},
         "name": (
             "[[[\n"
+            "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
+            "  const uname = u.name || 'Guest';\n"
             "  const h = new Date().getHours();\n"
             "  let g = 'Morning';\n"
             "  if (h >= 22 || h < 5) g = 'Night';\n"
             "  else if (h >= 18) g = 'Evening';\n"
             "  else if (h >= 12) g = 'Afternoon';\n"
-            "  return `${g}, ${user.name}!`;\n"
+            "  return `${g}, ${uname}!`;\n"
             "]]]"
         ),
         "label": (
-            "[[[\n"
-            "  const cond = entity.attributes?.friendly_name || entity.attributes?.condition || '';\n"
-            "  const temp = entity.attributes?.temperature;\n"
-            "  const time = new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'});\n"
-            "  const wx = temp != null ? `${cond} · ${temp}°` : String(cond);\n"
-            "  return `${wx} · ${time}`;\n"
-            "]]]"
+            "[[[ return new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); ]]]"
         ),
-        "grid_options": {"columns": 12},
+        "custom_fields": {
+            "weather": hero_weather_html(weather_entity),
+        },
+        "card_mod": HERO_CARD_MOD,
+        "styles": {
+            "card": [
+                {"background": "transparent"},
+                {"box-shadow": "none"},
+                {"border": "none"},
+                {"position": "relative"},
+                {"padding": "8px 76px 8px 0"},
+                {"overflow": "visible"},
+                {"box-sizing": "border-box"},
+                {"width": "100%"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'i n' 'i l'"},
+                {"grid-template-columns": "64px minmax(0, 1fr)"},
+                {"grid-template-rows": "min-content min-content"},
+                {"column-gap": "12px"},
+                {"row-gap": "2px"},
+                {"align-items": "center"},
+                {"width": "100%"},
+                {"min-width": "0"},
+            ],
+            "img_cell": [
+                {"width": "64px"},
+                {"height": "64px"},
+                {"min-width": "64px"},
+                {"max-width": "64px"},
+                {"background": "transparent"},
+                {"border-radius": "50%"},
+                {"overflow": "hidden"},
+                {"justify-self": "start"},
+                {"align-self": "center"},
+            ],
+            "entity_picture": [
+                {"width": "64px"},
+                {"height": "64px"},
+                {"object-fit": "cover"},
+                {"object-position": "center top"},
+                {"border-radius": "50%"},
+                {"display": "block"},
+            ],
+            "name": [
+                {"font-size": "20px"},
+                {"font-weight": "700"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+                {"color": "var(--md-sys-color-on-surface)"},
+                {"line-height": "1.2"},
+                {"min-width": "0"},
+                {"max-width": "100%"},
+            ],
+            "label": [
+                {"font-size": "13px"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+                {"line-height": "1.2"},
+            ],
+            "custom_fields": {
+                "weather": [
+                    {"position": "absolute"},
+                    {"right": "0"},
+                    {"top": "50%"},
+                    {"transform": "translateY(-50%)"},
+                    {"width": "auto"},
+                    {"max-width": "72px"},
+                    {"z-index": "1"},
+                ],
+            },
+        },
     }
+    return card
 
 
-def build_hero(weather_entity: str) -> dict:
-    return {"type": "grid", "cards": [hero_card(weather_entity)]}
+def build_hero(weather_entity: str, cfg: dict) -> dict:
+    return {
+        "type": "grid",
+        "cards": [hero_unified_card(weather_entity, cfg)],
+    }
 
 
 def build_quick_actions(cfg: dict) -> dict:
@@ -283,7 +474,7 @@ def build_overview_sections(
 ) -> list[dict]:
     """Overview layout — ElementZoom Home/Events/Active tabs below hero + status chips."""
     sections: list[dict] = [
-        build_hero(weather),
+        build_hero(weather, cfg),
         build_home_status_section(cfg),
     ]
 
@@ -303,6 +494,9 @@ def build_overview_sections(
                 use_simple_tabs=use_simple_tabs and tab_engine(cfg) in ("simple-tabs", "auto"),
             )
         )
+        weather_section = build_weather_panel_section(cfg)
+        if weather_section:
+            sections.append(weather_section)
         return sections
 
     # Fallback: vertical stack (pre-tabs layout)
@@ -312,6 +506,9 @@ def build_overview_sections(
     open_garage = build_open_garage_section(cfg)
     if open_garage:
         sections.append(open_garage)
+    weather_section = build_weather_panel_section(cfg)
+    if weather_section:
+        sections.append(weather_section)
     return sections
 
 
@@ -451,7 +648,7 @@ def _build_config_inner(
                 title="Rooms",
                 path="rooms",
                 icon="mdi:sofa",
-                sections=[build_rooms_index(cfg)],
+                sections=[build_rooms_index(cfg, tablet=True)],
                 use_navbar_card=use_navbar_card,
                 tablet=True,
             ),

@@ -30,9 +30,12 @@ GARAGE_DIR = ROOT.parent / "garage-doors"
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
+DISCOVER_WEATHER = ROOT / "scripts" / "discover_weather.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
 VERIFY = ROOT / "scripts" / "verify_flux_ui.py"
+WEATHER_PANEL = ROOT / "weather_panel.yaml"
+WEATHER_HOURLY_ENTITY = "sensor.flux_ui_hourly_forecast_full"
 URL_PATH = "flux-ui"
 STORAGE_KEY = "lovelace.flux_ui"
 MOBILE_STORAGE = "lovelace.mobile_home"
@@ -273,6 +276,47 @@ async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
     return any(s.get("entity_id") == entity_id for s in res[0].get("result", []))
 
 
+async def reload_template(token: str, ha_url: str) -> None:
+    res = await ws_call(
+        token,
+        ha_url,
+        [{"type": "call_service", "domain": "template", "service": "reload"}],
+    )
+    if res[0].get("success") is False:
+        print(f"  WARNING: template.reload failed: {res[0].get('error')}")
+    else:
+        print("  reloaded template sensors (weather forecasts)")
+
+
+def _weather_entity_from_config() -> str:
+    if not WEATHER_PANEL.exists():
+        return "weather.metservice"
+    import yaml
+
+    data = yaml.safe_load(WEATHER_PANEL.read_text()) or {}
+    ms = data.get("metservice") or {}
+    return str(ms.get("weather_entity") or data.get("weather_entity") or "weather.metservice")
+
+
+async def ensure_weather_package_helpers(token: str, ha_url: str) -> None:
+    """Reload packages/templates and wait for MetService forecast sensors."""
+    import asyncio
+
+    await asyncio.sleep(1)
+    await reload_core_config(token, ha_url)
+    await asyncio.sleep(2)
+    await reload_template(token, ha_url)
+    await asyncio.sleep(3)
+    weather_entity = _weather_entity_from_config()
+    if not await wait_for_entity(token, ha_url, weather_entity, attempts=8):
+        print(f"  WARNING: {weather_entity} not found — run discover_weather.py --apply")
+    if not await wait_for_entity(token, ha_url, WEATHER_HOURLY_ENTITY, attempts=8):
+        print(
+            f"  WARNING: {WEATHER_HOURLY_ENTITY} not loaded — "
+            "Forecast charts need packages/flux_ui_weather.yaml."
+        )
+
+
 def build_config(
     mobile_storage: Path | None,
     *,
@@ -366,6 +410,12 @@ def build_config(
         raise SystemExit(1)
     if "flux_hero" not in blob:
         print("\nERROR: Build missing flux_hero.", file=sys.stderr)
+        raise SystemExit(1)
+    if "/local/flux-ui/bitmoji/" not in blob and "bitmoji" not in blob:
+        print("\nERROR: Build missing bitmoji hero avatar.", file=sys.stderr)
+        raise SystemExit(1)
+    if "#weather-panel" not in blob and "Weather Panel" not in blob:
+        print("\nERROR: Build missing bottom weather panel.", file=sys.stderr)
         raise SystemExit(1)
     if "Home status" not in blob:
         print("\nERROR: Build missing Phase 3 home status section.", file=sys.stderr)
@@ -566,6 +616,9 @@ async def deploy_async(args: argparse.Namespace) -> int:
             if not use_calendar_pro:
                 print("calendar-card-pro not in resources — Events tab uses mushroom fallback.")
                 print("  HACS → alexpfau/calendar-card-pro (ElementZoom reference)")
+            if not await has_resource(token, args.ha_url, "weather-forecast-extended"):
+                print("weather-forecast-extended not in resources — Forecast tab will not render.")
+                print("  HACS → Thyraz/weather-forecast-extended")
             if not await has_kiosk_resource(token, args.ha_url):
                 print("WARNING: kiosk-mode resource missing (config still embedded).")
         except Exception:
@@ -607,6 +660,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
             ],
             check=False,
         )
+        print("Discovering NZ MetService weather for phone weather panel…")
+        subprocess.run(
+            [
+                "python3",
+                str(DISCOVER_WEATHER),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
+            check=False,
+        )
 
     config = build_config(
         mobile_storage,
@@ -631,6 +697,11 @@ async def deploy_async(args: argparse.Namespace) -> int:
         )
 
     if mounted:
+        # Re-copy packages after weather discover regenerates flux_ui_weather.yaml.
+        copy_packages(args.mount)
+        copy_frontend_assets(args.mount)
+        if token and ha_up and not args.offline:
+            await ensure_weather_package_helpers(token, args.ha_url)
         write_storage(args.mount, config)
         if tablet_config:
             write_tablet_storage(args.mount, tablet_config)

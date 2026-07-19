@@ -19,6 +19,12 @@ active_lights:
 
 # Garage open alerts use garage-doors/entities.yaml Tapo sensors automatically.
 
+hero:
+  # Hero greeting avatar — bitmoji_by_user first, then HA person picture, then default.
+  bitmoji_by_user:
+    Dave: /local/flux-ui/bitmoji/dave.png
+  bitmoji_default: /local/flux-ui/bitmoji/dave.png
+
 bubble_popups:
   enabled: false
   # Legacy bubble-card popups — replaced by inline dimmer on light buttons.

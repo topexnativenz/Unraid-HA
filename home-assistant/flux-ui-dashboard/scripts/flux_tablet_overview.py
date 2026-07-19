@@ -38,7 +38,12 @@ def _transparent_title(title: str, *, size: str = "16px") -> dict:
     }
 
 
-def _greeting_stack(weather_entity: str) -> dict:
+def _bitmoji_url(cfg: dict) -> str:
+    hero = (cfg.get("context") or {}).get("hero") or {}
+    return str(hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png")
+
+
+def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
     high_low = (
         "{% set f = state_attr('" + weather_entity + "', 'forecast') %}"
         "{% if f and f[0] is mapping %}"
@@ -151,6 +156,9 @@ def _greeting_stack(weather_entity: str) -> dict:
                 "template": "flux_hero",
                 "entity": weather_entity,
                 "show_icon": False,
+                "show_entity_picture": True,
+                "entity_picture": _bitmoji_url(cfg),
+                "picture": _bitmoji_url(cfg),
                 "name": (
                     "[[[\n"
                     "  const h = new Date().getHours();\n"
@@ -565,7 +573,7 @@ def build_tablet_overview_view(
     """Full-bleed 16:9 overview — panel view + layout-card grid."""
     del climate_section
     content_cards = [
-        _greeting_stack(weather_entity),
+        _greeting_stack(weather_entity, cfg),
         _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
         _weather_forecast(weather_entity),
         _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),

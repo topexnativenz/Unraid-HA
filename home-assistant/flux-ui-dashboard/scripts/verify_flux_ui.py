@@ -17,6 +17,9 @@ DEFAULT_JSON = ROOT / "generated" / "lovelace.flux_ui.json"
 sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors  # noqa: E402
 
+sys.path.insert(0, str(ROOT / "scripts"))
+from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
+
 
 def load_entities() -> dict:
     cfg = yaml.safe_load(ENTITIES.read_text())
@@ -226,16 +229,22 @@ def verify_build(path: Path) -> list[str]:
     if "show_brightness_control" in blob:
         errors.append("Embedded mushroom sliders found — use flux_light tiles (tap/hold for dimmer)")
 
-    stale_mushroom = (
-        "custom:mushroom-lock-card",
-        "custom:mushroom-template-card",
-    )
+    if "custom:mushroom-lock-card" in blob:
+        errors.append(
+            "Stale Mushroom card custom:mushroom-lock-card — pull latest branch and redeploy"
+        )
 
-    for card_type in stale_mushroom:
-        if card_type in blob:
-            errors.append(
-                f"Stale Mushroom card {card_type} — pull latest branch and redeploy"
-            )
+    # mushroom-template-card is allowed inside the MetService weather panel popup only.
+    if "custom:mushroom-template-card" in blob and WEATHER_PANEL_HASH not in overview_blob:
+        errors.append(
+            "Stale Mushroom card custom:mushroom-template-card — pull latest branch and redeploy"
+        )
+
+    if not is_tablet:
+        if "/local/flux-ui/bitmoji/" not in blob:
+            errors.append("Missing bitmoji hero avatar (/local/flux-ui/bitmoji/…)")
+        if WEATHER_PANEL_HASH not in overview_blob:
+            errors.append("Missing bottom weather panel (#weather-panel) on phone overview")
 
     return errors
 
