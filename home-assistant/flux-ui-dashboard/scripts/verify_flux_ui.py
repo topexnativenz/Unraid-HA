@@ -396,8 +396,15 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
             errors.append("Live phone dashboard missing bitmoji hero — lovelace/config/save may have failed")
         if WEATHER_PANEL_HASH not in overview_blob:
             errors.append("Live phone dashboard missing #weather-panel")
+        if '"label": "Weather"' not in live_blob:
+            errors.append("Live phone navbar missing Weather route")
         if MUSIC_PLAYER_HASH not in overview_blob:
             errors.append("Live phone dashboard missing #music-player")
+        rooms_live = next((v for v in views if v.get("path") == "rooms"), None)
+        if rooms_live and '"condition": "template"' in json.dumps(rooms_live):
+            errors.append("Live Rooms view still has condition:template Configuration errors")
+        if rooms_live and "custom:simple-tabs" not in json.dumps(rooms_live):
+            errors.append("Live Rooms view missing simple-tabs")
         if '"label": "Rooms"' not in live_blob:
             errors.append("Live navbar missing Rooms route (old Flux/Mobile/Solar nav)")
         if "kiosk_mode" not in live_blob or "hide_header" not in live_blob:
