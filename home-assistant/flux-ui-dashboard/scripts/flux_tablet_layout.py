@@ -31,19 +31,21 @@ PANEL_ROOT_MOD = {
     )
 }
 
-# Overview root fills the viewport so the grid cannot grow past one screen.
+# Overview root locks to the viewport (vh — % height is indefinite in HA panel
+# views, so fr rows otherwise size to calendar content and push the page down).
 OVERVIEW_PANEL_ROOT_MOD = {
     "style": (
         ":host {\n"
         "  display: block !important;\n"
-        "  height: 100% !important;\n"
-        "  max-height: 100% !important;\n"
+        "  height: 100dvh !important;\n"
+        "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
+        "  box-sizing: border-box !important;\n"
         "}\n"
         "ha-card {\n"
         "  width: 100% !important;\n"
-        "  height: 100% !important;\n"
-        "  max-height: 100% !important;\n"
+        "  height: 100dvh !important;\n"
+        "  max-height: 100dvh !important;\n"
         "  max-width: none !important;\n"
         "  background: transparent !important;\n"
         "  box-shadow: none !important;\n"
@@ -51,6 +53,7 @@ OVERVIEW_PANEL_ROOT_MOD = {
         "  padding: 0 !important;\n"
         "  margin: 0 !important;\n"
         "  overflow: hidden !important;\n"
+        "  box-sizing: border-box !important;\n"
         "}\n"
         "#root {\n"
         "  width: 100% !important;\n"
@@ -60,11 +63,16 @@ OVERVIEW_PANEL_ROOT_MOD = {
         "  overflow: hidden !important;\n"
         "  display: flex !important;\n"
         "  flex-direction: column !important;\n"
+        "  box-sizing: border-box !important;\n"
         "}\n"
         "#root > :first-child {\n"
         "  flex: 1 1 auto !important;\n"
         "  min-height: 0 !important;\n"
+        "  max-height: 100% !important;\n"
         "  overflow: hidden !important;\n"
+        "}\n"
+        "#root > :last-child {\n"
+        "  flex: 0 0 auto !important;\n"
         "}\n"
     )
 }
@@ -120,6 +128,7 @@ OVERVIEW_LAYOUT_CARD_MOD = {
         "  min-height: 0 !important;\n"
         "  min-width: 0 !important;\n"
         "  max-height: 100% !important;\n"
+        "  overflow: hidden !important;\n"
         "}\n"
     )
 }
@@ -127,15 +136,20 @@ OVERVIEW_LAYOUT_CARD_MOD = {
 
 def tablet_layout_card(cards: list[dict], *, layout: dict, overview: bool = False) -> dict:
     """Full-width grid-layout card for panel views."""
+    # Overview: fill the flex slot under the navbar (parent is 100dvh). A second
+    # 100dvh here would overflow past the floating nav.
     lay = {
         "width": "100%",
         "max_width": "100%",
         "height": "100%" if overview else "auto",
         "margin": "0",
-        "padding": "8px 12px 96px 12px",
+        # Navbar is a sibling overlay; keep bottom inset so cameras stay above it.
+        "padding": "8px 12px 88px 12px" if overview else "8px 12px 96px 12px",
         "grid-gap": "12px",
         **layout,
     }
+    if overview:
+        lay["card_margin"] = "0"
     return {
         "type": "custom:layout-card",
         "layout_type": "custom:grid-layout",

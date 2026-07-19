@@ -368,8 +368,13 @@ def _weather_forecast(weather_entity: str) -> dict:
     }
 
 
+# Calendar column fills the right side of the 16:9 panel. Title ~36px + gaps;
+# bottom padding reserves the floating navbar (~96px) + outer padding (~8px).
+_CALENDAR_CARD_HEIGHT = "calc(100dvh - 140px)"
+
+
 def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
-    """Right-column week calendar — fills grid cell; body scrolls, page does not."""
+    """Right-column week calendar — fixed viewport height; scrolls inside the card."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     weather = (
         cfg.get("weather")
@@ -380,9 +385,23 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
 
     for card in events:
         if card.get("type") != "custom:calendar-card-pro":
-            # Mushroom fallback stack from build_events_tab_cards
+            # Mushroom fallback — constrain with card-mod scroll box.
             if card.get("type") == "vertical-stack":
-                stack_cards.extend(card.get("cards") or [])
+                fallback = {
+                    "type": "vertical-stack",
+                    "cards": card.get("cards") or [],
+                    "card_mod": {
+                        "style": (
+                            ":host, ha-card, #root {\n"
+                            f"  height: {_CALENDAR_CARD_HEIGHT} !important;\n"
+                            "  max-height: 100% !important;\n"
+                            "  overflow-y: auto !important;\n"
+                            "  -webkit-overflow-scrolling: touch !important;\n"
+                            "}\n"
+                        )
+                    },
+                }
+                stack_cards.append(wrap_glass(fallback))
             else:
                 stack_cards.append(card)
             continue
@@ -396,16 +415,19 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["compact_events_complete_days"] = True
         cal["show_empty_days"] = True
         cal["tap_action"] = {"action": "expand"}
+        # Native fixed height → calendar-card-pro scrolls internally and cannot
+        # grow the layout-card grid / push cameras off-screen.
+        cal["height"] = _CALENDAR_CARD_HEIGHT
+        cal["max_height"] = _CALENDAR_CARD_HEIGHT
         # Narrow tablet column — slightly smaller date column
         cal["day_font_size"] = "20px"
         cal["weekday_font_size"] = "11px"
         cal["month_font_size"] = "10px"
         if weather and isinstance(cal.get("weather"), dict):
             cal["weather"] = {**cal["weather"], "entity": weather}
-        # Glass on the calendar card itself (not a nested vertical-stack wrapper)
         stack_cards.append(wrap_glass(cal))
 
-    # mod-card + flex stack: title stays put; only the calendar body scrolls.
+    # Keep the column from expanding the page even if a child ignores height.
     return {
         "type": "custom:mod-card",
         "view_layout": _area("calendar_notification"),
@@ -414,13 +436,13 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                 ":host {\n"
                 "  display: block !important;\n"
                 "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                f"  max-height: {_CALENDAR_CARD_HEIGHT} !important;\n"
                 "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
                 "ha-card {\n"
                 "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                f"  max-height: {_CALENDAR_CARD_HEIGHT} !important;\n"
                 "  min-height: 0 !important;\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
@@ -434,16 +456,9 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
             "cards": stack_cards,
             "card_mod": {
                 "style": (
-                    ":host {\n"
-                    "  display: block !important;\n"
+                    ":host, ha-card {\n"
                     "  height: 100% !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "}\n"
-                    "ha-card {\n"
-                    "  height: 100% !important;\n"
-                    "  max-height: 100% !important;\n"
+                    f"  max-height: {_CALENDAR_CARD_HEIGHT} !important;\n"
                     "  min-height: 0 !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
@@ -454,7 +469,6 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "  display: flex !important;\n"
                     "  flex-direction: column !important;\n"
                     "  height: 100% !important;\n"
-                    "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
                     "  overflow: hidden !important;\n"
                     "}\n"
@@ -464,9 +478,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "#root > *:not(:first-child) {\n"
                     "  flex: 1 1 auto !important;\n"
                     "  min-height: 0 !important;\n"
-                    "  overflow-x: hidden !important;\n"
-                    "  overflow-y: auto !important;\n"
-                    "  -webkit-overflow-scrolling: touch !important;\n"
+                    "  overflow: hidden !important;\n"
                     "}\n"
                 )
             },

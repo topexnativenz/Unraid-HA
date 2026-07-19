@@ -96,18 +96,21 @@ TABLET_VIEW_CARD_MOD = {
     )
 }
 
-# Overview only — lock page to one screen; calendar column scrolls internally.
+# Overview only — lock page to one viewport; calendar scrolls via its own height.
 TABLET_OVERVIEW_VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
         "  background: center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n"
+        "  height: 100dvh !important;\n"
+        "  max-height: 100dvh !important;\n"
+        "  overflow: hidden !important;\n"
         "}\n"
         "#view {\n"
         "  background: transparent !important;\n"
         "  max-width: none !important;\n"
         "  width: 100% !important;\n"
-        "  height: 100% !important;\n"
-        "  max-height: 100% !important;\n"
+        "  height: 100dvh !important;\n"
+        "  max-height: 100dvh !important;\n"
         "  margin: 0 !important;\n"
         "  padding: 0 !important;\n"
         "  overflow: hidden !important;\n"
@@ -116,16 +119,16 @@ TABLET_OVERVIEW_VIEW_CARD_MOD = {
         "hui-view-panel {\n"
         "  width: 100% !important;\n"
         "  max-width: none !important;\n"
-        "  height: 100% !important;\n"
-        "  max-height: 100% !important;\n"
+        "  height: 100dvh !important;\n"
+        "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
         "}\n"
         "hui-panel-view > *,\n"
         "hui-view-panel > * {\n"
         "  width: 100% !important;\n"
         "  max-width: none !important;\n"
-        "  height: 100% !important;\n"
-        "  max-height: 100% !important;\n"
+        "  height: 100dvh !important;\n"
+        "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
         "}\n"
         "@keyframes flux-door-pulse {\n"
