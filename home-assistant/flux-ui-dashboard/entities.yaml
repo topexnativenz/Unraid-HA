@@ -12,22 +12,32 @@ tablet:
   # outdoor_temperature: sensor.outdoor_temperature
   # climate_entity: climate.heat_pump
   outdoor_temperature: weather.homemetservice
+  # Exactly one overview camera row (Driveway / Front door / Front Yard / Garage).
+  overview_cameras:
+    - entity: camera.side_door
+      name: Driveway
+    - entity: camera.front_door_doorbell
+      name: Front door Doorbell
+    - entity: camera.front_yard
+      name: Front Yard
+    - entity: camera.garage_door
+      name: Garage Door
 
-# Tessie / Tesla tiles on the 16:9 tablet overview (under camera row).
-# Uses garage_model_* template sensors when present; override IDs if Tessie names differ.
+# Tessie / Tesla tiles — under the camera row (2 equal columns).
+# Prefer live Tessie entity IDs from this house (Model S = model_s_p100d_*, Model X = x_*).
 tablet_tesla:
   model_s:
     name: Model S
-    battery: sensor.garage_model_s_battery
-    charging: sensor.garage_model_s_charging
-    charger_power: sensor.garage_model_s_charger_power
-    image: model-s-white.png
+    battery: sensor.model_s_p100d_battery_level
+    charging: sensor.model_s_p100d_charging
+    charger_power: sensor.model_s_p100d_charger_power
+    image: model-s-white.webp
   model_x:
     name: Model X
-    battery: sensor.garage_model_x_battery
-    charging: sensor.garage_model_x_charging
-    charger_power: sensor.garage_model_x_charger_power
-    image: model-x-blue.png
+    battery: sensor.x_battery_level
+    charging: sensor.x_charging
+    charger_power: sensor.x_charger_power
+    image: model-x-blue.webp
 
 quick_actions:
   gate:

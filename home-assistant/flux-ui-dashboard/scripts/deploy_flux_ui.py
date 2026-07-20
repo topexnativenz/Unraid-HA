@@ -484,15 +484,22 @@ def build_config(
             '"grid-area": "tesla"',
             "Model X",
             "Model S",
-            "/local/flux-ui/tesla/model-x-blue.png",
-            "/local/flux-ui/tesla/model-s-white.png",
+            "camera.side_door",
+            "camera.front_door_doorbell",
+            "camera.front_yard",
+            "camera.garage_door",
+            "data:image/webp;base64,",
+            "Good Morning!",
+            '"columns": 2',
             '"width": "100%"',
             '"days_to_show": 7',
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
                 raise SystemExit(1)
-        # Climate tab removed — history-graph / simple-tabs no longer required on overview.
+        if "Live overview" in blob:
+            print("\nERROR: Tablet still has Home / Live overview title.", file=sys.stderr)
+            raise SystemExit(1)
         if "Software tracker" in blob or "Last charges (7 days)" in blob:
             print(
                 "\nERROR: Tablet overview still has broken Tesla widgets "
@@ -500,6 +507,16 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if '"domain": "camera"' in blob and '"grid-area": "cameras"' in blob:
+            # Overview must not auto-discover every camera (causes 2+ rows).
+            cameras_idx = blob.find('"grid-area": "cameras"')
+            cameras_slice = blob[max(0, cameras_idx - 200) : cameras_idx + 1200]
+            if '"domain": "camera"' in cameras_slice and "camera.side_door" not in cameras_slice:
+                print(
+                    "\nERROR: Tablet cameras band still auto-discovers camera domain.\n",
+                    file=sys.stderr,
+                )
+                raise SystemExit(1)
         if "flux_hero" not in blob:
             print("\nERROR: Tablet build missing flux_hero greeting.", file=sys.stderr)
             raise SystemExit(1)

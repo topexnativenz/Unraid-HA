@@ -1,32 +1,17 @@
 # Flux UI Cameras — global feeds and optional room assignment.
-# room: matches rooms.yaml path slug (e.g. entry, garage, living)
-# lights: optional entities shown as picture-glance chips under the feed (tablet home)
+# Tablet overview uses ONLY this curated list (exactly one landscape row of 4).
 
-cameras: []
-# Example (Eufy / generic camera entities):
-#   - entity: camera.driveway
-#     name: Driveway
-#     room: garage
-#     lights:
-#       - light.outside_garage
-#       - light.garage
-#   - entity: camera.front_door
-#     name: Front door
-#     room: entry
-#     lights:
-#       - light.outside_entry
-#       - light.entry_centre
-#   - entity: camera.garage
-#     name: Garage
-#     room: garage
-#     lights:
-#       - light.garage
-#   - entity: camera.backyard
-#     name: Backyard
-#     room: living
-#     lights:
-#       - light.walkway
+cameras:
+  # Friendly names match the wall-tablet overview (Driveway / Front door / Front Yard / Garage).
+  # side_door is the driveway Eufy (HA labels binary_sensor.side_door_* as "Driveway").
+  - entity: camera.side_door
+    name: Driveway
+  - entity: camera.front_door_doorbell
+    name: Front door Doorbell
+  - entity: camera.front_yard
+    name: Front Yard
+  - entity: camera.garage_door
+    name: Garage Door
 
-# When true and auto-entities is installed, append all camera.* entities not listed above.
-# Tablet overview shows up to 4 feeds (manual first, then auto-discover).
-auto_discover: true
+# Never auto-append every camera.* onto the tablet overview.
+auto_discover: false

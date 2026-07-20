@@ -114,17 +114,21 @@ def verify_build(path: Path) -> list[str]:
             '"grid-area": "tesla"',
             "Model X",
             "Model S",
-            "/local/flux-ui/tesla/model-x-blue.png",
-            "/local/flux-ui/tesla/model-s-white.png",
+            "camera.side_door",
+            "camera.front_door_doorbell",
+            "camera.front_yard",
+            "camera.garage_door",
+            "data:image/webp;base64,",
             '"label": "More"',
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
         if "Software tracker" in blob or "Last charges (7 days)" in blob:
             errors.append("Tablet overview still includes broken Tesla widgets 2/3")
-        if "history-graph" in overview_blob and "Gates & Doors" in overview_blob:
-            # Climate tab was removed from tablet overview; history-graph must not be required.
-            pass
+        if "Live overview" in overview_blob:
+            errors.append("Tablet still has Home / Live overview title")
+        if overview_blob.count("picture-entity") > 6:
+            errors.append("Tablet overview has too many camera tiles — expect curated 4")
         # Closed gate must not force a green card fill — only open gets a tint.
         if "Gate Open" in blob and "#81C784 28%" in blob:
             errors.append("Gate Closed still uses green card background — use default chrome")

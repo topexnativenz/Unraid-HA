@@ -74,6 +74,7 @@ def _bitmoji_url(cfg: dict) -> str:
 
 
 def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
+    """Top-left greeting + datetime — no Home / Live overview title."""
     high_low = (
         "{% set f = state_attr('" + weather_entity + "', 'forecast') %}"
         "{% if f and f[0] is mapping %}"
@@ -88,23 +89,25 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
         "view_layout": _area("greeting"),
         "cards": [
             {
-                "type": "custom:mushroom-title-card",
-                "alignment": "start",
-                "title": "Home",
-                "subtitle": "Live overview",
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  background: transparent !important;\n"
-                        "  box-shadow: none !important;\n"
-                        "  border: none !important;\n"
-                        "}\n"
-                        ".header {\n"
-                        "  font-weight: 700 !important;\n"
-                        "  font-size: 22px !important;\n"
-                        "  color: var(--md-sys-color-on-surface) !important;\n"
-                        "}\n"
-                    )
+                "type": "custom:button-card",
+                "template": "flux_hero",
+                "entity": weather_entity,
+                "show_icon": False,
+                "show_entity_picture": True,
+                "entity_picture": _bitmoji_url(cfg),
+                "picture": _bitmoji_url(cfg),
+                "name": nz_greeting_js(),
+                "label": "Tap for active devices",
+                "tap_action": {
+                    "action": "navigate",
+                    "navigation_path": f"{URL_PREFIX}/active",
+                },
+                "styles": {
+                    "card": [
+                        {"min-height": "64px"},
+                        {"height": "auto"},
+                        {"padding": "10px 14px"},
+                    ],
                 },
             },
             {
@@ -127,8 +130,8 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     "]]]"
                 ),
                 "styles": {
-                    "card": [{"min-height": "52px"}, {"padding": "10px 14px"}],
-                    "name": [{"font-size": "18px"}, {"font-weight": "700"}, {"justify-self": "start"}],
+                    "card": [{"min-height": "48px"}, {"padding": "10px 14px"}],
+                    "name": [{"font-size": "16px"}, {"font-weight": "700"}, {"justify-self": "start"}],
                     "label": [
                         {"justify-self": "start"},
                         {"color": "var(--md-sys-color-primary)"},
@@ -175,28 +178,6 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                         "}\n"
                         ".chip-container { gap: 8px !important; }\n"
                     )
-                },
-            },
-            {
-                "type": "custom:button-card",
-                "template": "flux_hero",
-                "entity": weather_entity,
-                "show_icon": False,
-                "show_entity_picture": True,
-                "entity_picture": _bitmoji_url(cfg),
-                "picture": _bitmoji_url(cfg),
-                "name": nz_greeting_js(),
-                "label": "Tap for active devices",
-                "tap_action": {
-                    "action": "navigate",
-                    "navigation_path": f"{URL_PREFIX}/active",
-                },
-                "styles": {
-                    "card": [
-                        {"min-height": "60px"},
-                        {"height": "auto"},
-                        {"padding": "10px 14px"},
-                    ],
                 },
             },
         ],
@@ -573,120 +554,67 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
+    """Compact single-feed tile for the tablet overview camera row."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    lights = camera.get("lights") or camera.get("entities") or []
-    light_ids: list[str] = []
-    for item in lights:
-        if isinstance(item, str):
-            light_ids.append(item)
-        elif isinstance(item, dict) and item.get("entity"):
-            light_ids.append(item["entity"])
-
-    chips: list[dict] = []
-    for lid in light_ids[:3]:
-        chips.append(
-            {
-                "type": "template",
-                "entity": lid,
-                "icon": "mdi:lightbulb",
-                "content": (
-                    "{{ state_attr('" + lid + "', 'friendly_name') or '"
-                    + lid.split(".")[-1]
-                    + "' }}"
-                ),
-                "tap_action": {"action": "toggle", "entity": lid},
-            }
-        )
-
-    stack: list[dict] = [
+    return wrap_glass(
         {
-            "type": "custom:mushroom-title-card",
-            "title": f"{name} ›",
+            "type": "picture-entity",
+            "entity": entity,
+            "name": name,
+            "camera_view": "live",
+            "show_name": True,
+            "show_state": False,
+            "aspect_ratio": "16:9",
+            "tap_action": {"action": "more-info", "entity": entity},
             "card_mod": {
                 "style": (
                     "ha-card {\n"
-                    "  background: transparent !important;\n"
-                    "  box-shadow: none !important;\n"
-                    "  border: none !important;\n"
+                    "  overflow: hidden !important;\n"
                     "}\n"
-                    ".header { font-size: 15px !important; font-weight: 600 !important; }\n"
+                    ".header {\n"
+                    "  font-size: 13px !important;\n"
+                    "  font-weight: 600 !important;\n"
+                    "  padding: 6px 10px !important;\n"
+                    "}\n"
                 )
             },
-        },
-        wrap_glass(
-            {
-                "type": "picture-entity",
-                "entity": entity,
-                "camera_view": "live",
-                "show_name": False,
-                "show_state": False,
-                "tap_action": {"action": "more-info", "entity": entity},
-            }
-        ),
-    ]
-    if chips:
-        stack.append(
-            {
-                "type": "custom:mushroom-chips-card",
-                "alignment": "start",
-                "chips": chips,
-            }
-        )
-    return {"type": "vertical-stack", "cards": stack}
+        }
+    )
+
+
+def _tablet_overview_cameras(cfg: dict) -> list[dict]:
+    """Curated 4-camera row — never auto-discover the whole house."""
+    tablet = cfg.get("tablet") or {}
+    curated = list(tablet.get("overview_cameras") or [])
+    if curated:
+        return curated[:4]
+    cameras_cfg = cfg.get("cameras_config") or {}
+    manual = list(cameras_cfg.get("cameras") or [])
+    return manual[:4]
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    cameras_cfg = cfg.get("cameras_config") or {}
-    manual = list(cameras_cfg.get("cameras") or [])
+    del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
+    cameras = _tablet_overview_cameras(cfg)
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
-            "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
             "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
             "}\n"
-            "#root {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "}\n"
         )
     }
-    if manual:
-        feeds = [_camera_feed_card(cam) for cam in manual[:4]]
+    if cameras:
+        feeds = [_camera_feed_card(cam) for cam in cameras[:4]]
         return {
             "type": "grid",
-            "columns": min(4, len(feeds)),
+            "columns": 4,
             "square": False,
             "view_layout": _area("cameras"),
             "cards": feeds,
             "card_mod": fill_mod,
-        }
-
-    if use_auto_entities and cameras_cfg.get("auto_discover", True):
-        return {
-            "type": "custom:auto-entities",
-            "view_layout": _area("cameras"),
-            "card": {"type": "grid", "columns": 4, "square": False},
-            "card_param": "cards",
-            "max_entities": 4,
-            "filter": {
-                "include": [
-                    {
-                        "domain": "camera",
-                        "options": {
-                            "type": "picture-entity",
-                            "camera_view": "live",
-                            "show_name": True,
-                            "show_state": False,
-                            "tap_action": {"action": "more-info"},
-                        },
-                    }
-                ]
-            },
-            "sort": {"method": "friendly_name"},
-            "card_mod": {"style": GLASS_CARD_MOD["style"] + fill_mod["style"]},
         }
 
     return {
@@ -696,7 +624,10 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             wrap_glass(
                 {
                     "type": "markdown",
-                    "content": "Add camera feeds to `cameras.yaml`.",
+                    "content": (
+                        "Configure the 4 tablet cameras in `cameras.yaml` "
+                        "or `entities.yaml` → `tablet.overview_cameras`."
+                    ),
                 }
             )
         ],
