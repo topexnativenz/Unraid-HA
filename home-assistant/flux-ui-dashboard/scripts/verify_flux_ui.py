@@ -108,11 +108,9 @@ def verify_build(path: Path) -> list[str]:
             "100dvh",
             'calc(100dvh - 16px)',
             '"refresh_on_navigate": false',
-            "line-height: 1.35",
-            "padding: 4px 4px 4px 6px",
             "font-size: 15px",
             "overflow: visible",
-            "max-content max-content max-content max-content minmax(200px, 1fr)",
+            "max-content max-content max-content minmax(160px, 1fr) max-content",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -130,15 +128,21 @@ def verify_build(path: Path) -> list[str]:
             "flux-tesla-charge-pulse",
             "touch-action: pan-y",
             ".content-container",
-            "height: 0 !important",
-            "mediocre-media-player-card",
+            "height: 100% !important",
+            "mediocre-massive-media-player-card",
             "mushroom-chips-card",
-            '"aspect_ratio": "2:1"',
-            "max-height: 96px",
+            '"aspect_ratio": "16:9"',
+            '"camera_view": "auto"',
+            "min-height: 140px",
             "min-height: 200px",
             "rooms rooms music calendar_notification",
             "Weather Forecast",
             "calc(100dvh - 228px)",
+            ".loading-indicator",
+            "mediocre-chip-media-player-group-card",
+            "--chip-height: 56px",
+            "**Music**",
+            "**Weather Forecast**",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
@@ -153,6 +157,10 @@ def verify_build(path: Path) -> list[str]:
         # Closed gate must not force a green card fill — only open gets a tint.
         if "Gate Open" in blob and "#81C784 28%" in blob:
             errors.append("Gate Closed still uses green card background — use default chrome")
+        if "\n  height: 0 !important" in overview_blob or "\nheight: 0 !important" in overview_blob:
+            errors.append("Tablet music panel still uses height:0 (breaks Fully Kiosk artwork)")
+        if "custom:mushroom-title-card" in overview_blob and "**Music**" not in overview_blob:
+            errors.append("Tablet Music/Weather titles should use markdown to avoid glyph clipping")
         for view in views:
             if view.get("type") != "panel":
                 errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")

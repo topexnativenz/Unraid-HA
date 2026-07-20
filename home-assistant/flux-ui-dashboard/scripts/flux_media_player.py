@@ -478,11 +478,12 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
 
 
 def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
-    """Standard mediocre card — artwork + transport + volume in a short strip."""
+    """Massive panel player — large artwork on top, transport/volume below."""
     del zone_name
     return {
-        "type": "custom:mediocre-media-player-card",
+        "type": "custom:mediocre-massive-media-player-card",
         "entity_id": entity,
+        "mode": "panel",
         "use_art_colors": True,
         "tap_opens_popup": False,
         "options": {
@@ -493,25 +494,25 @@ def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
         "card_mod": {
             "style": (
                 ":host, ha-card {\n"
-                "  overflow: visible !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 180px !important;\n"
+                "  max-height: 100% !important;\n"
+                "  overflow: hidden !important;\n"
                 "  box-sizing: border-box !important;\n"
-                "  min-height: 0 !important;\n"
+                "  display: flex !important;\n"
+                "  flex-direction: column !important;\n"
                 "}\n"
-                # Keep album art visible in the tight tablet music column.
+                # Large square-ish art that Fully Kiosk can paint (no 0-height collapse).
                 "img {\n"
-                "  width: 56px !important;\n"
-                "  height: 56px !important;\n"
-                "  min-width: 56px !important;\n"
-                "  min-height: 56px !important;\n"
-                "  max-height: 56px !important;\n"
-                "  object-fit: cover !important;\n"
-                "  border-radius: 10px !important;\n"
-                "  flex-shrink: 0 !important;\n"
-                "}\n"
-                # Transport / volume must stay tappable — do not clip controls.
-                "ha-card > *, .container, .content {\n"
-                "  min-height: 0 !important;\n"
-                "  overflow: visible !important;\n"
+                "  width: 100% !important;\n"
+                "  max-width: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  min-height: 120px !important;\n"
+                "  max-height: 46% !important;\n"
+                "  object-fit: contain !important;\n"
+                "  border-radius: 12px !important;\n"
+                "  margin: 0 auto !important;\n"
+                "  display: block !important;\n"
                 "}\n"
             )
         },
@@ -527,11 +528,17 @@ def _default_media_entity(cfg: dict, players: list[dict]) -> str:
     return players[0]["entity"]
 
 
-def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Compact Sonos strip for the tablet overview — art, transport, zone chips.
+def _speaker_group_entities(players: list[dict]) -> list[str]:
+    """Sonos entities available for grouping / output switching."""
+    return [p["entity"] for p in players if is_sonos_zone(p)]
 
-    The large/massive multi card does not fit the rooms-band height on 16:9; use
-    zone chips + the standard mediocre card (or mushroom fallback) instead.
+
+def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
+    """Full-height tablet music: zone chips + simple art/controls player.
+
+    Zone chips switch the active Sonos output. The selected zone shows a massive
+    panel player (artwork above, controls below). Speaker-group chip row lets
+    users join additional rooms without leaving the overview.
     """
     players = enabled_players(cfg)
     if not players:
@@ -543,15 +550,63 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
             ),
         }
 
-    cards: list[dict] = [_player_selector_chips(players)]
+    group_entities = _speaker_group_entities(players)
+    header_cards: list[dict] = [_player_selector_chips(players)]
+
+    # Optional group chip under the zone picker — easy multi-room output.
+    if use_mediocre and len(group_entities) > 1:
+        header_cards.append(
+            {
+                "type": "custom:mediocre-chip-media-player-group-card",
+                "entity_id": _default_media_entity(cfg, players),
+                "entities": group_entities,
+                "card_mod": {
+                    "style": (
+                        "ha-card {\n"
+                        "  background: transparent !important;\n"
+                        "  box-shadow: none !important;\n"
+                        "  border: none !important;\n"
+                        "  padding: 0 !important;\n"
+                        "}\n"
+                    )
+                },
+            }
+        )
+
+    cards: list[dict] = [
+        {
+            "type": "vertical-stack",
+            "cards": header_cards,
+            "card_mod": {
+                "style": (
+                    ":host, ha-card, #root {\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "}\n"
+                    "#root { gap: 4px !important; }\n"
+                )
+            },
+        }
+    ]
+
     for player in players:
-        # Music on Sonos entity; TV sound on linked Apple TV when sensor says so.
         cards.append(
-            _tablet_zone_panel(player, use_mediocre=use_mediocre, source="sonos")
+            _tablet_zone_panel(
+                player,
+                use_mediocre=use_mediocre,
+                source="sonos",
+                group_entities=group_entities,
+            )
         )
         if is_sonos_zone(player) and player.get("apple_tv"):
             cards.append(
-                _tablet_zone_panel(player, use_mediocre=use_mediocre, source="apple_tv")
+                _tablet_zone_panel(
+                    player,
+                    use_mediocre=use_mediocre,
+                    source="apple_tv",
+                    group_entities=group_entities,
+                )
             )
 
     return {
@@ -559,13 +614,26 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
         "cards": cards,
         "card_mod": {
             "style": (
-                ":host, ha-card, #root {\n"
+                ":host, ha-card {\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
                 "}\n"
                 "#root {\n"
+                "  display: flex !important;\n"
+                "  flex-direction: column !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
                 "  gap: 6px !important;\n"
+                "}\n"
+                "#root > *:first-child {\n"
+                "  flex: 0 0 auto !important;\n"
+                "}\n"
+                "#root > *:not(:first-child) {\n"
+                "  flex: 1 1 auto !important;\n"
+                "  min-height: 0 !important;\n"
                 "}\n"
             )
         },
@@ -573,9 +641,13 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
 
 
 def _tablet_zone_panel(
-    player: dict, *, use_mediocre: bool, source: str = "sonos"
+    player: dict,
+    *,
+    use_mediocre: bool,
+    source: str = "sonos",
+    group_entities: list[str] | None = None,
 ) -> dict:
-    """Conditional compact player for one Sonos / Apple TV zone."""
+    """Conditional full-height player for one Sonos / Apple TV zone."""
     entity = player["entity"]
     name = player["name"]
     sonos = is_sonos_zone(player)
@@ -586,11 +658,15 @@ def _tablet_zone_panel(
     else:
         panel_entity = entity
         panel_name = name
-    card = (
-        _mediocre_compact_player_card(panel_entity, panel_name)
-        if use_mediocre
-        else _mushroom_player_card(panel_entity, panel_name)
-    )
+    if use_mediocre:
+        card = _mediocre_compact_player_card(panel_entity, panel_name)
+        if group_entities and source == "sonos":
+            card["speaker_group"] = {
+                "entity_id": panel_entity,
+                "entities": [e for e in group_entities if e != panel_entity] or group_entities,
+            }
+    else:
+        card = _mushroom_player_card(panel_entity, panel_name)
     conditions: list[dict] = [
         {"condition": "state", "entity": MEDIA_SELECT_ENTITY, "state": name},
     ]
@@ -602,7 +678,20 @@ def _tablet_zone_panel(
             conditions.append(
                 {"condition": "state", "entity": tv_sensor, "state_not": "on"}
             )
-    return {"type": "conditional", "conditions": conditions, "card": card}
+    return {
+        "type": "conditional",
+        "conditions": conditions,
+        "card": card,
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 180px !important;\n"
+                "  display: block !important;\n"
+                "}\n"
+            )
+        },
+    }
 
 
 def build_navbar_media_player(cfg: dict) -> dict | None:

@@ -8,7 +8,9 @@ Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assis
 
 Build: `python3 scripts/build_flux_ui.py --tablet` → `generated/lovelace.flux_ui_tablet.json`.
 
-**rk3576_u RGB LED:** `packages/flux_ui_tablet_led.yaml` pulses `light.rk3576_u_led` green while Model S / Model X report charging (same tokens as the Tesla cards). Override the light entity via `input_text.flux_ui_tablet_rgb_led` if MQTT discovery used a different ID.
+**rk3576_u RGB LED:** `packages/flux_ui_tablet_led.yaml` pulses `light.rk3576_u_rgb`
+(MQTT AndroidTablet Controls → RGB) green while Model S / Model X report charging.
+Override via `input_text.flux_ui_tablet_rgb_led` if discovery used a different ID.
 
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
 

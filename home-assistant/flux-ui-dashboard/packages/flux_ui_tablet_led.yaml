@@ -1,16 +1,16 @@
 # Flux UI — rk3576_u tablet MQTT RGB LED pulses green while a Tesla is charging.
 # Matches the Tesla card charging glow on /flux-ui-tablet.
 #
-# Requires: MQTT light from ha-paneld (or the vendor MQTT RGB app) on the tablet.
-# Default entity: light.rk3576_u_led — change via input_text.flux_ui_tablet_rgb_led
-# if discovery named the LED differently (Developer Tools → States → light.*led*).
+# Device page (MQTT AndroidTablet / rk3576_u) exposes Controls → RGB as
+# light.rk3576_u_rgb (not *_led). Override via input_text.flux_ui_tablet_rgb_led
+# if discovery used a different ID (Developer Tools → States → light.*rgb*).
 #
 # Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
 
 input_text:
   flux_ui_tablet_rgb_led:
     name: Flux UI tablet RGB LED entity
-    initial: light.rk3576_u_led
+    initial: light.rk3576_u_rgb
     max: 255
     icon: mdi:led-strip
 
@@ -25,6 +25,27 @@ template:
           {% set x = states('sensor.x_charging') | lower %}
           {{ s in ['charging', 'connected', 'on']
              or x in ['charging', 'connected', 'on'] }}
+  - sensor:
+      # Resolve the live MQTT RGB light even if input_text is stale / wrong.
+      - name: Flux UI tablet RGB LED resolved
+        unique_id: flux_ui_tablet_rgb_led_resolved
+        icon: mdi:led-strip
+        state: >
+          {% set configured = states('input_text.flux_ui_tablet_rgb_led') | trim %}
+          {% set candidates = [
+            configured,
+            'light.rk3576_u_rgb',
+            'light.rk3576_u_led',
+            'light.rk3576_u_rgb_led',
+            'light.androidtablet_rgb',
+          ] %}
+          {% set ns = namespace(led='') %}
+          {% for c in candidates if c and c.startswith('light.') %}
+            {% if states(c) not in ['unknown', 'unavailable', none, ''] and ns.led == '' %}
+              {% set ns.led = c %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.led if ns.led else (configured if configured.startswith('light.') else 'light.rk3576_u_rgb') }}
 
 script:
   flux_ui_tablet_led_charge_pulse:
@@ -33,7 +54,7 @@ script:
     mode: restart
     sequence:
       - variables:
-          led: "{{ states('input_text.flux_ui_tablet_rgb_led') | trim }}"
+          led: "{{ states('sensor.flux_ui_tablet_rgb_led_resolved') | trim }}"
       - condition: template
         value_template: >
           {{ led.startswith('light.')
@@ -49,16 +70,18 @@ script:
           sequence:
             # Bright green peak (~matches #81C784 card glow)
             - action: light.turn_on
-              data:
+              target:
                 entity_id: "{{ led }}"
+              data:
                 rgb_color: [129, 199, 132]
                 brightness: 255
             - delay:
                 milliseconds: 800
             # Dimmer green trough (~matches #4CAF50 soft glow)
             - action: light.turn_on
-              data:
+              target:
                 entity_id: "{{ led }}"
+              data:
                 rgb_color: [76, 175, 80]
                 brightness: 64
             - delay:
@@ -74,6 +97,9 @@ automation:
         to: "on"
       - platform: homeassistant
         event: start
+      # Re-arm if the MQTT RGB light becomes available while already charging.
+      - platform: state
+        entity_id: sensor.flux_ui_tablet_rgb_led_resolved
     condition:
       - condition: state
         entity_id: binary_sensor.flux_ui_ev_charging
@@ -95,7 +121,7 @@ automation:
         target:
           entity_id: script.flux_ui_tablet_led_charge_pulse
       - variables:
-          led: "{{ states('input_text.flux_ui_tablet_rgb_led') | trim }}"
+          led: "{{ states('sensor.flux_ui_tablet_rgb_led_resolved') | trim }}"
       - if:
           - condition: template
             value_template: >
@@ -103,5 +129,5 @@ automation:
                  and states(led) not in ['unknown', 'unavailable', none, ''] }}
         then:
           - action: light.turn_off
-            data:
+            target:
               entity_id: "{{ led }}"

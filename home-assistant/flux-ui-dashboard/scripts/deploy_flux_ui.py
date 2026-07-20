@@ -472,7 +472,7 @@ async def ensure_tablet_led_helpers(token: str, ha_url: str) -> None:
                 "(hard-reset to latest branch SHA, then re-deploy)."
             )
 
-    led_entity = "light.rk3576_u_led"
+    led_entity = "light.rk3576_u_rgb"
     entities_path = ROOT / "entities.yaml"
     if entities_path.exists():
         try:
@@ -482,13 +482,32 @@ async def ensure_tablet_led_helpers(token: str, ha_url: str) -> None:
                 led_entity = tablet["rgb_led"].strip()
         except Exception:
             pass
+    # Prefer the template-resolved entity when the package is loaded.
+    resolved = "sensor.flux_ui_tablet_rgb_led_resolved"
+    if await wait_for_entity(token, ha_url, resolved, attempts=4):
+        print(f"  loaded {resolved}")
     if await entity_exists(token, ha_url, led_entity):
         print(f"  MQTT RGB light OK: {led_entity}")
     else:
-        print(
-            f"  WARNING: {led_entity} not in HA — tablet LED pulse cannot run. "
-            "Check MQTT discovery / set input_text.flux_ui_tablet_rgb_led."
-        )
+        # Scan common discovery names from the rk3576_u AndroidTablet device page.
+        found = None
+        for candidate in (
+            "light.rk3576_u_rgb",
+            "light.rk3576_u_led",
+            "light.rk3576_u_rgb_led",
+            "light.androidtablet_rgb",
+        ):
+            if await entity_exists(token, ha_url, candidate):
+                found = candidate
+                break
+        if found:
+            print(f"  MQTT RGB light found as {found} (entities.yaml had {led_entity})")
+        else:
+            print(
+                f"  WARNING: {led_entity} not in HA — tablet LED pulse cannot run. "
+                "Open the rk3576_u device → Controls → RGB and set "
+                "input_text.flux_ui_tablet_rgb_led to that light entity_id."
+            )
 
 
 def assert_required_packages_present() -> None:
@@ -597,13 +616,17 @@ def build_config(
             "flux-tesla-charge-pulse",
             ".content-container",
             "touch-action: pan-y",
-            "mediocre-media-player-card",
+            "mediocre-massive-media-player-card",
             "Weather Forecast",
             "rooms rooms music calendar_notification",
-            '"aspect_ratio": "2:1"',
-            "minmax(200px, 1fr)",
-            "height: 0 !important",
+            '"aspect_ratio": "16:9"',
+            '"camera_view": "auto"',
+            "minmax(160px, 1fr)",
+            "height: 100% !important",
             "min-height: 200px",
+            ".loading-indicator",
+            "mediocre-chip-media-player-group-card",
+            "--chip-height: 56px",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)

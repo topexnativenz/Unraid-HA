@@ -19,11 +19,15 @@ from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Pack content rows to the top; calendar/tesla fill height."""
-    if name in ("calendar_notification", "tesla"):
+    """Grid area placement. Cameras expand; Tesla stays fixed at the bottom edge."""
+    if name == "calendar_notification":
         return {"grid-area": name, "place-self": "stretch stretch"}
     if name == "cameras":
-        return {"grid-area": name, "place-self": "start stretch"}
+        # Stretch so taller landscape feeds fill the flexible cameras row.
+        return {"grid-area": name, "place-self": "stretch stretch"}
+    if name == "tesla":
+        # Fixed-size Tesla tiles seat on the bottom row (max-content).
+        return {"grid-area": name, "place-self": "end stretch"}
     if name == "music":
         return {"grid-area": name, "place-self": "stretch stretch"}
     # Greeting / toggles / rooms — no vertical stretch (avoids huge gaps).
@@ -31,26 +35,32 @@ def _area(name: str) -> dict:
 
 
 def _transparent_title(title: str, *, size: str = "16px") -> dict:
+    """Section title that does not clip leading glyphs (mushroom titles do on WebView)."""
     return {
-        "type": "custom:mushroom-title-card",
-        "title": title,
-        "alignment": "start",
+        "type": "markdown",
+        "content": f"**{title}**",
         "card_mod": {
             "style": (
                 "ha-card {\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
-                # Extra left/top padding — mushroom titles clip first glyphs at 18px.
-                "  padding: 4px 4px 4px 6px !important;\n"
+                "  padding: 6px 8px 2px 10px !important;\n"
+                "  margin: 0 !important;\n"
                 "  overflow: visible !important;\n"
                 "}\n"
-                f".header {{ font-size: {size} !important; font-weight: 600 !important; "
-                f"line-height: 1.35 !important; overflow: visible !important; "
-                f"padding: 2px 0 0 0 !important; letter-spacing: 0 !important; }}\n"
-                ".title, .subtitle, .header * {\n"
+                "ha-markdown, ha-markdown-element, .markdown {\n"
                 "  overflow: visible !important;\n"
                 "}\n"
+                f"ha-markdown-element p, ha-card p {{\n"
+                f"  margin: 0 !important;\n"
+                f"  padding: 0 !important;\n"
+                f"  font-size: {size} !important;\n"
+                f"  font-weight: 600 !important;\n"
+                f"  line-height: 1.4 !important;\n"
+                f"  letter-spacing: 0.01em !important;\n"
+                f"  color: var(--primary-text-color) !important;\n"
+                f"}}\n"
             )
         },
     }
@@ -365,7 +375,7 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Compact Sonos strip — chips + mediocre card; height locked to rooms band."""
+    """Full-height music column (greeting→rooms): zone chips + art/controls player."""
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
         "type": "custom:mod-card",
@@ -375,11 +385,13 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
         },
         "card_mod": {
             "style": (
+                # Do NOT use height:0/min-height:100% — Android Fully WebViews
+                # collapse children to 0 so album art + controls never appear.
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: 0 !important;\n"
-                "  min-height: 100% !important;\n"
+                "  height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
                 "  touch-action: pan-y !important;\n"
                 "  overscroll-behavior: contain !important;\n"
@@ -425,12 +437,12 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "}\n"
                     "#root > *:first-child {\n"
                     "  flex: 0 0 auto !important;\n"
+                    "  overflow: visible !important;\n"
                     "}\n"
                     "#root > *:not(:first-child) {\n"
                     "  flex: 1 1 auto !important;\n"
                     "  min-height: 0 !important;\n"
-                    "  overflow-y: auto !important;\n"
-                    "  -webkit-overflow-scrolling: touch !important;\n"
+                    "  overflow: hidden !important;\n"
                     "}\n"
                 )
             },
@@ -450,12 +462,6 @@ def _calendar_notification(
 ) -> dict:
     """Right column — weather forecast on top, scrollable week calendar below."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
-    cal_weather = (
-        cfg.get("weather")
-        or weather_entity
-        or ((cfg.get("weather_panel") or {}).get("weather_entity"))
-        or ((cfg.get("overview_tabs") or {}).get("events") or {}).get("weather_entity")
-    )
     stack_cards: list[dict] = [
         *_weather_forecast_cards(weather_entity),
         _transparent_title("Calendar", size="18px"),
@@ -511,21 +517,22 @@ def _calendar_notification(
         cal["day_font_size"] = "20px"
         cal["weekday_font_size"] = "11px"
         cal["month_font_size"] = "10px"
-        if cal_weather and isinstance(cal.get("weather"), dict):
-            # Date-only weather (not per-event) — fewer redraws; MetService NZ entity.
-            cal["weather"] = {
-                "position": "date",
-                "date": {
-                    "show_conditions": True,
-                    "show_high_temp": True,
-                    "show_low_temp": False,
-                    "icon_size": "14px",
-                    "font_size": "12px",
-                    "color": "var(--primary-text-color)",
-                },
-                "entity": cal_weather,
-            }
-        cal["card_mod"] = _calendar_body_mod()
+        # Weather already sits above this card. Nested weather websocket subscriptions
+        # hang on Fully Kiosk and leave .loading-indicator spinning forever.
+        cal.pop("weather", None)
+        body_mod = _calendar_body_mod()
+        body_mod["style"] = (
+            body_mod["style"]
+            + ".loading-indicator, .spinner, [class*='loading'] {\n"
+            "  display: none !important;\n"
+            "  visibility: hidden !important;\n"
+            "  opacity: 0 !important;\n"
+            "}\n"
+            "ha-card[aria-busy='true'] .loading-indicator {\n"
+            "  display: none !important;\n"
+            "}\n"
+        )
+        cal["card_mod"] = body_mod
         stack_cards.append(cal)
 
     # Full-height column: weather (top) + calendar (fills remainder, scrolls inside).
@@ -669,7 +676,7 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Wide landscape feed tile — short height so Tesla can grow underneath."""
+    """Landscape camera tile — fills the flexible cameras row above fixed Tesla."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
@@ -677,22 +684,24 @@ def _camera_feed_card(camera: dict) -> dict:
             "type": "picture-entity",
             "entity": entity,
             "name": name,
-            "camera_view": "live",
+            # `auto` uses stills when live HLS/WebRTC fails — Fully Kiosk often
+            # cannot play live camera streams that work in desktop Chrome.
+            "camera_view": "auto",
             "show_name": True,
             "show_state": False,
-            # Wider than 16:9 so the row stays short/landscape on 16:9 tablets.
-            "aspect_ratio": "2:1",
+            "aspect_ratio": "16:9",
             "tap_action": {"action": "more-info", "entity": entity},
             "card_mod": {
                 "style": (
                     "ha-card {\n"
                     "  overflow: hidden !important;\n"
-                    "  max-height: 96px !important;\n"
-                    "  height: 96px !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 140px !important;\n"
+                    "  max-height: 100% !important;\n"
                     "}\n"
                     "hui-image, .card-content, img, video {\n"
                     "  height: 100% !important;\n"
-                    "  max-height: 96px !important;\n"
+                    "  min-height: 120px !important;\n"
                     "  object-fit: cover !important;\n"
                     "}\n"
                     ".header {\n"
@@ -724,20 +733,22 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
-            "  min-height: 0 !important;\n"
-            "  max-height: 104px !important;\n"
+            "  height: 100% !important;\n"
+            "  min-height: 140px !important;\n"
+            "  max-height: 100% !important;\n"
             "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
             "  z-index: 2 !important;\n"
             "}\n"
             "#root {\n"
-            "  min-height: 0 !important;\n"
-            "  max-height: 104px !important;\n"
+            "  height: 100% !important;\n"
+            "  min-height: 140px !important;\n"
             "  gap: 8px !important;\n"
+            "  align-items: stretch !important;\n"
             "}\n"
             "#root > * {\n"
+            "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
-            "  max-height: 96px !important;\n"
             "}\n"
         )
     }
@@ -749,7 +760,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "square": False,
             "view_layout": {
                 "grid-area": "cameras",
-                "place-self": "start stretch",
+                "place-self": "stretch stretch",
             },
             "cards": feeds,
             "card_mod": fill_mod,
@@ -801,10 +812,10 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Cameras stay short/landscape; Tesla fills leftover height below.
+            # Cameras expand to fill leftover height; Tesla stays fixed at bottom.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "max-content max-content max-content max-content minmax(200px, 1fr)"
+                "max-content max-content max-content minmax(160px, 1fr) max-content"
             ),
             "grid-auto-rows": "max-content",
             "align-content": "stretch",

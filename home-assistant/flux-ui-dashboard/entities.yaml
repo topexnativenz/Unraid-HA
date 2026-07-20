@@ -12,8 +12,8 @@ tablet:
   # outdoor_temperature: sensor.outdoor_temperature
   # climate_entity: climate.heat_pump
   outdoor_temperature: weather.homemetservice
-  # ha-paneld / vendor MQTT RGB on the rk3576_u wall tablet (see packages/flux_ui_tablet_led.yaml).
-  rgb_led: light.rk3576_u_led
+  # MQTT AndroidTablet (rk3576_u) Controls → RGB (see packages/flux_ui_tablet_led.yaml).
+  rgb_led: light.rk3576_u_rgb
   # Exactly one overview camera row (Driveway / Front door / Front Yard / Garage).
   overview_cameras:
     - entity: camera.side_door
