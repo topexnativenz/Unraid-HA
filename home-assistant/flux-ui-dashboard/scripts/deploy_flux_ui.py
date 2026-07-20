@@ -501,7 +501,9 @@ def build_config(
             "Weather Forecast",
             "rooms rooms music calendar_notification",
             "minmax(150px, 1fr)",
-            "contain: layout size",
+            '"mode": "panel"',
+            '"height": "260px"',
+            "height: 0 !important",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
