@@ -13,10 +13,18 @@ tablet:
 
 quick_actions:
   gate:
+    # Akuvox locks are momentary pulses (~5 s). UI state uses the contact /
+    # hold entities so "Open" stays while the driveway gate is actually open.
     - entity: lock.gate_intercom_gate_open
       name: Gate Open
+      status_entity: binary_sensor.casa_luna_gate_status
+      hold_entity: input_boolean.gate_hold_active
+      # status on = open (standard door/gate binary_sensor)
+      status_on_means_open: true
     - entity: lock.gate_intercom_gate_latch
       name: Gate Latch
+      # Latch is also a pulse; show Unlatched while hold is keeping the gate open.
+      hold_entity: input_boolean.gate_hold_active
   garage: []
   actions:
     - name: All Off

@@ -172,7 +172,17 @@ def copy_frontend_assets(mount: str) -> None:
             rel = f.relative_to(src_flux)
             target = dst_flux / rel
             if not _mkdir_smb(target.parent):
-                print(f"  WARNING: skip www/flux-ui/{rel} (parent mkdir failed)")
+                # Samba often cannot mkdir www/flux-ui/icons — fall back to flat copy
+                # under www/flux-ui/ for any icons/* assets.
+                if rel.parts and rel.parts[0] == "icons":
+                    flat = dst_flux / rel.name
+                    try:
+                        shutil.copy2(f, flat)
+                        print(f"  copied www/flux-ui/{rel.name} (flat fallback for icons/)")
+                    except OSError as exc:
+                        print(f"  WARNING: skip www/flux-ui/{rel} ({exc})")
+                else:
+                    print(f"  WARNING: skip www/flux-ui/{rel} (parent mkdir failed)")
                 continue
             try:
                 shutil.copy2(f, target)

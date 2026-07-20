@@ -458,7 +458,18 @@ def build_quick_actions_tab(cfg: dict, section_title_fn) -> dict:
     """Quick Actions for tab panels — full-width 2-column grid, readable labels."""
     buttons: list[dict] = []
     for item in cfg["quick_actions"]["gate"]:
-        buttons.append(strip_grid_options(lock_action(item["entity"], item["name"], columns=6)))
+        buttons.append(
+            strip_grid_options(
+                lock_action(
+                    item["entity"],
+                    item["name"],
+                    columns=6,
+                    status_entity=item.get("status_entity"),
+                    hold_entity=item.get("hold_entity"),
+                    status_on_means_open=bool(item.get("status_on_means_open", True)),
+                )
+            )
+        )
     for item in cfg["quick_actions"]["garage"]:
         buttons.append(strip_grid_options(garage_action(item, columns=6)))
     for item in cfg["quick_actions"]["actions"]:

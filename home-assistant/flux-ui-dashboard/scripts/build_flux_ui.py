@@ -457,7 +457,16 @@ def build_quick_actions(cfg: dict) -> dict:
     col = 6
     cards: list[dict] = [section_title("Quick Actions", "Tap to control")]
     for item in cfg["quick_actions"]["gate"]:
-        cards.append(lock_action(item["entity"], item["name"], columns=col))
+        cards.append(
+            lock_action(
+                item["entity"],
+                item["name"],
+                columns=col,
+                status_entity=item.get("status_entity"),
+                hold_entity=item.get("hold_entity"),
+                status_on_means_open=bool(item.get("status_on_means_open", True)),
+            )
+        )
     for item in cfg["quick_actions"]["garage"]:
         cards.append(garage_action(item, columns=col))
     for item in cfg["quick_actions"]["actions"]:

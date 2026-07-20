@@ -277,7 +277,7 @@ def verify_build(path: Path) -> list[str]:
     if not is_tablet and '"template": "flux_door"' not in blob:
         errors.append("Missing flux_door tiles for garage/shed quick actions")
 
-    if "states['binary_sensor." in blob and "isDoorOpen" in blob:
+    if "isDoorOpen(states[" in blob or 'isDoorOpen(states[' in blob:
         errors.append(
             "Garage door JS still uses states[] lookup — rebuild with entity-bound isDoorOpen(entity)"
         )
@@ -304,6 +304,23 @@ def verify_build(path: Path) -> list[str]:
             "Stale Mushroom card custom:mushroom-template-card — pull latest branch and redeploy"
         )
 
+    # Gate buttons appear on phone overview and tablet Common tab.
+    if "data:image/svg+xml;base64," not in blob:
+        errors.append("Gate buttons missing inline SVG data-URI icons")
+    if "binary_sensor.casa_luna_gate_status" not in blob:
+        errors.append(
+            "Gate Open missing status_entity binary_sensor.casa_luna_gate_status "
+            "(lock pulse alone flips Closed while gate is still open)"
+        )
+    if "input_boolean.gate_hold_active" not in blob:
+        errors.append("Gate buttons missing hold_entity input_boolean.gate_hold_active")
+    if '"service": "lock.unlock"' not in blob:
+        errors.append("Gate buttons should call lock.unlock (not toggle) on tap")
+    gate_icons = ROOT / "www" / "flux-ui" / "icons"
+    for name in ("vehicle-gate-closed.svg", "vehicle-gate-open.svg"):
+        if not (gate_icons / name).exists():
+            errors.append(f"Missing gate icon source file www/flux-ui/icons/{name}")
+
     if not is_tablet:
         if "/local/flux-ui/bitmoji/" not in blob:
             errors.append("Missing bitmoji hero avatar (/local/flux-ui/bitmoji/…)")
@@ -319,14 +336,6 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Rooms view still uses condition:template — causes Configuration error cards"
             )
-        if "/local/flux-ui/icons/vehicle-gate-closed.svg" not in blob:
-            errors.append("Gate buttons missing double-swing closed icon asset")
-        if "/local/flux-ui/icons/vehicle-gate-open.svg" not in blob:
-            errors.append("Gate buttons missing double-swing open icon asset")
-        gate_icons = ROOT / "www" / "flux-ui" / "icons"
-        for name in ("vehicle-gate-closed.svg", "vehicle-gate-open.svg"):
-            if not (gate_icons / name).exists():
-                errors.append(f"Missing gate icon file www/flux-ui/icons/{name}")
 
         # Music player checks only when media_players.yaml lists enabled players.
         # Offline builds use committed YAML — do not require live Sonos discovery.

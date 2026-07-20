@@ -254,7 +254,14 @@ def _climate_tab_cards(cfg: dict, weather_entity: str) -> list[dict]:
 def _toggles_tab_cards(cfg: dict) -> list[dict]:
     cards: list[dict] = []
     for item in cfg.get("quick_actions", {}).get("gate", []):
-        card = lock_action(item["entity"], item["name"], columns=12)
+        card = lock_action(
+            item["entity"],
+            item["name"],
+            columns=12,
+            status_entity=item.get("status_entity"),
+            hold_entity=item.get("hold_entity"),
+            status_on_means_open=bool(item.get("status_on_means_open", True)),
+        )
         card.pop("grid_options", None)
         cards.append(card)
     for item in cfg.get("quick_actions", {}).get("garage", []):
