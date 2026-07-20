@@ -478,12 +478,11 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
 
 
 def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
-    """Massive panel player — large artwork on top, transport/volume below."""
+    """Compact mediocre card — album art + transport/volume (fits music column)."""
     del zone_name
     return {
-        "type": "custom:mediocre-massive-media-player-card",
+        "type": "custom:mediocre-media-player-card",
         "entity_id": entity,
-        "mode": "panel",
         "use_art_colors": True,
         "tap_opens_popup": False,
         "options": {
@@ -494,24 +493,23 @@ def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
         "card_mod": {
             "style": (
                 ":host, ha-card {\n"
-                "  height: 100% !important;\n"
-                "  min-height: 180px !important;\n"
-                "  max-height: 100% !important;\n"
-                "  overflow: hidden !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "  display: flex !important;\n"
-                "  flex-direction: column !important;\n"
-                "}\n"
-                # Large square-ish art that Fully Kiosk can paint (no 0-height collapse).
-                "img {\n"
-                "  width: 100% !important;\n"
-                "  max-width: 100% !important;\n"
                 "  height: auto !important;\n"
-                "  min-height: 120px !important;\n"
-                "  max-height: 46% !important;\n"
-                "  object-fit: contain !important;\n"
-                "  border-radius: 12px !important;\n"
-                "  margin: 0 auto !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 96px !important;\n"
+                "  overflow: visible !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                # Explicit px art — Fully Kiosk paints these; % heights under
+                # the grid height:0 containment often resolve to 0.
+                "img {\n"
+                "  width: 88px !important;\n"
+                "  height: 88px !important;\n"
+                "  min-width: 88px !important;\n"
+                "  min-height: 88px !important;\n"
+                "  max-height: 88px !important;\n"
+                "  object-fit: cover !important;\n"
+                "  border-radius: 10px !important;\n"
+                "  flex-shrink: 0 !important;\n"
                 "  display: block !important;\n"
                 "}\n"
             )
@@ -534,11 +532,10 @@ def _speaker_group_entities(players: list[dict]) -> list[str]:
 
 
 def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Full-height tablet music: zone chips + simple art/controls player.
+    """Contained tablet music: zone chips + compact art/controls (no push-down).
 
-    Zone chips switch the active Sonos output. The selected zone shows a massive
-    panel player (artwork above, controls below). Speaker-group chip row lets
-    users join additional rooms without leaving the overview.
+    Zone chips switch the active Sonos output. Selected zone shows a compact
+    mediocre (or mushroom) player. Optional group chip for multi-room join.
     """
     players = enabled_players(cfg)
     if not players:
@@ -686,7 +683,7 @@ def _tablet_zone_panel(
             "style": (
                 ":host, ha-card {\n"
                 "  height: 100% !important;\n"
-                "  min-height: 180px !important;\n"
+                "  min-height: 96px !important;\n"
                 "  display: block !important;\n"
                 "}\n"
             )
@@ -829,8 +826,24 @@ def _mushroom_player_card(entity: str, name: str) -> dict:
         "use_media_info": True,
         "show_volume_level": True,
         "collapsible_controls": False,
+        "media_controls": ["on_off", "previous", "play_pause_stop", "next"],
+        "volume_controls": ["volume_buttons", "volume_set"],
         "layout": "horizontal",
         "fill_container": True,
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  min-height: 96px !important;\n"
+                "}\n"
+                "mushroom-shape-avatar, img {\n"
+                "  --icon-size: 72px !important;\n"
+                "  width: 72px !important;\n"
+                "  height: 72px !important;\n"
+                "  min-width: 72px !important;\n"
+                "  min-height: 72px !important;\n"
+                "}\n"
+            )
+        },
     }
 
 

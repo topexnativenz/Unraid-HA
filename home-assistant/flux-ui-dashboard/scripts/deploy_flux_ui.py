@@ -616,21 +616,34 @@ def build_config(
             "flux-tesla-charge-pulse",
             ".content-container",
             "touch-action: pan-y",
-            "mediocre-massive-media-player-card",
+            "mediocre-media-player-card",
             "Weather Forecast",
+            "cameras cameras music calendar_notification",
             "rooms rooms music calendar_notification",
-            '"aspect_ratio": "16:9"',
-            '"camera_view": "auto"',
+            "/api/camera_proxy/",
             "minmax(160px, 1fr)",
-            "height: 100% !important",
+            "height: 0 !important",
             "min-height: 200px",
             ".loading-indicator",
             "mediocre-chip-media-player-group-card",
             "--chip-height: 56px",
+            "88px",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
                 raise SystemExit(1)
+        if "[class*='loading']" in blob:
+            print(
+                "\nERROR: Calendar card-mod must not use [class*='loading'] (hides events).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "mediocre-massive-media-player-card" in blob:
+            print(
+                "\nERROR: Tablet music must use compact mediocre card (massive pushes layout).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if '"grid-area": "weather"' in blob:
             print(
                 "\nERROR: Tablet still has standalone weather grid area.\n",

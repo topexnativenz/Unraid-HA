@@ -128,21 +128,23 @@ def verify_build(path: Path) -> list[str]:
             "flux-tesla-charge-pulse",
             "touch-action: pan-y",
             ".content-container",
-            "height: 100% !important",
-            "mediocre-massive-media-player-card",
+            "height: 0 !important",
+            "mediocre-media-player-card",
             "mushroom-chips-card",
-            '"aspect_ratio": "16:9"',
-            '"camera_view": "auto"',
+            "/api/camera_proxy/",
+            "access_token",
             "min-height: 140px",
             "min-height: 200px",
+            "cameras cameras music calendar_notification",
             "rooms rooms music calendar_notification",
             "Weather Forecast",
-            "calc(100dvh - 228px)",
             ".loading-indicator",
             "mediocre-chip-media-player-group-card",
             "--chip-height: 56px",
             "**Music**",
             "**Weather Forecast**",
+            '"height": "100%"',
+            "88px",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
@@ -152,15 +154,17 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet overview still includes broken Tesla widgets 2/3")
         if "Live overview" in overview_blob:
             errors.append("Tablet still has Home / Live overview title")
-        if overview_blob.count("picture-entity") > 6:
-            errors.append("Tablet overview has too many camera tiles — expect curated 4")
+        if overview_blob.count("camera.side_door") < 1:
+            errors.append("Tablet overview missing curated camera entities")
+        if "[class*='loading']" in overview_blob:
+            errors.append("Calendar card-mod must not use [class*='loading'] (hides events)")
         # Closed gate must not force a green card fill — only open gets a tint.
         if "Gate Open" in blob and "#81C784 28%" in blob:
             errors.append("Gate Closed still uses green card background — use default chrome")
-        if "\n  height: 0 !important" in overview_blob or "\nheight: 0 !important" in overview_blob:
-            errors.append("Tablet music panel still uses height:0 (breaks Fully Kiosk artwork)")
         if "custom:mushroom-title-card" in overview_blob and "**Music**" not in overview_blob:
             errors.append("Tablet Music/Weather titles should use markdown to avoid glyph clipping")
+        if "mediocre-massive-media-player-card" in overview_blob:
+            errors.append("Tablet music must use compact mediocre card (massive pushes layout down)")
         for view in views:
             if view.get("type") != "panel":
                 errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")

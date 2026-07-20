@@ -375,7 +375,11 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Full-height music column (greeting→rooms): zone chips + art/controls player."""
+    """Music column (greeting→cameras): zone chips + compact art/controls player.
+
+    Height is contained so the massive intrinsic size cannot expand grid rows and
+    push cameras/Tesla off the 16:9 viewport. Bottom edge aligns with cameras.
+    """
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
         "type": "custom:mod-card",
@@ -385,13 +389,14 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
         },
         "card_mod": {
             "style": (
-                # Do NOT use height:0/min-height:100% — Android Fully WebViews
-                # collapse children to 0 so album art + controls never appear.
+                # Classic grid containment: do not contribute to max-content row
+                # sizing (prevents push-down). min-height:100% fills the spanned
+                # area. Explicit child min-heights keep Fully Kiosk painting art.
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: 100% !important;\n"
+                "  height: 0 !important;\n"
+                "  min-height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
                 "  touch-action: pan-y !important;\n"
                 "  overscroll-behavior: contain !important;\n"
@@ -441,7 +446,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "}\n"
                     "#root > *:not(:first-child) {\n"
                     "  flex: 1 1 auto !important;\n"
-                    "  min-height: 0 !important;\n"
+                    "  min-height: 120px !important;\n"
                     "  overflow: hidden !important;\n"
                     "}\n"
                 )
@@ -452,9 +457,6 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
 
 # Calendar column spans the full tablet viewport (weather stacked above calendar).
 _CALENDAR_COLUMN_HEIGHT = "calc(100dvh - 16px)"
-# Fixed length for calendar-card-pro .content-container (enables in-widget scroll).
-# Leaves room for weather title + compact daily forecast + calendar title above.
-_CALENDAR_BODY_HEIGHT = "calc(100dvh - 228px)"
 
 
 def _calendar_notification(
@@ -509,10 +511,10 @@ def _calendar_notification(
         cal["refresh_interval"] = int(
             ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
         )
-        # Fixed height (not %) — calendar-card-pro scrolls .content-container only
-        # when height/max_height resolve to a real length.
-        cal["height"] = _CALENDAR_BODY_HEIGHT
-        cal["max_height"] = _CALENDAR_BODY_HEIGHT
+        # Fill remaining column via flex — fixed 100dvh math was clipping events on
+        # Fully (dvh ≠ Chrome) and looked empty.
+        cal["height"] = "100%"
+        cal["max_height"] = "100%"
         # Narrow tablet column — slightly smaller date column
         cal["day_font_size"] = "20px"
         cal["weekday_font_size"] = "11px"
@@ -521,14 +523,13 @@ def _calendar_notification(
         # hang on Fully Kiosk and leave .loading-indicator spinning forever.
         cal.pop("weather", None)
         body_mod = _calendar_body_mod()
+        # Only hide the corner spinner — NOT [class*='loading'] (that matched event
+        # nodes on calendar-card-pro and blanked the whole week on tablet).
         body_mod["style"] = (
             body_mod["style"]
-            + ".loading-indicator, .spinner, [class*='loading'] {\n"
-            "  display: none !important;\n"
-            "  visibility: hidden !important;\n"
-            "  opacity: 0 !important;\n"
-            "}\n"
-            "ha-card[aria-busy='true'] .loading-indicator {\n"
+            + ".loading-indicator,\n"
+            + ".loading-indicator .spinner,\n"
+            + "ha-card > .loading-indicator {\n"
             "  display: none !important;\n"
             "}\n"
         )
@@ -597,9 +598,9 @@ def _calendar_notification(
                     # Week calendar fills remaining height and scrolls inside.
                     "#root > *:last-child {\n"
                     "  flex: 1 1 auto !important;\n"
-                    f"  min-height: {_CALENDAR_BODY_HEIGHT} !important;\n"
-                    f"  height: {_CALENDAR_BODY_HEIGHT} !important;\n"
-                    f"  max-height: {_CALENDAR_BODY_HEIGHT} !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  height: auto !important;\n"
+                    "  max-height: none !important;\n"
                     "  overflow: hidden !important;\n"
                     "  display: flex !important;\n"
                     "  flex-direction: column !important;\n"
@@ -676,42 +677,76 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera tile — fills the flexible cameras row above fixed Tesla."""
+    """Landscape camera still — tokenized proxy URL works more reliably on Fully Kiosk.
+
+    picture-entity live/auto streams often show broken thumbnails in Fully after
+    sleep/resume (authSig). button-card rebuilds `/api/camera_proxy/...?token=`
+    from the live access_token attribute on each render.
+    """
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
         {
-            "type": "picture-entity",
+            "type": "custom:button-card",
             "entity": entity,
             "name": name,
-            # `auto` uses stills when live HLS/WebRTC fails — Fully Kiosk often
-            # cannot play live camera streams that work in desktop Chrome.
-            "camera_view": "auto",
             "show_name": True,
             "show_state": False,
-            "aspect_ratio": "16:9",
+            "show_icon": False,
+            "show_entity_picture": True,
+            "entity_picture": (
+                "[[[\n"
+                f"  const id = '{entity}';\n"
+                "  const st = states[id];\n"
+                "  if (!st) return null;\n"
+                "  const tok = st.attributes?.access_token;\n"
+                "  if (tok) return `/api/camera_proxy/${id}?token=${tok}`;\n"
+                "  return st.attributes?.entity_picture || null;\n"
+                "]]]"
+            ),
             "tap_action": {"action": "more-info", "entity": entity},
-            "card_mod": {
-                "style": (
-                    "ha-card {\n"
-                    "  overflow: hidden !important;\n"
-                    "  height: 100% !important;\n"
-                    "  min-height: 140px !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "}\n"
-                    "hui-image, .card-content, img, video {\n"
-                    "  height: 100% !important;\n"
-                    "  min-height: 120px !important;\n"
-                    "  object-fit: cover !important;\n"
-                    "}\n"
-                    ".header {\n"
-                    "  font-size: 12px !important;\n"
-                    "  font-weight: 600 !important;\n"
-                    "  padding: 4px 8px !important;\n"
-                    "  line-height: 1.2 !important;\n"
-                    "}\n"
-                )
+            "styles": {
+                "card": [
+                    {"padding": "0"},
+                    {"overflow": "hidden"},
+                    {"height": "100%"},
+                    {"min-height": "120px"},
+                    {"background": "#111"},
+                ],
+                "entity_picture": [
+                    {"width": "100%"},
+                    {"height": "100%"},
+                    {"min-height": "100px"},
+                    {"object-fit": "cover"},
+                    {"border-radius": "0"},
+                ],
+                "img_cell": [
+                    {"width": "100%"},
+                    {"height": "100%"},
+                    {"min-height": "100px"},
+                    {"position": "absolute"},
+                    {"top": "0"},
+                    {"left": "0"},
+                ],
+                "name": [
+                    {"position": "absolute"},
+                    {"left": "8px"},
+                    {"bottom": "6px"},
+                    {"font-size": "12px"},
+                    {"font-weight": "600"},
+                    {"color": "#fff"},
+                    {"text-shadow": "0 1px 4px rgba(0,0,0,0.85)"},
+                    {"justify-self": "start"},
+                ],
+                "grid": [
+                    {"grid-template-areas": "'i'"},
+                    {"grid-template-columns": "1fr"},
+                    {"grid-template-rows": "1fr"},
+                    {"min-height": "120px"},
+                    {"height": "100%"},
+                ],
             },
+            "aspect_ratio": "16/9",
         }
     )
 
@@ -730,6 +765,8 @@ def _tablet_overview_cameras(cfg: dict) -> list[dict]:
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
+    # 2×2 in the two left columns so music can span through the cameras row
+    # and end flush with the camera band (not into Tesla).
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
@@ -756,7 +793,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         feeds = [_camera_feed_card(cam) for cam in cameras[:4]]
         return {
             "type": "grid",
-            "columns": 4,
+            "columns": 2,
             "square": False,
             "view_layout": {
                 "grid-area": "cameras",
@@ -812,7 +849,8 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Cameras expand to fill leftover height; Tesla stays fixed at bottom.
+            # Music spans through cameras (ends flush with camera band).
+            # Cameras are 2×2 in the two left columns. Tesla stays fixed at bottom.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
                 "max-content max-content max-content minmax(160px, 1fr) max-content"
@@ -826,7 +864,7 @@ def build_tablet_overview_view(
                 '"greeting simple_tab music calendar_notification"\n'
                 '"room_selector simple_tab music calendar_notification"\n'
                 '"rooms rooms music calendar_notification"\n'
-                '"cameras cameras cameras calendar_notification"\n'
+                '"cameras cameras music calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
         },
