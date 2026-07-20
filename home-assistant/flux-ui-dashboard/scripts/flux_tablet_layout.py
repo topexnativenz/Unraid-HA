@@ -139,7 +139,7 @@ def tablet_layout_card(cards: list[dict], *, layout: dict, overview: bool = Fals
     """Full-width grid-layout card for panel views."""
     # Overview: fill the flex slot under the navbar (parent is 100dvh). A second
     # 100dvh here would overflow past the floating nav.
-    # Bottom padding is small so the calendar can reach the tablet bottom; cameras
+    # Bottom padding is small so the calendar can reach the tablet bottom; Tesla tiles
     # keep their own clearance above the floating navbar.
     lay = {
         "width": "100%",

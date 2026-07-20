@@ -12,13 +12,14 @@ from flux_navbar import URL_PREFIX
 from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
+from flux_tablet_tesla import build_tablet_tesla_band
 from flux_time import nz_datetime_short_js, nz_greeting_js
 from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Pack content rows to the top; calendar/cameras fill height."""
-    if name in ("calendar_notification", "cameras"):
+    """Grid area placement. Pack content rows to the top; calendar/tesla fill height."""
+    if name in ("calendar_notification", "tesla"):
         return {"grid-area": name, "place-self": "stretch stretch"}
     # Greeting / toggles / weather / rooms — no vertical stretch (avoids huge gaps).
     return {"grid-area": name, "place-self": "start stretch"}
@@ -722,14 +723,14 @@ def build_tablet_overview_view(
         _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),
         _room_selector(),
         _rooms_band(cfg),
-        _cameras_band(cfg, use_auto_entities=use_auto_entities),
+        build_tablet_tesla_band(cfg, view_layout=_area("tesla")),
     ]
     layout = tablet_layout_card(
         content_cards,
         overview=True,
         layout={
             # Content rows = max-content (no fr stretch gaps between bands).
-            # Cameras absorb leftover height; calendar spans full viewport height.
+            # Tesla tiles absorb leftover height; calendar spans full viewport height.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": "max-content max-content max-content minmax(0, 1fr)",
             "grid-auto-rows": "max-content",
@@ -741,7 +742,7 @@ def build_tablet_overview_view(
                 '"greeting simple_tab weather calendar_notification"\n'
                 '"room_selector simple_tab weather calendar_notification"\n'
                 '"rooms rooms rooms calendar_notification"\n'
-                '"cameras cameras cameras calendar_notification"'
+                '"tesla tesla tesla calendar_notification"'
             ),
         },
     )

@@ -110,6 +110,15 @@ def verify_build(path: Path) -> list[str]:
             '"label": "Home"',
             '"label": "Rooms"',
             '"label": "Camera"',
+            '"grid-area": "tesla"',
+            "Model X",
+            "Model S",
+            "Software tracker",
+            "Last charges (7 days)",
+            "custom:apexcharts-card",
+            "sensor.garage_model_s_battery",
+            "sensor.garage_model_x_battery",
+            "update.model_s_p100d",
             '"label": "More"',
         ):
             if needle not in blob:
@@ -203,7 +212,7 @@ def verify_build(path: Path) -> list[str]:
         if light in blob:
             found_lights.add(light)
 
-    # Mobile overview embeds gate/garage/favourites; tablet home uses rooms/cameras instead.
+    # Mobile overview embeds gate/garage/favourites; tablet home uses rooms/Tesla tiles instead.
     if not is_tablet:
         if found_gate != len(entities_cfg["quick_actions"]["gate"]):
             errors.append(
