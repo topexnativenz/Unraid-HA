@@ -1,4 +1,8 @@
-"""Tesla tiles for the 16:9 tablet overview (full-width row under cameras)."""
+"""Tesla tiles for the 16:9 tablet overview (full-width row under cameras).
+
+Visual language matches Tesla companion cards: black stage, floating side-profile
+car photo on top, status + SOC underneath — no glass chrome.
+"""
 
 from __future__ import annotations
 
@@ -32,24 +36,22 @@ def _image_data_uri(filename: str) -> str:
     """Inline image so Tesla art renders even when /local SMB paths fail."""
     path = _TESLA_DIR / filename
     if not path.exists():
-        # Fall back to png / svg siblings.
-        stem = path.stem
-        for ext, mime in ((".webp", "image/webp"), (".png", "image/png"), (".svg", "image/svg+xml")):
-            alt = _TESLA_DIR / f"{stem}{ext}" if ext != path.suffix else path
+        stem = Path(filename).stem
+        for ext in (".webp", ".png", ".svg"):
+            alt = _TESLA_DIR / f"{stem}{ext}"
             if alt.exists():
                 path = alt
                 break
         else:
             return f"/local/flux-ui/tesla/{filename}"
     raw = path.read_bytes()
-    suffix = path.suffix.lower()
     mime = {
         ".webp": "image/webp",
         ".png": "image/png",
         ".svg": "image/svg+xml",
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
-    }.get(suffix, "image/png")
+    }.get(path.suffix.lower(), "image/png")
     return f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
 
 
@@ -67,7 +69,7 @@ def _vehicle_triggers(vehicle: dict) -> list[str]:
 
 
 def _tesla_vehicle_card(vehicle: dict) -> dict:
-    """Tesla-app style tile — big car photo, SOC, charging line; no glass chrome."""
+    """Tesla-app / companion-card style — car hero on black, status below."""
     name = vehicle.get("name") or "Tesla"
     battery = vehicle["battery"]
     charging = vehicle["charging"]
@@ -79,115 +81,102 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
         "type": "custom:button-card",
         "entity": battery,
         "show_icon": False,
-        "show_name": True,
-        "show_label": True,
+        "show_name": False,
+        "show_label": False,
         "show_state": False,
-        "show_entity_picture": True,
-        "entity_picture": image_uri,
-        "name": (
-            "[[[\n"
-            f"  const soc = states['{battery}']?.state;\n"
-            f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
-            "  const color = charging ? '#66BB6A' : 'var(--primary-text-color)';\n"
-            f"  const pct = (soc == null || ['unavailable','unknown'].includes(String(soc))) "
-            f"? '—' : soc;\n"
-            "  return `<span style=\"color:${color}\">${pct}"
-            "<span style=\"font-size:0.45em;opacity:0.85;margin-left:2px;\">%</span></span>`;\n"
-            "]]]"
-        ),
-        "label": (
-            "[[[\n"
-            f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
-            f"  const st = String(states['{charging}']?.state || '').toLowerCase();\n"
-            f"  const pwr = states['{power}']?.state;\n"
-            f"  const title = '{name}';\n"
-            "  let status = charging ? 'Charging' : 'Not charging';\n"
-            "  if (!charging && st && !['unavailable','unknown','off','disconnected',"
-            "'idle','complete','stopped',''].includes(st)) status = st;\n"
-            "  const kw = charging && pwr != null && Number(pwr) > 0 ? ` · ${pwr} kW` : '';\n"
-            "  return `${title} · ${status}${kw}`;\n"
-            "]]]"
-        ),
+        "show_entity_picture": False,
         "triggers_update": _vehicle_triggers(vehicle),
         "tap_action": {"action": "more-info", "entity": battery},
         "styles": {
             "grid": [
-                {"grid-template-areas": "'n i' 'l i' 'bar i'"},
-                {"grid-template-columns": "minmax(88px, 0.55fr) 1.45fr"},
-                {"grid-template-rows": "min-content min-content min-content"},
-                {"align-items": "center"},
+                {"grid-template-areas": "'hdr' 'car' 'soc' 'bar'"},
+                {"grid-template-columns": "1fr"},
+                {"grid-template-rows": "min-content min-content min-content min-content"},
             ],
             "card": [
-                {"background": "transparent"},
+                # Black stage so the cutout car floats like the Tesla companion card.
+                {"background": "#000000"},
                 {"box-shadow": "none"},
-                {"border": "none"},
-                {"border-radius": "0"},
+                {"border": "1px solid rgba(255,255,255,0.08)"},
+                {"border-radius": "18px"},
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
-                {"padding": "8px 4px 8px 8px"},
-                {"min-height": "120px"},
+                {"padding": "10px 14px 14px 14px"},
+                {"min-height": "168px"},
                 {"height": "auto"},
-                {"overflow": "visible"},
-            ],
-            "name": [
-                {"justify-self": "start"},
-                {"align-self": "end"},
-                {"font-size": "42px"},
-                {"font-weight": "700"},
-                {"letter-spacing": "-0.02em"},
-                {"line-height": "1"},
-                {"padding": "0"},
-                {"margin": "0"},
-            ],
-            "label": [
-                {"justify-self": "start"},
-                {"align-self": "start"},
-                {"font-size": "13px"},
-                {"font-weight": "600"},
-                {"opacity": "0.78"},
-                {"padding-top": "4px"},
-            ],
-            "img_cell": [
-                {"justify-self": "end"},
-                {"align-self": "center"},
-                {"width": "100%"},
-                {"max-width": "100%"},
-                {"overflow": "visible"},
-                {"background": "transparent"},
-                {"border-radius": "0"},
-                {"padding": "0"},
-                {"margin": "0"},
-            ],
-            "entity_picture": [
-                {"width": "100%"},
-                {"max-height": "110px"},
-                {"object-fit": "contain"},
-                {"object-position": "right center"},
-                {"background": "transparent"},
-                {"border-radius": "0"},
+                {"overflow": "hidden"},
             ],
             "custom_fields": {
-                "bar": [
-                    {"grid-area": "bar"},
-                    {"justify-self": "stretch"},
+                "hdr": [{"grid-area": "hdr"}, {"width": "100%"}],
+                "car": [
+                    {"grid-area": "car"},
                     {"width": "100%"},
-                    {"padding-top": "8px"},
-                ]
+                    {"justify-self": "center"},
+                    {"padding": "4px 0 2px 0"},
+                ],
+                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "2px"}],
+                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "8px"}],
             },
         },
         "custom_fields": {
+            # Top meta row — mirrors companion-card "15 hours … PARKED" strip.
+            "hdr": (
+                "[[[\n"
+                f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
+                f"  const pwr = states['{power}']?.state;\n"
+                f"  const title = '{name}';\n"
+                "  const left = charging\n"
+                "    ? (pwr != null && Number(pwr) > 0 ? `${pwr} kW` : 'Charging')\n"
+                "    : title;\n"
+                "  const right = charging ? 'CHARGING' : 'NOT CHARGING';\n"
+                "  const rightColor = charging ? '#66BB6A' : 'rgba(255,255,255,0.72)';\n"
+                "  return `<div style=\"display:flex;justify-content:space-between;align-items:center;"
+                "gap:10px;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;"
+                "font-weight:600;color:rgba(255,255,255,0.78);\">"
+                "<span>• ${left}</span>"
+                "<span style=\"color:${rightColor};\">${right}</span></div>`;\n"
+                "]]]"
+            ),
+            # Hero car — full-width floating side profile (same treatment as companion card).
+            "car": (
+                "[[[\n"
+                f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
+                f"align-items:center;min-height:96px;\">"
+                f"<img src=\"{image_uri}\" alt=\"{name}\" "
+                f"style=\"width:100%;max-height:118px;object-fit:contain;"
+                f"object-position:center center;background:transparent;"
+                f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
+                "]]]"
+            ),
+            "soc": (
+                "[[[\n"
+                f"  const soc = states['{battery}']?.state;\n"
+                f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
+                "  const color = charging ? '#66BB6A' : '#ffffff';\n"
+                "  const pct = (soc == null || ['unavailable','unknown'].includes(String(soc))) "
+                "? '—' : soc;\n"
+                f"  const title = '{name}';\n"
+                "  return `<div style=\"display:flex;justify-content:space-between;"
+                "align-items:baseline;gap:12px;\">"
+                "<div style=\"font-size:34px;font-weight:700;line-height:1;color:${color};"
+                "letter-spacing:-0.02em;\">${pct}"
+                "<span style=\"font-size:15px;opacity:0.8;margin-left:2px;\">%</span></div>"
+                "<div style=\"font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);"
+                "text-align:right;\">${title}</div></div>`;\n"
+                "]]]"
+            ),
             "bar": (
                 "[[[\n"
                 f"  const raw = Number(states['{battery}']?.state);\n"
                 "  const pct = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;\n"
                 f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
                 f"  const fill = charging ? '#66BB6A' : '{accent}';\n"
-                "  return `<div style=\"width:100%;height:5px;border-radius:999px;"
+                "  return `<div style=\"width:100%;height:4px;border-radius:999px;"
                 "background:rgba(255,255,255,0.14);\">"
                 "<div style=\"width:${pct}%;height:100%;border-radius:999px;background:${fill};"
                 "transition:width 0.35s ease;\"></div></div>`;\n"
                 "]]]"
-            )
+            ),
         },
     }
 
