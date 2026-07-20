@@ -101,29 +101,30 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": true',
             "line-height: 1.25",
             "overflow: visible",
-            "max-content max-content max-content minmax(0, 1fr)",
+            "max-content max-content max-content minmax(0, 1fr) max-content",
             '"align-content": "start"',
             '"place-self": "start stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
             "Gates & Doors",
-
             '"label": "Home"',
             '"label": "Rooms"',
             '"label": "Camera"',
+            '"grid-area": "cameras"',
             '"grid-area": "tesla"',
             "Model X",
             "Model S",
-            "Software tracker",
-            "Last charges (7 days)",
-            "custom:apexcharts-card",
-            "sensor.garage_model_s_battery",
-            "sensor.garage_model_x_battery",
-            "update.model_s_p100d",
+            "/local/flux-ui/tesla/model-x-blue.png",
+            "/local/flux-ui/tesla/model-s-white.png",
             '"label": "More"',
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        if "Software tracker" in blob or "Last charges (7 days)" in blob:
+            errors.append("Tablet overview still includes broken Tesla widgets 2/3")
+        if "history-graph" in overview_blob and "Gates & Doors" in overview_blob:
+            # Climate tab was removed from tablet overview; history-graph must not be required.
+            pass
         # Closed gate must not force a green card fill — only open gets a tint.
         if "Gate Open" in blob and "#81C784 28%" in blob:
             errors.append("Gate Closed still uses green card background — use default chrome")

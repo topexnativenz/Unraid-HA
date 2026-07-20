@@ -18,10 +18,10 @@ from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Pack content rows to the top; calendar/tesla fill height."""
-    if name in ("calendar_notification", "tesla"):
+    """Grid area placement. Pack content rows to the top; calendar/cameras fill height."""
+    if name in ("calendar_notification", "cameras"):
         return {"grid-area": name, "place-self": "stretch stretch"}
-    # Greeting / toggles / weather / rooms — no vertical stretch (avoids huge gaps).
+    # Greeting / toggles / weather / rooms / tesla — no vertical stretch (avoids huge gaps).
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -572,6 +572,137 @@ def _rooms_band(cfg: dict) -> dict:
     }
 
 
+def _camera_feed_card(camera: dict) -> dict:
+    entity = camera["entity"]
+    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
+    lights = camera.get("lights") or camera.get("entities") or []
+    light_ids: list[str] = []
+    for item in lights:
+        if isinstance(item, str):
+            light_ids.append(item)
+        elif isinstance(item, dict) and item.get("entity"):
+            light_ids.append(item["entity"])
+
+    chips: list[dict] = []
+    for lid in light_ids[:3]:
+        chips.append(
+            {
+                "type": "template",
+                "entity": lid,
+                "icon": "mdi:lightbulb",
+                "content": (
+                    "{{ state_attr('" + lid + "', 'friendly_name') or '"
+                    + lid.split(".")[-1]
+                    + "' }}"
+                ),
+                "tap_action": {"action": "toggle", "entity": lid},
+            }
+        )
+
+    stack: list[dict] = [
+        {
+            "type": "custom:mushroom-title-card",
+            "title": f"{name} ›",
+            "card_mod": {
+                "style": (
+                    "ha-card {\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "}\n"
+                    ".header { font-size: 15px !important; font-weight: 600 !important; }\n"
+                )
+            },
+        },
+        wrap_glass(
+            {
+                "type": "picture-entity",
+                "entity": entity,
+                "camera_view": "live",
+                "show_name": False,
+                "show_state": False,
+                "tap_action": {"action": "more-info", "entity": entity},
+            }
+        ),
+    ]
+    if chips:
+        stack.append(
+            {
+                "type": "custom:mushroom-chips-card",
+                "alignment": "start",
+                "chips": chips,
+            }
+        )
+    return {"type": "vertical-stack", "cards": stack}
+
+
+def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
+    cameras_cfg = cfg.get("cameras_config") or {}
+    manual = list(cameras_cfg.get("cameras") or [])
+    fill_mod = {
+        "style": (
+            ":host, ha-card {\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "  overflow: hidden !important;\n"
+            "  box-sizing: border-box !important;\n"
+            "}\n"
+            "#root {\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "}\n"
+        )
+    }
+    if manual:
+        feeds = [_camera_feed_card(cam) for cam in manual[:4]]
+        return {
+            "type": "grid",
+            "columns": min(4, len(feeds)),
+            "square": False,
+            "view_layout": _area("cameras"),
+            "cards": feeds,
+            "card_mod": fill_mod,
+        }
+
+    if use_auto_entities and cameras_cfg.get("auto_discover", True):
+        return {
+            "type": "custom:auto-entities",
+            "view_layout": _area("cameras"),
+            "card": {"type": "grid", "columns": 4, "square": False},
+            "card_param": "cards",
+            "max_entities": 4,
+            "filter": {
+                "include": [
+                    {
+                        "domain": "camera",
+                        "options": {
+                            "type": "picture-entity",
+                            "camera_view": "live",
+                            "show_name": True,
+                            "show_state": False,
+                            "tap_action": {"action": "more-info"},
+                        },
+                    }
+                ]
+            },
+            "sort": {"method": "friendly_name"},
+            "card_mod": {"style": GLASS_CARD_MOD["style"] + fill_mod["style"]},
+        }
+
+    return {
+        "type": "vertical-stack",
+        "view_layout": _area("cameras"),
+        "cards": [
+            wrap_glass(
+                {
+                    "type": "markdown",
+                    "content": "Add camera feeds to `cameras.yaml`.",
+                }
+            )
+        ],
+        "card_mod": fill_mod,
+    }
+
 def build_tablet_overview_view(
     cfg: dict,
     weather_entity: str,
@@ -583,7 +714,7 @@ def build_tablet_overview_view(
     use_simple_tabs: bool = True,
 ) -> dict:
     """Full-bleed 16:9 overview — panel view + layout-card grid."""
-    del climate_section, use_auto_entities
+    del climate_section
     content_cards = [
         _greeting_stack(weather_entity, cfg),
         _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
@@ -591,16 +722,19 @@ def build_tablet_overview_view(
         _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),
         _room_selector(),
         _rooms_band(cfg),
+        _cameras_band(cfg, use_auto_entities=use_auto_entities),
         build_tablet_tesla_band(cfg, view_layout=_area("tesla")),
     ]
     layout = tablet_layout_card(
         content_cards,
         overview=True,
         layout={
-            # Content rows = max-content (no fr stretch gaps between bands).
-            # Tesla tiles absorb leftover height; calendar spans full viewport height.
+            # Content rows = max-content; cameras fill leftover height; Tesla is a
+            # compact half-width strip under cameras.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
-            "grid-template-rows": "max-content max-content max-content minmax(0, 1fr)",
+            "grid-template-rows": (
+                "max-content max-content max-content minmax(0, 1fr) max-content"
+            ),
             "grid-auto-rows": "max-content",
             "align-content": "start",
             "align-items": "start",
@@ -610,6 +744,7 @@ def build_tablet_overview_view(
                 '"greeting simple_tab weather calendar_notification"\n'
                 '"room_selector simple_tab weather calendar_notification"\n'
                 '"rooms rooms rooms calendar_notification"\n'
+                '"cameras cameras cameras calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
         },

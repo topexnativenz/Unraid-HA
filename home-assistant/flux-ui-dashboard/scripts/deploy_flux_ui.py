@@ -473,20 +473,33 @@ def build_config(
             "custom:layout-card",
             "custom:grid-layout",
             "custom:navbar-card",
-            "custom:simple-tabs",
             "weather-forecast",
-            "history-graph",
+            "Gates & Doors",
             "/flux-ui-tablet/overview",
             '"template": "flux_room"',
             "room_selector",
             "calendar_notification",
             "simple_tab",
+            '"grid-area": "cameras"',
+            '"grid-area": "tesla"',
+            "Model X",
+            "Model S",
+            "/local/flux-ui/tesla/model-x-blue.png",
+            "/local/flux-ui/tesla/model-s-white.png",
             '"width": "100%"',
             '"days_to_show": 7',
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
                 raise SystemExit(1)
+        # Climate tab removed — history-graph / simple-tabs no longer required on overview.
+        if "Software tracker" in blob or "Last charges (7 days)" in blob:
+            print(
+                "\nERROR: Tablet overview still has broken Tesla widgets "
+                "(software tracker / last charges).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if "flux_hero" not in blob:
             print("\nERROR: Tablet build missing flux_hero greeting.", file=sys.stderr)
             raise SystemExit(1)

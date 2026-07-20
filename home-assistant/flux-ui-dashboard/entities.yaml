@@ -13,7 +13,7 @@ tablet:
   # climate_entity: climate.heat_pump
   outdoor_temperature: weather.homemetservice
 
-# Tessie / Tesla tiles on the 16:9 tablet overview (replaces camera row).
+# Tessie / Tesla tiles on the 16:9 tablet overview (under camera row).
 # Uses garage_model_* template sensors when present; override IDs if Tessie names differ.
 tablet_tesla:
   model_s:
@@ -21,16 +21,13 @@ tablet_tesla:
     battery: sensor.garage_model_s_battery
     charging: sensor.garage_model_s_charging
     charger_power: sensor.garage_model_s_charger_power
-    charge_energy: sensor.model_s_p100d_charge_energy_added
-    software_update: update.model_s_p100d
+    image: model-s-white.png
   model_x:
     name: Model X
     battery: sensor.garage_model_x_battery
     charging: sensor.garage_model_x_charging
     charger_power: sensor.garage_model_x_charger_power
-    charge_energy: sensor.tesla_model_x_charge_energy_added
-    software_update: update.tesla_model_x
-  charge_history_days: 7
+    image: model-x-blue.png
 
 quick_actions:
   gate:
