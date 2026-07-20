@@ -570,140 +570,6 @@ def _rooms_band(cfg: dict) -> dict:
     }
 
 
-def _camera_feed_card(camera: dict) -> dict:
-    entity = camera["entity"]
-    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    lights = camera.get("lights") or camera.get("entities") or []
-    light_ids: list[str] = []
-    for item in lights:
-        if isinstance(item, str):
-            light_ids.append(item)
-        elif isinstance(item, dict) and item.get("entity"):
-            light_ids.append(item["entity"])
-
-    chips: list[dict] = []
-    for lid in light_ids[:3]:
-        chips.append(
-            {
-                "type": "template",
-                "entity": lid,
-                "icon": "mdi:lightbulb",
-                "content": (
-                    "{{ state_attr('" + lid + "', 'friendly_name') or '"
-                    + lid.split(".")[-1]
-                    + "' }}"
-                ),
-                "tap_action": {"action": "toggle", "entity": lid},
-            }
-        )
-
-    stack: list[dict] = [
-        {
-            "type": "custom:mushroom-title-card",
-            "title": f"{name} ›",
-            "card_mod": {
-                "style": (
-                    "ha-card {\n"
-                    "  background: transparent !important;\n"
-                    "  box-shadow: none !important;\n"
-                    "  border: none !important;\n"
-                    "}\n"
-                    ".header { font-size: 15px !important; font-weight: 600 !important; }\n"
-                )
-            },
-        },
-        wrap_glass(
-            {
-                "type": "picture-entity",
-                "entity": entity,
-                "camera_view": "live",
-                "show_name": False,
-                "show_state": False,
-                "tap_action": {"action": "more-info", "entity": entity},
-            }
-        ),
-    ]
-    if chips:
-        stack.append(
-            {
-                "type": "custom:mushroom-chips-card",
-                "alignment": "start",
-                "chips": chips,
-            }
-        )
-    return {"type": "vertical-stack", "cards": stack}
-
-
-def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    cameras_cfg = cfg.get("cameras_config") or {}
-    manual = list(cameras_cfg.get("cameras") or [])
-    fill_mod = {
-        "style": (
-            ":host, ha-card {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "  overflow: hidden !important;\n"
-            "  /* Keep camera tiles above the floating bottom navbar. */\n"
-            "  padding-bottom: 72px !important;\n"
-            "  box-sizing: border-box !important;\n"
-            "}\n"
-            "#root {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "}\n"
-        )
-    }
-    if manual:
-        feeds = [_camera_feed_card(cam) for cam in manual[:4]]
-        return {
-            "type": "grid",
-            "columns": min(4, len(feeds)),
-            "square": False,
-            "view_layout": _area("cameras"),
-            "cards": feeds,
-            "card_mod": fill_mod,
-        }
-
-    if use_auto_entities and cameras_cfg.get("auto_discover", True):
-        return {
-            "type": "custom:auto-entities",
-            "view_layout": _area("cameras"),
-            "card": {"type": "grid", "columns": 4, "square": False},
-            "card_param": "cards",
-            "max_entities": 4,
-            "filter": {
-                "include": [
-                    {
-                        "domain": "camera",
-                        "options": {
-                            "type": "picture-entity",
-                            "camera_view": "live",
-                            "show_name": True,
-                            "show_state": False,
-                            "tap_action": {"action": "more-info"},
-                        },
-                    }
-                ]
-            },
-            "sort": {"method": "friendly_name"},
-            "card_mod": {"style": GLASS_CARD_MOD["style"] + fill_mod["style"]},
-        }
-
-    return {
-        "type": "vertical-stack",
-        "view_layout": _area("cameras"),
-        "cards": [
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": "Add camera feeds to `cameras.yaml`.",
-                }
-            )
-        ],
-        "card_mod": fill_mod,
-    }
-
-
 def build_tablet_overview_view(
     cfg: dict,
     weather_entity: str,
@@ -715,7 +581,7 @@ def build_tablet_overview_view(
     use_simple_tabs: bool = True,
 ) -> dict:
     """Full-bleed 16:9 overview — panel view + layout-card grid."""
-    del climate_section
+    del climate_section, use_auto_entities
     content_cards = [
         _greeting_stack(weather_entity, cfg),
         _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
