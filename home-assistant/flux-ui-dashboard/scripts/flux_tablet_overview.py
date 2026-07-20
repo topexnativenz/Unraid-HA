@@ -101,7 +101,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     "]]]"
                 ),
                 "styles": {
-                    "card": [{"min-height": "64px"}, {"padding": "12px 16px"}],
+                    "card": [{"min-height": "52px"}, {"padding": "10px 14px"}],
                     "name": [{"font-size": "18px"}, {"font-weight": "700"}, {"justify-self": "start"}],
                     "label": [
                         {"justify-self": "start"},
@@ -176,9 +176,9 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                 },
                 "styles": {
                     "card": [
-                        {"min-height": "72px"},
+                        {"min-height": "60px"},
                         {"height": "auto"},
-                        {"padding": "12px 16px"},
+                        {"padding": "10px 14px"},
                     ],
                 },
             },
@@ -338,7 +338,7 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
         shell["view_layout"] = _area("simple_tab")
         shell["card_mod"] = {
             "style": GLASS_CARD_MOD["style"]
-            + "ha-card { padding: 8px !important; min-height: 260px; }\n"
+            + "ha-card { padding: 6px !important; min-height: 0; }\n"
         }
         return shell
 
@@ -617,6 +617,19 @@ def _camera_feed_card(camera: dict) -> dict:
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     cameras_cfg = cfg.get("cameras_config") or {}
     manual = list(cameras_cfg.get("cameras") or [])
+    fill_mod = {
+        "style": (
+            ":host, ha-card {\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "  overflow: hidden !important;\n"
+            "}\n"
+            "#root {\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "}\n"
+        )
+    }
     if manual:
         feeds = [_camera_feed_card(cam) for cam in manual[:4]]
         return {
@@ -625,6 +638,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "square": False,
             "view_layout": _area("cameras"),
             "cards": feeds,
+            "card_mod": fill_mod,
         }
 
     if use_auto_entities and cameras_cfg.get("auto_discover", True):
@@ -649,7 +663,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 ]
             },
             "sort": {"method": "friendly_name"},
-            "card_mod": {"style": GLASS_CARD_MOD["style"]},
+            "card_mod": {"style": GLASS_CARD_MOD["style"] + fill_mod["style"]},
         }
 
     return {
@@ -663,6 +677,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 }
             )
         ],
+        "card_mod": fill_mod,
     }
 
 
@@ -691,12 +706,13 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Fixed viewport bands — fr rows never grow with calendar content.
+            # Top bands size to content (no fr stretch gaps). Cameras take the
+            # leftover viewport; calendar still spans all rows at full height.
             "grid-template-columns": "1.1fr 1.35fr 1.1fr 1.1fr",
-            "grid-template-rows": (
-                "minmax(0, 1.15fr) minmax(0, 0.45fr) "
-                "minmax(0, 1.2fr) minmax(0, 1.2fr)"
-            ),
+            "grid-template-rows": "auto auto auto minmax(0, 1fr)",
+            "grid-auto-rows": "auto",
+            "align-content": "start",
+            "grid-gap": "8px",
             "grid-template-areas": (
                 '"greeting simple_tab weather calendar_notification"\n'
                 '"room_selector simple_tab weather calendar_notification"\n'
