@@ -116,9 +116,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
                 {"padding": "10px 14px 14px 14px"},
-                {"min-height": "168px"},
+                {"min-height": "132px"},
+                {"max-height": "168px"},
                 {"height": "auto"},
-                {"overflow": "hidden"},
+                {"overflow": "visible"},
                 {"transition": "box-shadow 0.35s ease, border-color 0.35s ease"},
             ],
             "custom_fields": {
@@ -173,9 +174,9 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             "car": (
                 "[[[\n"
                 f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
-                f"align-items:center;min-height:96px;\">"
+                f"align-items:center;min-height:72px;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:100%;max-height:118px;object-fit:contain;"
+                f"style=\"width:100%;max-height:88px;object-fit:contain;"
                 f"object-position:center center;background:transparent;"
                 f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"

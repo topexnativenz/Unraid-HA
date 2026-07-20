@@ -500,6 +500,8 @@ def build_config(
             "mediocre-multi-media-player-card",
             "Weather Forecast",
             "rooms rooms music calendar_notification",
+            "minmax(150px, 1fr)",
+            "contain: layout size",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)

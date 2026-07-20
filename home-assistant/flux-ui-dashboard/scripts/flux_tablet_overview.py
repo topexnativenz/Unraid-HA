@@ -357,25 +357,33 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Expanded Sonos multi-player — fills the former weather column; swipe between zones."""
+    """Sonos multi-player — height locked to the rooms band so cameras stay visible."""
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
         "type": "custom:mod-card",
-        "view_layout": _area("music"),
+        "view_layout": {
+            "grid-area": "music",
+            # Stretch within the spanned rows; never grow those rows past rooms.
+            "place-self": "stretch stretch",
+        },
         "card_mod": {
             "style": (
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
+                # Classic grid trick: intrinsic height 0 so music does not expand
+                # greeting/room_selector/rooms rows; min-height fills the spanned area.
+                "  height: 0 !important;\n"
+                "  min-height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
                 "  overflow: hidden !important;\n"
-                # Horizontal swipe between Sonos players (page scroll stays locked).
+                "  contain: layout size !important;\n"
                 "  touch-action: pan-x !important;\n"
                 "  overscroll-behavior: contain !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "ha-card {\n"
                 "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
@@ -396,6 +404,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "style": (
                     ":host, ha-card {\n"
                     "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
@@ -408,6 +417,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "  display: flex !important;\n"
                     "  flex-direction: column !important;\n"
                     "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
                     "  overflow: hidden !important;\n"
                     "  gap: 4px !important;\n"
@@ -419,6 +429,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "#root > *:not(:first-child) {\n"
                     "  flex: 1 1 auto !important;\n"
                     "  min-height: 0 !important;\n"
+                    "  max-height: 100% !important;\n"
                     "  overflow: hidden !important;\n"
                     "  touch-action: pan-x !important;\n"
                     "}\n"
@@ -676,6 +687,12 @@ def _camera_feed_card(camera: dict) -> dict:
                 "style": (
                     "ha-card {\n"
                     "  overflow: hidden !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  height: 100% !important;\n"
+                    "}\n"
+                    "hui-image, img, video {\n"
+                    "  max-height: 100% !important;\n"
+                    "  object-fit: cover !important;\n"
                     "}\n"
                     ".header {\n"
                     "  font-size: 13px !important;\n"
@@ -706,8 +723,19 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         "style": (
             ":host, ha-card {\n"
             "  min-height: 0 !important;\n"
+            "  max-height: 100% !important;\n"
             "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
+            "  z-index: 2 !important;\n"
+            "}\n"
+            "#root {\n"
+            "  min-height: 0 !important;\n"
+            "  max-height: 100% !important;\n"
+            "  gap: 8px !important;\n"
+            "}\n"
+            "#root > * {\n"
+            "  min-height: 0 !important;\n"
+            "  max-height: 100% !important;\n"
             "}\n"
         )
     }
@@ -717,7 +745,10 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "type": "grid",
             "columns": 4,
             "square": False,
-            "view_layout": _area("cameras"),
+            "view_layout": {
+                "grid-area": "cameras",
+                "place-self": "stretch stretch",
+            },
             "cards": feeds,
             "card_mod": fill_mod,
         }
@@ -768,15 +799,15 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Music fills the former weather column; weather sits above calendar.
-            # Music spans greeting → rooms so the expanded mediocre player fits.
+            # Music spans greeting→rooms but is height-capped (cannot grow those rows).
+            # Cameras get a guaranteed band above Tesla so they are never covered.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "max-content max-content max-content minmax(0, 1fr) max-content"
+                "max-content max-content max-content minmax(150px, 1fr) max-content"
             ),
             "grid-auto-rows": "max-content",
-            "align-content": "start",
-            "align-items": "start",
+            "align-content": "stretch",
+            "align-items": "stretch",
             "justify-items": "stretch",
             "grid-gap": "6px",
             "grid-template-areas": (

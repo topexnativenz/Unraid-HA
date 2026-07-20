@@ -487,10 +487,10 @@ def _default_media_entity(cfg: dict, players: list[dict]) -> str:
 
 
 def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Expanded multi-zone Sonos player for the tablet overview (artwork + controls).
+    """Compact multi-zone Sonos player for the tablet overview.
 
-    Uses mediocre-multi so the wall tablet can swipe / tap between active players
-    without the phone navbar carousel + bubble popup.
+    Height is capped by the overview grid (ends with the rooms row) so cameras
+    and Tesla stay visible. Still shows artwork + controls; swipe/tap changes zone.
     """
     players = enabled_players(cfg)
     if not players:
@@ -514,7 +514,9 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
         return {
             "type": "custom:mediocre-multi-media-player-card",
             "size": "large",
-            "mode": "panel",
+            # Fill the capped music cell — do not grow past rooms-row height.
+            "mode": "card",
+            "height": "100%",
             "entity_id": _default_media_entity(cfg, players),
             "use_art_colors": True,
             "media_players": media_players,
@@ -522,8 +524,19 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
                 "show_volume_step_buttons": True,
                 "player_is_active_when": "playing_or_paused",
                 "default_tab": "massive",
-                "hide_selected_player_header": False,
-                "transparent_background_on_home": False,
+                "hide_selected_player_header": True,
+                "transparent_background_on_home": True,
+            },
+            "card_mod": {
+                "style": (
+                    ":host, ha-card {\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                )
             },
         }
 
