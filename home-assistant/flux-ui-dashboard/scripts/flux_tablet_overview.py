@@ -37,12 +37,16 @@ def _transparent_title(title: str, *, size: str = "16px") -> dict:
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
-                "  padding: 2px 0 6px 0 !important;\n"
+                # Extra left/top padding — mushroom titles clip first glyphs at 18px.
+                "  padding: 4px 4px 4px 6px !important;\n"
                 "  overflow: visible !important;\n"
                 "}\n"
                 f".header {{ font-size: {size} !important; font-weight: 600 !important; "
-                f"line-height: 1.25 !important; overflow: visible !important; "
-                f"padding-top: 1px !important; }}\n"
+                f"line-height: 1.35 !important; overflow: visible !important; "
+                f"padding: 2px 0 0 0 !important; letter-spacing: 0 !important; }}\n"
+                ".title, .subtitle, .header * {\n"
+                "  overflow: visible !important;\n"
+                "}\n"
             )
         },
     }
@@ -335,7 +339,7 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
 def _weather_forecast_cards(weather_entity: str) -> list[dict]:
     """Compact daily forecast — sits above the calendar in the right column."""
     return [
-        _transparent_title("Weather Forecast", size="18px"),
+        _transparent_title("Weather Forecast", size="15px"),
         wrap_glass(
             {
                 "type": "weather-forecast",
@@ -397,7 +401,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
         "card": {
             "type": "vertical-stack",
             "cards": [
-                _transparent_title("Music", size="18px"),
+                _transparent_title("Music", size="15px"),
                 wrap_glass(body),
             ],
             "card_mod": {
