@@ -12,6 +12,7 @@ from flux_navbar import URL_PREFIX
 from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
+from flux_time import nz_datetime_short_js, nz_greeting_js
 from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
@@ -87,11 +88,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                 "show_icon": False,
                 "show_name": True,
                 "show_label": True,
-                "name": (
-                    "[[[ return new Date().toLocaleString([], {"
-                    "weekday:'short', month:'short', day:'numeric',"
-                    "hour:'numeric', minute:'2-digit'}); ]]]"
-                ),
+                "name": nz_datetime_short_js(),
                 "label": (
                     "[[[\n"
                     f"  const w = states['{weather_entity}'];\n"
@@ -114,7 +111,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     ],
                     "grid": [{"grid-template-areas": "'n' 'l'"}, {"grid-template-columns": "1fr"}],
                 },
-                "triggers_update": "all",
+                "triggers_update": [weather_entity],
             },
             {
                 "type": "custom:mushroom-chips-card",
@@ -163,16 +160,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                 "show_entity_picture": True,
                 "entity_picture": _bitmoji_url(cfg),
                 "picture": _bitmoji_url(cfg),
-                "name": (
-                    "[[[\n"
-                    "  const h = new Date().getHours();\n"
-                    "  let g = 'Morning';\n"
-                    "  if (h >= 22 || h < 5) g = 'Night';\n"
-                    "  else if (h >= 18) g = 'Evening';\n"
-                    "  else if (h >= 12) g = 'Afternoon';\n"
-                    "  return `${g}, ${user.name}!`;\n"
-                    "]]]"
-                ),
+                "name": nz_greeting_js(),
                 "label": "Tap for active devices",
                 "tap_action": {
                     "action": "navigate",
@@ -427,6 +415,14 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["compact_events_complete_days"] = True
         cal["show_empty_days"] = True
         cal["tap_action"] = {"action": "expand"}
+        # Keep the widget static — no ticking UI; rare poll + entity-driven updates.
+        cal["show_countdown"] = False
+        cal["show_progress_bar"] = False
+        cal["today_indicator"] = "dot"
+        cal["refresh_interval"] = int(
+            ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
+        )
+        cal["refresh_on_navigate"] = False
         # Native fixed height → full column; scrolls internally.
         cal["height"] = _CALENDAR_CARD_HEIGHT
         cal["max_height"] = _CALENDAR_CARD_HEIGHT
@@ -435,7 +431,19 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["weekday_font_size"] = "11px"
         cal["month_font_size"] = "10px"
         if weather and isinstance(cal.get("weather"), dict):
-            cal["weather"] = {**cal["weather"], "entity": weather}
+            # Date-only weather (not per-event) — fewer redraws; MetService NZ entity.
+            cal["weather"] = {
+                "position": "date",
+                "date": {
+                    "show_conditions": True,
+                    "show_high_temp": True,
+                    "show_low_temp": False,
+                    "icon_size": "14px",
+                    "font_size": "12px",
+                    "color": "var(--primary-text-color)",
+                },
+                "entity": weather,
+            }
         stack_cards.append(wrap_glass(cal))
 
     # Full-height column from top padding to bottom of the tablet viewport.

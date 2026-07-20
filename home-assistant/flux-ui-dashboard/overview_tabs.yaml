@@ -11,10 +11,17 @@ events:
   # calendar-card-pro timeline (ElementZoom Events tab)
   days_to_show: 10
   compact_events_to_show: 10
-  weather_entity: weather.forecast_home
+  # NZ MetService — discover_weather.py --apply keeps this in sync
+  weather_entity: weather.homemetservice
   first_day_of_week: monday
-  show_countdown: true
-  show_progress_bar: true
+  # Mostly static: no per-second countdown/progress; refresh only every 6h
+  # (calendar-card-pro has no pure change-only mode — this is the longest practical poll).
+  # HA still updates the card when subscribed calendar entities change.
+  show_countdown: false
+  show_progress_bar: false
+  today_indicator: dot
+  refresh_interval: 360
+  refresh_on_navigate: false
   # Compact date column — day / date / month stacked at top (ElementZoom reference)
   date_vertical_alignment: top
   weekday_font_size: 12px

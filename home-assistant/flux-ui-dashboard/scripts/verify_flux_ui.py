@@ -88,6 +88,13 @@ def verify_build(path: Path) -> list[str]:
             "/flux-ui-tablet/overview",
             '"days_to_show": 7',
             '"show_empty_days": true',
+            '"refresh_interval": 360',
+            '"show_countdown": false',
+            '"show_progress_bar": false',
+            '"today_indicator": "dot"',
+            "Good Morning!",
+            "Pacific/Auckland",
+            "weather.homemetservice",
             "100dvh",
             'calc(100dvh - 16px)',
             'calc(100dvh - 48px)',
@@ -107,6 +114,9 @@ def verify_build(path: Path) -> list[str]:
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        # Closed gate must not force a green card fill — only open gets a tint.
+        if "Gate Open" in blob and "#81C784 28%" in blob:
+            errors.append("Gate Closed still uses green card background — use default chrome")
         for view in views:
             if view.get("type") != "panel":
                 errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")
@@ -328,6 +338,16 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Missing bottom weather panel (#weather-panel) on phone overview")
         if '"label": "Weather"' not in blob or "#weather-panel" not in blob:
             errors.append("Phone navbar missing Weather middle route (#weather-panel)")
+        if "Good Morning!" not in overview_blob or "Pacific/Auckland" not in overview_blob:
+            errors.append("Phone overview missing NZST greeting (Good Morning/Afternoon/Evening)")
+        if "user.name" in overview_blob and "Good Morning" in overview_blob:
+            errors.append("Phone greeting still includes HA user.name — use nameless NZ greeting")
+        if "weather.homemetservice" not in blob:
+            errors.append("Phone build missing MetService NZ weather.homemetservice")
+        if '"refresh_interval": 360' not in blob:
+            errors.append("Calendar missing refresh_interval 360 (mostly-static mode)")
+        if '"show_countdown": true' in blob:
+            errors.append("Calendar still has show_countdown — causes constant redraws")
         rooms_view = next((v for v in views if v.get("path") == "rooms"), None)
         rooms_blob = json.dumps(rooms_view) if rooms_view else ""
         if rooms_view and "custom:simple-tabs" not in rooms_blob:

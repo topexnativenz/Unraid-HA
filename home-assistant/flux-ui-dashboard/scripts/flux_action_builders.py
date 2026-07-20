@@ -7,18 +7,13 @@ from pathlib import Path
 
 from flux_door_builders import flux_door_tile
 
-# Soft tinted card fills (state colour on the button body).
+# Soft tinted card fill — only when gate is open (closed stays default theme).
 _GATE_OPEN_BG = "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
 _GATE_OPEN_BORDER = "1px solid rgba(242, 184, 181, 0.85)"
-_GATE_CLOSED_BG = "color-mix(in srgb, #81C784 28%, var(--md-sys-color-surface-container) 72%)"
-_GATE_CLOSED_BORDER = "1px solid rgba(129, 199, 132, 0.55)"
-_GATE_UNLATCHED_BG = "color-mix(in srgb, #FFB74D 36%, var(--md-sys-color-surface-container) 64%)"
-_GATE_UNLATCHED_BORDER = "1px solid rgba(255, 183, 77, 0.75)"
 
-# High-contrast icon chips — dark saturated backgrounds + white double-swing SVGs.
-_CHIP_CLOSED = "#0D3B1E"  # deep green on green card
-_CHIP_OPEN = "#5C1010"  # deep rose on pink card
-_CHIP_UNLATCHED = "#4A2800"  # deep amber on amber card
+# High-contrast icon chips.
+_CHIP_DEFAULT = "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+_CHIP_OPEN = "#5C1010"  # deep rose on pink/red open card
 
 _ICONS_DIR = Path(__file__).resolve().parents[1] / "www" / "flux-ui" / "icons"
 
@@ -67,15 +62,11 @@ def lock_action(
     hold_entity: str | None = None,
     status_on_means_open: bool = True,
 ) -> dict:
-    """Gate Open / Gate Latch — double-swing icons + durable open/closed state."""
+    """Gate Open / Gate Latch — default chrome; red background only when open."""
     is_latch = "latch" in name.lower()
     closed_label = "Latched" if is_latch else "Closed"
     open_label = "Unlatched" if is_latch else "Open"
-    open_bg = _GATE_UNLATCHED_BG if is_latch else _GATE_OPEN_BG
-    open_border = _GATE_UNLATCHED_BORDER if is_latch else _GATE_OPEN_BORDER
-    open_chip = _CHIP_UNLATCHED if is_latch else _CHIP_OPEN
-    open_label_color = "#FFB74D" if is_latch else "#F2B8B5"
-    closed_label_color = "#81C784"
+    open_label_color = "#F2B8B5"
 
     open_body = _gate_open_js_body(
         status_entity=status_entity,
@@ -83,6 +74,12 @@ def lock_action(
         status_on_means_open=status_on_means_open,
     )
     is_open_expr = f"[[[\n  {open_body}\n]]]"
+
+    triggers: list[str] = [entity]
+    if status_entity:
+        triggers.append(status_entity)
+    if hold_entity:
+        triggers.append(hold_entity)
 
     return {
         "type": "custom:button-card",
@@ -110,7 +107,7 @@ def lock_action(
             "service": "lock.unlock",
             "service_data": {"entity_id": entity},
         },
-        "triggers_update": "all",
+        "triggers_update": triggers,
         "styles": {
             "grid": [
                 {"grid-template-areas": "'i n' 'i l'"},
@@ -123,18 +120,13 @@ def lock_action(
                 {"width": "52px"},
                 {"height": "52px"},
                 {"place-self": "center"},
-                {"background-color": _CHIP_CLOSED},
+                {"background-color": _CHIP_DEFAULT},
             ],
             "entity_picture": [
                 {"width": "30px"},
                 {"height": "30px"},
                 {"object-fit": "contain"},
             ],
-            "card": [
-                {"background": _GATE_CLOSED_BG},
-                {"border": _GATE_CLOSED_BORDER},
-            ],
-            "label": [{"color": closed_label_color}, {"font-weight": "700"}],
         },
         "state": [
             {
@@ -142,12 +134,12 @@ def lock_action(
                 "value": is_open_expr,
                 "styles": {
                     "card": [
-                        {"background": open_bg},
-                        {"border": open_border},
+                        {"background": _GATE_OPEN_BG},
+                        {"border": _GATE_OPEN_BORDER},
                     ],
                     "img_cell": [
-                        {"background-color": open_chip},
-                        {"box-shadow": f"0 0 0 1px {open_chip}"},
+                        {"background-color": _CHIP_OPEN},
+                        {"box-shadow": f"0 0 0 1px {_CHIP_OPEN}"},
                     ],
                     "label": [{"color": open_label_color}, {"font-weight": "700"}],
                     "name": [{"color": "var(--md-sys-color-on-surface)"}],

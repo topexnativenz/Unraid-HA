@@ -2,21 +2,21 @@
 # Run: python3 scripts/discover_weather.py --apply  (during deploy) to wire live HA entities.
 
 enabled: true
-weather_entity: weather.metservice
+weather_entity: weather.homemetservice
 
 source_label: MetService
 source_url: https://www.metservice.com/warnings/home
 
 # Radar + Lunar tabs — updated from HA home coordinates by discover_weather.py --apply
 location:
-  latitude: -37.7870
-  longitude: 175.2793
+  latitude: -35.6933251
+  longitude: 174.2669872
   city: ""
   country: New Zealand
 
 # MetService integration sensors — auto-filled by discover_weather.py --apply
 metservice:
-  weather_entity: weather.metservice
+  weather_entity: weather.homemetservice
   sensors: {}
 
 # MetService warnings sensor (enables Warning tab when active)

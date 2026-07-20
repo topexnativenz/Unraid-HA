@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from flux_action_builders import garage_action, lock_action, scene_action
 from flux_rooms_index import build_rooms_index_section
 from flux_layouts import build_lights_grid_section
+from flux_time import METSERVICE_WEATHER, nz_greeting_js, nz_time_short_js
 from flux_view_builders import (
     build_cameras_view,
     build_lights_view,
@@ -354,21 +355,8 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
         "hold_action": {"action": "none"},
         "triggers_update": ["all", weather_entity],
         "grid_options": {"columns": 12},
-        "name": (
-            "[[[\n"
-            "  const u = (typeof user !== 'undefined' && user) ? user : {};\n"
-            "  const uname = u.name || 'Guest';\n"
-            "  const h = new Date().getHours();\n"
-            "  let g = 'Morning';\n"
-            "  if (h >= 22 || h < 5) g = 'Night';\n"
-            "  else if (h >= 18) g = 'Evening';\n"
-            "  else if (h >= 12) g = 'Afternoon';\n"
-            "  return `${g}, ${uname}!`;\n"
-            "]]]"
-        ),
-        "label": (
-            "[[[ return new Date().toLocaleTimeString([], {hour: 'numeric', minute: '2-digit'}); ]]]"
-        ),
+        "name": nz_greeting_js(),
+        "label": nz_time_short_js(),
         "custom_fields": {
             "weather": hero_weather_html(weather_entity),
         },
@@ -674,7 +662,7 @@ def _build_config_inner(
     tablet: bool = False,
 ) -> dict:
     cfg = load_entities()
-    weather = cfg.get("weather", "weather.forecast_home")
+    weather = cfg.get("weather", METSERVICE_WEATHER)
     climate = (
         apply_md3_to_cards(climate_section)
         if climate_section

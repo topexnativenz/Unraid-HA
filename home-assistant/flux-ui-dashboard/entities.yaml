@@ -1,15 +1,17 @@
 # Entity map for Flux UI overview — mirrors home-assistant/mobile-dashboard Home tab.
 # Climate section is copied from live Mobile Home on deploy when SMB is available.
+# Weather: NZ MetService (ciejer/metservice-weather). Deploy discover_weather.py --apply
+# rewrites to the live entity if the ID differs.
 
-weather: weather.forecast_home
+weather: weather.homemetservice
 
 # Optional entities for the 16:9 tablet climate panel (ElementZoom landscape home).
-# Leave blank to use weather.forecast_home only; set when house sensors exist.
+# Leave blank to use MetService weather only; set when house sensors exist.
 tablet:
   # indoor_temperature: sensor.house_average_temperature
   # outdoor_temperature: sensor.outdoor_temperature
   # climate_entity: climate.heat_pump
-  outdoor_temperature: weather.forecast_home
+  outdoor_temperature: weather.homemetservice
 
 quick_actions:
   gate:

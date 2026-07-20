@@ -221,9 +221,12 @@ def _simple_tabs_shell(tabs: list[dict], *, enable_swipe: bool = True) -> dict:
 def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
     events = _tabs_cfg(cfg).get("events", {})
     calendars = events.get("calendars") or [{"entity": "calendar.home", "accent_color": "#B388FF"}]
-    weather = events.get("weather_entity") or cfg.get("weather", "weather.forecast_home")
+    weather = events.get("weather_entity") or cfg.get("weather", "weather.homemetservice")
 
     if use_calendar_pro:
+        # Keep the widget mostly static: long refresh + no ticking countdown/progress.
+        # Card reloads when HA calendar entities change or refresh_interval elapses.
+        refresh_minutes = int(events.get("refresh_interval", 360))
         return [
             {
                 "type": "custom:calendar-card-pro",
@@ -243,29 +246,26 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
                 "week_number_background_color": "var(--md-sys-color-primary)",
                 "month_separator_width": "1px",
                 "month_separator_color": "var(--md-sys-color-primary)",
-                "today_indicator": "pulse",
+                # Static today marker — "pulse" forces continuous animation/repaint.
+                "today_indicator": events.get("today_indicator", "dot"),
                 "today_indicator_position": "10% 50%",
                 "today_indicator_color": "var(--md-sys-color-primary)",
                 "date_vertical_alignment": events.get("date_vertical_alignment", "top"),
                 "weekday_font_size": events.get("weekday_font_size", "12px"),
                 "day_font_size": events.get("day_font_size", "26px"),
                 "month_font_size": events.get("month_font_size", "10px"),
-                "show_countdown": events.get("show_countdown", True),
-                "show_progress_bar": events.get("show_progress_bar", True),
+                # Countdown/progress timers re-render constantly — keep off by default.
+                "show_countdown": bool(events.get("show_countdown", False)),
+                "show_progress_bar": bool(events.get("show_progress_bar", False)),
                 "progress_bar_color": "var(--md-sys-color-primary)",
+                "refresh_interval": refresh_minutes,
+                "refresh_on_navigate": bool(events.get("refresh_on_navigate", False)),
                 "weather": {
-                    "position": "event",
+                    "position": "date",
                     "date": {
                         "show_conditions": True,
                         "show_high_temp": True,
                         "show_low_temp": False,
-                        "icon_size": "14px",
-                        "font_size": "12px",
-                        "color": "var(--primary-text-color)",
-                    },
-                    "event": {
-                        "show_conditions": True,
-                        "show_temp": True,
                         "icon_size": "14px",
                         "font_size": "12px",
                         "color": "var(--primary-text-color)",
