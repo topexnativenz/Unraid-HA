@@ -1,0 +1,107 @@
+# Flux UI — rk3576_u tablet MQTT RGB LED pulses green while a Tesla is charging.
+# Matches the Tesla card charging glow on /flux-ui-tablet.
+#
+# Requires: MQTT light from ha-paneld (or the vendor MQTT RGB app) on the tablet.
+# Default entity: light.rk3576_u_led — change via input_text.flux_ui_tablet_rgb_led
+# if discovery named the LED differently (Developer Tools → States → light.*led*).
+#
+# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
+
+input_text:
+  flux_ui_tablet_rgb_led:
+    name: Flux UI tablet RGB LED entity
+    initial: light.rk3576_u_led
+    max: 255
+    icon: mdi:led-strip
+
+template:
+  - binary_sensor:
+      - name: Flux UI EV charging
+        unique_id: flux_ui_ev_charging
+        icon: mdi:ev-station
+        # Same charging tokens as flux_tablet_tesla.py (charging / connected / on).
+        state: >
+          {% set s = states('sensor.model_s_p100d_charging') | lower %}
+          {% set x = states('sensor.x_charging') | lower %}
+          {{ s in ['charging', 'connected', 'on']
+             or x in ['charging', 'connected', 'on'] }}
+
+script:
+  flux_ui_tablet_led_charge_pulse:
+    alias: Flux UI tablet LED — EV charge green pulse
+    icon: mdi:battery-charging
+    mode: restart
+    sequence:
+      - variables:
+          led: "{{ states('input_text.flux_ui_tablet_rgb_led') | trim }}"
+      - condition: template
+        value_template: >
+          {{ led.startswith('light.')
+             and states(led) not in ['unknown', 'unavailable', none, ''] }}
+      - repeat:
+          while:
+            - condition: state
+              entity_id: binary_sensor.flux_ui_ev_charging
+              state: "on"
+            - condition: template
+              value_template: >
+                {{ states(led) not in ['unknown', 'unavailable', none, ''] }}
+          sequence:
+            # Bright green peak (~matches #81C784 card glow)
+            - action: light.turn_on
+              data:
+                entity_id: "{{ led }}"
+                rgb_color: [129, 199, 132]
+                brightness: 255
+            - delay:
+                milliseconds: 800
+            # Dimmer green trough (~matches #4CAF50 soft glow)
+            - action: light.turn_on
+              data:
+                entity_id: "{{ led }}"
+                rgb_color: [76, 175, 80]
+                brightness: 64
+            - delay:
+                milliseconds: 800
+
+automation:
+  - id: flux_ui_tablet_led_charge_pulse_start
+    alias: Flux UI tablet LED — start green pulse when EV charging
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.flux_ui_ev_charging
+        to: "on"
+      - platform: homeassistant
+        event: start
+    condition:
+      - condition: state
+        entity_id: binary_sensor.flux_ui_ev_charging
+        state: "on"
+    action:
+      - action: script.turn_on
+        target:
+          entity_id: script.flux_ui_tablet_led_charge_pulse
+
+  - id: flux_ui_tablet_led_charge_pulse_stop
+    alias: Flux UI tablet LED — stop pulse when EV not charging
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.flux_ui_ev_charging
+        to: "off"
+    action:
+      - action: script.turn_off
+        target:
+          entity_id: script.flux_ui_tablet_led_charge_pulse
+      - variables:
+          led: "{{ states('input_text.flux_ui_tablet_rgb_led') | trim }}"
+      - if:
+          - condition: template
+            value_template: >
+              {{ led.startswith('light.')
+                 and states(led) not in ['unknown', 'unavailable', none, ''] }}
+        then:
+          - action: light.turn_off
+            data:
+              entity_id: "{{ led }}"
