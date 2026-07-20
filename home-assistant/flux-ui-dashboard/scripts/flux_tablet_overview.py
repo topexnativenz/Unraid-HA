@@ -380,7 +380,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "  min-height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
                 "  overflow: hidden !important;\n"
-                "  contain: layout size !important;\n"
+                # Do not use contain:size — it collapses album art on tablet WebViews.
                 "  touch-action: pan-x !important;\n"
                 "  overscroll-behavior: contain !important;\n"
                 "  box-sizing: border-box !important;\n"

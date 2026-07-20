@@ -487,10 +487,11 @@ def _default_media_entity(cfg: dict, players: list[dict]) -> str:
 
 
 def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Compact multi-zone Sonos player for the tablet overview.
+    """Multi-zone Sonos player for the tablet overview (artwork + controls).
 
-    Height is capped by the overview grid (ends with the rooms row) so cameras
-    and Tesla stay visible. Still shows artwork + controls; swipe/tap changes zone.
+    Height is capped by the overview grid (ends with the rooms row). Use panel
+    mode with a concrete height — ``mode: card`` + ``height: 100%`` collapses the
+    album art on 16:9 wall tablets while still looking fine in desktop Chrome.
     """
     players = enabled_players(cfg)
     if not players:
@@ -514,9 +515,12 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
         return {
             "type": "custom:mediocre-multi-media-player-card",
             "size": "large",
-            # Fill the capped music cell — do not grow past rooms-row height.
-            "mode": "card",
-            "height": "100%",
+            # Panel mode keeps the massive artwork layout; card mode collapses it
+            # when the grid cell is height-capped (tablet 16:9).
+            "mode": "panel",
+            # Concrete length — percentage height under the grid height-0 trick
+            # resolves to ~0 on some tablet WebViews and hides album art.
+            "height": "260px",
             "entity_id": _default_media_entity(cfg, players),
             "use_art_colors": True,
             "media_players": media_players,
@@ -524,17 +528,25 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
                 "show_volume_step_buttons": True,
                 "player_is_active_when": "playing_or_paused",
                 "default_tab": "massive",
-                "hide_selected_player_header": True,
-                "transparent_background_on_home": True,
+                "hide_selected_player_header": False,
+                "transparent_background_on_home": False,
             },
             "card_mod": {
                 "style": (
                     ":host, ha-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: 260px !important;\n"
                     "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    # Keep a visible art tile even when the cell is tight.
+                    "img {\n"
+                    "  min-height: 96px !important;\n"
+                    "  max-height: 140px !important;\n"
+                    "  width: auto !important;\n"
+                    "  max-width: 100% !important;\n"
+                    "  object-fit: contain !important;\n"
                     "}\n"
                 )
             },
