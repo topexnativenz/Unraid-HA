@@ -37,8 +37,20 @@ def load_entities() -> dict:
 
 def verify_build(path: Path) -> list[str]:
     errors: list[str] = []
+    for name in (
+        "flux_ui_media.yaml",
+        "flux_ui_overview.yaml",
+        "flux_ui_rooms.yaml",
+        "flux_ui_weather.yaml",
+        "flux_ui_tablet_led.yaml",
+    ):
+        if not (ROOT / "packages" / name).exists():
+            errors.append(
+                f"Missing packages/{name} — wrong/old git SHA "
+                "(git reset must use origin/<branch> only, no extra SHA arg)"
+            )
     if not path.exists():
-        return [f"Missing build output: {path}"]
+        return errors + [f"Missing build output: {path}"]
 
     raw = json.loads(path.read_text())
     config = raw["data"]["config"]
@@ -100,7 +112,7 @@ def verify_build(path: Path) -> list[str]:
             "padding: 4px 4px 4px 6px",
             "font-size: 15px",
             "overflow: visible",
-            "max-content max-content max-content minmax(150px, 1fr) max-content",
+            "max-content max-content max-content max-content minmax(200px, 1fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -117,12 +129,13 @@ def verify_build(path: Path) -> list[str]:
             "data:image/webp;base64,",
             "flux-tesla-charge-pulse",
             "touch-action: pan-y",
-            "touch-action: pan-x",
             ".content-container",
             "height: 0 !important",
-            '"mode": "panel"',
-            '"height": "260px"',
-            "mediocre-multi-media-player-card",
+            "mediocre-media-player-card",
+            "mushroom-chips-card",
+            '"aspect_ratio": "2:1"',
+            "max-height: 96px",
+            "min-height: 200px",
             "rooms rooms music calendar_notification",
             "Weather Forecast",
             "calc(100dvh - 228px)",

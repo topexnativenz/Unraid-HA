@@ -12,9 +12,17 @@ echo "==> Downloading bundled Mushroom + card-mod JS"
 python3 "$ROOT/scripts/install_frontend_assets.py"
 
 echo "==> Building Flux UI config"
-GIT_BRANCH="$(git -C "$(dirname "$ROOT")/.." branch --show-current 2>/dev/null || true)"
-GIT_HEAD="$(git -C "$(dirname "$ROOT")/.." rev-parse --short HEAD 2>/dev/null || true)"
+GIT_ROOT="$(cd "$ROOT/../.." && pwd)"
+GIT_BRANCH="$(git -C "$GIT_ROOT" branch --show-current 2>/dev/null || true)"
+GIT_HEAD="$(git -C "$GIT_ROOT" rev-parse --short HEAD 2>/dev/null || true)"
 echo "    Branch: ${GIT_BRANCH:-unknown} @ ${GIT_HEAD:-unknown}"
+if [[ ! -f "$ROOT/packages/flux_ui_tablet_led.yaml" ]]; then
+  echo "ERROR: packages/flux_ui_tablet_led.yaml missing — wrong/old git SHA."
+  echo "  git fetch origin cursor/flux-ui-md3-dashboard-bf3a"
+  echo "  git reset --hard origin/cursor/flux-ui-md3-dashboard-bf3a"
+  echo "  (do not append a SHA after --hard — that causes 'Cannot do hard reset with paths')"
+  exit 1
+fi
 python3 "$ROOT/scripts/build_flux_ui.py" \
   --output "$ROOT/generated/lovelace.flux_ui.json"
 

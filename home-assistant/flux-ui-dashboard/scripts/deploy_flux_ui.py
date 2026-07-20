@@ -48,15 +48,42 @@ TABLET_TITLE = "Flux UI 16:9"
 TABLET_DASHBOARD_ID = "flux_ui_tablet"
 
 
+# Packages that must land on HA for tablet RGB / media / tabs to work.
+REQUIRED_PACKAGES = (
+    "flux_ui_media.yaml",
+    "flux_ui_overview.yaml",
+    "flux_ui_rooms.yaml",
+    "flux_ui_weather.yaml",
+    "flux_ui_tablet_led.yaml",
+)
+
+TABLET_LED_ENTITY = "input_text.flux_ui_tablet_rgb_led"
+TABLET_EV_CHARGING_ENTITY = "binary_sensor.flux_ui_ev_charging"
+TABLET_LED_SCRIPT = "script.flux_ui_tablet_led_charge_pulse"
+
+
 def copy_packages(mount: str) -> None:
     src = ROOT / "packages"
     if not src.exists():
-        return
+        raise SystemExit("ERROR: packages/ directory missing — aborting deploy")
+    missing = [name for name in REQUIRED_PACKAGES if not (src / name).exists()]
+    if missing:
+        raise SystemExit(
+            "ERROR: required package(s) missing from repo: "
+            + ", ".join(missing)
+            + "\n  You are likely on an old git SHA. Run:\n"
+            "  git fetch origin cursor/flux-ui-md3-dashboard-bf3a\n"
+            "  git reset --hard origin/cursor/flux-ui-md3-dashboard-bf3a\n"
+            "  git rev-parse --short HEAD"
+        )
     dst_root = Path(mount) / "packages"
     dst_root.mkdir(parents=True, exist_ok=True)
-    for pkg in src.glob("*.yaml"):
+    for pkg in sorted(src.glob("*.yaml")):
         shutil.copy2(pkg, dst_root / pkg.name)
         print(f"  copied packages/{pkg.name}")
+    for name in REQUIRED_PACKAGES:
+        if not (dst_root / name).exists():
+            raise SystemExit(f"ERROR: failed to copy packages/{name} to HA config share")
     ensure_packages_in_configuration(mount)
 
 
@@ -408,6 +435,80 @@ async def ensure_media_package_helpers(token: str, ha_url: str) -> bool:
     return False
 
 
+async def _reload_domain(token: str, ha_url: str, domain: str, service: str = "reload") -> None:
+    res = await ws_call(
+        token,
+        ha_url,
+        [{"type": "call_service", "domain": domain, "service": service}],
+    )
+    if res[0].get("success") is False:
+        print(f"  WARNING: {domain}.{service} failed: {res[0].get('error')}")
+    else:
+        print(f"  reloaded {domain}.{service}")
+
+
+async def ensure_tablet_led_helpers(token: str, ha_url: str) -> None:
+    """Reload tablet LED package helpers and confirm EV-charge pulse entities exist."""
+    import asyncio
+    import yaml
+
+    await asyncio.sleep(1)
+    await reload_core_config(token, ha_url)
+    await asyncio.sleep(1)
+    # Package YAML defines automations + scripts — force-reload both so a soft
+    # core reload cannot leave the previous (missing) LED pulse dormant.
+    await _reload_domain(token, ha_url, "automation")
+    await _reload_domain(token, ha_url, "script")
+    await _reload_domain(token, ha_url, "template")
+    await asyncio.sleep(2)
+
+    for entity_id in (TABLET_LED_ENTITY, TABLET_EV_CHARGING_ENTITY, TABLET_LED_SCRIPT):
+        if await wait_for_entity(token, ha_url, entity_id, attempts=8):
+            print(f"  loaded {entity_id}")
+        else:
+            print(
+                f"  WARNING: {entity_id} not loaded — "
+                "rk3576_u green pulse needs packages/flux_ui_tablet_led.yaml "
+                "(hard-reset to latest branch SHA, then re-deploy)."
+            )
+
+    led_entity = "light.rk3576_u_led"
+    entities_path = ROOT / "entities.yaml"
+    if entities_path.exists():
+        try:
+            data = yaml.safe_load(entities_path.read_text()) or {}
+            tablet = data.get("tablet") or {}
+            if isinstance(tablet.get("rgb_led"), str) and tablet["rgb_led"].strip():
+                led_entity = tablet["rgb_led"].strip()
+        except Exception:
+            pass
+    if await entity_exists(token, ha_url, led_entity):
+        print(f"  MQTT RGB light OK: {led_entity}")
+    else:
+        print(
+            f"  WARNING: {led_entity} not in HA — tablet LED pulse cannot run. "
+            "Check MQTT discovery / set input_text.flux_ui_tablet_rgb_led."
+        )
+
+
+def assert_required_packages_present() -> None:
+    """Fail fast when deploying from an old SHA that lacks tablet LED / media packages."""
+    src = ROOT / "packages"
+    missing = [name for name in REQUIRED_PACKAGES if not (src / name).exists()]
+    if missing:
+        raise SystemExit(
+            "ERROR: required package(s) missing from repo: "
+            + ", ".join(missing)
+            + "\n  Deploy aborted — git reset likely failed (old SHA).\n"
+            "  Do NOT pass a SHA as a second argument to `git reset --hard` "
+            "(that means pathspec → 'Cannot do hard reset with paths').\n"
+            "  Use:\n"
+            "    git fetch origin cursor/flux-ui-md3-dashboard-bf3a\n"
+            "    git reset --hard origin/cursor/flux-ui-md3-dashboard-bf3a\n"
+            "    git rev-parse --short HEAD"
+        )
+
+
 async def _sync_sonos_input_select(token: str, ha_url: str) -> None:
     """Push live input_select options to match media_players.yaml after package reload."""
     from discover_sonos import load_media_config, sync_input_select_options_async
@@ -496,14 +597,13 @@ def build_config(
             "flux-tesla-charge-pulse",
             ".content-container",
             "touch-action: pan-y",
-            "touch-action: pan-x",
-            "mediocre-multi-media-player-card",
+            "mediocre-media-player-card",
             "Weather Forecast",
             "rooms rooms music calendar_notification",
-            "minmax(150px, 1fr)",
-            '"mode": "panel"',
-            '"height": "260px"',
+            '"aspect_ratio": "2:1"',
+            "minmax(200px, 1fr)",
             "height: 0 !important",
+            "min-height: 200px",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
@@ -672,6 +772,7 @@ async def save_dashboard(token: str, ha_url: str, config: dict, *, url_path: str
 
 
 async def deploy_async(args: argparse.Namespace) -> int:
+    assert_required_packages_present()
     try:
         git_head = (
             subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT.parent.parent)
@@ -684,6 +785,10 @@ async def deploy_async(args: argparse.Namespace) -> int:
             .strip()
         )
         print(f"Deploy source: {git_branch} @ {git_head}")
+        print(
+            "  Tip: if this SHA is older than origin, git reset failed earlier — "
+            "re-run reset WITHOUT an extra SHA argument, then deploy again."
+        )
     except Exception:
         pass
 
@@ -910,10 +1015,13 @@ async def deploy_async(args: argparse.Namespace) -> int:
             if token and ha_up and not args.offline:
                 await ensure_weather_package_helpers(token, args.ha_url)
                 await ensure_media_package_helpers(token, args.ha_url)
+                await ensure_tablet_led_helpers(token, args.ha_url)
                 await _sync_sonos_input_select(token, args.ha_url)
             write_storage(args.mount, config)
             if tablet_config:
                 write_tablet_storage(args.mount, tablet_config)
+        except SystemExit:
+            raise
         except Exception as exc:
             print(f"WARNING: SMB storage write failed ({exc}) — continuing with live API save")
 

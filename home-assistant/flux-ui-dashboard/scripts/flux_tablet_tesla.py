@@ -115,10 +115,9 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"border-radius": "18px"},
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
-                {"padding": "10px 14px 14px 14px"},
-                {"min-height": "132px"},
-                {"max-height": "168px"},
-                {"height": "auto"},
+                {"padding": "12px 16px 16px 16px"},
+                {"min-height": "200px"},
+                {"height": "100%"},
                 {"overflow": "visible"},
                 {"transition": "box-shadow 0.35s ease, border-color 0.35s ease"},
             ],
@@ -128,10 +127,11 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                     {"grid-area": "car"},
                     {"width": "100%"},
                     {"justify-self": "center"},
-                    {"padding": "4px 0 2px 0"},
+                    {"align-self": "center"},
+                    {"padding": "8px 0 6px 0"},
                 ],
-                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "2px"}],
-                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "8px"}],
+                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "4px"}],
+                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "10px"}],
             },
         },
         # Green glow pulse while the vehicle reports charging / connected.
@@ -174,9 +174,9 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             "car": (
                 "[[[\n"
                 f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
-                f"align-items:center;min-height:72px;\">"
+                f"align-items:center;min-height:110px;flex:1;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:100%;max-height:88px;object-fit:contain;"
+                f"style=\"width:100%;max-height:150px;object-fit:contain;"
                 f"object-position:center center;background:transparent;"
                 f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"
@@ -240,7 +240,7 @@ def build_tablet_tesla_tiles(cfg: dict) -> list[dict]:
 
 
 def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
-    """Two equal columns spanning the full camera-band width."""
+    """Two equal columns — stretch to fill the Tesla grid row under cameras."""
     return {
         "type": "grid",
         "columns": 2,
@@ -249,16 +249,30 @@ def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
         "cards": build_tablet_tesla_tiles(cfg),
         "card_mod": {
             "style": (
-                ":host, ha-card {\n"
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card {\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
                 "  padding-bottom: 0 !important;\n"
+                "  height: 100% !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "#root {\n"
                 "  background: transparent !important;\n"
                 "  gap: 12px !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 200px !important;\n"
+                "  align-items: stretch !important;\n"
+                "}\n"
+                "#root > * {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 200px !important;\n"
                 "}\n"
             )
         },

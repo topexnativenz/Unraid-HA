@@ -70,28 +70,36 @@ From your Mac on the same LAN as HA:
 
 ```bash
 cd /Users/topexnative/Projects/unraid-array-design
+bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
+```
 
-# Full pipeline: garage → Flux UI MD3 → Mobile Home
+Or pull + deploy manually (**do not** put a SHA after `git reset --hard` — that
+means pathspec and fails with `Cannot do hard reset with paths`, leaving you on
+an old commit so LED / layout changes never deploy):
+
+```bash
+cd /Users/topexnative/Projects/unraid-array-design
+git fetch origin cursor/flux-ui-md3-dashboard-bf3a
+git checkout cursor/flux-ui-md3-dashboard-bf3a
+git reset --hard origin/cursor/flux-ui-md3-dashboard-bf3a
+git rev-parse --short HEAD   # confirm SHA matches the PR tip before deploying
+ls home-assistant/flux-ui-dashboard/packages/flux_ui_tablet_led.yaml
 bash home-assistant/scripts/run_all_e2e.sh
 ```
 
-Or pull latest MD3 branch first:
-
-```bash
-bash home-assistant/flux-ui-dashboard/scripts/update_and_deploy.sh
-```
+Deploy log must show:
+- `Deploy source: … @ <expected SHA>` (not an older tip)
+- `copied packages/flux_ui_tablet_led.yaml`
+- `loaded binary_sensor.flux_ui_ev_charging` / `script.flux_ui_tablet_led_charge_pulse`
+- tablet music uses `mediocre-media-player-card` (compact), not the old multi/panel card
 
 ```bash
 # Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
 export HA_TOKEN="your-long-lived-token"   # optional if mcp.json exists
 export HA_URL="http://192.168.1.239:8123" # optional
-
-git stash
-git pull origin cursor/flux-ui-md3-dashboard-bf3a
-bash home-assistant/flux-ui-dashboard/scripts/setup_e2e.sh
 ```
 
-One-shot script: downloads Mushroom + card-mod JS → builds overview → verifies entities → mounts Samba → copies theme/www/storage → registers dashboard via WebSocket → live verify.
+One-shot script: downloads Mushroom + card-mod JS → builds overview → verifies entities → mounts Samba → copies theme/www/packages/storage → registers dashboard via WebSocket → live verify.
 
 Manual steps:
 

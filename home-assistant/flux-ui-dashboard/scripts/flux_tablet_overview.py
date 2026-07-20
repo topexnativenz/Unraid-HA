@@ -19,10 +19,14 @@ from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Pack content rows to the top; calendar/cameras/music fill height."""
-    if name in ("calendar_notification", "cameras", "music"):
+    """Grid area placement. Pack content rows to the top; calendar/tesla fill height."""
+    if name in ("calendar_notification", "tesla"):
         return {"grid-area": name, "place-self": "stretch stretch"}
-    # Greeting / toggles / rooms / tesla — no vertical stretch (avoids huge gaps).
+    if name == "cameras":
+        return {"grid-area": name, "place-self": "start stretch"}
+    if name == "music":
+        return {"grid-area": name, "place-self": "stretch stretch"}
+    # Greeting / toggles / rooms — no vertical stretch (avoids huge gaps).
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -361,27 +365,23 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Sonos multi-player — height locked to the rooms band so cameras stay visible."""
+    """Compact Sonos strip — chips + mediocre card; height locked to rooms band."""
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
         "type": "custom:mod-card",
         "view_layout": {
             "grid-area": "music",
-            # Stretch within the spanned rows; never grow those rows past rooms.
             "place-self": "stretch stretch",
         },
         "card_mod": {
             "style": (
                 ":host {\n"
                 "  display: block !important;\n"
-                # Classic grid trick: intrinsic height 0 so music does not expand
-                # greeting/room_selector/rooms rows; min-height fills the spanned area.
                 "  height: 0 !important;\n"
                 "  min-height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
                 "  overflow: hidden !important;\n"
-                # Do not use contain:size — it collapses album art on tablet WebViews.
-                "  touch-action: pan-x !important;\n"
+                "  touch-action: pan-y !important;\n"
                 "  overscroll-behavior: contain !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
@@ -393,8 +393,6 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
                 "  overflow: hidden !important;\n"
-                "  touch-action: pan-x !important;\n"
-                "  overscroll-behavior: contain !important;\n"
                 "}\n"
             )
         },
@@ -415,7 +413,6 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "  border: none !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
-                    "  touch-action: pan-x !important;\n"
                     "}\n"
                     "#root {\n"
                     "  display: flex !important;\n"
@@ -425,7 +422,6 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "  min-height: 0 !important;\n"
                     "  overflow: hidden !important;\n"
                     "  gap: 4px !important;\n"
-                    "  touch-action: pan-x !important;\n"
                     "}\n"
                     "#root > *:first-child {\n"
                     "  flex: 0 0 auto !important;\n"
@@ -433,9 +429,8 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                     "#root > *:not(:first-child) {\n"
                     "  flex: 1 1 auto !important;\n"
                     "  min-height: 0 !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "  touch-action: pan-x !important;\n"
+                    "  overflow-y: auto !important;\n"
+                    "  -webkit-overflow-scrolling: touch !important;\n"
                     "}\n"
                 )
             },
@@ -674,7 +669,7 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Compact single-feed tile for the tablet overview camera row."""
+    """Wide landscape feed tile — short height so Tesla can grow underneath."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
@@ -685,23 +680,26 @@ def _camera_feed_card(camera: dict) -> dict:
             "camera_view": "live",
             "show_name": True,
             "show_state": False,
-            "aspect_ratio": "16:9",
+            # Wider than 16:9 so the row stays short/landscape on 16:9 tablets.
+            "aspect_ratio": "2:1",
             "tap_action": {"action": "more-info", "entity": entity},
             "card_mod": {
                 "style": (
                     "ha-card {\n"
                     "  overflow: hidden !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  height: 100% !important;\n"
+                    "  max-height: 96px !important;\n"
+                    "  height: 96px !important;\n"
                     "}\n"
-                    "hui-image, img, video {\n"
-                    "  max-height: 100% !important;\n"
+                    "hui-image, .card-content, img, video {\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 96px !important;\n"
                     "  object-fit: cover !important;\n"
                     "}\n"
                     ".header {\n"
-                    "  font-size: 13px !important;\n"
+                    "  font-size: 12px !important;\n"
                     "  font-weight: 600 !important;\n"
-                    "  padding: 6px 10px !important;\n"
+                    "  padding: 4px 8px !important;\n"
+                    "  line-height: 1.2 !important;\n"
                     "}\n"
                 )
             },
@@ -727,19 +725,19 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         "style": (
             ":host, ha-card {\n"
             "  min-height: 0 !important;\n"
-            "  max-height: 100% !important;\n"
+            "  max-height: 104px !important;\n"
             "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
             "  z-index: 2 !important;\n"
             "}\n"
             "#root {\n"
             "  min-height: 0 !important;\n"
-            "  max-height: 100% !important;\n"
+            "  max-height: 104px !important;\n"
             "  gap: 8px !important;\n"
             "}\n"
             "#root > * {\n"
             "  min-height: 0 !important;\n"
-            "  max-height: 100% !important;\n"
+            "  max-height: 96px !important;\n"
             "}\n"
         )
     }
@@ -751,7 +749,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "square": False,
             "view_layout": {
                 "grid-area": "cameras",
-                "place-self": "stretch stretch",
+                "place-self": "start stretch",
             },
             "cards": feeds,
             "card_mod": fill_mod,
@@ -803,11 +801,10 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Music spans greeting→rooms but is height-capped (cannot grow those rows).
-            # Cameras get a guaranteed band above Tesla so they are never covered.
+            # Cameras stay short/landscape; Tesla fills leftover height below.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "max-content max-content max-content minmax(150px, 1fr) max-content"
+                "max-content max-content max-content max-content minmax(200px, 1fr)"
             ),
             "grid-auto-rows": "max-content",
             "align-content": "stretch",

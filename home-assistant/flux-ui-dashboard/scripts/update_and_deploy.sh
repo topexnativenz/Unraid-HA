@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# Pull latest MD3 Flux UI code (stash local changes) and deploy to HA.
+# Pull latest MD3 Flux UI code and deploy to HA.
+#
+# IMPORTANT: never pass a commit SHA as a second argument to `git reset --hard`.
+# That is interpreted as a pathspec and fails with:
+#   fatal: Cannot do hard reset with paths.
+# The previous deploy then continues from the OLD SHA (e.g. fffb9cc instead of
+# e89c8e2), so tablet LED package + newer layout never reach HA.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
@@ -16,13 +22,26 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
   git stash push -m "flux-ui update $(date +%Y%m%d-%H%M%S)"
 fi
 
-echo "==> Pulling latest MD3 dashboard code"
-git pull origin "$BRANCH"
+echo "==> Fetching + hard-resetting to origin/${BRANCH}"
+git fetch origin "$BRANCH"
+git checkout "$BRANCH"
+# Single argument only — do NOT append a SHA after the ref.
+git reset --hard "origin/$BRANCH"
 
-echo "==> Deploying Flux UI"
+HEAD="$(git rev-parse --short HEAD)"
+echo "==> Now on ${BRANCH} @ ${HEAD}"
+
+if [[ ! -f "$ROOT/packages/flux_ui_tablet_led.yaml" ]]; then
+  echo "ERROR: packages/flux_ui_tablet_led.yaml missing after reset — wrong SHA?"
+  exit 1
+fi
+
+echo "==> Deploying Flux UI from ${HEAD}"
 bash "$ROOT/scripts/setup_e2e.sh" "$@"
 
 echo ""
+echo "Deployed ${BRANCH} @ ${HEAD}"
 echo "Open: ${HA_URL:-http://192.168.1.239:8123}/flux-ui/overview"
-echo "Expect: greeting header, purple wallpaper, glass button-cards, bottom navbar."
-echo "If you still see Mushroom lock cards, hard-refresh (Cmd+Shift+R) or reset HA app cache."
+echo "16:9: ${HA_URL:-http://192.168.1.239:8123}/flux-ui-tablet/overview"
+echo "Expect: compact music (chips + art), landscape cameras, larger Tesla, LED package."
+echo "If UI looks stale, hard-refresh (Cmd+Shift+R) or reset HA app cache."

@@ -12,6 +12,8 @@ MOBILE="$REPO/mobile-dashboard"
 echo "=============================================="
 echo " Home Assistant dashboards — full E2E deploy"
 echo " Repo: $REPO"
+GIT_ROOT="$(cd "$REPO/.." && pwd)"
+echo " Git:  $(git -C "$GIT_ROOT" branch --show-current 2>/dev/null || echo '?') @ $(git -C "$GIT_ROOT" rev-parse --short HEAD 2>/dev/null || echo '?')"
 echo " HA:   ${HA_URL:-http://192.168.1.239:8123}"
 echo "=============================================="
 

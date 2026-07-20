@@ -477,6 +477,47 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
     }
 
 
+def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
+    """Standard mediocre card — artwork + transport + volume in a short strip."""
+    del zone_name
+    return {
+        "type": "custom:mediocre-media-player-card",
+        "entity_id": entity,
+        "use_art_colors": True,
+        "tap_opens_popup": False,
+        "options": {
+            "show_volume_step_buttons": True,
+            "always_show_power_button": True,
+            "hide_when_off": False,
+        },
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  overflow: visible !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "  min-height: 0 !important;\n"
+                "}\n"
+                # Keep album art visible in the tight tablet music column.
+                "img {\n"
+                "  width: 56px !important;\n"
+                "  height: 56px !important;\n"
+                "  min-width: 56px !important;\n"
+                "  min-height: 56px !important;\n"
+                "  max-height: 56px !important;\n"
+                "  object-fit: cover !important;\n"
+                "  border-radius: 10px !important;\n"
+                "  flex-shrink: 0 !important;\n"
+                "}\n"
+                # Transport / volume must stay tappable — do not clip controls.
+                "ha-card > *, .container, .content {\n"
+                "  min-height: 0 !important;\n"
+                "  overflow: visible !important;\n"
+                "}\n"
+            )
+        },
+    }
+
+
 def _default_media_entity(cfg: dict, players: list[dict]) -> str:
     """Prefer configured default_entity when it matches an enabled player."""
     preferred = (_media_cfg(cfg).get("default_entity") or "").strip()
@@ -487,11 +528,10 @@ def _default_media_entity(cfg: dict, players: list[dict]) -> str:
 
 
 def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Multi-zone Sonos player for the tablet overview (artwork + controls).
+    """Compact Sonos strip for the tablet overview — art, transport, zone chips.
 
-    Height is capped by the overview grid (ends with the rooms row). Use panel
-    mode with a concrete height — ``mode: card`` + ``height: 100%`` collapses the
-    album art on 16:9 wall tablets while still looking fine in desktop Chrome.
+    The large/massive multi card does not fit the rooms-band height on 16:9; use
+    zone chips + the standard mediocre card (or mushroom fallback) instead.
     """
     players = enabled_players(cfg)
     if not players:
@@ -503,62 +543,66 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
             ),
         }
 
-    if use_mediocre:
-        media_players: list[dict[str, Any]] = []
-        for player in players:
-            entry: dict[str, Any] = {
-                "entity_id": player["entity"],
-                "name": player["name"],
-                "can_be_grouped": is_sonos_zone(player),
-            }
-            media_players.append(entry)
-        return {
-            "type": "custom:mediocre-multi-media-player-card",
-            "size": "large",
-            # Panel mode keeps the massive artwork layout; card mode collapses it
-            # when the grid cell is height-capped (tablet 16:9).
-            "mode": "panel",
-            # Concrete length — percentage height under the grid height-0 trick
-            # resolves to ~0 on some tablet WebViews and hides album art.
-            "height": "260px",
-            "entity_id": _default_media_entity(cfg, players),
-            "use_art_colors": True,
-            "media_players": media_players,
-            "options": {
-                "show_volume_step_buttons": True,
-                "player_is_active_when": "playing_or_paused",
-                "default_tab": "massive",
-                "hide_selected_player_header": False,
-                "transparent_background_on_home": False,
-            },
-            "card_mod": {
-                "style": (
-                    ":host, ha-card {\n"
-                    "  height: 260px !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "  box-sizing: border-box !important;\n"
-                    "}\n"
-                    # Keep a visible art tile even when the cell is tight.
-                    "img {\n"
-                    "  min-height: 96px !important;\n"
-                    "  max-height: 140px !important;\n"
-                    "  width: auto !important;\n"
-                    "  max-width: 100% !important;\n"
-                    "  object-fit: contain !important;\n"
-                    "}\n"
-                )
-            },
-        }
-
-    # Fallback when mediocre HACS card is missing — chip picker + mushroom player.
     cards: list[dict] = [_player_selector_chips(players)]
     for player in players:
-        cards.append(_player_panel(player, use_mediocre=False, source="sonos"))
+        # Music on Sonos entity; TV sound on linked Apple TV when sensor says so.
+        cards.append(
+            _tablet_zone_panel(player, use_mediocre=use_mediocre, source="sonos")
+        )
         if is_sonos_zone(player) and player.get("apple_tv"):
-            cards.append(_player_panel(player, use_mediocre=False, source="apple_tv"))
-    return {"type": "vertical-stack", "cards": cards}
+            cards.append(
+                _tablet_zone_panel(player, use_mediocre=use_mediocre, source="apple_tv")
+            )
+
+    return {
+        "type": "vertical-stack",
+        "cards": cards,
+        "card_mod": {
+            "style": (
+                ":host, ha-card, #root {\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "}\n"
+                "#root {\n"
+                "  gap: 6px !important;\n"
+                "}\n"
+            )
+        },
+    }
+
+
+def _tablet_zone_panel(
+    player: dict, *, use_mediocre: bool, source: str = "sonos"
+) -> dict:
+    """Conditional compact player for one Sonos / Apple TV zone."""
+    entity = player["entity"]
+    name = player["name"]
+    sonos = is_sonos_zone(player)
+    atv = player.get("apple_tv") if sonos else None
+    if source == "apple_tv" and atv:
+        panel_entity = atv
+        panel_name = player.get("apple_tv_name") or name
+    else:
+        panel_entity = entity
+        panel_name = name
+    card = (
+        _mediocre_compact_player_card(panel_entity, panel_name)
+        if use_mediocre
+        else _mushroom_player_card(panel_entity, panel_name)
+    )
+    conditions: list[dict] = [
+        {"condition": "state", "entity": MEDIA_SELECT_ENTITY, "state": name},
+    ]
+    if sonos and atv:
+        tv_sensor = tv_mode_sensor_entity(player)
+        if source == "apple_tv":
+            conditions.append({"condition": "state", "entity": tv_sensor, "state": "on"})
+        else:
+            conditions.append(
+                {"condition": "state", "entity": tv_sensor, "state_not": "on"}
+            )
+    return {"type": "conditional", "conditions": conditions, "card": card}
 
 
 def build_navbar_media_player(cfg: dict) -> dict | None:
@@ -665,6 +709,26 @@ def _player_selector_chips(players: list[dict]) -> dict:
         "type": "custom:mushroom-chips-card",
         "alignment": "center",
         "chips": chips,
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  --chip-height: 36px !important;\n"
+                "  --chip-padding: 0 10px !important;\n"
+                "  --chip-font-size: 12px !important;\n"
+                "  --chip-icon-size: 18px !important;\n"
+                "  --chip-spacing: 6px !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  padding: 0 !important;\n"
+                "}\n"
+                ".chip-container, mushroom-chips-card {\n"
+                "  flex-wrap: wrap !important;\n"
+                "  justify-content: center !important;\n"
+                "  row-gap: 6px !important;\n"
+                "}\n"
+            )
+        },
     }
 
 
