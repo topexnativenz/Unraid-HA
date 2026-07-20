@@ -96,8 +96,11 @@ def verify_build(path: Path) -> list[str]:
             "weather.homemetservice",
             "100dvh",
             'calc(100dvh - 16px)',
-            'calc(100dvh - 48px)',
-            '"height": "calc(100dvh - 48px)"',
+            '"height": "100%"',
+            '"max_height": "100%"',
+            '"refresh_on_navigate": true',
+            "line-height: 1.25",
+            "overflow: visible",
             "max-content max-content max-content minmax(0, 1fr)",
             '"align-content": "start"',
             '"place-self": "start stretch"',
@@ -512,6 +515,8 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
                 errors.append("Live tablet dashboard missing Gates & Doors section")
             if '"days_to_show": 7' not in tblob:
                 errors.append("Live tablet calendar not set to 7 days")
+            if '"refresh_on_navigate": true' not in tblob:
+                errors.append("Live tablet calendar missing refresh_on_navigate")
             if '"type": "panel"' not in tblob:
                 errors.append("Live tablet overview is not panel type")
 

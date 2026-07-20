@@ -36,11 +36,35 @@ def _transparent_title(title: str, *, size: str = "16px") -> dict:
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
-                "  padding: 0 0 4px 0 !important;\n"
+                "  padding: 2px 0 6px 0 !important;\n"
+                "  overflow: visible !important;\n"
                 "}\n"
-                f".header {{ font-size: {size} !important; font-weight: 600 !important; }}\n"
+                f".header {{ font-size: {size} !important; font-weight: 600 !important; "
+                f"line-height: 1.25 !important; overflow: visible !important; "
+                f"padding-top: 1px !important; }}\n"
             )
         },
+    }
+
+
+def _calendar_body_mod() -> dict:
+    """Glass shell for calendar-card-pro — height comes from flex parent, not dvh calc."""
+    return {
+        "style": (
+            GLASS_CARD_MOD["style"]
+            + ":host {\n"
+            "  display: block !important;\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "  overflow: hidden !important;\n"
+            "}\n"
+            "ha-card {\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "  overflow: hidden !important;\n"
+            "  box-sizing: border-box !important;\n"
+            "}\n"
+        )
     }
 
 
@@ -336,8 +360,8 @@ def _weather_forecast(weather_entity: str) -> dict:
 
 # Calendar column spans the full tablet viewport (navbar floats over the bottom).
 _CALENDAR_COLUMN_HEIGHT = "calc(100dvh - 16px)"
-# Title row ~32px + stack gap — body gets the rest and scrolls inside.
-_CALENDAR_CARD_HEIGHT = "calc(100dvh - 48px)"
+# Section title row — keep in sync with _transparent_title padding/line-height.
+_CALENDAR_TITLE_ROW = "34px"
 
 
 def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
@@ -360,8 +384,9 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "card_mod": {
                         "style": (
                             ":host, ha-card, #root {\n"
-                            f"  height: {_CALENDAR_CARD_HEIGHT} !important;\n"
+                            "  height: 100% !important;\n"
                             "  max-height: 100% !important;\n"
+                            "  min-height: 0 !important;\n"
                             "  overflow-y: auto !important;\n"
                             "  -webkit-overflow-scrolling: touch !important;\n"
                             "}\n"
@@ -374,14 +399,15 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
             continue
 
         cal = dict(card)
-        # Full week in both compact + expanded modes (older calendar-card-pro
-        # versions blanked when compact_* was removed while expand was default).
+        # Full week always visible on tablet — no compact/expand toggle.
         cal["days_to_show"] = 7
         cal["compact_days_to_show"] = 7
-        cal["compact_events_to_show"] = 40
         cal["compact_events_complete_days"] = True
         cal["show_empty_days"] = True
-        cal["tap_action"] = {"action": "expand"}
+        cal.pop("compact_events_to_show", None)
+        cal.pop("tap_action", None)
+        # Fresh fetch when opening the dashboard (avoids blank/stale compact cache).
+        cal["refresh_on_navigate"] = True
         # Keep the widget static — no ticking UI; rare poll + entity-driven updates.
         cal["show_countdown"] = False
         cal["show_progress_bar"] = False
@@ -389,10 +415,9 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["refresh_interval"] = int(
             ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
         )
-        cal["refresh_on_navigate"] = False
-        # Native fixed height → full column; scrolls internally.
-        cal["height"] = _CALENDAR_CARD_HEIGHT
-        cal["max_height"] = _CALENDAR_CARD_HEIGHT
+        # Fill the flex slot under the section title; card scrolls internally.
+        cal["height"] = "100%"
+        cal["max_height"] = "100%"
         # Narrow tablet column — slightly smaller date column
         cal["day_font_size"] = "20px"
         cal["weekday_font_size"] = "11px"
@@ -411,7 +436,8 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                 },
                 "entity": weather,
             }
-        stack_cards.append(wrap_glass(cal))
+        cal["card_mod"] = _calendar_body_mod()
+        stack_cards.append(cal)
 
     # Full-height column from top padding to bottom of the tablet viewport.
     return {
@@ -425,6 +451,8 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                 f"  max-height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
                 "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "  padding-top: 2px !important;\n"
                 "}\n"
                 "ha-card {\n"
                 f"  height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
@@ -450,6 +478,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "  box-shadow: none !important;\n"
                     "  border: none !important;\n"
                     "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
                     "}\n"
                     "#root {\n"
                     "  display: flex !important;\n"
@@ -457,14 +486,21 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "  height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
                     "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "  gap: 4px !important;\n"
                     "}\n"
                     "#root > *:first-child {\n"
                     "  flex: 0 0 auto !important;\n"
+                    f"  min-height: {_CALENDAR_TITLE_ROW} !important;\n"
+                    "  overflow: visible !important;\n"
                     "}\n"
                     "#root > *:not(:first-child) {\n"
                     "  flex: 1 1 auto !important;\n"
-                    "  min-height: 0 !important;\n"
+                    f"  min-height: calc(100% - {_CALENDAR_TITLE_ROW}) !important;\n"
+                    "  height: 100% !important;\n"
                     "  overflow: hidden !important;\n"
+                    "  display: flex !important;\n"
+                    "  flex-direction: column !important;\n"
                     "}\n"
                 )
             },
