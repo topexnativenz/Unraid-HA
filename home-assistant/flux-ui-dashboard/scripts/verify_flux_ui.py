@@ -80,8 +80,7 @@ def verify_build(path: Path) -> list[str]:
             "layout_type",
             '"width": "100%"',
             "weather-forecast",
-            "history-graph",
-            "custom:simple-tabs",
+
             "room_selector",
             "calendar_notification",
             "simple_tab",
@@ -104,9 +103,8 @@ def verify_build(path: Path) -> list[str]:
             '"place-self": "start stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
-            '"title": "Common"',
-            '"default_tab": 1',
-            '"remember_tab": false',
+            "Gates & Doors",
+
             '"label": "Home"',
             '"label": "Rooms"',
             '"label": "Camera"',
@@ -323,7 +321,7 @@ def verify_build(path: Path) -> list[str]:
             "Stale Mushroom card custom:mushroom-template-card — pull latest branch and redeploy"
         )
 
-    # Gate buttons appear on phone overview and tablet Common tab.
+    # Gate buttons appear on phone overview and tablet Gates & Doors section.
     if "data:image/svg+xml;base64," not in blob:
         errors.append("Gate buttons missing inline SVG data-URI icons")
     if "binary_sensor.casa_luna_gate_status" not in blob:
@@ -510,8 +508,8 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
         )[0]
         if tcfg.get("success"):
             tblob = json.dumps(tcfg["result"])
-            if '"title": "Common"' not in tblob:
-                errors.append("Live tablet dashboard missing Common tab")
+            if "Gates & Doors" not in tblob:
+                errors.append("Live tablet dashboard missing Gates & Doors section")
             if '"days_to_show": 7' not in tblob:
                 errors.append("Live tablet calendar not set to 7 days")
             if '"type": "panel"' not in tblob:

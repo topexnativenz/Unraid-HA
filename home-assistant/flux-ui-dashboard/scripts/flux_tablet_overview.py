@@ -9,7 +9,7 @@ from __future__ import annotations
 from flux_action_builders import garage_action, lock_action, scene_action
 from flux_layouts import flux_room_tile
 from flux_navbar import URL_PREFIX
-from flux_overview_tabs import _simple_tabs_shell, build_events_tab_cards
+from flux_overview_tabs import build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
 from flux_tablet_tesla import build_tablet_tesla_band
@@ -306,46 +306,12 @@ def _scenes_tab_cards() -> list[dict]:
 
 
 def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) -> dict:
-    climate_cards = _climate_tab_cards(cfg, weather_entity)
+    del weather_entity, use_simple_tabs
     toggles_cards = _toggles_tab_cards(cfg)
-    scenes_cards = _scenes_tab_cards()
-
-    if use_simple_tabs:
-        # Common (toggles) first — default_tab 1 opens it instead of Climate.
-        shell = _simple_tabs_shell(
-            [
-                {
-                    "title": "Common",
-                    "icon": "mdi:toggle-switch",
-                    "cards": [{"type": "vertical-stack", "cards": toggles_cards}],
-                },
-                {
-                    "title": "Climate",
-                    "icon": "mdi:thermostat",
-                    "cards": [{"type": "vertical-stack", "cards": climate_cards}],
-                },
-                {
-                    "title": "Scenes",
-                    "icon": "mdi:palette",
-                    "cards": [{"type": "vertical-stack", "cards": scenes_cards}],
-                },
-            ]
-        )
-        shell["default_tab"] = 1
-        # Do not restore a previous Climate selection across refreshes.
-        shell["remember_tab"] = False
-        shell["hide_inactive_tab_titles"] = True
-        shell["view_layout"] = _area("simple_tab")
-        shell["card_mod"] = {
-            "style": GLASS_CARD_MOD["style"]
-            + "ha-card { padding: 6px !important; min-height: 0; }\n"
-        }
-        return shell
-
     return {
         "type": "vertical-stack",
         "view_layout": _area("simple_tab"),
-        "cards": [_transparent_title("Common"), *toggles_cards],
+        "cards": [_transparent_title("Gates & Doors", size="18px"), *toggles_cards],
     }
 
 
