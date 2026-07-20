@@ -93,9 +93,12 @@ def copy_theme(mount: str) -> None:
 def _mkdir_smb(path: Path) -> bool:
     """Create a directory on the HA SMB share; return False if the share rejects it.
 
-    Some Samba mounts fail pathlib.mkdir(parents=True) on deep paths even when
-    shallower parents exist — create level-by-level and tolerate races.
+    Some Samba mounts fail pathlib.mkdir even when the parent exists (ENOENT).
+    Try level-by-level mkdir, then `mkdir -p`, then a .keep touch fallback.
     """
+    import os
+    import subprocess
+
     if path.exists():
         return True
     parts: list[Path] = []
@@ -104,12 +107,38 @@ def _mkdir_smb(path: Path) -> bool:
         parts.append(cur)
         cur = cur.parent
     for part in reversed(parts):
+        if part.exists():
+            continue
         try:
             part.mkdir(exist_ok=True)
-        except OSError as exc:
-            if part.exists():
-                continue
-            print(f"  WARNING: cannot create {part} on SMB ({exc})")
+        except OSError:
+            try:
+                os.makedirs(part, exist_ok=True)
+            except OSError:
+                try:
+                    subprocess.run(
+                        ["mkdir", "-p", str(part)],
+                        check=False,
+                        capture_output=True,
+                    )
+                except OSError:
+                    pass
+        if not part.exists():
+            # Last resort: open() sometimes creates parent dirs on flaky SMB.
+            keep = part / ".keep"
+            try:
+                part.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                pass
+            try:
+                keep.parent.mkdir(parents=True, exist_ok=True)
+                keep.write_text("")
+                keep.unlink(missing_ok=True)
+            except OSError as exc:
+                print(f"  WARNING: cannot create {part} on SMB ({exc})")
+                return False
+        if not part.exists():
+            print(f"  WARNING: cannot create {part} on SMB")
             return False
     return path.exists()
 

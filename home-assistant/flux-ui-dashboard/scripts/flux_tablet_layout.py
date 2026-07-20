@@ -127,8 +127,9 @@ OVERVIEW_LAYOUT_CARD_MOD = {
         "#root > *, .layout > * {\n"
         "  min-height: 0 !important;\n"
         "  min-width: 0 !important;\n"
-        "  max-height: 100% !important;\n"
-        "  overflow: hidden !important;\n"
+        "}\n"
+        "#root, .layout {\n"
+        "  align-content: start !important;\n"
         "}\n"
     )
 }

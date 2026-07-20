@@ -16,7 +16,11 @@ from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
-    return {"grid-area": name}
+    """Grid area placement. Pack content rows to the top; calendar/cameras fill height."""
+    if name in ("calendar_notification", "cameras"):
+        return {"grid-area": name, "place-self": "stretch stretch"}
+    # Greeting / toggles / weather / rooms — no vertical stretch (avoids huge gaps).
+    return {"grid-area": name, "place-self": "start stretch"}
 
 
 def _transparent_title(title: str, *, size: str = "16px") -> dict:
@@ -706,13 +710,15 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Top bands size to content (no fr stretch gaps). Cameras take the
-            # leftover viewport; calendar still spans all rows at full height.
-            "grid-template-columns": "1.1fr 1.35fr 1.1fr 1.1fr",
-            "grid-template-rows": "auto auto auto minmax(0, 1fr)",
-            "grid-auto-rows": "auto",
+            # Content rows = max-content (no fr stretch gaps between bands).
+            # Cameras absorb leftover height; calendar spans full viewport height.
+            "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
+            "grid-template-rows": "max-content max-content max-content minmax(0, 1fr)",
+            "grid-auto-rows": "max-content",
             "align-content": "start",
-            "grid-gap": "8px",
+            "align-items": "start",
+            "justify-items": "stretch",
+            "grid-gap": "6px",
             "grid-template-areas": (
                 '"greeting simple_tab weather calendar_notification"\n'
                 '"room_selector simple_tab weather calendar_notification"\n'
