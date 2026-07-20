@@ -457,6 +457,7 @@ def _open_player_action(zone: str) -> dict:
 
 
 def _mediocre_player_card(entity: str, zone_name: str) -> dict:
+    del zone_name
     return {
         "type": "custom:mediocre-massive-media-player-card",
         "entity_id": entity,
@@ -474,6 +475,65 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
             )
         },
     }
+
+
+def _default_media_entity(cfg: dict, players: list[dict]) -> str:
+    """Prefer configured default_entity when it matches an enabled player."""
+    preferred = (_media_cfg(cfg).get("default_entity") or "").strip()
+    entities = {p["entity"] for p in players}
+    if preferred and preferred in entities:
+        return preferred
+    return players[0]["entity"]
+
+
+def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
+    """Expanded multi-zone Sonos player for the tablet overview (artwork + controls).
+
+    Uses mediocre-multi so the wall tablet can swipe / tap between active players
+    without the phone navbar carousel + bubble popup.
+    """
+    players = enabled_players(cfg)
+    if not players:
+        return {
+            "type": "markdown",
+            "content": (
+                "No Sonos players configured. Run "
+                "`discover_sonos.py --apply` or edit `media_players.yaml`."
+            ),
+        }
+
+    if use_mediocre:
+        media_players: list[dict[str, Any]] = []
+        for player in players:
+            entry: dict[str, Any] = {
+                "entity_id": player["entity"],
+                "name": player["name"],
+                "can_be_grouped": is_sonos_zone(player),
+            }
+            media_players.append(entry)
+        return {
+            "type": "custom:mediocre-multi-media-player-card",
+            "size": "large",
+            "mode": "panel",
+            "entity_id": _default_media_entity(cfg, players),
+            "use_art_colors": True,
+            "media_players": media_players,
+            "options": {
+                "show_volume_step_buttons": True,
+                "player_is_active_when": "playing_or_paused",
+                "default_tab": "massive",
+                "hide_selected_player_header": False,
+                "transparent_background_on_home": False,
+            },
+        }
+
+    # Fallback when mediocre HACS card is missing — chip picker + mushroom player.
+    cards: list[dict] = [_player_selector_chips(players)]
+    for player in players:
+        cards.append(_player_panel(player, use_mediocre=False, source="sonos"))
+        if is_sonos_zone(player) and player.get("apple_tv"):
+            cards.append(_player_panel(player, use_mediocre=False, source="apple_tv"))
+    return {"type": "vertical-stack", "cards": cards}
 
 
 def build_navbar_media_player(cfg: dict) -> dict | None:

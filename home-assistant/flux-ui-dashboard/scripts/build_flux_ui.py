@@ -678,6 +678,7 @@ def _build_config_inner(
             use_calendar_pro=use_calendar_pro,
             use_auto_entities=use_auto_entities,
             use_simple_tabs=use_simple_tabs,
+            use_mediocre_media=use_mediocre_media,
         )
         navbar_media = None
         views: list[dict] = [
@@ -863,9 +864,9 @@ def _build_config_inner(
         out["button_card_templates"].pop("flux_overview_tab", None)
     if use_kiosk:
         out["kiosk_mode"] = copy.deepcopy(KIOSK_MODE)
+    # Disable view swipe-nav so Sonos / calendar gesture pans stay on-widget.
+    out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
     if not tablet:
-        # Bottom navbar handles view changes; keep horizontal swipes for media carousel.
-        out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
         modules = extra_module_urls(cfg)
         if modules:
             out["extra_module_url"] = modules

@@ -96,7 +96,7 @@ TABLET_VIEW_CARD_MOD = {
     )
 }
 
-# Overview only — lock page to one viewport; calendar scrolls via its own height.
+# Overview only — lock page to one viewport; only the calendar .content-container pans.
 TABLET_OVERVIEW_VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
@@ -104,6 +104,8 @@ TABLET_OVERVIEW_VIEW_CARD_MOD = {
         "  height: 100dvh !important;\n"
         "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "}\n"
         "#view {\n"
         "  background: transparent !important;\n"
@@ -114,6 +116,8 @@ TABLET_OVERVIEW_VIEW_CARD_MOD = {
         "  margin: 0 !important;\n"
         "  padding: 0 !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "}\n"
         "hui-panel-view,\n"
         "hui-view-panel {\n"
@@ -122,6 +126,8 @@ TABLET_OVERVIEW_VIEW_CARD_MOD = {
         "  height: 100dvh !important;\n"
         "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "}\n"
         "hui-panel-view > *,\n"
         "hui-view-panel > * {\n"
@@ -130,10 +136,22 @@ TABLET_OVERVIEW_VIEW_CARD_MOD = {
         "  height: 100dvh !important;\n"
         "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "}\n"
         "@keyframes flux-door-pulse {\n"
         "  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n"
         "  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n"
+        "}\n"
+        "@keyframes flux-tesla-charge-pulse {\n"
+        "  0%, 100% {\n"
+        "    box-shadow: 0 0 10px 2px rgba(102, 187, 106, 0.35),\n"
+        "      0 0 28px 8px rgba(76, 175, 80, 0.22);\n"
+        "  }\n"
+        "  50% {\n"
+        "    box-shadow: 0 0 22px 6px rgba(129, 199, 132, 0.85),\n"
+        "      0 0 48px 14px rgba(76, 175, 80, 0.55);\n"
+        "  }\n"
         "}\n"
     )
 }

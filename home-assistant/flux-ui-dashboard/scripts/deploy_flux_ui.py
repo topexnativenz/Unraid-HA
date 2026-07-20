@@ -472,16 +472,15 @@ def build_config(
             '"type": "panel"',
             "custom:layout-card",
             "custom:grid-layout",
-            "custom:navbar-card",
             "weather-forecast",
             "Gates & Doors",
-            "/flux-ui-tablet/overview",
             '"template": "flux_room"',
             "room_selector",
             "calendar_notification",
             "simple_tab",
             '"grid-area": "cameras"',
             '"grid-area": "tesla"',
+            '"grid-area": "music"',
             "Model X",
             "Model S",
             "camera.side_door",
@@ -493,10 +492,30 @@ def build_config(
             '"columns": 2',
             '"width": "100%"',
             '"days_to_show": 7',
+            '"refresh_on_navigate": false',
+            "flux-tesla-charge-pulse",
+            ".content-container",
+            "touch-action: pan-y",
+            "touch-action: pan-x",
+            "mediocre-multi-media-player-card",
+            "Weather Forecast",
+            "rooms rooms music calendar_notification",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
                 raise SystemExit(1)
+        if '"grid-area": "weather"' in blob:
+            print(
+                "\nERROR: Tablet still has standalone weather grid area.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "custom:navbar-card" in blob and '"label": "Home"' in blob:
+            print(
+                "\nERROR: Tablet build still includes bottom navbar (covers Tesla cards).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if "Live overview" in blob:
             print("\nERROR: Tablet still has Home / Live overview title.", file=sys.stderr)
             raise SystemExit(1)

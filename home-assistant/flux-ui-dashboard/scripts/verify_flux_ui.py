@@ -84,7 +84,6 @@ def verify_build(path: Path) -> list[str]:
             "room_selector",
             "calendar_notification",
             "simple_tab",
-            "/flux-ui-tablet/overview",
             '"days_to_show": 7',
             '"show_empty_days": true',
             '"refresh_interval": 360',
@@ -96,9 +95,7 @@ def verify_build(path: Path) -> list[str]:
             "weather.homemetservice",
             "100dvh",
             'calc(100dvh - 16px)',
-            '"height": "100%"',
-            '"max_height": "100%"',
-            '"refresh_on_navigate": true',
+            '"refresh_on_navigate": false',
             "line-height: 1.25",
             "overflow: visible",
             "max-content max-content max-content minmax(0, 1fr) max-content",
@@ -107,11 +104,9 @@ def verify_build(path: Path) -> list[str]:
             '"overflow": "hidden"',
             "custom:mod-card",
             "Gates & Doors",
-            '"label": "Home"',
-            '"label": "Rooms"',
-            '"label": "Camera"',
             '"grid-area": "cameras"',
             '"grid-area": "tesla"',
+            '"grid-area": "music"',
             "Model X",
             "Model S",
             "camera.side_door",
@@ -119,10 +114,19 @@ def verify_build(path: Path) -> list[str]:
             "camera.front_yard",
             "camera.garage_door",
             "data:image/webp;base64,",
-            '"label": "More"',
+            "flux-tesla-charge-pulse",
+            "touch-action: pan-y",
+            "touch-action: pan-x",
+            ".content-container",
+            "mediocre-multi-media-player-card",
+            "rooms rooms music calendar_notification",
+            "Weather Forecast",
+            "calc(100dvh - 228px)",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        if '"grid-area": "weather"' in blob:
+            errors.append("Tablet still has standalone weather grid area — weather belongs above calendar")
         if "Software tracker" in blob or "Last charges (7 days)" in blob:
             errors.append("Tablet overview still includes broken Tesla widgets 2/3")
         if "Live overview" in overview_blob:
@@ -136,8 +140,11 @@ def verify_build(path: Path) -> list[str]:
             if view.get("type") != "panel":
                 errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")
                 break
-        if "custom:navbar-card" not in overview_blob and "mushroom-chips-card" not in overview_blob:
-            errors.append("Tablet overview missing bottom navbar card")
+        # Tablet has no floating bottom navbar (it covered Tesla tiles).
+        if "custom:navbar-card" in overview_blob or (
+            "mushroom-chips-card" in overview_blob and '"label": "Home"' in overview_blob
+        ):
+            errors.append("Tablet overview must not include bottom navbar card")
         if not any(v.get("path") == "active" for v in views):
             errors.append("Tablet build missing Active activity view")
         if not any(v.get("path") == "scenes" for v in views):
@@ -173,6 +180,9 @@ def verify_build(path: Path) -> list[str]:
     for view in views:
         if view.get("theme") != "flux-ui-md3":
             errors.append(f"View {view.get('path')} missing flux-ui-md3 theme")
+        if is_tablet:
+            # Tablet panel roots intentionally omit the floating bottom navbar.
+            continue
         if view.get("type") == "panel":
             panel_blob = json.dumps(view.get("cards") or [])
             if "navbar-card" not in panel_blob and "mushroom-chips-card" not in panel_blob:
@@ -184,11 +194,11 @@ def verify_build(path: Path) -> list[str]:
             if "navbar-card" not in tail and "mushroom-chips-card" not in tail:
                 errors.append(f"View {view.get('path')} missing navbar section")
 
-    if "custom:navbar-card" in blob:
+    if not is_tablet and "custom:navbar-card" in blob:
         for label in ('"label": "Home"', '"label": "Rooms"', '"label": "Camera"', '"label": "More"'):
             if label not in blob:
                 errors.append(f"Flux navbar missing route: {label}")
-    elif "custom:mushroom-chips-card" in blob:
+    elif not is_tablet and "custom:mushroom-chips-card" in blob:
         for label in ("Home", "Rooms", "Scenes", "Camera"):
             if label not in blob:
                 errors.append(f"Navbar fallback missing: {label}")
@@ -247,7 +257,11 @@ def verify_build(path: Path) -> list[str]:
         if card_type not in blob:
             errors.append(f"Missing {card_type}")
 
-    if "custom:navbar-card" not in blob and "custom:mushroom-chips-card" not in blob:
+    if (
+        not is_tablet
+        and "custom:navbar-card" not in blob
+        and "custom:mushroom-chips-card" not in blob
+    ):
         errors.append("Missing bottom nav (navbar-card or mushroom-chips fallback)")
 
     if "kiosk_mode" not in blob or "hide_header" not in blob:
@@ -520,8 +534,12 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
                 errors.append("Live tablet dashboard missing Gates & Doors section")
             if '"days_to_show": 7' not in tblob:
                 errors.append("Live tablet calendar not set to 7 days")
-            if '"refresh_on_navigate": true' not in tblob:
-                errors.append("Live tablet calendar missing refresh_on_navigate")
+            if '"refresh_on_navigate": false' not in tblob:
+                errors.append("Live tablet calendar should keep cache (refresh_on_navigate false)")
+            if "custom:navbar-card" in tblob and '"label": "Home"' in tblob:
+                errors.append("Live tablet still has bottom navbar covering Tesla cards")
+            if "flux-tesla-charge-pulse" not in tblob:
+                errors.append("Live tablet missing Tesla charging pulse glow")
             if '"type": "panel"' not in tblob:
                 errors.append("Live tablet overview is not panel type")
 

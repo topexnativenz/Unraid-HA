@@ -31,6 +31,19 @@ _DEFAULT_TESLA: dict[str, Any] = {
     },
 }
 
+_CHARGE_PULSE_CSS = (
+    "@keyframes flux-tesla-charge-pulse {\n"
+    "  0%, 100% {\n"
+    "    box-shadow: 0 0 10px 2px rgba(102, 187, 106, 0.35),\n"
+    "      0 0 28px 8px rgba(76, 175, 80, 0.22);\n"
+    "  }\n"
+    "  50% {\n"
+    "    box-shadow: 0 0 22px 6px rgba(129, 199, 132, 0.9),\n"
+    "      0 0 52px 16px rgba(76, 175, 80, 0.55);\n"
+    "  }\n"
+    "}\n"
+)
+
 
 def _image_data_uri(filename: str) -> str:
     """Inline image so Tesla art renders even when /local SMB paths fail."""
@@ -87,6 +100,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
         "show_entity_picture": False,
         "triggers_update": _vehicle_triggers(vehicle),
         "tap_action": {"action": "more-info", "entity": battery},
+        "extra_styles": _CHARGE_PULSE_CSS,
         "styles": {
             "grid": [
                 {"grid-template-areas": "'hdr' 'car' 'soc' 'bar'"},
@@ -105,6 +119,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"min-height": "168px"},
                 {"height": "auto"},
                 {"overflow": "hidden"},
+                {"transition": "box-shadow 0.35s ease, border-color 0.35s ease"},
             ],
             "custom_fields": {
                 "hdr": [{"grid-area": "hdr"}, {"width": "100%"}],
@@ -118,6 +133,19 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "8px"}],
             },
         },
+        # Green glow pulse while the vehicle reports charging / connected.
+        "state": [
+            {
+                "operator": "template",
+                "value": f"[[[ {_charging_js(charging)} ]]]",
+                "styles": {
+                    "card": [
+                        {"border": "1px solid rgba(129, 199, 132, 0.65)"},
+                        {"animation": "flux-tesla-charge-pulse 1.6s ease-in-out infinite"},
+                    ]
+                },
+            }
+        ],
         "custom_fields": {
             # Top meta row — mirrors companion-card "15 hours … PARKED" strip.
             "hdr": (
@@ -129,12 +157,16 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "    ? (pwr != null && Number(pwr) > 0 ? `${pwr} kW` : 'Charging')\n"
                 "    : title;\n"
                 "  const right = charging ? 'CHARGING' : 'NOT CHARGING';\n"
-                "  const rightColor = charging ? '#66BB6A' : 'rgba(255,255,255,0.72)';\n"
+                "  const rightColor = charging ? '#81C784' : 'rgba(255,255,255,0.72)';\n"
+                "  const rightGlow = charging\n"
+                "    ? 'text-shadow:0 0 10px rgba(129,199,132,0.95),0 0 22px rgba(76,175,80,0.7);'\n"
+                "    : '';\n"
                 "  return `<div style=\"display:flex;justify-content:space-between;align-items:center;"
                 "gap:10px;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;"
                 "font-weight:600;color:rgba(255,255,255,0.78);\">"
                 "<span>• ${left}</span>"
-                "<span style=\"color:${rightColor};\">${right}</span></div>`;\n"
+                "<span style=\"color:${rightColor};font-weight:700;${rightGlow}\">${right}</span>"
+                "</div>`;\n"
                 "]]]"
             ),
             # Hero car — full-width floating side profile (same treatment as companion card).
@@ -152,14 +184,17 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "[[[\n"
                 f"  const soc = states['{battery}']?.state;\n"
                 f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
-                "  const color = charging ? '#66BB6A' : '#ffffff';\n"
+                "  const color = charging ? '#81C784' : '#ffffff';\n"
+                "  const glow = charging\n"
+                "    ? 'text-shadow:0 0 14px rgba(129,199,132,0.85);'\n"
+                "    : '';\n"
                 "  const pct = (soc == null || ['unavailable','unknown'].includes(String(soc))) "
                 "? '—' : soc;\n"
                 f"  const title = '{name}';\n"
                 "  return `<div style=\"display:flex;justify-content:space-between;"
                 "align-items:baseline;gap:12px;\">"
                 "<div style=\"font-size:34px;font-weight:700;line-height:1;color:${color};"
-                "letter-spacing:-0.02em;\">${pct}"
+                "letter-spacing:-0.02em;${glow}\">${pct}"
                 "<span style=\"font-size:15px;opacity:0.8;margin-left:2px;\">%</span></div>"
                 "<div style=\"font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);"
                 "text-align:right;\">${title}</div></div>`;\n"
@@ -171,10 +206,13 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "  const pct = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;\n"
                 f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
                 f"  const fill = charging ? '#66BB6A' : '{accent}';\n"
+                "  const barGlow = charging\n"
+                "    ? 'box-shadow:0 0 10px rgba(102,187,106,0.85);'\n"
+                "    : '';\n"
                 "  return `<div style=\"width:100%;height:4px;border-radius:999px;"
                 "background:rgba(255,255,255,0.14);\">"
                 "<div style=\"width:${pct}%;height:100%;border-radius:999px;background:${fill};"
-                "transition:width 0.35s ease;\"></div></div>`;\n"
+                "transition:width 0.35s ease;${barGlow}\"></div></div>`;\n"
                 "]]]"
             ),
         },
@@ -214,7 +252,7 @@ def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
-                "  padding-bottom: 72px !important;\n"
+                "  padding-bottom: 0 !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "#root {\n"

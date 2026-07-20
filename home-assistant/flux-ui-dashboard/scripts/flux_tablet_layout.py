@@ -7,7 +7,6 @@ Panel views render exactly one card at true full viewport width — required for
 
 from __future__ import annotations
 
-from flux_navbar import build_navbar_card
 from md3_templates import TABLET_OVERVIEW_VIEW_CARD_MOD, TABLET_VIEW_CARD_MOD
 
 TABLET_MAX_COLUMNS = 4  # kept for CLI / legacy callers
@@ -33,6 +32,8 @@ PANEL_ROOT_MOD = {
 
 # Overview root locks to the viewport (vh — % height is indefinite in HA panel
 # views, so fr rows otherwise size to calendar content and push the page down).
+# No bottom navbar on tablet — single child must fill 100dvh (do not use
+# :last-child flex:0 or a lone child collapses to content height and page-scrolls).
 OVERVIEW_PANEL_ROOT_MOD = {
     "style": (
         ":host {\n"
@@ -40,6 +41,8 @@ OVERVIEW_PANEL_ROOT_MOD = {
         "  height: 100dvh !important;\n"
         "  max-height: 100dvh !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "  box-sizing: border-box !important;\n"
         "}\n"
         "ha-card {\n"
@@ -53,6 +56,8 @@ OVERVIEW_PANEL_ROOT_MOD = {
         "  padding: 0 !important;\n"
         "  margin: 0 !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "  box-sizing: border-box !important;\n"
         "}\n"
         "#root {\n"
@@ -61,18 +66,19 @@ OVERVIEW_PANEL_ROOT_MOD = {
         "  max-height: 100% !important;\n"
         "  max-width: none !important;\n"
         "  overflow: hidden !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "  display: flex !important;\n"
         "  flex-direction: column !important;\n"
         "  box-sizing: border-box !important;\n"
         "}\n"
-        "#root > :first-child {\n"
+        "#root > * {\n"
         "  flex: 1 1 auto !important;\n"
         "  min-height: 0 !important;\n"
         "  max-height: 100% !important;\n"
         "  overflow: hidden !important;\n"
-        "}\n"
-        "#root > :last-child {\n"
-        "  flex: 0 0 auto !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "}\n"
     )
 }
@@ -130,6 +136,8 @@ OVERVIEW_LAYOUT_CARD_MOD = {
         "}\n"
         "#root, .layout {\n"
         "  align-content: start !important;\n"
+        "  overscroll-behavior: none !important;\n"
+        "  touch-action: none !important;\n"
         "}\n"
     )
 }
@@ -137,16 +145,14 @@ OVERVIEW_LAYOUT_CARD_MOD = {
 
 def tablet_layout_card(cards: list[dict], *, layout: dict, overview: bool = False) -> dict:
     """Full-width grid-layout card for panel views."""
-    # Overview: fill the flex slot under the navbar (parent is 100dvh). A second
-    # 100dvh here would overflow past the floating nav.
-    # Bottom padding is small so the calendar can reach the tablet bottom; Tesla tiles
-    # keep their own clearance above the floating navbar.
+    # Overview: fill the locked 100dvh panel root. No bottom navbar on tablet —
+    # keep symmetric padding so Tesla / calendar reach the bottom edge cleanly.
     lay = {
         "width": "100%",
         "max_width": "100%",
         "height": "100%" if overview else "auto",
         "margin": "0",
-        "padding": "8px 12px 8px 12px" if overview else "8px 12px 96px 12px",
+        "padding": "8px 12px 8px 12px" if overview else "8px 12px 16px 12px",
         "grid-gap": "12px",
         **layout,
     }
@@ -166,9 +172,14 @@ def tablet_panel_stack(
     use_navbar_card: bool = True,
     overview: bool = False,
 ) -> dict:
-    """Single vertical-stack root for a panel view (full width + navbar)."""
+    """Single vertical-stack root for a tablet panel view (full width, no navbar).
+
+    Bottom navbar covers Tesla tiles on 16:9; tablet uses HA's view tabs / kiosk
+    chrome instead. ``use_navbar_card`` is accepted for call-site compatibility
+    but ignored — navbar is never appended on tablet.
+    """
+    del use_navbar_card  # Tablet dashboard has no floating bottom nav.
     body = [c for c in cards if c]
-    body.append(build_navbar_card(use_navbar_card=use_navbar_card))
     return {
         "type": "vertical-stack",
         "cards": body,

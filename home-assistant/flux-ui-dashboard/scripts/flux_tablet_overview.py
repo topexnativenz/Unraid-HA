@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from flux_action_builders import garage_action, lock_action, scene_action
 from flux_layouts import flux_room_tile
+from flux_media_player import build_tablet_music_card
 from flux_navbar import URL_PREFIX
 from flux_overview_tabs import build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
@@ -18,10 +19,10 @@ from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Pack content rows to the top; calendar/cameras fill height."""
-    if name in ("calendar_notification", "cameras"):
+    """Grid area placement. Pack content rows to the top; calendar/cameras/music fill height."""
+    if name in ("calendar_notification", "cameras", "music"):
         return {"grid-area": name, "place-self": "stretch stretch"}
-    # Greeting / toggles / weather / rooms / tesla — no vertical stretch (avoids huge gaps).
+    # Greeting / toggles / rooms / tesla — no vertical stretch (avoids huge gaps).
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -48,7 +49,7 @@ def _transparent_title(title: str, *, size: str = "16px") -> dict:
 
 
 def _calendar_body_mod() -> dict:
-    """Glass shell for calendar-card-pro — height comes from flex parent, not dvh calc."""
+    """Glass shell — fixed height on .content-container so in-widget scroll works."""
     return {
         "style": (
             GLASS_CARD_MOD["style"]
@@ -57,12 +58,23 @@ def _calendar_body_mod() -> dict:
             "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
             "  overflow: hidden !important;\n"
+            "  touch-action: pan-y !important;\n"
             "}\n"
             "ha-card {\n"
             "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
             "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
+            "  touch-action: pan-y !important;\n"
+            "}\n"
+            # calendar-card-pro scrolls inside .content-container — re-enable pan-y
+            # after the overview root sets touch-action: none on the page.
+            ".content-container {\n"
+            "  overflow-x: hidden !important;\n"
+            "  overflow-y: auto !important;\n"
+            "  -webkit-overflow-scrolling: touch !important;\n"
+            "  overscroll-behavior: contain !important;\n"
+            "  touch-action: pan-y !important;\n"
             "}\n"
         )
     }
@@ -320,40 +332,124 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
     }
 
 
-def _weather_forecast(weather_entity: str) -> dict:
+def _weather_forecast_cards(weather_entity: str) -> list[dict]:
+    """Compact daily forecast — sits above the calendar in the right column."""
+    return [
+        _transparent_title("Weather Forecast", size="18px"),
+        wrap_glass(
+            {
+                "type": "weather-forecast",
+                "entity": weather_entity,
+                "forecast_type": "daily",
+                "show_current": False,
+                "show_forecast": True,
+                "card_mod": {
+                    "style": (
+                        "ha-card {\n"
+                        "  max-height: 148px !important;\n"
+                        "  overflow: hidden !important;\n"
+                        "}\n"
+                    )
+                },
+            }
+        ),
+    ]
+
+
+def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
+    """Expanded Sonos multi-player — fills the former weather column; swipe between zones."""
+    body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
-        "type": "vertical-stack",
-        "view_layout": _area("weather"),
-        "cards": [
-            _transparent_title("Weather Forecast", size="18px"),
-            wrap_glass(
-                {
-                    "type": "weather-forecast",
-                    "entity": weather_entity,
-                    "forecast_type": "daily",
-                    "show_current": False,
-                    "show_forecast": True,
-                }
-            ),
-        ],
+        "type": "custom:mod-card",
+        "view_layout": _area("music"),
+        "card_mod": {
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                # Horizontal swipe between Sonos players (page scroll stays locked).
+                "  touch-action: pan-x !important;\n"
+                "  overscroll-behavior: contain !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  overflow: hidden !important;\n"
+                "  touch-action: pan-x !important;\n"
+                "  overscroll-behavior: contain !important;\n"
+                "}\n"
+            )
+        },
+        "card": {
+            "type": "vertical-stack",
+            "cards": [
+                _transparent_title("Music", size="18px"),
+                wrap_glass(body),
+            ],
+            "card_mod": {
+                "style": (
+                    ":host, ha-card {\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "  touch-action: pan-x !important;\n"
+                    "}\n"
+                    "#root {\n"
+                    "  display: flex !important;\n"
+                    "  flex-direction: column !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  gap: 4px !important;\n"
+                    "  touch-action: pan-x !important;\n"
+                    "}\n"
+                    "#root > *:first-child {\n"
+                    "  flex: 0 0 auto !important;\n"
+                    "}\n"
+                    "#root > *:not(:first-child) {\n"
+                    "  flex: 1 1 auto !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  touch-action: pan-x !important;\n"
+                    "}\n"
+                )
+            },
+        },
     }
 
 
-# Calendar column spans the full tablet viewport (navbar floats over the bottom).
+# Calendar column spans the full tablet viewport (weather stacked above calendar).
 _CALENDAR_COLUMN_HEIGHT = "calc(100dvh - 16px)"
-# Section title row — keep in sync with _transparent_title padding/line-height.
-_CALENDAR_TITLE_ROW = "34px"
+# Fixed length for calendar-card-pro .content-container (enables in-widget scroll).
+# Leaves room for weather title + compact daily forecast + calendar title above.
+_CALENDAR_BODY_HEIGHT = "calc(100dvh - 228px)"
 
 
-def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
-    """Right-column week calendar — full tablet height; scrolls inside the card."""
+def _calendar_notification(
+    cfg: dict, weather_entity: str, *, use_calendar_pro: bool
+) -> dict:
+    """Right column — weather forecast on top, scrollable week calendar below."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
-    weather = (
+    cal_weather = (
         cfg.get("weather")
+        or weather_entity
         or ((cfg.get("weather_panel") or {}).get("weather_entity"))
         or ((cfg.get("overview_tabs") or {}).get("events") or {}).get("weather_entity")
     )
-    stack_cards: list[dict] = [_transparent_title("Calendar", size="18px")]
+    stack_cards: list[dict] = [
+        *_weather_forecast_cards(weather_entity),
+        _transparent_title("Calendar", size="18px"),
+    ]
 
     for card in events:
         if card.get("type") != "custom:calendar-card-pro":
@@ -387,8 +483,9 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["show_empty_days"] = True
         cal.pop("compact_events_to_show", None)
         cal.pop("tap_action", None)
-        # Fresh fetch when opening the dashboard (avoids blank/stale compact cache).
-        cal["refresh_on_navigate"] = True
+        # Keep cache across view switches — refresh_on_navigate:true remounts the
+        # card and leaves the top-right .loading-indicator spinning on tablets.
+        cal["refresh_on_navigate"] = False
         # Keep the widget static — no ticking UI; rare poll + entity-driven updates.
         cal["show_countdown"] = False
         cal["show_progress_bar"] = False
@@ -396,14 +493,15 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["refresh_interval"] = int(
             ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
         )
-        # Fill the flex slot under the section title; card scrolls internally.
-        cal["height"] = "100%"
-        cal["max_height"] = "100%"
+        # Fixed height (not %) — calendar-card-pro scrolls .content-container only
+        # when height/max_height resolve to a real length.
+        cal["height"] = _CALENDAR_BODY_HEIGHT
+        cal["max_height"] = _CALENDAR_BODY_HEIGHT
         # Narrow tablet column — slightly smaller date column
         cal["day_font_size"] = "20px"
         cal["weekday_font_size"] = "11px"
         cal["month_font_size"] = "10px"
-        if weather and isinstance(cal.get("weather"), dict):
+        if cal_weather and isinstance(cal.get("weather"), dict):
             # Date-only weather (not per-event) — fewer redraws; MetService NZ entity.
             cal["weather"] = {
                 "position": "date",
@@ -415,12 +513,12 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "font_size": "12px",
                     "color": "var(--primary-text-color)",
                 },
-                "entity": weather,
+                "entity": cal_weather,
             }
         cal["card_mod"] = _calendar_body_mod()
         stack_cards.append(cal)
 
-    # Full-height column from top padding to bottom of the tablet viewport.
+    # Full-height column: weather (top) + calendar (fills remainder, scrolls inside).
     return {
         "type": "custom:mod-card",
         "view_layout": _area("calendar_notification"),
@@ -434,6 +532,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                 "  overflow: hidden !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "  padding-top: 2px !important;\n"
+                "  touch-action: pan-y !important;\n"
                 "}\n"
                 "ha-card {\n"
                 f"  height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
@@ -443,6 +542,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
                 "  overflow: hidden !important;\n"
+                "  touch-action: pan-y !important;\n"
                 "}\n"
             )
         },
@@ -460,6 +560,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "  border: none !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
+                    "  touch-action: pan-y !important;\n"
                     "}\n"
                     "#root {\n"
                     "  display: flex !important;\n"
@@ -469,19 +570,23 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
                     "  gap: 4px !important;\n"
+                    "  touch-action: pan-y !important;\n"
                     "}\n"
-                    "#root > *:first-child {\n"
+                    # Weather title + forecast + Calendar title stay compact.
+                    "#root > *:nth-child(-n+3) {\n"
                     "  flex: 0 0 auto !important;\n"
-                    f"  min-height: {_CALENDAR_TITLE_ROW} !important;\n"
                     "  overflow: visible !important;\n"
                     "}\n"
-                    "#root > *:not(:first-child) {\n"
+                    # Week calendar fills remaining height and scrolls inside.
+                    "#root > *:last-child {\n"
                     "  flex: 1 1 auto !important;\n"
-                    f"  min-height: calc(100% - {_CALENDAR_TITLE_ROW}) !important;\n"
-                    "  height: 100% !important;\n"
+                    f"  min-height: {_CALENDAR_BODY_HEIGHT} !important;\n"
+                    f"  height: {_CALENDAR_BODY_HEIGHT} !important;\n"
+                    f"  max-height: {_CALENDAR_BODY_HEIGHT} !important;\n"
                     "  overflow: hidden !important;\n"
                     "  display: flex !important;\n"
                     "  flex-direction: column !important;\n"
+                    "  touch-action: pan-y !important;\n"
                     "}\n"
                 )
             },
@@ -643,14 +748,17 @@ def build_tablet_overview_view(
     use_calendar_pro: bool = True,
     use_auto_entities: bool = True,
     use_simple_tabs: bool = True,
+    use_mediocre_media: bool = True,
 ) -> dict:
     """Full-bleed 16:9 overview — panel view + layout-card grid."""
     del climate_section
     content_cards = [
         _greeting_stack(weather_entity, cfg),
         _simple_tab_panel(cfg, weather_entity, use_simple_tabs=use_simple_tabs),
-        _weather_forecast(weather_entity),
-        _calendar_notification(cfg, use_calendar_pro=use_calendar_pro),
+        _music_panel(cfg, use_mediocre_media=use_mediocre_media),
+        _calendar_notification(
+            cfg, weather_entity, use_calendar_pro=use_calendar_pro
+        ),
         _room_selector(),
         _rooms_band(cfg),
         _cameras_band(cfg, use_auto_entities=use_auto_entities),
@@ -660,8 +768,8 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Content rows = max-content; cameras fill leftover height; Tesla is a
-            # compact half-width strip under cameras.
+            # Music fills the former weather column; weather sits above calendar.
+            # Music spans greeting → rooms so the expanded mediocre player fits.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
                 "max-content max-content max-content minmax(0, 1fr) max-content"
@@ -672,9 +780,9 @@ def build_tablet_overview_view(
             "justify-items": "stretch",
             "grid-gap": "6px",
             "grid-template-areas": (
-                '"greeting simple_tab weather calendar_notification"\n'
-                '"room_selector simple_tab weather calendar_notification"\n'
-                '"rooms rooms rooms calendar_notification"\n'
+                '"greeting simple_tab music calendar_notification"\n'
+                '"room_selector simple_tab music calendar_notification"\n'
+                '"rooms rooms music calendar_notification"\n'
                 '"cameras cameras cameras calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
