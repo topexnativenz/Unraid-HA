@@ -372,13 +372,14 @@ def _weather_forecast(weather_entity: str) -> dict:
     }
 
 
-# Calendar column fills the right side of the 16:9 panel. Title ~36px + gaps;
-# bottom padding reserves the floating navbar (~96px) + outer padding (~8px).
-_CALENDAR_CARD_HEIGHT = "calc(100dvh - 140px)"
+# Calendar column spans the full tablet viewport (navbar floats over the bottom).
+_CALENDAR_COLUMN_HEIGHT = "calc(100dvh - 16px)"
+# Title row ~32px + stack gap — body gets the rest and scrolls inside.
+_CALENDAR_CARD_HEIGHT = "calc(100dvh - 48px)"
 
 
 def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
-    """Right-column week calendar — fixed viewport height; scrolls inside the card."""
+    """Right-column week calendar — full tablet height; scrolls inside the card."""
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     weather = (
         cfg.get("weather")
@@ -419,8 +420,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
         cal["compact_events_complete_days"] = True
         cal["show_empty_days"] = True
         cal["tap_action"] = {"action": "expand"}
-        # Native fixed height → calendar-card-pro scrolls internally and cannot
-        # grow the layout-card grid / push cameras off-screen.
+        # Native fixed height → full column; scrolls internally.
         cal["height"] = _CALENDAR_CARD_HEIGHT
         cal["max_height"] = _CALENDAR_CARD_HEIGHT
         # Narrow tablet column — slightly smaller date column
@@ -431,7 +431,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
             cal["weather"] = {**cal["weather"], "entity": weather}
         stack_cards.append(wrap_glass(cal))
 
-    # Keep the column from expanding the page even if a child ignores height.
+    # Full-height column from top padding to bottom of the tablet viewport.
     return {
         "type": "custom:mod-card",
         "view_layout": _area("calendar_notification"),
@@ -439,14 +439,14 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
             "style": (
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: 100% !important;\n"
-                f"  max-height: {_CALENDAR_CARD_HEIGHT} !important;\n"
+                f"  height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
+                f"  max-height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
                 "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
                 "ha-card {\n"
-                "  height: 100% !important;\n"
-                f"  max-height: {_CALENDAR_CARD_HEIGHT} !important;\n"
+                f"  height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
+                f"  max-height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
                 "  min-height: 0 !important;\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
@@ -462,7 +462,7 @@ def _calendar_notification(cfg: dict, *, use_calendar_pro: bool) -> dict:
                 "style": (
                     ":host, ha-card {\n"
                     "  height: 100% !important;\n"
-                    f"  max-height: {_CALENDAR_CARD_HEIGHT} !important;\n"
+                    f"  max-height: {_CALENDAR_COLUMN_HEIGHT} !important;\n"
                     "  min-height: 0 !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
@@ -627,6 +627,9 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
             "  overflow: hidden !important;\n"
+            "  /* Keep camera tiles above the floating bottom navbar. */\n"
+            "  padding-bottom: 72px !important;\n"
+            "  box-sizing: border-box !important;\n"
             "}\n"
             "#root {\n"
             "  height: 100% !important;\n"
