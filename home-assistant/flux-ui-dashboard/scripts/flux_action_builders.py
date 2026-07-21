@@ -102,9 +102,15 @@ def lock_action(
             "]]]"
         ),
         "tap_action": {
-            # Always pulse unlock — toggle races the momentary relay state.
             "action": "call-service",
-            "service": "lock.unlock",
+            # Gate Open is momentary unlock pulse; Gate Latch must toggle lock/unlock.
+            "service": (
+                "[[[\n"
+                f"  const isOpen = (() => {{ {open_body} }})();\n"
+                "  if (!" + ("true" if is_latch else "false") + ") return 'lock.unlock';\n"
+                "  return isOpen ? 'lock.lock' : 'lock.unlock';\n"
+                "]]]"
+            ),
             "service_data": {"entity_id": entity},
         },
         "triggers_update": triggers,
