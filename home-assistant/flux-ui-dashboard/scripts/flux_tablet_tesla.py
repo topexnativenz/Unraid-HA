@@ -254,7 +254,7 @@ def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
                 "  height: auto !important;\n"
                 "  min-height: 0 !important;\n"
                 "  box-sizing: border-box !important;\n"
-                "  padding-top: 4px !important;\n"
+                "  padding-top: 2px !important;\n"
                 "  overflow: visible !important;\n"
                 "}\n"
                 "ha-card {\n"
