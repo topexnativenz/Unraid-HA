@@ -472,7 +472,7 @@ async def ensure_tablet_led_helpers(token: str, ha_url: str) -> None:
                 "(hard-reset to latest branch SHA, then re-deploy)."
             )
 
-    led_entity = "light.rk3576_u_rgb"
+    led_entity = "light.rk3576_u_rk3576_u_rgb"
     entities_path = ROOT / "entities.yaml"
     if entities_path.exists():
         try:
@@ -492,6 +492,7 @@ async def ensure_tablet_led_helpers(token: str, ha_url: str) -> None:
         # Scan common discovery names from the rk3576_u AndroidTablet device page.
         found = None
         for candidate in (
+            "light.rk3576_u_rk3576_u_rgb",
             "light.rk3576_u_rgb",
             "light.rk3576_u_led",
             "light.rk3576_u_rgb_led",
@@ -502,12 +503,40 @@ async def ensure_tablet_led_helpers(token: str, ha_url: str) -> None:
                 break
         if found:
             print(f"  MQTT RGB light found as {found} (entities.yaml had {led_entity})")
+            led_entity = found
         else:
             print(
                 f"  WARNING: {led_entity} not in HA — tablet LED pulse cannot run. "
                 "Open the rk3576_u device → Controls → RGB and set "
                 "input_text.flux_ui_tablet_rgb_led to that light entity_id."
             )
+            return
+
+    # If a Tesla is already charging, kick the pulse script now (covers the case
+    # where the resolved LED entity_id changed during this deploy).
+    try:
+        res = await ws_call(token, ha_url, [{"type": "get_states"}])
+        states = res[0].get("result", []) if res[0].get("success") else []
+        charging_on = any(
+            s.get("entity_id") == TABLET_EV_CHARGING_ENTITY and s.get("state") == "on"
+            for s in states
+        )
+        if charging_on:
+            await ws_call(
+                token,
+                ha_url,
+                [
+                    {
+                        "type": "call_service",
+                        "domain": "script",
+                        "service": "turn_on",
+                        "target": {"entity_id": TABLET_LED_SCRIPT},
+                    }
+                ],
+            )
+            print(f"  started {TABLET_LED_SCRIPT} (EV charging + LED {led_entity})")
+    except Exception as exc:
+        print(f"  WARNING: could not start LED pulse script: {exc}")
 
 
 def assert_required_packages_present() -> None:

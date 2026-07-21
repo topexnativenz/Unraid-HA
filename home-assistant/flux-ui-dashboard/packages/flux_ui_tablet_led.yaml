@@ -1,16 +1,17 @@
 # Flux UI — rk3576_u tablet MQTT RGB LED pulses green while a Tesla is charging.
 # Matches the Tesla card charging glow on /flux-ui-tablet.
 #
-# Device page (MQTT AndroidTablet / rk3576_u) exposes Controls → RGB as
-# light.rk3576_u_rgb (not *_led). Override via input_text.flux_ui_tablet_rgb_led
-# if discovery used a different ID (Developer Tools → States → light.*rgb*).
+# MQTT discovery names this light light.rk3576_u_rk3576_u_rgb (device + object id).
+# Older docs used light.rk3576_u_rgb — that entity does not exist on this HA.
+# Override via input_text.flux_ui_tablet_rgb_led if needed (requires HA restart
+# the first time the helper is added from this package).
 #
 # Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
 
 input_text:
   flux_ui_tablet_rgb_led:
     name: Flux UI tablet RGB LED entity
-    initial: light.rk3576_u_rgb
+    initial: light.rk3576_u_rk3576_u_rgb
     max: 255
     icon: mdi:led-strip
 
@@ -26,7 +27,7 @@ template:
           {{ s in ['charging', 'connected', 'on']
              or x in ['charging', 'connected', 'on'] }}
   - sensor:
-      # Resolve the live MQTT RGB light even if input_text is stale / wrong.
+      # Resolve the live MQTT RGB light even if input_text is missing / stale.
       - name: Flux UI tablet RGB LED resolved
         unique_id: flux_ui_tablet_rgb_led_resolved
         icon: mdi:led-strip
@@ -34,6 +35,7 @@ template:
           {% set configured = states('input_text.flux_ui_tablet_rgb_led') | trim %}
           {% set candidates = [
             configured,
+            'light.rk3576_u_rk3576_u_rgb',
             'light.rk3576_u_rgb',
             'light.rk3576_u_led',
             'light.rk3576_u_rgb_led',
@@ -45,7 +47,17 @@ template:
               {% set ns.led = c %}
             {% endif %}
           {% endfor %}
-          {{ ns.led if ns.led else (configured if configured.startswith('light.') else 'light.rk3576_u_rgb') }}
+          {% if ns.led == '' %}
+            {% for s in states.light %}
+              {% if ns.led == ''
+                   and 'rk3576' in s.entity_id
+                   and 'rgb' in s.entity_id
+                   and s.state not in ['unknown', 'unavailable', none, ''] %}
+                {% set ns.led = s.entity_id %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.led if ns.led else 'light.rk3576_u_rk3576_u_rgb' }}
 
 script:
   flux_ui_tablet_led_charge_pulse:
@@ -97,13 +109,23 @@ automation:
         to: "on"
       - platform: homeassistant
         event: start
-      # Re-arm if the MQTT RGB light becomes available while already charging.
+      # Re-arm when the resolved MQTT RGB light entity_id becomes valid.
       - platform: state
         entity_id: sensor.flux_ui_tablet_rgb_led_resolved
+      # Re-arm on Tessie charging changes (covers template lag / missed to:on).
+      - platform: state
+        entity_id:
+          - sensor.x_charging
+          - sensor.model_s_p100d_charging
     condition:
       - condition: state
         entity_id: binary_sensor.flux_ui_ev_charging
         state: "on"
+      - condition: template
+        value_template: >
+          {% set led = states('sensor.flux_ui_tablet_rgb_led_resolved') | trim %}
+          {{ led.startswith('light.')
+             and states(led) not in ['unknown', 'unavailable', none, ''] }}
     action:
       - action: script.turn_on
         target:
