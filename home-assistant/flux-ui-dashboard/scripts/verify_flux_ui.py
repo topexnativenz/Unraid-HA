@@ -110,8 +110,8 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             "font-size: 15px",
             "overflow: visible",
-            "max-content max-content max-content minmax(160px, 1fr) max-content",
-            '"align-content": "stretch"',
+            "max-content max-content max-content max-content max-content",
+            '"align-content": "start"',
             '"overflow": "hidden"',
             "custom:mod-card",
             "Gates & Doors",
@@ -131,8 +131,9 @@ def verify_build(path: Path) -> list[str]:
             "camera_view",
             "mediocre-media-player-card",
             "mushroom-chips-card",
-            "min-height: 140px",
-            "min-height: 200px",
+            "aspect-ratio: 16 / 9",
+            "padding: 10px 0 12px 0",
+            "max-height: 168px",
             "cameras cameras cameras calendar_notification",
             "rooms rooms music calendar_notification",
             "Weather Forecast",
@@ -143,7 +144,7 @@ def verify_build(path: Path) -> list[str]:
             "calc(100dvh - 240px)",
             '"min_height": "320px"',
             '"height": "calc(100dvh - 240px)"',
-            "min-height: 140px !important",
+            "min-height: 200px",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")

@@ -23,8 +23,8 @@ def _area(name: str) -> dict:
     if name == "calendar_notification":
         return {"grid-area": name, "place-self": "stretch stretch"}
     if name == "cameras":
-        # Stretch so taller landscape feeds fill the flexible cameras row.
-        return {"grid-area": name, "place-self": "stretch stretch"}
+        # Size to content — do not stretch into the Tesla row below.
+        return {"grid-area": name, "place-self": "start stretch"}
     if name == "tesla":
         # Fixed-size Tesla tiles seat on the bottom row (max-content).
         return {"grid-area": name, "place-self": "end stretch"}
@@ -664,20 +664,21 @@ def _camera_feed_card(camera: dict) -> dict:
                     "ha-card {\n"
                     "  padding: 0 !important;\n"
                     "  overflow: hidden !important;\n"
-                    "  height: 100% !important;\n"
-                    "  min-height: 120px !important;\n"
+                    "  height: auto !important;\n"
+                    "  max-height: 168px !important;\n"
+                    "  min-height: 108px !important;\n"
+                    "  aspect-ratio: 16 / 9 !important;\n"
                     "  background: #111 !important;\n"
                     "}\n"
                     "hui-image,\n"
                     "img {\n"
                     "  width: 100% !important;\n"
                     "  height: 100% !important;\n"
-                    "  min-height: 100px !important;\n"
                     "  object-fit: cover !important;\n"
                     "}\n"
                     ".card-content {\n"
                     "  height: 100% !important;\n"
-                    "  min-height: 100px !important;\n"
+                    "  min-height: 0 !important;\n"
                     "}\n"
                     ".name {\n"
                     "  position: absolute !important;\n"
@@ -708,26 +709,27 @@ def _tablet_overview_cameras(cfg: dict) -> list[dict]:
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
-    # Single row of 3 — same width as the two Tesla cards below.
+    # Single row of 3 — same width as Tesla; vertical padding separates the bands.
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 140px !important;\n"
-            "  max-height: 100% !important;\n"
-            "  overflow: hidden !important;\n"
+            "  height: auto !important;\n"
+            "  min-height: 0 !important;\n"
+            "  max-height: none !important;\n"
+            "  overflow: visible !important;\n"
             "  box-sizing: border-box !important;\n"
-            "  z-index: 2 !important;\n"
+            "  padding: 10px 0 12px 0 !important;\n"
             "}\n"
             "#root {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 140px !important;\n"
+            "  height: auto !important;\n"
+            "  min-height: 0 !important;\n"
             "  gap: 8px !important;\n"
             "  align-items: stretch !important;\n"
             "}\n"
             "#root > * {\n"
-            "  height: 100% !important;\n"
+            "  height: auto !important;\n"
             "  min-height: 0 !important;\n"
+            "  max-height: 168px !important;\n"
             "}\n"
         )
     }
@@ -794,13 +796,13 @@ def build_tablet_overview_view(
             # Music spans greeting→rooms; cameras + Tesla share the same 3-column width.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "max-content max-content max-content minmax(160px, 1fr) max-content"
+                "max-content max-content max-content max-content max-content"
             ),
             "grid-auto-rows": "max-content",
-            "align-content": "stretch",
-            "align-items": "stretch",
+            "align-content": "start",
+            "align-items": "start",
             "justify-items": "stretch",
-            "grid-gap": "6px",
+            "grid-gap": "10px",
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
                 '"room_selector simple_tab music calendar_notification"\n'
