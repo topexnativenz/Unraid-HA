@@ -499,8 +499,8 @@ def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
                 "  overflow: visible !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
-                # Explicit px art — Fully Kiosk paints these; % heights under
-                # the grid height:0 containment often resolve to 0.
+                # Explicit px art — Fully Kiosk paints these; % heights in nested
+                # flex stacks often resolve to 0 on older WebViews.
                 "img {\n"
                 "  width: 88px !important;\n"
                 "  height: 88px !important;\n"

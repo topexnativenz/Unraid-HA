@@ -34,34 +34,38 @@ def _area(name: str) -> dict:
     return {"grid-area": name, "place-self": "start stretch"}
 
 
-def _transparent_title(title: str, *, size: str = "16px") -> dict:
-    """Section title that does not clip leading glyphs (mushroom titles do on WebView)."""
+def _section_title(title: str, *, size: str = "16px") -> dict:
+    """Section title — button-card static text renders on Fully Kiosk (markdown does not)."""
     return {
-        "type": "markdown",
-        "content": f"**{title}**",
-        "card_mod": {
-            "style": (
-                "ha-card {\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  padding: 6px 8px 2px 10px !important;\n"
-                "  margin: 0 !important;\n"
-                "  overflow: visible !important;\n"
-                "}\n"
-                "ha-markdown, ha-markdown-element, .markdown {\n"
-                "  overflow: visible !important;\n"
-                "}\n"
-                f"ha-markdown-element p, ha-card p {{\n"
-                f"  margin: 0 !important;\n"
-                f"  padding: 0 !important;\n"
-                f"  font-size: {size} !important;\n"
-                f"  font-weight: 600 !important;\n"
-                f"  line-height: 1.4 !important;\n"
-                f"  letter-spacing: 0.01em !important;\n"
-                f"  color: var(--primary-text-color) !important;\n"
-                f"}}\n"
-            )
+        "type": "custom:button-card",
+        "show_icon": False,
+        "show_name": True,
+        "show_state": False,
+        "name": title,
+        "styles": {
+            "card": [
+                {"background": "transparent"},
+                {"box-shadow": "none"},
+                {"border": "none"},
+                {"padding": "6px 8px 2px 10px"},
+                {"margin": "0"},
+                {"height": "auto"},
+                {"min-height": "unset"},
+                {"overflow": "visible"},
+            ],
+            "name": [
+                {"font-size": size},
+                {"font-weight": "600"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+                {"color": "var(--primary-text-color)"},
+                {"letter-spacing": "0.01em"},
+                {"line-height": "1.4"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'n'"},
+                {"grid-template-columns": "1fr"},
+            ],
         },
     }
 
@@ -346,14 +350,14 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
     return {
         "type": "vertical-stack",
         "view_layout": _area("simple_tab"),
-        "cards": [_transparent_title("Gates & Doors", size="18px"), *toggles_cards],
+        "cards": [_section_title("Gates & Doors", size="18px"), *toggles_cards],
     }
 
 
 def _weather_forecast_cards(weather_entity: str) -> list[dict]:
     """Compact daily forecast — sits above the calendar in the right column."""
     return [
-        _transparent_title("Weather Forecast", size="15px"),
+        _section_title("Weather Forecast", size="15px"),
         wrap_glass(
             {
                 "type": "weather-forecast",
@@ -375,34 +379,18 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Music column (greeting→cameras): zone chips + compact art/controls player.
-
-    Height is contained so the massive intrinsic size cannot expand grid rows and
-    push cameras/Tesla off the 16:9 viewport. Bottom edge aligns with cameras.
-    """
+    """Music column (greeting→rooms): zone chips + compact art/controls player."""
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
-        "type": "custom:mod-card",
-        "view_layout": {
-            "grid-area": "music",
-            "place-self": "stretch stretch",
-        },
+        "type": "vertical-stack",
+        "view_layout": _area("music"),
+        "cards": [
+            _section_title("Music", size="15px"),
+            wrap_glass(body),
+        ],
         "card_mod": {
             "style": (
-                # Classic grid containment: do not contribute to max-content row
-                # sizing (prevents push-down). min-height:100% fills the spanned
-                # area. Explicit child min-heights keep Fully Kiosk painting art.
-                ":host {\n"
-                "  display: block !important;\n"
-                "  height: 0 !important;\n"
-                "  min-height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
-                "  overflow: hidden !important;\n"
-                "  touch-action: pan-y !important;\n"
-                "  overscroll-behavior: contain !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                "ha-card {\n"
+                ":host, ha-card {\n"
                 "  height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
@@ -410,53 +398,34 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
                 "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "  touch-action: pan-y !important;\n"
+                "}\n"
+                "#root {\n"
+                "  display: flex !important;\n"
+                "  flex-direction: column !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                "  gap: 4px !important;\n"
+                "}\n"
+                "#root > *:first-child {\n"
+                "  flex: 0 0 auto !important;\n"
+                "  overflow: visible !important;\n"
+                "}\n"
+                "#root > *:not(:first-child) {\n"
+                "  flex: 1 1 auto !important;\n"
+                "  min-height: 140px !important;\n"
+                "  overflow: hidden !important;\n"
                 "}\n"
             )
-        },
-        "card": {
-            "type": "vertical-stack",
-            "cards": [
-                _transparent_title("Music", size="15px"),
-                wrap_glass(body),
-            ],
-            "card_mod": {
-                "style": (
-                    ":host, ha-card {\n"
-                    "  height: 100% !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  background: transparent !important;\n"
-                    "  box-shadow: none !important;\n"
-                    "  border: none !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "  box-sizing: border-box !important;\n"
-                    "}\n"
-                    "#root {\n"
-                    "  display: flex !important;\n"
-                    "  flex-direction: column !important;\n"
-                    "  height: 100% !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "  gap: 4px !important;\n"
-                    "}\n"
-                    "#root > *:first-child {\n"
-                    "  flex: 0 0 auto !important;\n"
-                    "  overflow: visible !important;\n"
-                    "}\n"
-                    "#root > *:not(:first-child) {\n"
-                    "  flex: 1 1 auto !important;\n"
-                    "  min-height: 120px !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "}\n"
-                )
-            },
         },
     }
 
 
 # Calendar column spans the full tablet viewport (weather stacked above calendar).
 _CALENDAR_COLUMN_HEIGHT = "calc(100dvh - 16px)"
+_CALENDAR_BODY_HEIGHT = "calc(100dvh - 240px)"
 
 
 def _calendar_notification(
@@ -466,7 +435,7 @@ def _calendar_notification(
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     stack_cards: list[dict] = [
         *_weather_forecast_cards(weather_entity),
-        _transparent_title("Calendar", size="18px"),
+        _section_title("Calendar", size="18px"),
     ]
 
     for card in events:
@@ -511,10 +480,11 @@ def _calendar_notification(
         cal["refresh_interval"] = int(
             ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
         )
-        # Fill remaining column via flex — fixed 100dvh math was clipping events on
-        # Fully (dvh ≠ Chrome) and looked empty.
-        cal["height"] = "100%"
-        cal["max_height"] = "100%"
+        # Fill remaining column — explicit dvh calc resolves on Fully Kiosk where
+        # height:100% inside flex often stays at 0 and leaves "Loading calendar…".
+        cal["height"] = _CALENDAR_BODY_HEIGHT
+        cal["max_height"] = _CALENDAR_BODY_HEIGHT
+        cal["min_height"] = "320px"
         # Narrow tablet column — slightly smaller date column
         cal["day_font_size"] = "20px"
         cal["weekday_font_size"] = "11px"
@@ -677,96 +647,68 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera still — tokenized proxy URL works more reliably on Fully Kiosk.
-
-    picture-entity live/auto streams often show broken thumbnails in Fully after
-    sleep/resume (authSig). button-card rebuilds `/api/camera_proxy/...?token=`
-    from the live access_token attribute on each render.
-    """
+    """Landscape camera still — native picture-entity (no button-card JS on Fully)."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
         {
-            "type": "custom:button-card",
+            "type": "picture-entity",
             "entity": entity,
             "name": name,
             "show_name": True,
             "show_state": False,
-            "show_icon": False,
-            "show_entity_picture": True,
-            "entity_picture": (
-                "[[[\n"
-                f"  const id = '{entity}';\n"
-                "  const st = states[id];\n"
-                "  if (!st) return null;\n"
-                "  const tok = st.attributes?.access_token;\n"
-                "  if (tok) return `/api/camera_proxy/${id}?token=${tok}`;\n"
-                "  return st.attributes?.entity_picture || null;\n"
-                "]]]"
-            ),
+            "camera_view": "auto",
             "tap_action": {"action": "more-info", "entity": entity},
-            "styles": {
-                "card": [
-                    {"padding": "0"},
-                    {"overflow": "hidden"},
-                    {"height": "100%"},
-                    {"min-height": "120px"},
-                    {"background": "#111"},
-                ],
-                "entity_picture": [
-                    {"width": "100%"},
-                    {"height": "100%"},
-                    {"min-height": "100px"},
-                    {"object-fit": "cover"},
-                    {"border-radius": "0"},
-                ],
-                "img_cell": [
-                    {"width": "100%"},
-                    {"height": "100%"},
-                    {"min-height": "100px"},
-                    {"position": "absolute"},
-                    {"top": "0"},
-                    {"left": "0"},
-                ],
-                "name": [
-                    {"position": "absolute"},
-                    {"left": "8px"},
-                    {"bottom": "6px"},
-                    {"font-size": "12px"},
-                    {"font-weight": "600"},
-                    {"color": "#fff"},
-                    {"text-shadow": "0 1px 4px rgba(0,0,0,0.85)"},
-                    {"justify-self": "start"},
-                ],
-                "grid": [
-                    {"grid-template-areas": "'i'"},
-                    {"grid-template-columns": "1fr"},
-                    {"grid-template-rows": "1fr"},
-                    {"min-height": "120px"},
-                    {"height": "100%"},
-                ],
+            "card_mod": {
+                "style": (
+                    "ha-card {\n"
+                    "  padding: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 120px !important;\n"
+                    "  background: #111 !important;\n"
+                    "}\n"
+                    "hui-image,\n"
+                    "img {\n"
+                    "  width: 100% !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 100px !important;\n"
+                    "  object-fit: cover !important;\n"
+                    "}\n"
+                    ".card-content {\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 100px !important;\n"
+                    "}\n"
+                    ".name {\n"
+                    "  position: absolute !important;\n"
+                    "  left: 8px !important;\n"
+                    "  bottom: 6px !important;\n"
+                    "  font-size: 12px !important;\n"
+                    "  font-weight: 600 !important;\n"
+                    "  color: #fff !important;\n"
+                    "  text-shadow: 0 1px 4px rgba(0,0,0,0.85) !important;\n"
+                    "}\n"
+                )
             },
-            "aspect_ratio": "16/9",
         }
     )
 
 
 def _tablet_overview_cameras(cfg: dict) -> list[dict]:
-    """Curated 4-camera row — never auto-discover the whole house."""
+    """Curated 3-camera row — never auto-discover the whole house."""
     tablet = cfg.get("tablet") or {}
     curated = list(tablet.get("overview_cameras") or [])
     if curated:
-        return curated[:4]
+        return curated[:3]
     cameras_cfg = cfg.get("cameras_config") or {}
     manual = list(cameras_cfg.get("cameras") or [])
-    return manual[:4]
+    return manual[:3]
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
-    # 2×2 in the two left columns so music can span through the cameras row
-    # and end flush with the camera band (not into Tesla).
+    # Single row of 3 — same width as the two Tesla cards below.
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
@@ -790,10 +732,10 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         )
     }
     if cameras:
-        feeds = [_camera_feed_card(cam) for cam in cameras[:4]]
+        feeds = [_camera_feed_card(cam) for cam in cameras[:3]]
         return {
             "type": "grid",
-            "columns": 2,
+            "columns": 3,
             "square": False,
             "view_layout": {
                 "grid-area": "cameras",
@@ -811,7 +753,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 {
                     "type": "markdown",
                     "content": (
-                        "Configure the 4 tablet cameras in `cameras.yaml` "
+                        "Configure the 3 tablet cameras in `cameras.yaml` "
                         "or `entities.yaml` → `tablet.overview_cameras`."
                     ),
                 }
@@ -849,8 +791,7 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Music spans through cameras (ends flush with camera band).
-            # Cameras are 2×2 in the two left columns. Tesla stays fixed at bottom.
+            # Music spans greeting→rooms; cameras + Tesla share the same 3-column width.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
                 "max-content max-content max-content minmax(160px, 1fr) max-content"
@@ -864,7 +805,7 @@ def build_tablet_overview_view(
                 '"greeting simple_tab music calendar_notification"\n'
                 '"room_selector simple_tab music calendar_notification"\n'
                 '"rooms rooms music calendar_notification"\n'
-                '"cameras cameras music calendar_notification"\n'
+                '"cameras cameras cameras calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
         },

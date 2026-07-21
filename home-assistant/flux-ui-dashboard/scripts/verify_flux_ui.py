@@ -122,29 +122,28 @@ def verify_build(path: Path) -> list[str]:
             "Model S",
             "camera.side_door",
             "camera.front_door_doorbell",
-            "camera.front_yard",
             "camera.garage_door",
             "data:image/webp;base64,",
             "flux-tesla-charge-pulse",
             "touch-action: pan-y",
             ".content-container",
-            "height: 0 !important",
+            "picture-entity",
+            "camera_view",
             "mediocre-media-player-card",
             "mushroom-chips-card",
-            "/api/camera_proxy/",
-            "access_token",
             "min-height: 140px",
             "min-height: 200px",
-            "cameras cameras music calendar_notification",
+            "cameras cameras cameras calendar_notification",
             "rooms rooms music calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
             "mediocre-chip-media-player-group-card",
             "--chip-height: 56px",
-            "**Music**",
-            "**Weather Forecast**",
-            '"height": "100%"',
-            "88px",
+            "Gates & Doors",
+            "calc(100dvh - 240px)",
+            '"min_height": "320px"',
+            '"height": "calc(100dvh - 240px)"',
+            "min-height: 140px !important",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
@@ -161,8 +160,8 @@ def verify_build(path: Path) -> list[str]:
         # Closed gate must not force a green card fill — only open gets a tint.
         if "Gate Open" in blob and "#81C784 28%" in blob:
             errors.append("Gate Closed still uses green card background — use default chrome")
-        if "custom:mushroom-title-card" in overview_blob and "**Music**" not in overview_blob:
-            errors.append("Tablet Music/Weather titles should use markdown to avoid glyph clipping")
+        if "custom:mushroom-title-card" in overview_blob and "Gates & Doors" not in overview_blob:
+            errors.append("Tablet section titles should use button-card (Fully Kiosk renders them)")
         if "mediocre-massive-media-player-card" in overview_blob:
             errors.append("Tablet music must use compact mediocre card (massive pushes layout down)")
         for view in views:
