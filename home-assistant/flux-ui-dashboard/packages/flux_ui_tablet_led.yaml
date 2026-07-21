@@ -80,24 +80,25 @@ script:
               value_template: >
                 {{ states(led) not in ['unknown', 'unavailable', none, ''] }}
           sequence:
-            # Bright green peak (~matches #81C784 card glow)
+            # Bright green peak — pure green (R=0, B=0) so MQTT strip stays green,
+            # not blue-tinted Material greens like #81C784 / #4CAF50.
             - action: light.turn_on
               target:
                 entity_id: "{{ led }}"
               data:
-                rgb_color: [129, 199, 132]
+                rgb_color: [0, 255, 0]
                 brightness: 255
             - delay:
-                milliseconds: 800
-            # Dimmer green trough (~matches #4CAF50 soft glow)
+                milliseconds: 700
+            # Dull green trough — same hue, low brightness (real pulse, no colour shift).
             - action: light.turn_on
               target:
                 entity_id: "{{ led }}"
               data:
-                rgb_color: [76, 175, 80]
-                brightness: 64
+                rgb_color: [0, 255, 0]
+                brightness: 36
             - delay:
-                milliseconds: 800
+                milliseconds: 700
 
 automation:
   - id: flux_ui_tablet_led_charge_pulse_start
