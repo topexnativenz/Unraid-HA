@@ -108,7 +108,7 @@ def verify_build(path: Path) -> list[str]:
             "100dvh",
             'calc(100dvh - 16px)',
             '"refresh_on_navigate": false',
-            "font-size: 15px",
+            '"font-size": "16px"',
             "overflow: visible",
             "max-content max-content max-content max-content max-content",
             '"align-content": "start"',

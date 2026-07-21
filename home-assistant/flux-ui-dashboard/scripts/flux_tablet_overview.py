@@ -350,14 +350,14 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
     return {
         "type": "vertical-stack",
         "view_layout": _area("simple_tab"),
-        "cards": [_section_title("Gates & Doors", size="18px"), *toggles_cards],
+        "cards": [_section_title("Gates & Doors"), *toggles_cards],
     }
 
 
 def _weather_forecast_cards(weather_entity: str) -> list[dict]:
     """Compact daily forecast — sits above the calendar in the right column."""
     return [
-        _section_title("Weather Forecast", size="15px"),
+        _section_title("Weather Forecast"),
         wrap_glass(
             {
                 "type": "weather-forecast",
@@ -385,7 +385,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
         "type": "vertical-stack",
         "view_layout": _area("music"),
         "cards": [
-            _section_title("Music", size="15px"),
+            _section_title("Music"),
             wrap_glass(body),
         ],
         "card_mod": {
@@ -435,7 +435,7 @@ def _calendar_notification(
     events = build_events_tab_cards(cfg, use_calendar_pro=use_calendar_pro)
     stack_cards: list[dict] = [
         *_weather_forecast_cards(weather_entity),
-        _section_title("Calendar", size="18px"),
+        _section_title("Calendar"),
     ]
 
     for card in events:
