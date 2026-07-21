@@ -638,7 +638,7 @@ def build_config(
             "camera.garage_door",
             "data:image/webp;base64,",
             "Good Morning!",
-            '"columns": 4',
+            "gap: 12px !important",
             '"width": "100%"',
             '"days_to_show": 7',
             '"refresh_on_navigate": false',

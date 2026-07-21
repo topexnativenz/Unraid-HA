@@ -124,7 +124,7 @@ def verify_build(path: Path) -> list[str]:
             "camera.front_door_doorbell",
             "camera.front_yard",
             "camera.garage_door",
-            '"columns": 4',
+            "gap: 12px !important",
             "data:image/webp;base64,",
             "flux-tesla-charge-pulse",
             "touch-action: pan-y",

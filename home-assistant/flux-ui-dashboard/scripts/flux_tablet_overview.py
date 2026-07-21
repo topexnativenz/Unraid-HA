@@ -706,11 +706,44 @@ def _tablet_overview_cameras(cfg: dict) -> list[dict]:
     return manual[:4]
 
 
+def _camera_pair(cameras: list[dict]) -> dict:
+    """Two cameras side-by-side — same outer width as one Tesla card."""
+    return {
+        "type": "grid",
+        "columns": 2,
+        "square": False,
+        "cards": [_camera_feed_card(cam) for cam in cameras],
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  height: auto !important;\n"
+                "  padding: 0 !important;\n"
+                "  margin: 0 !important;\n"
+                "  overflow: visible !important;\n"
+                "}\n"
+                "#root {\n"
+                "  gap: 4px !important;\n"
+                "  align-items: stretch !important;\n"
+                "  height: auto !important;\n"
+                "}\n"
+                "#root > * {\n"
+                "  height: auto !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: 182px !important;\n"
+                "}\n"
+            )
+        },
+    }
+
+
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
-    # Single row of 4 — same width as Tesla. Vertical padding is tight so card
-    # height grows into that space (Tesla row position stays put).
+    # Outer 2 columns mirror the Tesla band (same 12px gap). Each column is a
+    # pair of cameras so 2 cams = 1 Tesla card width. Keep tight top/bottom pad.
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
@@ -724,27 +757,31 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "#root {\n"
             "  height: auto !important;\n"
             "  min-height: 0 !important;\n"
-            "  gap: 4px !important;\n"
+            "  gap: 12px !important;\n"
             "  align-items: stretch !important;\n"
             "}\n"
             "#root > * {\n"
             "  height: auto !important;\n"
             "  min-height: 0 !important;\n"
-            "  max-height: 182px !important;\n"
             "}\n"
         )
     }
     if cameras:
-        feeds = [_camera_feed_card(cam) for cam in cameras[:4]]
+        feeds = list(cameras[:4])
+        left = feeds[0:2]
+        right = feeds[2:4]
+        pair_cards = [_camera_pair(left)]
+        if right:
+            pair_cards.append(_camera_pair(right))
         return {
             "type": "grid",
-            "columns": 4,
+            "columns": 2,
             "square": False,
             "view_layout": {
                 "grid-area": "cameras",
                 "place-self": "start stretch",
             },
-            "cards": feeds,
+            "cards": pair_cards,
             "card_mod": fill_mod,
         }
 
