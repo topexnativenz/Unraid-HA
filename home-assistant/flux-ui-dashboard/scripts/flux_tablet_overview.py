@@ -696,20 +696,20 @@ def _camera_feed_card(camera: dict) -> dict:
 
 
 def _tablet_overview_cameras(cfg: dict) -> list[dict]:
-    """Curated 3-camera row — never auto-discover the whole house."""
+    """Curated 4-camera row — never auto-discover the whole house."""
     tablet = cfg.get("tablet") or {}
     curated = list(tablet.get("overview_cameras") or [])
     if curated:
-        return curated[:3]
+        return curated[:4]
     cameras_cfg = cfg.get("cameras_config") or {}
     manual = list(cameras_cfg.get("cameras") or [])
-    return manual[:3]
+    return manual[:4]
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
-    # Single row of 3 — same width as Tesla; vertical padding separates the bands.
+    # Single row of 4 — same width as Tesla; vertical padding separates the bands.
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
@@ -734,14 +734,14 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         )
     }
     if cameras:
-        feeds = [_camera_feed_card(cam) for cam in cameras[:3]]
+        feeds = [_camera_feed_card(cam) for cam in cameras[:4]]
         return {
             "type": "grid",
-            "columns": 3,
+            "columns": 4,
             "square": False,
             "view_layout": {
                 "grid-area": "cameras",
-                "place-self": "stretch stretch",
+                "place-self": "start stretch",
             },
             "cards": feeds,
             "card_mod": fill_mod,
@@ -755,7 +755,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 {
                     "type": "markdown",
                     "content": (
-                        "Configure the 3 tablet cameras in `cameras.yaml` "
+                        "Configure the 4 tablet cameras in `cameras.yaml` "
                         "or `entities.yaml` → `tablet.overview_cameras`."
                     ),
                 }

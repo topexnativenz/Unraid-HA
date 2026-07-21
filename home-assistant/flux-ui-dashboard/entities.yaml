@@ -14,12 +14,14 @@ tablet:
   outdoor_temperature: weather.homemetservice
   # MQTT AndroidTablet (rk3576_u) Controls → RGB (see packages/flux_ui_tablet_led.yaml).
   rgb_led: light.rk3576_u_rgb
-  # Single overview camera row (3 feeds — same width as Tesla band below).
+  # Single overview camera row (4 feeds — same width as Tesla band below).
   overview_cameras:
     - entity: camera.side_door
       name: Driveway
     - entity: camera.front_door_doorbell
       name: Front door Doorbell
+    - entity: camera.front_yard
+      name: Front Yard
     - entity: camera.garage_door
       name: Garage Door
 
