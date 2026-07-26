@@ -157,6 +157,7 @@ def verify_build(path: Path) -> list[str]:
             '"min_height": "320px"',
             '"height": "calc(100dvh - 240px)"',
             "min-height: 200px",
+            "media_player.kitchen_sonos",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
@@ -164,6 +165,10 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet overview still has room_selector filter chips")
         if '"content": "Default"' in overview_blob and '"content": "Outdoor"' in overview_blob:
             errors.append("Tablet overview still has Default/Others/Outdoor filter chips")
+        if '"speaker_group"' in overview_blob:
+            errors.append("Tablet music must not include speaker_group (Kitchen-only)")
+        if "media_player.kitchen_sonos" not in overview_blob:
+            errors.append("Tablet music must be fixed to media_player.kitchen_sonos")
         if "mediocre-chip-media-player-group-card" in overview_blob:
             errors.append(
                 "Tablet music must not include zone/group chip header (stretches overview)"

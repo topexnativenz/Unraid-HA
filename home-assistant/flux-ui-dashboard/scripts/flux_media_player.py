@@ -551,48 +551,49 @@ def _speaker_group_entities(players: list[dict]) -> list[str]:
     return [p["entity"] for p in players if is_sonos_zone(p)]
 
 
-def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Tablet music column: full mediocre-massive player only (no zone chip header).
-
-    Artwork sits under the Music title — zone chips/group pickers were stretching
-    the overview. Zone still follows ``input_select.flux_ui_media_player``;
-    ``speaker_group`` on the massive card covers multi-room from inside the player.
-    """
+def _tablet_music_player(cfg: dict) -> dict | None:
+    """Resolve the single Sonos zone for the tablet overview (Kitchen)."""
+    tablet = cfg.get("tablet") or {}
+    preferred = (tablet.get("music_entity") or "media_player.kitchen_sonos").strip()
     players = enabled_players(cfg)
-    if not players:
+    for player in players:
+        if player.get("entity") == preferred:
+            return player
+    # Name fallback — Kitchen SONOS / Kitchen.
+    for player in players:
+        name = (player.get("name") or "").lower()
+        if "kitchen" in name and is_sonos_zone(player):
+            return player
+    return None
+
+
+def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
+    """Tablet music column — fixed Kitchen Sonos massive player (no zone picker).
+
+    Other zones stay on the phone popup/navbar. Tablet is kitchen-only so the
+    artwork sits under Music with no speaker chips or group header.
+    """
+    player = _tablet_music_player(cfg)
+    if not player:
         return {
             "type": "markdown",
             "content": (
-                "No Sonos players configured. Run "
-                "`discover_sonos.py --apply` or edit `media_players.yaml`."
+                "Kitchen Sonos not configured. Set `tablet.music_entity` in "
+                "`entities.yaml` or enable Kitchen in `media_players.yaml`."
             ),
         }
 
-    group_entities = _speaker_group_entities(players)
-    cards: list[dict] = []
-
-    for player in players:
-        cards.append(
-            _tablet_zone_panel(
-                player,
-                use_mediocre=use_mediocre,
-                source="sonos",
-                group_entities=group_entities,
-            )
-        )
-        if is_sonos_zone(player) and player.get("apple_tv"):
-            cards.append(
-                _tablet_zone_panel(
-                    player,
-                    use_mediocre=use_mediocre,
-                    source="apple_tv",
-                    group_entities=group_entities,
-                )
-            )
+    entity = player["entity"]
+    name = player.get("name") or "Kitchen SONOS"
+    if use_mediocre:
+        # No speaker_group — that UI lists every zone above the artwork.
+        card = _mediocre_tablet_player_card(entity, name)
+    else:
+        card = _mushroom_player_card(entity, name)
 
     return {
         "type": "vertical-stack",
-        "cards": cards,
+        "cards": [card],
         "card_mod": {
             "style": (
                 ":host, ha-card {\n"

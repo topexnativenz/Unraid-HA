@@ -661,6 +661,7 @@ def build_config(
             "touch-action: pan-y",
             "picture-entity",
             "mediocre-massive-media-player-card",
+            "media_player.kitchen_sonos",
             "Weather Forecast",
             "cameras cameras cameras calendar_notification",
             "rooms simple_tab music calendar_notification",
@@ -707,6 +708,20 @@ def build_config(
         if '"type": "custom:mediocre-media-player-card"' in blob:
             print(
                 "\nERROR: Tablet music must not use compact mediocre-media-player-card.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "media_player.kitchen_sonos" not in blob:
+            print(
+                "\nERROR: Tablet music must be fixed to media_player.kitchen_sonos.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        # Kitchen-only — no multi-zone speaker_group chips above artwork.
+        if '"speaker_group"' in blob:
+            print(
+                "\nERROR: Tablet music must not include speaker_group "
+                "(Kitchen-only; no zone list above artwork).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

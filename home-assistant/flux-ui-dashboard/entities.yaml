@@ -15,6 +15,8 @@ tablet:
   # MQTT AndroidTablet (rk3576_u) Controls → RGB (see packages/flux_ui_tablet_led.yaml).
   # Discovery entity_id is light.rk3576_u_rk3576_u_rgb (not light.rk3576_u_rgb).
   rgb_led: light.rk3576_u_rk3576_u_rgb
+  # Tablet overview Music column — fixed to Kitchen (no zone picker).
+  music_entity: media_player.kitchen_sonos
   # Single overview camera row (4 feeds — same width as Tesla band below).
   # Tiles show last-stream JPEGs from /local/flux-ui/camera-stills/ (see package).
   # Reolink tap → bubble live. Eufy tap → wake-then-live subview (needs stream:).
