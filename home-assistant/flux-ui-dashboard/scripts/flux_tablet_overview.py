@@ -17,6 +17,37 @@ from flux_tablet_tesla import build_tablet_tesla_band
 from flux_time import nz_datetime_short_js, nz_greeting_js
 from md3_templates import GLASS_CARD_MOD, wrap_glass
 
+# Bubble modular window — Reolink Back Courtyard live stream (fullscreen on tablet).
+REOLINK_CAMERA_HASH = "#back-courtyard"
+REOLINK_CAMERA_ENTITY = "camera.back_courtyard_fluent"
+
+REOLINK_POPUP_STYLES = """\
+#root {
+  height: unset !important;
+  max-height: 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  transition: transform var(--md-sys-motion-expressive-spatial-default) !important;
+}
+.bubble-header-container {
+  --bubble-button-background-color: var(--md-sys-color-on-secondary);
+  --bubble-button-icon-background-color: var(--md-sys-color-on-secondary);
+}
+.bubble-pop-up {
+  --bubble-pop-up-margin: 0px !important;
+  width: min(100vw, 100%) !important;
+  max-width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  border-radius: 0 !important;
+}
+.bubble-pop-up-container {
+  padding: 8px 12px 24px 12px !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+"""
+
 
 def _area(name: str) -> dict:
     """Grid area placement. Cameras expand; Tesla stays fixed at the bottom edge."""
@@ -703,10 +734,48 @@ def _camera_card_mod() -> dict:
     }
 
 
+def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
+    """Fullscreen bubble modular window for Reolink Back Courtyard live stream."""
+    del cfg  # reserved for future multi-camera popups
+    return {
+        "type": "custom:bubble-card",
+        "card_type": "pop-up",
+        "hash": REOLINK_CAMERA_HASH,
+        "name": "Back Courtyard",
+        "icon": "mdi:cctv",
+        "entity": REOLINK_CAMERA_ENTITY,
+        "styles": REOLINK_POPUP_STYLES,
+        "bg_color": "#0a0a0a",
+        "bg_opacity": "96",
+        "bg_blur": "0",
+        "button_type": "name",
+        "sub_button": {"main": [], "bottom": []},
+        "popup_style": "classic",
+        "cards": [
+            {
+                "type": "custom:webrtc-camera",
+                "entity": REOLINK_CAMERA_ENTITY,
+                "title": "Back Courtyard",
+                "muted": True,
+                "media": "video",
+                # Prefer MSE/WebRTC for Reolink PoE; MJPEG fallback for Fully.
+                "mode": "mse,webrtc,mjpeg",
+                "ui": True,
+                "style": (
+                    "video{object-fit:contain;width:100%;"
+                    "height:calc(100dvh - 96px);max-height:calc(100dvh - 96px);"
+                    "background:#000}"
+                    ".header{font-size:14px;font-weight:600}"
+                ),
+            }
+        ],
+    }
+
+
 def _camera_feed_card(camera: dict) -> dict:
     """Landscape camera tile — fixed 160px box.
 
-    Reolink: picture-entity live (working camera_proxy).
+    Reolink: picture-entity live; tap opens fullscreen bubble modular window.
     Eufy: event-image stills; tap opens a live subview (RTSP needs wake-up first).
     """
     from flux_tablet_eufy import build_eufy_overview_tile
@@ -721,6 +790,10 @@ def _camera_feed_card(camera: dict) -> dict:
     if still:
         return build_eufy_overview_tile(camera)
 
+    tap: dict = {"action": "more-info", "entity": entity}
+    if entity == REOLINK_CAMERA_ENTITY:
+        tap = {"action": "navigate", "navigation_path": REOLINK_CAMERA_HASH}
+
     return wrap_glass(
         {
             "type": "picture-entity",
@@ -729,7 +802,8 @@ def _camera_feed_card(camera: dict) -> dict:
             "show_name": True,
             "show_state": False,
             "camera_view": "live",
-            "tap_action": {"action": "more-info", "entity": entity},
+            "tap_action": tap,
+            "hold_action": {"action": "more-info", "entity": entity},
             "card_mod": _camera_card_mod(),
         }
     )
@@ -911,7 +985,51 @@ def build_tablet_overview_view(
             ),
         },
     )
-    root = tablet_panel_stack(layout, use_navbar_card=use_navbar_card, overview=True)
+    # Bubble pop-up must live in the overview DOM; keep it zero-height when closed
+    # so it does not steal flex space from the 16:9 layout.
+    overview_body = {
+        "type": "vertical-stack",
+        "cards": [
+            layout,
+            build_reolink_fullscreen_popup(cfg),
+        ],
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  padding: 0 !important;\n"
+                "  margin: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+                "#root {\n"
+                "  height: 100% !important;\n"
+                "  display: flex !important;\n"
+                "  flex-direction: column !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+                "#root > *:first-child {\n"
+                "  flex: 1 1 auto !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: 100% !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+                "#root > *:last-child {\n"
+                "  flex: 0 0 0 !important;\n"
+                "  height: 0 !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: 0 !important;\n"
+                "  overflow: visible !important;\n"
+                "}\n"
+            )
+        },
+    }
+    root = tablet_panel_stack(
+        overview_body, use_navbar_card=use_navbar_card, overview=True
+    )
     return tablet_panel_view(
         title="Overview",
         path="overview",

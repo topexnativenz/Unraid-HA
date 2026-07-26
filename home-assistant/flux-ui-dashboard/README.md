@@ -18,7 +18,8 @@ Side of House → Garage Door (`entities.yaml` → `tablet.overview_cameras`).
 Eufy overview tiles show `image.*_event_image` stills (camera_proxy 500s;
 go2rtc DESCRIBE fails until the cam is awake). Tap opens an `eufy-*` live
 subview that calls `camera.turn_on` then plays WebRTC MSE via `ffmpeg:` RTSP.
-Reolink stays `picture-entity` live. Package: `packages/flux_ui_eufy_cameras.yaml`.
+Reolink stays `picture-entity` live; tap opens a fullscreen Bubble Card modular
+window (`#back-courtyard`) with WebRTC. Package: `packages/flux_ui_eufy_cameras.yaml`.
 Unused Eufy cameras are disabled via `scripts/fix_eufy_cameras.py`.
 
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs

@@ -121,6 +121,8 @@ def verify_build(path: Path) -> list[str]:
             "Model X",
             "Model S",
             "camera.back_courtyard_fluent",
+            "#back-courtyard",
+            "custom:bubble-card",
             "image.side_door_event_image",
             "image.side_of_house_event_image",
             "image.garage_door_event_image",
