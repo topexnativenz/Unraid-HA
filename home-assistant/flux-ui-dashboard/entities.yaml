@@ -16,20 +16,22 @@ tablet:
   # Discovery entity_id is light.rk3576_u_rk3576_u_rgb (not light.rk3576_u_rgb).
   rgb_led: light.rk3576_u_rk3576_u_rgb
   # Single overview camera row (4 feeds — same width as Tesla band below).
-  # Reolink Back Courtyard + Eufy Driveway / Side of House / Garage Door.
-  # Eufy camera_proxy often 500s — use event image entities for tile stills.
+  # Reolink: picture-entity live. Eufy: WebRTC via HomeBase RTSP (camera_proxy 500s).
   overview_cameras:
     - entity: camera.back_courtyard_fluent
       name: Back Courtyard
     - entity: camera.side_door
       name: Driveway
       still: image.side_door_event_image
+      stream: sensor.side_door_rtsp_stream_url
     - entity: camera.side_of_house
       name: Side of House
       still: image.side_of_house_event_image
+      stream: sensor.side_of_house_rtsp_stream_url
     - entity: camera.garage_door
       name: Garage Door
       still: image.garage_door_event_image
+      stream: sensor.garage_door_rtsp_stream_url
 
 # Tessie / Tesla tiles — under the camera row (2 equal columns).
 # Prefer live Tessie entity IDs from this house (Model S = model_s_p100d_*, Model X = x_*).

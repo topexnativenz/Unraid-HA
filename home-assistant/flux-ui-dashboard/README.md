@@ -15,10 +15,11 @@ if discovery used a different ID.
 
 **Tablet cameras:** overview row is Reolink Back Courtyard → Eufy Driveway →
 Side of House → Garage Door (`entities.yaml` → `tablet.overview_cameras`).
-Eufy tiles use `image.*_event_image` stills (camera_proxy often 500s); tap opens
-the camera entity. RTSP keep-on + still refresh: `packages/flux_ui_eufy_cameras.yaml`.
-Unused Eufy cameras (Front Yard, Clubrooms, Showroom) are disabled via
-`scripts/fix_eufy_cameras.py` (runs on deploy).
+Eufy `camera_proxy` returns HTTP 500, so Eufy tiles use `custom:webrtc-camera`
+against HomeBase RTSP URL sensors (MSE/MJPEG first for Fully Kiosk) with
+`image.*_event_image` posters. Reolink stays `picture-entity` live.
+RTSP keep-on: `packages/flux_ui_eufy_cameras.yaml`. Unused Eufy cameras
+(Front Yard, Clubrooms, Showroom) are disabled via `scripts/fix_eufy_cameras.py`.
 
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
 

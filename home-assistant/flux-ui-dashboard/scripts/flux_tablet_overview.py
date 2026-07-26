@@ -646,87 +646,206 @@ def _rooms_band(cfg: dict) -> dict:
     }
 
 
-def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera still — fixed box; image is absolute so load cannot reflow.
+def _camera_card_mod() -> dict:
+    """Fixed 160px tile — stills/video paint inside without reflow."""
+    return {
+        "style": (
+            "ha-card {\n"
+            "  position: relative !important;\n"
+            "  padding: 0 !important;\n"
+            "  margin: 0 !important;\n"
+            "  overflow: hidden !important;\n"
+            "  width: 100% !important;\n"
+            "  height: 160px !important;\n"
+            "  min-height: 160px !important;\n"
+            "  max-height: 160px !important;\n"
+            "  aspect-ratio: unset !important;\n"
+            "  background: #111 !important;\n"
+            "  box-sizing: border-box !important;\n"
+            "}\n"
+            ".card-content,\n"
+            "hui-image,\n"
+            "ha-camera-stream,\n"
+            "img,\n"
+            "video {\n"
+            "  position: absolute !important;\n"
+            "  inset: 0 !important;\n"
+            "  top: 0 !important;\n"
+            "  left: 0 !important;\n"
+            "  right: 0 !important;\n"
+            "  bottom: 0 !important;\n"
+            "  width: 100% !important;\n"
+            "  height: 100% !important;\n"
+            "  max-width: 100% !important;\n"
+            "  max-height: 100% !important;\n"
+            "  min-width: 0 !important;\n"
+            "  min-height: 0 !important;\n"
+            "  object-fit: cover !important;\n"
+            "  margin: 0 !important;\n"
+            "  padding: 0 !important;\n"
+            "  display: block !important;\n"
+            "}\n"
+            ".name,\n"
+            ".footer {\n"
+            "  position: absolute !important;\n"
+            "  left: 8px !important;\n"
+            "  bottom: 6px !important;\n"
+            "  z-index: 2 !important;\n"
+            "  width: auto !important;\n"
+            "  height: auto !important;\n"
+            "  font-size: 12px !important;\n"
+            "  font-weight: 600 !important;\n"
+            "  color: #fff !important;\n"
+            "  text-shadow: 0 1px 4px rgba(0,0,0,0.85) !important;\n"
+            "  pointer-events: none !important;\n"
+            "}\n"
+        )
+    }
 
-    Eufy Security often returns HTTP 500 from /api/camera_proxy — use optional
-    ``still`` (image.*_event_image) for the tile, tap opens the camera entity.
+
+def _eufy_rtsp_url_template(stream_sensor: str) -> str:
+    """Jinja for WebRTC url — inject HomeBase RTSP user/pass when the sensor omits them.
+
+    Driveway's RTSP sensor includes credentials; Garage / Side of House often only
+    expose ``rtsp://192.168.1.25/liveN``. go2rtc needs the same auth for those paths.
+    """
+    # Keep this as one Jinja expression (WebRTC card evaluates templates).
+    return (
+        "{% set u = states('%s') %}"
+        "{% set auth = states('sensor.side_door_rtsp_stream_url') %}"
+        "{% if u[:7] == 'rtsp://' and '@' not in u and '@' in auth %}"
+        "{% set cred = auth[7:].split('@')[0] %}"
+        "{{ 'rtsp://' ~ cred ~ '@' ~ u[7:] }}"
+        "{% else %}{{ u }}{% endif %}"
+    ) % stream_sensor
+
+
+def _eufy_webrtc_card(camera: dict) -> dict:
+    """Eufy outdoor tile via WebRTC/go2rtc + HomeBase RTSP.
+
+    Eufy ``/api/camera_proxy`` returns HTTP 500, so picture-entity / more-info
+    streams fail. WebRTC pulls the RTSP URL sensor directly; event-image is the
+    poster until the stream connects. MSE/MJPEG first for Fully Kiosk WebView.
     """
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     still = (camera.get("still") or "").strip()
-    # Prefer working image entities for Eufy; Reolink uses the camera proxy/stream.
-    display_entity = still or entity
+    stream = (camera.get("stream") or "").strip()
     card: dict = {
-        "type": "picture-entity",
-        "entity": display_entity,
-        "name": name,
-        "show_name": True,
-        "show_state": False,
-        "tap_action": {"action": "more-info", "entity": entity},
-        "hold_action": {
-            "action": "perform-action",
-            "perform_action": "camera.turn_on",
-            "target": {"entity_id": entity},
-        },
-        "card_mod": {
-            "style": (
-                # Fixed geometry — stills paint absolutely inside; never push layout.
-                "ha-card {\n"
-                "  position: relative !important;\n"
-                "  padding: 0 !important;\n"
-                "  margin: 0 !important;\n"
-                "  overflow: hidden !important;\n"
-                "  width: 100% !important;\n"
-                "  height: 160px !important;\n"
-                "  min-height: 160px !important;\n"
-                "  max-height: 160px !important;\n"
-                "  aspect-ratio: unset !important;\n"
-                "  background: #111 !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                ".card-content,\n"
-                "hui-image,\n"
-                "ha-camera-stream,\n"
-                "img {\n"
-                "  position: absolute !important;\n"
-                "  inset: 0 !important;\n"
-                "  top: 0 !important;\n"
-                "  left: 0 !important;\n"
-                "  right: 0 !important;\n"
-                "  bottom: 0 !important;\n"
-                "  width: 100% !important;\n"
-                "  height: 100% !important;\n"
-                "  max-width: 100% !important;\n"
-                "  max-height: 100% !important;\n"
-                "  min-width: 0 !important;\n"
-                "  min-height: 0 !important;\n"
-                "  object-fit: cover !important;\n"
-                "  margin: 0 !important;\n"
-                "  padding: 0 !important;\n"
-                "  display: block !important;\n"
-                "}\n"
-                ".name,\n"
-                ".footer {\n"
-                "  position: absolute !important;\n"
-                "  left: 8px !important;\n"
-                "  bottom: 6px !important;\n"
-                "  z-index: 2 !important;\n"
-                "  width: auto !important;\n"
-                "  height: auto !important;\n"
-                "  font-size: 12px !important;\n"
-                "  font-weight: 600 !important;\n"
-                "  color: #fff !important;\n"
-                "  text-shadow: 0 1px 4px rgba(0,0,0,0.85) !important;\n"
-                "  pointer-events: none !important;\n"
-                "}\n"
-            )
-        },
+        "type": "custom:webrtc-camera",
+        "title": name,
+        "entity": entity,
+        "muted": True,
+        "media": "video",
+        # Fully Kiosk (Android WebView): prefer MSE/MJPEG over WebRTC.
+        "mode": "mse,mjpeg,hls,webrtc",
+        "intersection": 0.35,
+        "url": _eufy_rtsp_url_template(stream),
+        "style": (
+            "video{object-fit:cover;width:100%;height:160px;background:#111}"
+            ".mode{display:none}"
+            ".fullscreen{display:none}"
+            ".pictureinpicture{display:none}"
+            ".header{top:unset;bottom:6px;left:8px;font-size:12px;"
+            "font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.85)}"
+        ),
+        "card_mod": _camera_card_mod(),
     }
-    if not still:
-        # Reolink / cameras with working proxy — show live when available.
-        card["camera_view"] = "live"
+    if still:
+        # Relative /api/image_proxy/...?... token — works in authenticated HA UI.
+        card["poster"] = "{{ state_attr('%s', 'entity_picture') }}" % still
     return wrap_glass(card)
+
+
+def _eufy_still_button_card(camera: dict) -> dict:
+    """Fallback still tile when no RTSP sensor — button-card entity_picture (Fully-safe)."""
+    entity = camera["entity"]
+    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
+    still = (camera.get("still") or entity).strip()
+    return wrap_glass(
+        {
+            "type": "custom:button-card",
+            "entity": still,
+            "name": name,
+            "show_name": True,
+            "show_icon": False,
+            "show_state": False,
+            "show_entity_picture": True,
+            "tap_action": {
+                "action": "perform-action",
+                "perform_action": "camera.turn_on",
+                "target": {"entity_id": entity},
+            },
+            "double_tap_action": {"action": "more-info", "entity": entity},
+            "hold_action": {"action": "more-info", "entity": entity},
+            "styles": {
+                "card": [
+                    {"height": "160px"},
+                    {"min-height": "160px"},
+                    {"max-height": "160px"},
+                    {"padding": "0"},
+                    {"overflow": "hidden"},
+                    {"background": "#111"},
+                ],
+                "img_cell": [
+                    {"width": "100%"},
+                    {"height": "160px"},
+                    {"position": "absolute"},
+                    {"top": "0"},
+                    {"left": "0"},
+                    {"margin": "0"},
+                    {"padding": "0"},
+                ],
+                "entity_picture": [
+                    {"width": "100%"},
+                    {"height": "160px"},
+                    {"object-fit": "cover"},
+                    {"border-radius": "0"},
+                ],
+                "name": [
+                    {"position": "absolute"},
+                    {"left": "8px"},
+                    {"bottom": "6px"},
+                    {"color": "#fff"},
+                    {"font-size": "12px"},
+                    {"font-weight": "600"},
+                    {"text-shadow": "0 1px 4px rgba(0,0,0,0.85)"},
+                    {"pointer-events": "none"},
+                    {"z-index": 2},
+                ],
+            },
+        }
+    )
+
+
+def _camera_feed_card(camera: dict) -> dict:
+    """Landscape camera tile — fixed 160px box.
+
+    Reolink: picture-entity live (working camera_proxy).
+    Eufy: WebRTC/go2rtc against HomeBase RTSP + event-image poster.
+    """
+    entity = camera["entity"]
+    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
+    still = (camera.get("still") or "").strip()
+    stream = (camera.get("stream") or "").strip()
+
+    if stream:
+        return _eufy_webrtc_card(camera)
+    if still:
+        return _eufy_still_button_card(camera)
+
+    return wrap_glass(
+        {
+            "type": "picture-entity",
+            "entity": entity,
+            "name": name,
+            "show_name": True,
+            "show_state": False,
+            "camera_view": "live",
+            "tap_action": {"action": "more-info", "entity": entity},
+            "card_mod": _camera_card_mod(),
+        }
+    )
 
 
 def _tablet_overview_cameras(cfg: dict) -> list[dict]:
