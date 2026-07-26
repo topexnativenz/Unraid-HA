@@ -33,18 +33,30 @@ REOLINK_POPUP_STYLES = """\
   --bubble-button-background-color: var(--md-sys-color-on-secondary);
   --bubble-button-icon-background-color: var(--md-sys-color-on-secondary);
 }
+/* Fully Kiosk / kiosk-mode: force true viewport fullscreen (ignore sidebar offset). */
 .bubble-pop-up {
   --bubble-pop-up-margin: 0px !important;
-  width: min(100vw, 100%) !important;
+  --mdc-drawer-width: 0px !important;
+  --ha-sidebar-width: 0px !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  transform: none !important;
+  margin: 0 !important;
+  width: 100vw !important;
   max-width: 100vw !important;
   height: 100dvh !important;
   max-height: 100dvh !important;
   border-radius: 0 !important;
+  box-sizing: border-box !important;
 }
 .bubble-pop-up-container {
-  padding: 8px 12px 24px 12px !important;
-  height: 100% !important;
+  padding: 4px 8px 12px 8px !important;
+  height: calc(100dvh - 56px) !important;
+  max-height: calc(100dvh - 56px) !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 """
 
@@ -735,7 +747,12 @@ def _camera_card_mod() -> dict:
 
 
 def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
-    """Fullscreen bubble modular window for Reolink Back Courtyard live stream."""
+    """Fullscreen bubble modular window for Reolink Back Courtyard live stream.
+
+    Uses picture-entity live (stable HA MJPEG/HLS) — WebRTC often connects then
+    drops black on Fully Kiosk. ``is_sidebar_hidden`` keeps the popup centered
+    when kiosk-mode hides the HA sidebar.
+    """
     del cfg  # reserved for future multi-camera popups
     return {
         "type": "custom:bubble-card",
@@ -746,27 +763,56 @@ def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
         "entity": REOLINK_CAMERA_ENTITY,
         "styles": REOLINK_POPUP_STYLES,
         "bg_color": "#0a0a0a",
-        "bg_opacity": "96",
+        "bg_opacity": "98",
         "bg_blur": "0",
         "button_type": "name",
         "sub_button": {"main": [], "bottom": []},
         "popup_style": "classic",
+        # Tablet Fully Kiosk hides HA sidebar — without this, bubble offsets right.
+        "is_sidebar_hidden": True,
+        "width_desktop": "100%",
+        "margin": "0px",
+        "margin_top_mobile": "0px",
+        "margin_top_desktop": "0px",
         "cards": [
             {
-                "type": "custom:webrtc-camera",
+                "type": "picture-entity",
                 "entity": REOLINK_CAMERA_ENTITY,
-                "title": "Back Courtyard",
-                "muted": True,
-                "media": "video",
-                # Prefer MSE/WebRTC for Reolink PoE; MJPEG fallback for Fully.
-                "mode": "mse,webrtc,mjpeg",
-                "ui": True,
-                "style": (
-                    "video{object-fit:contain;width:100%;"
-                    "height:calc(100dvh - 96px);max-height:calc(100dvh - 96px);"
-                    "background:#000}"
-                    ".header{font-size:14px;font-weight:600}"
-                ),
+                "name": "Back Courtyard",
+                "camera_image": REOLINK_CAMERA_ENTITY,
+                "camera_view": "live",
+                "show_name": False,
+                "show_state": False,
+                "tap_action": {"action": "none"},
+                "hold_action": {
+                    "action": "more-info",
+                    "entity": REOLINK_CAMERA_ENTITY,
+                },
+                "card_mod": {
+                    "style": (
+                        "ha-card {\n"
+                        "  background: #000 !important;\n"
+                        "  box-shadow: none !important;\n"
+                        "  border: none !important;\n"
+                        "  border-radius: 12px !important;\n"
+                        "  padding: 0 !important;\n"
+                        "  margin: 0 !important;\n"
+                        "  width: 100% !important;\n"
+                        "  height: calc(100dvh - 88px) !important;\n"
+                        "  max-height: calc(100dvh - 88px) !important;\n"
+                        "  overflow: hidden !important;\n"
+                        "}\n"
+                        "hui-image,\n"
+                        "ha-camera-stream,\n"
+                        "img,\n"
+                        "video {\n"
+                        "  width: 100% !important;\n"
+                        "  height: 100% !important;\n"
+                        "  object-fit: contain !important;\n"
+                        "  background: #000 !important;\n"
+                        "}\n"
+                    )
+                },
             }
         ],
     }

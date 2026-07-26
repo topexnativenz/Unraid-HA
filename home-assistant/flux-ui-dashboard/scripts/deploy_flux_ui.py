@@ -637,6 +637,8 @@ def build_config(
             "camera.back_courtyard_fluent",
             "#back-courtyard",
             "custom:bubble-card",
+            "is_sidebar_hidden",
+            '"width_desktop": "100%"',
             "image.side_door_event_image",
             "image.side_of_house_event_image",
             "image.garage_door_event_image",
