@@ -808,7 +808,9 @@ def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
                         "video {\n"
                         "  width: 100% !important;\n"
                         "  height: 100% !important;\n"
-                        "  object-fit: contain !important;\n"
+                        # Cover fills the card — Duo 3 ultra-wide must not letterbox.
+                        "  object-fit: cover !important;\n"
+                        "  object-position: center !important;\n"
                         "  background: #000 !important;\n"
                         "}\n"
                     )

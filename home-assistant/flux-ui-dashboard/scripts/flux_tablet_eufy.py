@@ -76,12 +76,38 @@ def _rtsp_switch_entity(camera_entity: str) -> str:
     return "switch." + camera_entity.split(".", 1)[-1] + "_rtsp_stream"
 
 
+def _still_img_html(entity: str) -> str:
+    """Absolute cover image — fills the 160px tile (no letterbox bars)."""
+    fname = camera_still_filename(entity)
+    # JS template so cache token updates when snapshots refresh.
+    return (
+        "[[[ const t = states['"
+        + STILL_TOKEN_ENTITY
+        + "'] ? states['"
+        + STILL_TOKEN_ENTITY
+        + "'].state : '0'; "
+        "return `<img src=\""
+        + STILL_LOCAL_DIR
+        + "/"
+        + fname
+        + "?v=${t}\" "
+        "alt=\"\" "
+        "style=\"position:absolute;inset:0;width:100%;height:100%;"
+        "object-fit:cover;object-position:center;display:block;"
+        "margin:0;padding:0;border:0;\" />`; ]]]"
+    )
+
+
 def build_overview_still_tile(
     camera: dict,
     *,
     tap_path: str,
 ) -> dict:
-    """Last-stream JPEG tile — tap opens live (bubble hash or eufy subview)."""
+    """Last-stream JPEG tile — tap opens live (bubble hash or eufy subview).
+
+    Image uses object-fit:cover so ultra-wide cams (Reolink Duo 3) fill the
+    card with no black bars top/bottom.
+    """
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
@@ -103,6 +129,9 @@ def build_overview_still_tile(
                 "perform_action": "script.flux_ui_camera_snapshot",
                 "data": {"camera_entity": entity},
             },
+            "custom_fields": {
+                "still": _still_img_html(entity),
+            },
             "styles": {
                 "card": [
                     {"height": "160px"},
@@ -110,9 +139,30 @@ def build_overview_still_tile(
                     {"max-height": "160px"},
                     {"padding": "0"},
                     {"overflow": "hidden"},
-                    {"background": camera_still_url_template(entity)},
                     {"background-color": "#111"},
+                    # Fallback fill if custom_fields img fails to paint.
+                    {"background": camera_still_url_template(entity)},
+                    {"background-size": "cover"},
+                    {"background-position": "center"},
+                    {"background-repeat": "no-repeat"},
                 ],
+                "grid": [
+                    {"grid-template-areas": "'still' 'n'"},
+                    {"grid-template-columns": "1fr"},
+                    {"grid-template-rows": "1fr min-content"},
+                    {"position": "relative"},
+                ],
+                "custom_fields": {
+                    "still": [
+                        {"position": "absolute"},
+                        {"inset": "0"},
+                        {"width": "100%"},
+                        {"height": "100%"},
+                        {"z-index": 0},
+                        {"pointer-events": "none"},
+                        {"overflow": "hidden"},
+                    ],
+                },
                 "name": [
                     {"position": "absolute"},
                     {"left": "8px"},
@@ -123,10 +173,6 @@ def build_overview_still_tile(
                     {"text-shadow": "0 1px 4px rgba(0,0,0,0.85)"},
                     {"pointer-events": "none"},
                     {"z-index": 2},
-                ],
-                "grid": [
-                    {"grid-template-areas": "'n'"},
-                    {"grid-template-columns": "1fr"},
                 ],
             },
         }
