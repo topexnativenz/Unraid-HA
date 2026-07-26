@@ -99,8 +99,12 @@ def main() -> int:
         living_text = json.dumps(living)
         if not living.get("subview"):
             issues.append("Room detail views should be subviews")
-        if living.get("back_path") != "/flux-ui/rooms":
-            issues.append("Room detail views should back_path to /flux-ui/rooms")
+        if living.get("back_path") != "/flux-ui/overview":
+            issues.append("Room detail views should back_path to /flux-ui/overview")
+        if '"name": "Overview"' not in living_text or "arrow-left" not in living_text:
+            issues.append("Room detail should show a labeled Overview back button")
+        if '"navigation_path": "/flux-ui/rooms"' in living_text:
+            issues.append("Room detail back control should navigate to overview, not rooms")
         if '"title": "Lights"' not in living_text:
             issues.append("Room detail missing Lights section title")
         if '"template": "flux_light"' not in living_text:

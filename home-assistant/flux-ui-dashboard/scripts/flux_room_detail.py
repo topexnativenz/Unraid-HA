@@ -5,7 +5,7 @@ from __future__ import annotations
 from flux_door_builders import build_doors_status_section
 from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
 from flux_navbar import (
-    URL_PREFIX,
+    overview_navigation_path,
     room_climate_navigation_path,
     room_grid_navigation_path,
     room_navigation_path,
@@ -61,8 +61,9 @@ def _full_width(card: dict) -> dict:
 
 
 def build_room_top_bar(room: dict) -> dict:
-    """Reference top bar — back, centered title, menu stub (no nested grid_options)."""
+    """Top bar — labeled Overview back control, centered room title, balance spacer."""
     title = room.get("card_name") or room["name"]
+    overview_path = overview_navigation_path()
     return _full_width(
         {
             "type": "horizontal-stack",
@@ -70,11 +71,43 @@ def build_room_top_bar(room: dict) -> dict:
                 wrap_glass(
                     {
                         "type": "custom:button-card",
-                        "template": "flux_icon_button",
-                        "icon": "mdi:arrow-left",
+                        "icon": "mdi:arrow-left-circle",
+                        "name": "Overview",
+                        "show_icon": True,
+                        "show_name": True,
+                        "show_state": False,
                         "tap_action": {
                             "action": "navigate",
-                            "navigation_path": f"{URL_PREFIX}/rooms",
+                            "navigation_path": overview_path,
+                        },
+                        "styles": {
+                            "grid": [
+                                {"grid-template-areas": "'i n'"},
+                                {"grid-template-columns": "min-content 1fr"},
+                                {"grid-template-rows": "1fr"},
+                                {"align-items": "center"},
+                                {"column-gap": "6px"},
+                            ],
+                            "card": [
+                                {"padding": "8px 14px 8px 10px"},
+                                {"min-height": "48px"},
+                                {"max-height": "48px"},
+                                {"min-width": "132px"},
+                                {"border-radius": "999px"},
+                                {"display": "flex"},
+                                {"align-items": "center"},
+                                {"justify-content": "flex-start"},
+                            ],
+                            "icon": [
+                                {"width": "26px"},
+                                {"color": "var(--md-sys-color-primary)"},
+                            ],
+                            "name": [
+                                {"font-size": "15px"},
+                                {"font-weight": "700"},
+                                {"justify-self": "start"},
+                                {"color": "var(--md-sys-color-on-surface)"},
+                            ],
                         },
                     }
                 ),
@@ -92,15 +125,25 @@ def build_room_top_bar(room: dict) -> dict:
                         },
                     }
                 ),
-                wrap_glass(
-                    {
-                        "type": "custom:button-card",
-                        "template": "flux_icon_button",
-                        "icon": "mdi:dots-horizontal",
-                        "tap_action": {"action": "none"},
-                        "styles": {"card": [{"opacity": "0.55"}]},
-                    }
-                ),
+                # Invisible spacer so the room title stays optically centered.
+                {
+                    "type": "custom:button-card",
+                    "show_icon": False,
+                    "show_name": False,
+                    "tap_action": {"action": "none"},
+                    "styles": {
+                        "card": [
+                            {"padding": "0"},
+                            {"min-height": "48px"},
+                            {"max-height": "48px"},
+                            {"min-width": "132px"},
+                            {"background": "transparent"},
+                            {"box-shadow": "none"},
+                            {"border": "none"},
+                            {"pointer-events": "none"},
+                        ],
+                    },
+                },
             ],
         }
     )

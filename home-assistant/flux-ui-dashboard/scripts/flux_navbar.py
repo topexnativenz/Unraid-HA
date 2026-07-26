@@ -19,6 +19,11 @@ def set_url_prefix(prefix: str) -> None:
     URL_PREFIX = prefix.rstrip("/") or "/flux-ui"
 
 
+def overview_navigation_path() -> str:
+    """Full browser path to the Flux overview (respects mobile vs tablet prefix)."""
+    return f"{URL_PREFIX}/overview"
+
+
 def room_view_path(room_slug: str) -> str:
     """Lovelace view path for a room detail page (no slashes — HA requirement)."""
     return f"room-{room_slug}"

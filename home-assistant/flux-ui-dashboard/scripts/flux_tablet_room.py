@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from flux_door_builders import build_doors_status_section
 from flux_layouts import _lights_tile_grid
-from flux_navbar import URL_PREFIX
+from flux_navbar import overview_navigation_path
 from flux_room_detail import (
     build_room_features_row,
     build_room_status_chips_auto,
@@ -177,5 +177,5 @@ def build_tablet_room_detail_view(
         icon=room.get("icon", "mdi:home-outline"),
         root_card=root,
         subview=True,
-        back_path=f"{URL_PREFIX}/rooms",
+        back_path=overview_navigation_path(),
     )

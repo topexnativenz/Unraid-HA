@@ -187,6 +187,19 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet build missing Active activity view")
         if not any(v.get("path") == "scenes" for v in views):
             errors.append("Tablet build missing Scenes/Preset view")
+        living = next((v for v in views if v.get("path") == "room-living"), None)
+        if living is None:
+            errors.append("Tablet build missing room-living view")
+        else:
+            living_blob = json.dumps(living)
+            if living.get("back_path") != "/flux-ui-tablet/overview":
+                errors.append("Tablet room detail back_path should be /flux-ui-tablet/overview")
+            if '"name": "Overview"' not in living_blob or "arrow-left" not in living_blob:
+                errors.append("Tablet room detail should show a labeled Overview back button")
+            if '"navigation_path": "/flux-ui-tablet/overview"' not in living_blob:
+                errors.append("Tablet room Overview button should navigate to tablet overview")
+            if '"navigation_path": "/flux-ui-tablet/rooms"' in living_blob:
+                errors.append("Tablet room back should not navigate to rooms index")
     else:
         if len(overview_sections) < 6:
             if not usage["has_simple_tabs"] and not usage["has_native_tabs"] and len(overview_sections) < 6:

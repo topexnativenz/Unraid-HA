@@ -35,8 +35,8 @@ from md3_templates import (
 )
 from flux_navbar import (
     TABLET_URL_PREFIX,
-    URL_PREFIX,
     navbar_section,
+    overview_navigation_path,
     room_camera_view_path,
     room_climate_view_path,
     room_grid_view_path,
@@ -791,7 +791,7 @@ def _build_config_inner(
 
     for room in cfg.get("rooms", []):
         slug = room["path"]
-        back = f"{URL_PREFIX}/rooms"
+        back = overview_navigation_path()
         doors = cfg.get("quick_actions", {}).get("garage", []) if slug == "garage" else None
         if tablet:
             views.append(
