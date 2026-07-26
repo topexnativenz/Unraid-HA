@@ -649,7 +649,9 @@ def build_config(
             "ffmpeg:",
             '"camera_view": "live"',
             "data:image/webp;base64,",
-            "Good Morning!",
+            "__fluxNzClock",
+            "hourCycle: 'h23'",
+            "Pacific/Auckland",
             "gap: 12px !important",
             '"width": "100%"',
             '"days_to_show": 7',
@@ -721,9 +723,22 @@ def build_config(
                     file=sys.stderr,
                 )
                 raise SystemExit(1)
-        if "flux_hero" not in blob:
-            print("\nERROR: Tablet build missing flux_hero greeting.", file=sys.stderr)
+        if "__fluxNzClock" not in blob or "hourCycle: 'h23'" not in blob:
+            print(
+                "\nERROR: Tablet build missing NZ digital clock (Shelly-style greeting corner).\n",
+                file=sys.stderr,
+            )
             raise SystemExit(1)
+        if "Good Morning!" in blob and '"grid-area": "greeting"' in blob:
+            # Greeting corner must be clock-only on tablet (phone keeps flux_hero).
+            greeting_idx = blob.find('"grid-area": "greeting"')
+            greeting_slice = blob[max(0, greeting_idx - 800) : greeting_idx + 200]
+            if "Good Morning!" in greeting_slice:
+                print(
+                    "\nERROR: Tablet greeting corner still uses Good Morning greeting.\n",
+                    file=sys.stderr,
+                )
+                raise SystemExit(1)
         if use_kiosk and "kiosk_mode" not in config:
             print("\nERROR: Build missing kiosk_mode block.", file=sys.stderr)
             raise SystemExit(1)

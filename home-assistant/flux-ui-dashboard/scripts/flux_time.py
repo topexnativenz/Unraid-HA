@@ -54,3 +54,43 @@ def nz_time_short_js() -> str:
         f"timeZone: '{NZ_TIMEZONE}', "
         "hour: 'numeric', minute: '2-digit'}); ]]]"
     )
+
+
+def nz_clock_time_js() -> str:
+    """Large digital HH:MM in Pacific/Auckland; refreshes every 15s."""
+    return (
+        "[[[\n"
+        "  if (this && !this.__fluxNzClock) {\n"
+        "    this.__fluxNzClock = setInterval(() => {\n"
+        "      try { this.update(); } catch (e) {}\n"
+        "    }, 15000);\n"
+        "  }\n"
+        "  return new Date().toLocaleTimeString('en-NZ', {\n"
+        f"    timeZone: '{NZ_TIMEZONE}',\n"
+        "    hour: '2-digit',\n"
+        "    minute: '2-digit',\n"
+        "    hourCycle: 'h23'\n"
+        "  });\n"
+        "]]]"
+    )
+
+
+def nz_clock_date_js() -> str:
+    """Weekday + date + NZST/NZDT — Shelly Wall Display–style subtitle."""
+    return (
+        "[[[\n"
+        "  const d = new Date();\n"
+        "  const date = d.toLocaleDateString('en-NZ', {\n"
+        f"    timeZone: '{NZ_TIMEZONE}',\n"
+        "    weekday: 'long',\n"
+        "    day: 'numeric',\n"
+        "    month: 'long'\n"
+        "  });\n"
+        "  const parts = new Intl.DateTimeFormat('en-NZ', {\n"
+        f"    timeZone: '{NZ_TIMEZONE}',\n"
+        "    timeZoneName: 'short'\n"
+        "  }).formatToParts(d);\n"
+        "  const tz = (parts.find((p) => p.type === 'timeZoneName') || {}).value || 'NZST';\n"
+        "  return `${date} · ${tz}`;\n"
+        "]]]"
+    )

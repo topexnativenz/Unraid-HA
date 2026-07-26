@@ -14,7 +14,7 @@ from flux_overview_tabs import build_events_tab_cards
 from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
 from flux_tablet_tesla import build_tablet_tesla_band
-from flux_time import nz_datetime_short_js, nz_greeting_js
+from flux_time import nz_clock_date_js, nz_clock_time_js
 from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 # Bubble modular window — Reolink Back Courtyard live stream (fullscreen on tablet).
@@ -145,13 +145,13 @@ def _calendar_body_mod() -> dict:
     }
 
 
-def _bitmoji_url(cfg: dict) -> str:
-    hero = (cfg.get("context") or {}).get("hero") or {}
-    return str(hero.get("bitmoji_default") or "/local/flux-ui/bitmoji/dave.png")
-
-
 def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
-    """Top-left greeting + datetime — no Home / Live overview title."""
+    """Top-left corner — Shelly Wall Display–style NZ digital clock + date.
+
+    Large HH:MM (Pacific/Auckland) with weekday/date · NZST|NZDT underneath.
+    Weather chips stay under the clock for at-a-glance conditions.
+    """
+    del cfg  # reserved (was bitmoji); keep signature for call sites
     high_low = (
         "{% set f = state_attr('" + weather_entity + "', 'forecast') %}"
         "{% if f and f[0] is mapping %}"
@@ -167,56 +167,50 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
         "cards": [
             {
                 "type": "custom:button-card",
-                "template": "flux_hero",
-                "entity": weather_entity,
+                "template": "flux_glass",
                 "show_icon": False,
-                "show_entity_picture": True,
-                "entity_picture": _bitmoji_url(cfg),
-                "picture": _bitmoji_url(cfg),
-                "name": nz_greeting_js(),
-                "label": "Tap for active devices",
+                "show_name": True,
+                "show_label": True,
+                "show_state": False,
+                "name": nz_clock_time_js(),
+                "label": nz_clock_date_js(),
                 "tap_action": {
                     "action": "navigate",
                     "navigation_path": f"{URL_PREFIX}/active",
                 },
                 "styles": {
                     "card": [
-                        {"min-height": "64px"},
-                        {"height": "auto"},
-                        {"padding": "10px 14px"},
+                        {"padding": "14px 18px 12px"},
+                        {"min-height": "108px"},
+                        {"overflow": "hidden"},
                     ],
-                },
-            },
-            {
-                "type": "custom:button-card",
-                "template": "flux_glass",
-                "show_icon": False,
-                "show_name": True,
-                "show_label": True,
-                "name": nz_datetime_short_js(),
-                "label": (
-                    "[[[\n"
-                    f"  const w = states['{weather_entity}'];\n"
-                    "  if (!w) return 'Weather unavailable';\n"
-                    "  const t = w.attributes?.temperature;\n"
-                    "  const c = (w.state || '').replace(/_/g,' ');\n"
-                    "  const hi = w.attributes?.forecast?.[0]?.temperature;\n"
-                    "  const lo = w.attributes?.forecast?.[0]?.templow;\n"
-                    "  const range = (hi != null && lo != null) ? `${hi}° / ${lo}°` : '';\n"
-                    "  return [t != null ? `${t}°C, ${c}` : c, range].filter(Boolean).join(' · ');\n"
-                    "]]]"
-                ),
-                "styles": {
-                    "card": [{"min-height": "48px"}, {"padding": "10px 14px"}],
-                    "name": [{"font-size": "16px"}, {"font-weight": "700"}, {"justify-self": "start"}],
-                    "label": [
+                    "grid": [
+                        {"grid-template-areas": "'n' 'l'"},
+                        {"grid-template-columns": "1fr"},
+                        {"grid-template-rows": "min-content min-content"},
+                        {"row-gap": "4px"},
+                    ],
+                    "name": [
+                        {"font-size": "56px"},
+                        {"font-weight": "300"},
+                        {"letter-spacing": "0.06em"},
+                        {"line-height": "1.05"},
                         {"justify-self": "start"},
-                        {"color": "var(--md-sys-color-primary)"},
-                        {"font-weight": "600"},
+                        {"text-align": "left"},
+                        {"font-variant-numeric": "tabular-nums"},
+                        {"color": "var(--md-sys-color-on-surface)"},
                     ],
-                    "grid": [{"grid-template-areas": "'n' 'l'"}, {"grid-template-columns": "1fr"}],
+                    "label": [
+                        {"font-size": "15px"},
+                        {"font-weight": "500"},
+                        {"letter-spacing": "0.01em"},
+                        {"justify-self": "start"},
+                        {"text-align": "left"},
+                        {"color": "var(--md-sys-color-on-surface-variant)"},
+                        {"opacity": "0.92"},
+                        {"padding-left": "2px"},
+                    ],
                 },
-                "triggers_update": [weather_entity],
             },
             {
                 "type": "custom:mushroom-chips-card",
