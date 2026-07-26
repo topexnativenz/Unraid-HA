@@ -142,7 +142,7 @@ def verify_build(path: Path) -> list[str]:
             ".content-container",
             "picture-entity",
             "camera_view",
-            "mediocre-media-player-card",
+            "mediocre-massive-media-player-card",
             "mushroom-chips-card",
             "aspect-ratio: unset",
             "padding: 4px 0 4px 0",
@@ -181,8 +181,12 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Gate Closed still uses green card background — use default chrome")
         if "custom:mushroom-title-card" in overview_blob and "Gates & Doors" not in overview_blob:
             errors.append("Tablet section titles should use button-card (Fully Kiosk renders them)")
-        if "mediocre-massive-media-player-card" in overview_blob:
-            errors.append("Tablet music must use compact mediocre card (massive pushes layout down)")
+        if "mediocre-massive-media-player-card" not in overview_blob:
+            errors.append(
+                "Tablet music must use full mediocre-massive card (same as modal popup)"
+            )
+        if '"type": "custom:mediocre-media-player-card"' in overview_blob:
+            errors.append("Tablet music still uses compact mediocre-media-player-card")
         for view in views:
             if view.get("type") != "panel":
                 errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")

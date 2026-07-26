@@ -660,7 +660,7 @@ def build_config(
             ".content-container",
             "touch-action: pan-y",
             "picture-entity",
-            "mediocre-media-player-card",
+            "mediocre-massive-media-player-card",
             "Weather Forecast",
             "cameras cameras cameras calendar_notification",
             "rooms rooms music calendar_notification",
@@ -685,9 +685,16 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "mediocre-massive-media-player-card" in blob:
+        if "mediocre-massive-media-player-card" not in blob:
             print(
-                "\nERROR: Tablet music must use compact mediocre card (massive pushes layout).\n",
+                "\nERROR: Tablet music missing mediocre-massive-media-player-card "
+                "(full player, same as popup).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if '"type": "custom:mediocre-media-player-card"' in blob:
+            print(
+                "\nERROR: Tablet music must not use compact mediocre-media-player-card.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

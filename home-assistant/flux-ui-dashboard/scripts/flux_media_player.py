@@ -457,6 +457,7 @@ def _open_player_action(zone: str) -> dict:
 
 
 def _mediocre_player_card(entity: str, zone_name: str) -> dict:
+    """Full mediocre-massive player — same card as the phone #music-player popup."""
     del zone_name
     return {
         "type": "custom:mediocre-massive-media-player-card",
@@ -477,8 +478,27 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
     }
 
 
+def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
+    """Massive player sized for the tablet overview music column."""
+    card = _mediocre_player_card(entity, zone_name)
+    card["card_mod"] = {
+        "style": (
+            ":host, ha-card {\n"
+            "  height: 100% !important;\n"
+            "  max-height: 100% !important;\n"
+            "  min-height: 280px !important;\n"
+            "  overflow: auto !important;\n"
+            "  box-sizing: border-box !important;\n"
+            "}\n"
+            "ha-card h3 + div, ha-card .device, ha-card [class*='device-name'] "
+            "{ display: none !important; }\n"
+        )
+    }
+    return card
+
+
 def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
-    """Compact mediocre card — album art + transport/volume (fits music column)."""
+    """Compact mediocre card — album art + transport/volume (phone / narrow)."""
     del zone_name
     return {
         "type": "custom:mediocre-media-player-card",
@@ -532,10 +552,10 @@ def _speaker_group_entities(players: list[dict]) -> list[str]:
 
 
 def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Contained tablet music: zone chips + compact art/controls (no push-down).
+    """Tablet music column: zone chips + full mediocre-massive player (popup parity).
 
-    Zone chips switch the active Sonos output. Selected zone shows a compact
-    mediocre (or mushroom) player. Optional group chip for multi-room join.
+    Same ``mediocre-massive-media-player-card`` as the phone #music-player bubble,
+    constrained to the overview music grid area (between calendar and Gates/rooms).
     """
     players = enabled_players(cfg)
     if not players:
@@ -644,7 +664,7 @@ def _tablet_zone_panel(
     source: str = "sonos",
     group_entities: list[str] | None = None,
 ) -> dict:
-    """Conditional full-height player for one Sonos / Apple TV zone."""
+    """Conditional full-height massive player for one Sonos / Apple TV zone."""
     entity = player["entity"]
     name = player["name"]
     sonos = is_sonos_zone(player)
@@ -656,7 +676,7 @@ def _tablet_zone_panel(
         panel_entity = entity
         panel_name = name
     if use_mediocre:
-        card = _mediocre_compact_player_card(panel_entity, panel_name)
+        card = _mediocre_tablet_player_card(panel_entity, panel_name)
         if group_entities and source == "sonos":
             card["speaker_group"] = {
                 "entity_id": panel_entity,
@@ -683,7 +703,7 @@ def _tablet_zone_panel(
             "style": (
                 ":host, ha-card {\n"
                 "  height: 100% !important;\n"
-                "  min-height: 96px !important;\n"
+                "  min-height: 280px !important;\n"
                 "  display: block !important;\n"
                 "}\n"
             )

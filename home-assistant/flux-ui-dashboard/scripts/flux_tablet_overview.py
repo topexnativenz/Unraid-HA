@@ -416,7 +416,7 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Music column (greeting→rooms): zone chips + compact art/controls player."""
+    """Music column (between calendar and Gates/rooms): full massive player."""
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
         "type": "vertical-stack",
@@ -452,7 +452,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "}\n"
                 "#root > *:not(:first-child) {\n"
                 "  flex: 1 1 auto !important;\n"
-                "  min-height: 140px !important;\n"
+                "  min-height: 280px !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
             )
