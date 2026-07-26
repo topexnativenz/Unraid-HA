@@ -452,7 +452,8 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "}\n"
                 "#root > *:not(:first-child) {\n"
                 "  flex: 1 1 auto !important;\n"
-                "  min-height: 280px !important;\n"
+                # Keep 140px — do not raise min-height or shared grid rows shift.
+                "  min-height: 140px !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
             )
@@ -1006,7 +1007,8 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Music spans greeting→rooms; cameras + Tesla share the same 3-column width.
+            # Music spans greeting→rooms only — do not move greeting / Gates /
+            # rooms / cameras / Tesla / calendar when swapping music card content.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
                 "max-content max-content max-content max-content max-content"

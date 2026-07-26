@@ -187,6 +187,17 @@ def verify_build(path: Path) -> list[str]:
             )
         if '"type": "custom:mediocre-media-player-card"' in overview_blob:
             errors.append("Tablet music still uses compact mediocre-media-player-card")
+        locked_area_rows = (
+            "greeting simple_tab music calendar_notification",
+            "room_selector simple_tab music calendar_notification",
+            "rooms rooms music calendar_notification",
+            "cameras cameras cameras calendar_notification",
+            "tesla tesla tesla calendar_notification",
+        )
+        if any(row not in overview_blob for row in locked_area_rows):
+            errors.append(
+                "Tablet overview grid-template-areas changed — other cards must stay put"
+            )
         for view in views:
             if view.get("type") != "panel":
                 errors.append(f"Tablet view {view.get('path')} must be type panel (16:9)")

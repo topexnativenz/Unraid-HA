@@ -479,14 +479,14 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
 
 
 def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
-    """Massive player sized for the tablet overview music column."""
+    """Massive player for the tablet music column — fills space, does not grow rows."""
     card = _mediocre_player_card(entity, zone_name)
     card["card_mod"] = {
         "style": (
             ":host, ha-card {\n"
             "  height: 100% !important;\n"
             "  max-height: 100% !important;\n"
-            "  min-height: 280px !important;\n"
+            "  min-height: 0 !important;\n"
             "  overflow: auto !important;\n"
             "  box-sizing: border-box !important;\n"
             "}\n"
@@ -703,7 +703,7 @@ def _tablet_zone_panel(
             "style": (
                 ":host, ha-card {\n"
                 "  height: 100% !important;\n"
-                "  min-height: 280px !important;\n"
+                "  min-height: 0 !important;\n"
                 "  display: block !important;\n"
                 "}\n"
             )

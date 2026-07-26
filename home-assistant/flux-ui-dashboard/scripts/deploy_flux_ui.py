@@ -698,6 +698,21 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        # Music player must not reshuffle overview grid areas / other cards.
+        locked_area_rows = (
+            "greeting simple_tab music calendar_notification",
+            "room_selector simple_tab music calendar_notification",
+            "rooms rooms music calendar_notification",
+            "cameras cameras cameras calendar_notification",
+            "tesla tesla tesla calendar_notification",
+        )
+        if any(row not in blob for row in locked_area_rows):
+            print(
+                "\nERROR: Tablet overview grid-template-areas changed — "
+                "other cards must stay in place; only music column content may change.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if '"grid-area": "weather"' in blob:
             print(
                 "\nERROR: Tablet still has standalone weather grid area.\n",
