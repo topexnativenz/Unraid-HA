@@ -552,10 +552,11 @@ def _speaker_group_entities(players: list[dict]) -> list[str]:
 
 
 def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
-    """Tablet music column: zone chips + full mediocre-massive player (popup parity).
+    """Tablet music column: full mediocre-massive player only (no zone chip header).
 
-    Same ``mediocre-massive-media-player-card`` as the phone #music-player bubble,
-    constrained to the overview music grid area (between calendar and Gates/rooms).
+    Artwork sits under the Music title — zone chips/group pickers were stretching
+    the overview. Zone still follows ``input_select.flux_ui_media_player``;
+    ``speaker_group`` on the massive card covers multi-room from inside the player.
     """
     players = enabled_players(cfg)
     if not players:
@@ -568,44 +569,7 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
         }
 
     group_entities = _speaker_group_entities(players)
-    header_cards: list[dict] = [_player_selector_chips(players)]
-
-    # Optional group chip under the zone picker — easy multi-room output.
-    if use_mediocre and len(group_entities) > 1:
-        header_cards.append(
-            {
-                "type": "custom:mediocre-chip-media-player-group-card",
-                "entity_id": _default_media_entity(cfg, players),
-                "entities": group_entities,
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  background: transparent !important;\n"
-                        "  box-shadow: none !important;\n"
-                        "  border: none !important;\n"
-                        "  padding: 0 !important;\n"
-                        "}\n"
-                    )
-                },
-            }
-        )
-
-    cards: list[dict] = [
-        {
-            "type": "vertical-stack",
-            "cards": header_cards,
-            "card_mod": {
-                "style": (
-                    ":host, ha-card, #root {\n"
-                    "  background: transparent !important;\n"
-                    "  box-shadow: none !important;\n"
-                    "  border: none !important;\n"
-                    "}\n"
-                    "#root { gap: 4px !important; }\n"
-                )
-            },
-        }
-    ]
+    cards: list[dict] = []
 
     for player in players:
         cards.append(
@@ -643,12 +607,9 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
                 "  flex-direction: column !important;\n"
                 "  height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
-                "  gap: 6px !important;\n"
+                "  gap: 0 !important;\n"
                 "}\n"
-                "#root > *:first-child {\n"
-                "  flex: 0 0 auto !important;\n"
-                "}\n"
-                "#root > *:not(:first-child) {\n"
+                "#root > * {\n"
                 "  flex: 1 1 auto !important;\n"
                 "  min-height: 0 !important;\n"
                 "}\n"

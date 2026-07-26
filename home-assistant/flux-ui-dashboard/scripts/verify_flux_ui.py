@@ -152,7 +152,6 @@ def verify_build(path: Path) -> list[str]:
             "rooms rooms music calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
-            "mediocre-chip-media-player-group-card",
             "--chip-height: 56px",
             "Gates & Doors",
             "calc(100dvh - 240px)",
@@ -162,6 +161,10 @@ def verify_build(path: Path) -> list[str]:
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        if "mediocre-chip-media-player-group-card" in overview_blob:
+            errors.append(
+                "Tablet music must not include zone/group chip header (stretches overview)"
+            )
         if '"grid-area": "weather"' in blob:
             errors.append("Tablet still has standalone weather grid area — weather belongs above calendar")
         if "Software tracker" in blob or "Last charges (7 days)" in blob:

@@ -672,7 +672,6 @@ def build_config(
             "position: absolute !important",
             "min-height: 200px",
             ".loading-indicator",
-            "mediocre-chip-media-player-group-card",
             "--chip-height: 56px",
             "88px",
         ):
@@ -682,6 +681,13 @@ def build_config(
         if "[class*='loading']" in blob:
             print(
                 "\nERROR: Calendar card-mod must not use [class*='loading'] (hides events).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "mediocre-chip-media-player-group-card" in blob:
+            print(
+                "\nERROR: Tablet music must not include zone/group chip header "
+                "(artwork should sit under Music title).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
