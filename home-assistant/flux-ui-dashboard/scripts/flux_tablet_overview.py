@@ -819,39 +819,25 @@ def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera tile — fixed 160px box.
+    """Landscape camera tile — last-stream JPEG still (160px).
 
-    Reolink: picture-entity live; tap opens fullscreen bubble modular window.
-    Eufy: event-image stills; tap opens a live subview (RTSP needs wake-up first).
+    All outdoor cams use ``/local/flux-ui/camera-stills/`` snapshots (not Eufy
+    event images). Tap: Reolink → fullscreen bubble; Eufy → wake-then-live view.
     """
-    from flux_tablet_eufy import build_eufy_overview_tile
+    from flux_tablet_eufy import build_eufy_overview_tile, build_overview_still_tile
 
     entity = camera["entity"]
-    name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    still = (camera.get("still") or "").strip()
     stream = (camera.get("stream") or "").strip()
 
-    if still and stream:
-        return build_eufy_overview_tile(camera)
-    if still:
+    if stream:
         return build_eufy_overview_tile(camera)
 
-    tap: dict = {"action": "more-info", "entity": entity}
+    # Reolink / cameras without RTSP sensor — still tile → bubble live.
     if entity == REOLINK_CAMERA_ENTITY:
-        tap = {"action": "navigate", "navigation_path": REOLINK_CAMERA_HASH}
+        return build_overview_still_tile(camera, tap_path=REOLINK_CAMERA_HASH)
 
-    return wrap_glass(
-        {
-            "type": "picture-entity",
-            "entity": entity,
-            "name": name,
-            "show_name": True,
-            "show_state": False,
-            "camera_view": "live",
-            "tap_action": tap,
-            "hold_action": {"action": "more-info", "entity": entity},
-            "card_mod": _camera_card_mod(),
-        }
+    return build_overview_still_tile(
+        camera, tap_path=f"{URL_PREFIX}/overview"
     )
 
 

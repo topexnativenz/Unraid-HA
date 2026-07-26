@@ -125,9 +125,9 @@ def verify_build(path: Path) -> list[str]:
             "custom:bubble-card",
             "is_sidebar_hidden",
             '"width_desktop": "100%"',
-            "image.side_door_event_image",
-            "image.side_of_house_event_image",
-            "image.garage_door_event_image",
+            "/local/flux-ui/camera-stills/",
+            "input_text.flux_ui_camera_still_token",
+            "script.flux_ui_camera_snapshot",
             "eufy-driveway",
             "eufy-side-of-house",
             "eufy-garage-door",
@@ -167,8 +167,10 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet overview still includes broken Tesla widgets 2/3")
         if "Live overview" in overview_blob:
             errors.append("Tablet still has Home / Live overview title")
-        if overview_blob.count("image.side_door_event_image") < 1:
-            errors.append("Tablet overview missing Eufy event-image stills")
+        if "/local/flux-ui/camera-stills/side_door.jpg" not in overview_blob:
+            errors.append("Tablet overview missing last-stream still paths")
+        if "image.side_door_event_image" in overview_blob:
+            errors.append("Tablet overview still uses stale Eufy event-image entities")
         if "eufy-driveway" not in blob:
             errors.append("Tablet build missing Eufy Driveway live subview")
         if "[class*='loading']" in overview_blob:

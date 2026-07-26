@@ -1,16 +1,43 @@
-"""Tablet Eufy outdoor cameras — stills on overview, live WebRTC subviews.
+"""Tablet outdoor cameras — last-stream stills on overview, live on tap.
 
-Eufy ``/api/camera_proxy`` returns HTTP 500. HomeBase RTSP also rejects go2rtc
-DESCRIBE until ``camera.turn_on`` has woken the cam. Overview therefore shows
-``image.*_event_image`` stills; tap opens a live subview that starts the stream
-then plays via WebRTC (MSE).
+Overview tiles use JPEGs written by ``camera.snapshot`` to
+``/local/flux-ui/camera-stills/<suffix>.jpg`` (see packages/flux_ui_eufy_cameras.yaml).
+Eufy ``/api/camera_proxy`` returns HTTP 500 and event images go stale, so we never
+use ``image.*_event_image`` on the tablet row.
+
+Eufy live: HomeBase RTSP needs ``camera.turn_on`` first (DESCRIBE fails until awake).
+Reolink live: Bubble Card ``#back-courtyard`` fullscreen window.
 """
 
 from __future__ import annotations
 
 from flux_navbar import overview_navigation_path
 from flux_tablet_layout import tablet_panel_stack, tablet_panel_view
-from md3_templates import wrap_glass, wrap_title
+from md3_templates import wrap_glass
+
+STILL_TOKEN_ENTITY = "input_text.flux_ui_camera_still_token"
+STILL_LOCAL_DIR = "/local/flux-ui/camera-stills"
+
+
+def camera_still_filename(entity: str) -> str:
+    return entity.split(".", 1)[-1] + ".jpg"
+
+
+def camera_still_url_template(entity: str) -> str:
+    """button-card JS — local still + cache-bust token from last snapshot."""
+    fname = camera_still_filename(entity)
+    return (
+        "[[[ const t = states['"
+        + STILL_TOKEN_ENTITY
+        + "'] ? states['"
+        + STILL_TOKEN_ENTITY
+        + "'].state : '0'; "
+        "return `center / cover no-repeat url(\""
+        + STILL_LOCAL_DIR
+        + "/"
+        + fname
+        + "?v=${t}\")`; ]]]"
+    )
 
 
 def eufy_live_view_path(camera: dict) -> str:
@@ -42,7 +69,6 @@ def _rtsp_url_template(stream_sensor: str) -> str:
 
 
 def _stream_status_entity(camera_entity: str) -> str:
-    # camera.side_door → sensor.side_door_stream_status
     return "sensor." + camera_entity.split(".", 1)[-1] + "_stream_status"
 
 
@@ -50,29 +76,32 @@ def _rtsp_switch_entity(camera_entity: str) -> str:
     return "switch." + camera_entity.split(".", 1)[-1] + "_rtsp_stream"
 
 
-def build_eufy_overview_tile(camera: dict) -> dict:
-    """Event-image still tile — tap opens the live subview (starts stream there)."""
+def build_overview_still_tile(
+    camera: dict,
+    *,
+    tap_path: str,
+) -> dict:
+    """Last-stream JPEG tile — tap opens live (bubble hash or eufy subview)."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    still = (camera.get("still") or "").strip() or entity
-    live_path = eufy_live_navigation_path(camera)
     return wrap_glass(
         {
             "type": "custom:button-card",
-            "entity": still,
+            "entity": entity,
             "name": name,
             "show_name": True,
             "show_icon": False,
             "show_state": False,
-            "show_entity_picture": True,
+            "show_entity_picture": False,
+            "triggers_update": [STILL_TOKEN_ENTITY, entity],
             "tap_action": {
                 "action": "navigate",
-                "navigation_path": live_path,
+                "navigation_path": tap_path,
             },
             "hold_action": {
                 "action": "perform-action",
-                "perform_action": "camera.turn_on",
-                "target": {"entity_id": entity},
+                "perform_action": "script.flux_ui_camera_snapshot",
+                "data": {"camera_entity": entity},
             },
             "styles": {
                 "card": [
@@ -81,22 +110,8 @@ def build_eufy_overview_tile(camera: dict) -> dict:
                     {"max-height": "160px"},
                     {"padding": "0"},
                     {"overflow": "hidden"},
-                    {"background": "#111"},
-                ],
-                "img_cell": [
-                    {"width": "100%"},
-                    {"height": "160px"},
-                    {"position": "absolute"},
-                    {"top": "0"},
-                    {"left": "0"},
-                    {"margin": "0"},
-                    {"padding": "0"},
-                ],
-                "entity_picture": [
-                    {"width": "100%"},
-                    {"height": "160px"},
-                    {"object-fit": "cover"},
-                    {"border-radius": "0"},
+                    {"background": camera_still_url_template(entity)},
+                    {"background-color": "#111"},
                 ],
                 "name": [
                     {"position": "absolute"},
@@ -109,20 +124,31 @@ def build_eufy_overview_tile(camera: dict) -> dict:
                     {"pointer-events": "none"},
                     {"z-index": 2},
                 ],
+                "grid": [
+                    {"grid-template-areas": "'n'"},
+                    {"grid-template-columns": "1fr"},
+                ],
             },
         }
     )
 
 
+def build_eufy_overview_tile(camera: dict) -> dict:
+    """Eufy overview tile — last-stream still; tap opens wake-then-live subview."""
+    return build_overview_still_tile(
+        camera, tap_path=eufy_live_navigation_path(camera)
+    )
+
+
 def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) -> dict:
-    """Full-bleed live view — wake cam, then WebRTC MSE once STREAMING."""
+    """Full-bleed live view — wake cam, snapshot while live, WebRTC when STREAMING."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    still = (camera.get("still") or "").strip()
     stream = (camera.get("stream") or "").strip()
     status = _stream_status_entity(entity)
     rtsp_switch = _rtsp_switch_entity(entity)
     overview = overview_navigation_path()
+    still_bg = camera_still_url_template(entity)
 
     back = {
         "type": "custom:button-card",
@@ -130,7 +156,10 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
         "name": "Overview",
         "show_icon": True,
         "show_name": True,
-        "tap_action": {"action": "navigate", "navigation_path": overview},
+        "tap_action": {
+            "action": "navigate",
+            "navigation_path": overview,
+        },
         "styles": {
             "grid": [
                 {"grid-template-areas": "'i n'"},
@@ -149,7 +178,7 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
         },
     }
 
-    # Auto-start once when the title card renders on this view.
+    # Auto-start once when the title card renders; snapshot after wake via package automation.
     title_js = (
         "[[[ const cam = "
         + repr(entity)
@@ -183,11 +212,12 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
     waiting = wrap_glass(
         {
             "type": "custom:button-card",
-            "entity": still or entity,
+            "entity": entity,
             "name": "Starting live stream… tap to retry",
             "show_name": True,
             "show_icon": False,
-            "show_entity_picture": bool(still),
+            "show_entity_picture": False,
+            "triggers_update": [STILL_TOKEN_ENTITY, entity, status],
             "tap_action": {
                 "action": "perform-action",
                 "perform_action": "camera.turn_on",
@@ -198,12 +228,8 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
                     {"height": "min(70vh, 720px)"},
                     {"padding": "0"},
                     {"overflow": "hidden"},
-                    {"background": "#111"},
-                ],
-                "entity_picture": [
-                    {"width": "100%"},
-                    {"height": "min(70vh, 720px)"},
-                    {"object-fit": "cover"},
+                    {"background": still_bg},
+                    {"background-color": "#111"},
                 ],
                 "name": [
                     {"position": "absolute"},
@@ -231,8 +257,6 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
             ".mode{right:8px;top:8px}"
         ),
     }
-    if still:
-        live["poster"] = "{{ state_attr('%s', 'entity_picture') }}" % still
 
     stack = {
         "type": "vertical-stack",
@@ -278,11 +302,11 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
 
 
 def tablet_eufy_cameras(cfg: dict) -> list[dict]:
-    """Eufy entries from tablet.overview_cameras that have still + stream."""
+    """Eufy entries from tablet.overview_cameras that have an RTSP stream sensor."""
     tablet = cfg.get("tablet") or {}
     out: list[dict] = []
     for cam in tablet.get("overview_cameras") or []:
-        if cam.get("still") and cam.get("stream") and cam.get("entity", "").startswith("camera."):
+        if cam.get("stream") and str(cam.get("entity", "")).startswith("camera."):
             out.append(cam)
     return out
 

@@ -13,17 +13,14 @@ cameras:
   - entity: camera.side_door
     name: Driveway
     room: outdoor
-    still: image.side_door_event_image
     stream: sensor.side_door_rtsp_stream_url
   - entity: camera.side_of_house
     name: Side of House
     room: outdoor
-    still: image.side_of_house_event_image
     stream: sensor.side_of_house_rtsp_stream_url
   - entity: camera.garage_door
     name: Garage Door
     room: garage
-    still: image.garage_door_event_image
     stream: sensor.garage_door_rtsp_stream_url
   - entity: camera.front_door_doorbell
     name: Front door Doorbell
