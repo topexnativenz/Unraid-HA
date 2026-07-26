@@ -103,7 +103,7 @@ def verify_build(path: Path) -> list[str]:
             '"show_progress_bar": false',
             '"today_indicator": "dot"',
             "__fluxNzClock",
-            "hourCycle: 'h23'",
+            "hour12: true",
             "Pacific/Auckland",
             "weather.homemetservice",
             "100dvh",
