@@ -163,8 +163,10 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet overview still includes broken Tesla widgets 2/3")
         if "Live overview" in overview_blob:
             errors.append("Tablet still has Home / Live overview title")
-        if overview_blob.count("camera.side_door") < 1:
-            errors.append("Tablet overview missing curated camera entities")
+        if overview_blob.count("image.side_door_event_image") < 1:
+            errors.append("Tablet overview missing Eufy event-image stills")
+        if "eufy-driveway" not in blob:
+            errors.append("Tablet build missing Eufy Driveway live subview")
         if "[class*='loading']" in overview_blob:
             errors.append("Calendar card-mod must not use [class*='loading'] (hides events)")
         # Closed gate must not force a green card fill — only open gets a tint.
