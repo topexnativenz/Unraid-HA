@@ -42,10 +42,27 @@ DISABLE_EUFY_CAMERAS = {
     "Showroom 1",
 }
 
+# Only true camera SKUs — never homebases (T8030) or sensors (T8900).
+EUFY_CAMERA_MODELS = (
+    "T8160",  # solo/outdoor cams
+    "T8161",
+    "T8210",  # doorbell family prefix (e.g. T8210C)
+    "T822",
+    "T8400",
+    "T841",
+    "T842",
+    "T8600",
+)
+
 # Leftover generic RTSP driveway (replaced by Eufy Driveway + Reolink).
 DISABLE_OTHER = {
     "Home_Driveway",
 }
+
+
+def _is_eufy_camera_model(model: str) -> bool:
+    m = (model or "").strip()
+    return any(m.startswith(prefix) for prefix in EUFY_CAMERA_MODELS)
 
 
 async def _ws_call(ws, mid: int, msg_type: str, **kwargs) -> tuple[int, dict]:
@@ -80,7 +97,7 @@ async def fix_eufy_cameras(token: str, ha_url: str) -> int:
             model = device.get("model") or ""
             ids = str(device.get("identifiers"))
             is_eufy = "eufy" in mfg or "eufy" in ids
-            is_camera_model = model.startswith("T8")  # T8160 / T8161 / T8210…
+            is_camera_model = _is_eufy_camera_model(model)
             device_id = device["id"]
             disabled_by = device.get("disabled_by")
 
@@ -93,7 +110,23 @@ async def fix_eufy_cameras(token: str, ha_url: str) -> int:
                 changed += int(bool(res.get("success")))
                 continue
 
-            if not is_eufy or not is_camera_model:
+            if not is_eufy:
+                continue
+
+            # Never disable homebases / sensors / the WS bridge.
+            if not is_camera_model:
+                if disabled_by == "user" and (
+                    model.startswith("T8030")
+                    or model.startswith("T8900")
+                    or "homebase" in name.lower()
+                    or name == "eufy-security-ws"
+                ):
+                    mid, res = await _ws_call(
+                        ws, mid, "config/device_registry/update",
+                        device_id=device_id, disabled_by=None,
+                    )
+                    print(f"  re-enabled non-camera Eufy device {name!r}: success={res.get('success')}")
+                    changed += int(bool(res.get("success")))
                 continue
 
             if name in DISABLE_EUFY_CAMERAS and not disabled_by:
@@ -112,8 +145,7 @@ async def fix_eufy_cameras(token: str, ha_url: str) -> int:
                 changed += int(bool(res.get("success")))
             elif name in KEEP_ENABLED:
                 print(f"  keep enabled: {name!r}")
-            elif is_camera_model and name not in KEEP_ENABLED and not disabled_by:
-                # Any other Eufy camera model not on the keep list.
+            elif name not in KEEP_ENABLED and not disabled_by:
                 mid, res = await _ws_call(
                     ws, mid, "config/device_registry/update",
                     device_id=device_id, disabled_by="user",
