@@ -709,15 +709,17 @@ def _eufy_rtsp_url_template(stream_sensor: str) -> str:
     Driveway's RTSP sensor includes credentials; Garage / Side of House often only
     expose ``rtsp://192.168.1.25/liveN``. go2rtc needs the same auth for those paths.
     """
-    # Keep this as one Jinja expression (WebRTC card evaluates templates).
+    # Concatenate — do not use %-format (Jinja tags contain literal %).
     return (
-        "{% set u = states('%s') %}"
+        "{% set u = states('"
+        + stream_sensor
+        + "') %}"
         "{% set auth = states('sensor.side_door_rtsp_stream_url') %}"
         "{% if u[:7] == 'rtsp://' and '@' not in u and '@' in auth %}"
         "{% set cred = auth[7:].split('@')[0] %}"
         "{{ 'rtsp://' ~ cred ~ '@' ~ u[7:] }}"
         "{% else %}{{ u }}{% endif %}"
-    ) % stream_sensor
+    )
 
 
 def _eufy_webrtc_card(camera: dict) -> dict:
