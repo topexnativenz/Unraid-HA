@@ -13,12 +13,15 @@ cameras:
   - entity: camera.side_door
     name: Driveway
     room: outdoor
-  - entity: camera.garage_door
-    name: Garage Door
-    room: garage
+    still: image.side_door_event_image
   - entity: camera.side_of_house
     name: Side of House
     room: outdoor
+    still: image.side_of_house_event_image
+  - entity: camera.garage_door
+    name: Garage Door
+    room: garage
+    still: image.garage_door_event_image
   - entity: camera.front_door_doorbell
     name: Front door Doorbell
     room: entry

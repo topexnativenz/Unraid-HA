@@ -647,79 +647,86 @@ def _rooms_band(cfg: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera still — fixed box; image is absolute so load cannot reflow."""
+    """Landscape camera still — fixed box; image is absolute so load cannot reflow.
+
+    Eufy Security often returns HTTP 500 from /api/camera_proxy — use optional
+    ``still`` (image.*_event_image) for the tile, tap opens the camera entity.
+    """
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
-    return wrap_glass(
-        {
-            "type": "picture-entity",
-            "entity": entity,
-            "name": name,
-            "show_name": True,
-            "show_state": False,
-            # live: request HA stream (Eufy idle tiles are stale event stills).
-            "camera_view": "live",
-            "tap_action": {"action": "more-info", "entity": entity},
-            "hold_action": {
-                "action": "perform-action",
-                "perform_action": "camera.turn_on",
-                "target": {"entity_id": entity},
-            },
-            "card_mod": {
-                "style": (
-                    # Fixed geometry — stills paint absolutely inside; never push layout.
-                    "ha-card {\n"
-                    "  position: relative !important;\n"
-                    "  padding: 0 !important;\n"
-                    "  margin: 0 !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "  width: 100% !important;\n"
-                    "  height: 160px !important;\n"
-                    "  min-height: 160px !important;\n"
-                    "  max-height: 160px !important;\n"
-                    "  aspect-ratio: unset !important;\n"
-                    "  background: #111 !important;\n"
-                    "  box-sizing: border-box !important;\n"
-                    "}\n"
-                    ".card-content,\n"
-                    "hui-image,\n"
-                    "ha-camera-stream,\n"
-                    "img {\n"
-                    "  position: absolute !important;\n"
-                    "  inset: 0 !important;\n"
-                    "  top: 0 !important;\n"
-                    "  left: 0 !important;\n"
-                    "  right: 0 !important;\n"
-                    "  bottom: 0 !important;\n"
-                    "  width: 100% !important;\n"
-                    "  height: 100% !important;\n"
-                    "  max-width: 100% !important;\n"
-                    "  max-height: 100% !important;\n"
-                    "  min-width: 0 !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  object-fit: cover !important;\n"
-                    "  margin: 0 !important;\n"
-                    "  padding: 0 !important;\n"
-                    "  display: block !important;\n"
-                    "}\n"
-                    ".name,\n"
-                    ".footer {\n"
-                    "  position: absolute !important;\n"
-                    "  left: 8px !important;\n"
-                    "  bottom: 6px !important;\n"
-                    "  z-index: 2 !important;\n"
-                    "  width: auto !important;\n"
-                    "  height: auto !important;\n"
-                    "  font-size: 12px !important;\n"
-                    "  font-weight: 600 !important;\n"
-                    "  color: #fff !important;\n"
-                    "  text-shadow: 0 1px 4px rgba(0,0,0,0.85) !important;\n"
-                    "  pointer-events: none !important;\n"
-                    "}\n"
-                )
-            },
-        }
-    )
+    still = (camera.get("still") or "").strip()
+    # Prefer working image entities for Eufy; Reolink uses the camera proxy/stream.
+    display_entity = still or entity
+    card: dict = {
+        "type": "picture-entity",
+        "entity": display_entity,
+        "name": name,
+        "show_name": True,
+        "show_state": False,
+        "tap_action": {"action": "more-info", "entity": entity},
+        "hold_action": {
+            "action": "perform-action",
+            "perform_action": "camera.turn_on",
+            "target": {"entity_id": entity},
+        },
+        "card_mod": {
+            "style": (
+                # Fixed geometry — stills paint absolutely inside; never push layout.
+                "ha-card {\n"
+                "  position: relative !important;\n"
+                "  padding: 0 !important;\n"
+                "  margin: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                "  width: 100% !important;\n"
+                "  height: 160px !important;\n"
+                "  min-height: 160px !important;\n"
+                "  max-height: 160px !important;\n"
+                "  aspect-ratio: unset !important;\n"
+                "  background: #111 !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                ".card-content,\n"
+                "hui-image,\n"
+                "ha-camera-stream,\n"
+                "img {\n"
+                "  position: absolute !important;\n"
+                "  inset: 0 !important;\n"
+                "  top: 0 !important;\n"
+                "  left: 0 !important;\n"
+                "  right: 0 !important;\n"
+                "  bottom: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  height: 100% !important;\n"
+                "  max-width: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-width: 0 !important;\n"
+                "  min-height: 0 !important;\n"
+                "  object-fit: cover !important;\n"
+                "  margin: 0 !important;\n"
+                "  padding: 0 !important;\n"
+                "  display: block !important;\n"
+                "}\n"
+                ".name,\n"
+                ".footer {\n"
+                "  position: absolute !important;\n"
+                "  left: 8px !important;\n"
+                "  bottom: 6px !important;\n"
+                "  z-index: 2 !important;\n"
+                "  width: auto !important;\n"
+                "  height: auto !important;\n"
+                "  font-size: 12px !important;\n"
+                "  font-weight: 600 !important;\n"
+                "  color: #fff !important;\n"
+                "  text-shadow: 0 1px 4px rgba(0,0,0,0.85) !important;\n"
+                "  pointer-events: none !important;\n"
+                "}\n"
+            )
+        },
+    }
+    if not still:
+        # Reolink / cameras with working proxy — show live when available.
+        card["camera_view"] = "live"
+    return wrap_glass(card)
 
 
 def _tablet_overview_cameras(cfg: dict) -> list[dict]:

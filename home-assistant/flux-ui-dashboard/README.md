@@ -14,10 +14,11 @@ Model S / Model X report charging. Override via `input_text.flux_ui_tablet_rgb_l
 if discovery used a different ID.
 
 **Tablet cameras:** overview row is Reolink Back Courtyard → Eufy Driveway →
-Garage Door → Side of House (`entities.yaml` → `tablet.overview_cameras`).
-Eufy stills refresh via `packages/flux_ui_eufy_cameras.yaml` (RTSP keep-on +
-periodic `camera.turn_on`). Unused Eufy cameras (Front Yard, Clubrooms, Showroom)
-are disabled via `scripts/fix_eufy_cameras.py` (runs on deploy).
+Side of House → Garage Door (`entities.yaml` → `tablet.overview_cameras`).
+Eufy tiles use `image.*_event_image` stills (camera_proxy often 500s); tap opens
+the camera entity. RTSP keep-on + still refresh: `packages/flux_ui_eufy_cameras.yaml`.
+Unused Eufy cameras (Front Yard, Clubrooms, Showroom) are disabled via
+`scripts/fix_eufy_cameras.py` (runs on deploy).
 
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
 
