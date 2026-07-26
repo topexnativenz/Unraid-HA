@@ -626,12 +626,12 @@ def build_config(
             "weather-forecast",
             "Gates & Doors",
             '"template": "flux_room"',
-            "room_selector",
             "calendar_notification",
             "simple_tab",
             '"grid-area": "cameras"',
             '"grid-area": "tesla"',
             '"grid-area": "music"',
+            '"grid-area": "rooms"',
             "Model X",
             "Model S",
             "camera.back_courtyard_fluent",
@@ -663,21 +663,27 @@ def build_config(
             "mediocre-massive-media-player-card",
             "Weather Forecast",
             "cameras cameras cameras calendar_notification",
-            "rooms rooms music calendar_notification",
+            "rooms simple_tab music calendar_notification",
             "calc(100dvh - 240px)",
-            "max-content max-content max-content max-content max-content",
+            "max-content max-content max-content max-content",
             "aspect-ratio: unset",
             "padding: 4px 0 4px 0",
             "height: 160px !important",
             "position: absolute !important",
             "min-height: 200px",
             ".loading-indicator",
-            "--chip-height: 56px",
             "88px",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
                 raise SystemExit(1)
+        if "room_selector" in blob:
+            print(
+                "\nERROR: Tablet overview still has room_selector "
+                "(Default/Others/Outdoor filter chips).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if "[class*='loading']" in blob:
             print(
                 "\nERROR: Calendar card-mod must not use [class*='loading'] (hides events).\n",
@@ -707,15 +713,13 @@ def build_config(
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "room_selector simple_tab music calendar_notification",
-            "rooms rooms music calendar_notification",
+            "rooms simple_tab music calendar_notification",
             "cameras cameras cameras calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in blob for row in locked_area_rows):
             print(
-                "\nERROR: Tablet overview grid-template-areas changed — "
-                "other cards must stay in place; only music column content may change.\n",
+                "\nERROR: Tablet overview grid-template-areas changed unexpectedly.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

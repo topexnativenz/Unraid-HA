@@ -93,7 +93,6 @@ def verify_build(path: Path) -> list[str]:
             '"width": "100%"',
             "weather-forecast",
 
-            "room_selector",
             "calendar_notification",
             "simple_tab",
             '"days_to_show": 7',
@@ -111,7 +110,7 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "max-content max-content max-content max-content max-content",
+            "max-content max-content max-content max-content",
             '"align-content": "start"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -119,6 +118,7 @@ def verify_build(path: Path) -> list[str]:
             '"grid-area": "cameras"',
             '"grid-area": "tesla"',
             '"grid-area": "music"',
+            '"grid-area": "rooms"',
             "Model X",
             "Model S",
             "camera.back_courtyard_fluent",
@@ -149,10 +149,9 @@ def verify_build(path: Path) -> list[str]:
             "height: 160px !important",
             "position: absolute !important",
             "cameras cameras cameras calendar_notification",
-            "rooms rooms music calendar_notification",
+            "rooms simple_tab music calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
-            "--chip-height: 56px",
             "Gates & Doors",
             "calc(100dvh - 240px)",
             '"min_height": "320px"',
@@ -161,6 +160,10 @@ def verify_build(path: Path) -> list[str]:
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        if "room_selector" in overview_blob:
+            errors.append("Tablet overview still has room_selector filter chips")
+        if '"content": "Default"' in overview_blob and '"content": "Outdoor"' in overview_blob:
+            errors.append("Tablet overview still has Default/Others/Outdoor filter chips")
         if "mediocre-chip-media-player-group-card" in overview_blob:
             errors.append(
                 "Tablet music must not include zone/group chip header (stretches overview)"
@@ -192,14 +195,13 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet music still uses compact mediocre-media-player-card")
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "room_selector simple_tab music calendar_notification",
-            "rooms rooms music calendar_notification",
+            "rooms simple_tab music calendar_notification",
             "cameras cameras cameras calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in overview_blob for row in locked_area_rows):
             errors.append(
-                "Tablet overview grid-template-areas changed — other cards must stay put"
+                "Tablet overview grid-template-areas changed unexpectedly"
             )
         for view in views:
             if view.get("type") != "panel":

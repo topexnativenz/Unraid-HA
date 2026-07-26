@@ -11,7 +11,6 @@ from flux_layouts import flux_room_tile
 from flux_media_player import build_tablet_music_card
 from flux_navbar import URL_PREFIX
 from flux_overview_tabs import build_events_tab_cards
-from flux_rooms_index import ROOM_CATEGORIES, ROOMS_TAB_ENTITY, _category_tab_chips
 from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
 from flux_tablet_tesla import build_tablet_tesla_band
 from flux_time import nz_clock_date_js, nz_clock_time_js
@@ -623,13 +622,6 @@ def _calendar_notification(
     }
 
 
-def _room_selector() -> dict:
-    chips = _category_tab_chips()
-    chips.pop("grid_options", None)
-    chips["view_layout"] = _area("room_selector")
-    return chips
-
-
 def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
     return [r for r in rooms if (r.get("category") or "default") == slug]
 
@@ -641,49 +633,25 @@ def _room_pair_row(rooms: list[dict]) -> dict:
         tile.pop("grid_options", None)
         tiles.append(tile)
     if not tiles:
-        return wrap_glass({"type": "markdown", "content": "No rooms in this category."})
-    # Reference tablet home: up to 6 room cards in one landscape row.
+        return wrap_glass({"type": "markdown", "content": "No rooms configured."})
     return {
         "type": "grid",
-        "columns": min(6, max(2, len(tiles))),
+        "columns": 2 if len(tiles) <= 4 else min(6, len(tiles)),
         "square": False,
         "cards": tiles,
     }
 
 
 def _rooms_band(cfg: dict) -> dict:
+    """Default-category room tiles — no Default/Others/Outdoor filter chips."""
     rooms = cfg.get("rooms") or []
-    panels: list[dict] = []
-    for cat in ROOM_CATEGORIES:
-        option = cat["option"]
-        slug = cat["slug"]
-        category_rooms = _rooms_for_category(rooms, slug)
-        if option == "Default":
-            conditions = [
-                {
-                    "condition": "or",
-                    "conditions": [
-                        {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": "Default"},
-                        {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": "unknown"},
-                        {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": "unavailable"},
-                    ],
-                }
-            ]
-        else:
-            conditions = [
-                {"condition": "state", "entity": ROOMS_TAB_ENTITY, "state": option},
-            ]
-        panels.append(
-            {
-                "type": "conditional",
-                "conditions": conditions,
-                "card": _room_pair_row(category_rooms),
-            }
-        )
+    default_rooms = _rooms_for_category(rooms, "default")
+    # Fall back to all rooms if none are tagged default.
+    show = default_rooms or rooms
     return {
         "type": "vertical-stack",
         "view_layout": _area("rooms"),
-        "cards": panels,
+        "cards": [_room_pair_row(show)],
     }
 
 
@@ -1001,7 +969,6 @@ def build_tablet_overview_view(
         _calendar_notification(
             cfg, weather_entity, use_calendar_pro=use_calendar_pro
         ),
-        _room_selector(),
         _rooms_band(cfg),
         _cameras_band(cfg, use_auto_entities=use_auto_entities),
         build_tablet_tesla_band(cfg, view_layout=_area("tesla")),
@@ -1010,11 +977,11 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Music spans greeting→rooms only — do not move greeting / Gates /
-            # rooms / cameras / Tesla / calendar when swapping music card content.
+            # No Default/Others/Outdoor chips. Gates stays tall beside clock+rooms;
+            # room tiles sit under the clock only.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "max-content max-content max-content max-content max-content"
+                "max-content max-content max-content max-content"
             ),
             "grid-auto-rows": "max-content",
             "align-content": "start",
@@ -1023,8 +990,7 @@ def build_tablet_overview_view(
             "grid-gap": "10px",
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
-                '"room_selector simple_tab music calendar_notification"\n'
-                '"rooms rooms music calendar_notification"\n'
+                '"rooms simple_tab music calendar_notification"\n'
                 '"cameras cameras cameras calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
