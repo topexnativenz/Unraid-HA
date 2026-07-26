@@ -13,6 +13,11 @@ Build: `python3 scripts/build_flux_ui.py --tablet` → `generated/lovelace.flux_
 Model S / Model X report charging. Override via `input_text.flux_ui_tablet_rgb_led`
 if discovery used a different ID.
 
+**Tablet cameras:** overview row is Reolink Back Courtyard → Eufy Driveway →
+Front door Doorbell → Garage Door (`entities.yaml` → `tablet.overview_cameras`).
+Unused Eufy cameras (Front Yard, Side of House, Clubrooms, Showroom) are disabled
+via `scripts/fix_eufy_cameras.py` (runs on deploy).
+
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
 
 Mobile overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) (`dashboard/mobile/views/01-overview.yaml`):

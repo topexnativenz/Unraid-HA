@@ -30,6 +30,7 @@ GARAGE_DIR = ROOT.parent / "garage-doors"
 BUILD = ROOT / "scripts" / "build_flux_ui.py"
 DISCOVER_ROOMS = ROOT / "scripts" / "discover_room_sensors.py"
 DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
+FIX_EUFY_CAMERAS = ROOT / "scripts" / "fix_eufy_cameras.py"
 DISCOVER_WEATHER = ROOT / "scripts" / "discover_weather.py"
 DISCOVER_SONOS = ROOT / "scripts" / "discover_sonos.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
@@ -632,9 +633,9 @@ def build_config(
             '"grid-area": "music"',
             "Model X",
             "Model S",
+            "camera.back_courtyard_fluent",
             "camera.side_door",
             "camera.front_door_doorbell",
-            "camera.front_yard",
             "camera.garage_door",
             "data:image/webp;base64,",
             "Good Morning!",
@@ -1031,6 +1032,18 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 "WARNING: Sonos discovery failed or no speakers — "
                 "music bar may be hidden until speakers appear in HA"
             )
+        print("Pruning unused Eufy cameras (keep Driveway + tablet outdoor feeds)…")
+        subprocess.run(
+            [
+                "python3",
+                str(FIX_EUFY_CAMERAS),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+            ],
+            check=False,
+        )
 
     config = build_config(
         mobile_storage,

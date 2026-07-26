@@ -1,17 +1,23 @@
 # Flux UI Cameras — global feeds and optional room assignment.
-# Tablet overview uses ONLY this curated list (exactly one landscape row of 4).
+# room: matches rooms.yaml path slug (e.g. entry, garage, living)
+#
+# Eufy: only Driveway (camera.side_door) is kept enabled in the integration.
+# Other Eufy camera devices are disabled in HA (user) to reduce clutter.
+# Reolink Duo 3 PoE → camera.back_courtyard_fluent.
 
 cameras:
-  # Friendly names match the wall-tablet overview (Driveway / Front door / Front Yard / Garage).
-  # side_door is the driveway Eufy (HA labels binary_sensor.side_door_* as "Driveway").
+  - entity: camera.back_courtyard_fluent
+    name: Back Courtyard
+    room: outdoor
   - entity: camera.side_door
     name: Driveway
+    room: outdoor
   - entity: camera.front_door_doorbell
     name: Front door Doorbell
-  - entity: camera.front_yard
-    name: Front Yard
+    room: entry
   - entity: camera.garage_door
     name: Garage Door
+    room: garage
 
-# Never auto-append every camera.* onto the tablet overview.
+# When true and auto-entities is installed, append all camera.* entities not listed above.
 auto_discover: false
