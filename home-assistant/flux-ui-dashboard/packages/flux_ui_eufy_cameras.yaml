@@ -1,0 +1,78 @@
+# Flux UI — Eufy outdoor cameras (Three Mile Bush HomeBase).
+#
+# Eufy tiles show a cached event image while idle. Live view needs the stream
+# started (camera.turn_on / RTSP). This package:
+#   - keeps RTSP enabled on Driveway / Garage Door / Side of House
+#   - briefly starts each stream on HA start + every 30 min so stills refresh
+#
+# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
+
+script:
+  flux_ui_eufy_refresh_stills:
+    alias: Flux UI — refresh Eufy camera stills
+    icon: mdi:cctv
+    mode: queued
+    max: 1
+    sequence:
+      - variables:
+          cameras:
+            - camera.side_door
+            - camera.garage_door
+            - camera.side_of_house
+      - repeat:
+          for_each: "{{ cameras }}"
+          sequence:
+            - condition: template
+              value_template: >
+                {{ states(repeat.item) not in ['unknown', 'unavailable', none, ''] }}
+            - action: camera.turn_on
+              continue_on_error: true
+              target:
+                entity_id: "{{ repeat.item }}"
+            - delay:
+                seconds: 12
+            - action: camera.turn_off
+              continue_on_error: true
+              target:
+                entity_id: "{{ repeat.item }}"
+            - delay:
+                seconds: 2
+
+automation:
+  - id: flux_ui_eufy_rtsp_keep_on
+    alias: Flux UI — keep Eufy outdoor RTSP enabled
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id:
+          - switch.side_door_rtsp_stream
+          - switch.garage_door_rtsp_stream
+          - switch.side_of_house_rtsp_stream
+        to: "off"
+        for:
+          minutes: 2
+    action:
+      - action: switch.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - switch.side_door_rtsp_stream
+            - switch.garage_door_rtsp_stream
+            - switch.side_of_house_rtsp_stream
+
+  - id: flux_ui_eufy_refresh_stills
+    alias: Flux UI — refresh Eufy stills (HA start + periodic)
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: time_pattern
+        minutes: "/30"
+    action:
+      - delay:
+          seconds: 45
+      - action: script.turn_on
+        target:
+          entity_id: script.flux_ui_eufy_refresh_stills

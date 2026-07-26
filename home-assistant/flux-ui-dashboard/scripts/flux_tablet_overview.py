@@ -657,8 +657,14 @@ def _camera_feed_card(camera: dict) -> dict:
             "name": name,
             "show_name": True,
             "show_state": False,
-            "camera_view": "auto",
+            # live: request HA stream (Eufy idle tiles are stale event stills).
+            "camera_view": "live",
             "tap_action": {"action": "more-info", "entity": entity},
+            "hold_action": {
+                "action": "perform-action",
+                "perform_action": "camera.turn_on",
+                "target": {"entity_id": entity},
+            },
             "card_mod": {
                 "style": (
                     # Fixed geometry — stills paint absolutely inside; never push layout.

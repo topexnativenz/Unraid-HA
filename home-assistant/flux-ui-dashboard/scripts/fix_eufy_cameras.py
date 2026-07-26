@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Keep only the used Eufy cameras enabled; disable unused Eufy camera devices.
 
-Driveway (camera.side_door) is the primary outdoor Eufy feed for Flux UI.
-Front door Doorbell + Garage Door stay enabled for the tablet overview row.
+Outdoor Eufy feeds for Flux UI (Three Mile Bush HomeBase):
+  Driveway (camera.side_door), Garage Door, Side of House.
+Front door Doorbell stays enabled for entry views.
 Indoor / unused outdoor Eufy cameras are disabled (user) to cut clutter.
 
 Usage:
@@ -32,12 +33,12 @@ KEEP_ENABLED = {
     "Driveway",
     "Front door Doorbell",
     "Garage Door",
+    "Side of House",
 }
 
 # Explicitly disable these Eufy camera device names when present.
 DISABLE_EUFY_CAMERAS = {
     "Front Yard",
-    "Side of House",
     "Clubrooms 1",
     "Showroom 1",
 }

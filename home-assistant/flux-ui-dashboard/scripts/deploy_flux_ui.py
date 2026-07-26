@@ -56,6 +56,7 @@ REQUIRED_PACKAGES = (
     "flux_ui_rooms.yaml",
     "flux_ui_weather.yaml",
     "flux_ui_tablet_led.yaml",
+    "flux_ui_eufy_cameras.yaml",
 )
 
 TABLET_LED_ENTITY = "input_text.flux_ui_tablet_rgb_led"
@@ -635,8 +636,9 @@ def build_config(
             "Model S",
             "camera.back_courtyard_fluent",
             "camera.side_door",
-            "camera.front_door_doorbell",
             "camera.garage_door",
+            "camera.side_of_house",
+            '"camera_view": "live"',
             "data:image/webp;base64,",
             "Good Morning!",
             "gap: 12px !important",
