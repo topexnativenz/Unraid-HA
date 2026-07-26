@@ -48,6 +48,7 @@ from flux_tablet_layout import (
     tablet_panel_stack,
     tablet_panel_view,
 )
+from flux_tablet_eufy import build_tablet_eufy_live_views
 from flux_tablet_overview import build_tablet_overview_view
 from flux_tablet_room import build_tablet_room_detail_view
 from flux_tablet_scenes import build_tablet_active_view, build_tablet_scenes_view
@@ -725,6 +726,9 @@ def _build_config_inner(
                 use_auto_entities=use_auto_entities,
             ),
         ]
+        views.extend(
+            build_tablet_eufy_live_views(cfg, use_navbar_card=use_navbar_card)
+        )
     else:
         overview = build_overview_sections(
             cfg,
