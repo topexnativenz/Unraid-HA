@@ -820,6 +820,16 @@ def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
     }
 
 
+def _with_camera_card_mod(tile: dict) -> dict:
+    """Append fixed-height cover card_mod (deploy requires aspect-ratio: unset)."""
+    tile = dict(tile)
+    existing = tile.get("card_mod") or {}
+    base = existing.get("style", "") if isinstance(existing, dict) else ""
+    # Camera rules last so they override wrap_glass background / sizing.
+    tile["card_mod"] = {"style": base + _camera_card_mod()["style"]}
+    return tile
+
+
 def _camera_feed_card(camera: dict) -> dict:
     """Landscape camera tile — last-stream JPEG still (160px).
 
@@ -832,14 +842,16 @@ def _camera_feed_card(camera: dict) -> dict:
     stream = (camera.get("stream") or "").strip()
 
     if stream:
-        return build_eufy_overview_tile(camera)
+        return _with_camera_card_mod(build_eufy_overview_tile(camera))
 
     # Reolink / cameras without RTSP sensor — still tile → bubble live.
     if entity == REOLINK_CAMERA_ENTITY:
-        return build_overview_still_tile(camera, tap_path=REOLINK_CAMERA_HASH)
+        return _with_camera_card_mod(
+            build_overview_still_tile(camera, tap_path=REOLINK_CAMERA_HASH)
+        )
 
-    return build_overview_still_tile(
-        camera, tap_path=f"{URL_PREFIX}/overview"
+    return _with_camera_card_mod(
+        build_overview_still_tile(camera, tap_path=f"{URL_PREFIX}/overview")
     )
 
 

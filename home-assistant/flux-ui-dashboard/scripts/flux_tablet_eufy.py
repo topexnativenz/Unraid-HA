@@ -132,11 +132,35 @@ def build_overview_still_tile(
             "custom_fields": {
                 "still": _still_img_html(entity),
             },
+            # card_mod merged by wrap_glass; overview appends _camera_card_mod
+            # (aspect-ratio: unset + img cover) after glass styles.
+            "card_mod": {
+                "style": (
+                    "ha-card {\n"
+                    "  aspect-ratio: unset !important;\n"
+                    "  height: 160px !important;\n"
+                    "  min-height: 160px !important;\n"
+                    "  max-height: 160px !important;\n"
+                    "  padding: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  background: #111 !important;\n"
+                    "}\n"
+                    "img {\n"
+                    "  position: absolute !important;\n"
+                    "  inset: 0 !important;\n"
+                    "  width: 100% !important;\n"
+                    "  height: 100% !important;\n"
+                    "  object-fit: cover !important;\n"
+                    "  object-position: center !important;\n"
+                    "}\n"
+                ),
+            },
             "styles": {
                 "card": [
                     {"height": "160px"},
                     {"min-height": "160px"},
                     {"max-height": "160px"},
+                    {"aspect-ratio": "unset"},
                     {"padding": "0"},
                     {"overflow": "hidden"},
                     {"background-color": "#111"},
