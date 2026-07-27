@@ -682,11 +682,36 @@ _DEFAULT_AREA_LIGHTS: list[dict] = [
 ]
 
 
+def _area_lights_hash(area: dict) -> str:
+    """Bubble hash for an area lights popup — stable from the group entity id."""
+    entity = str(area.get("entity") or "light.area")
+    slug = entity.replace("light.", "").replace("_all", "").replace("_", "-")
+    return f"#area-lights-{slug}"
+
+
+def _area_light_members(area: dict) -> list[dict]:
+    members = list(area.get("members") or [])
+    out: list[dict] = []
+    for m in members:
+        if isinstance(m, str):
+            out.append({"entity": m, "name": m.split(".", 1)[-1].replace("_", " ").title()})
+        elif isinstance(m, dict) and m.get("entity"):
+            out.append(
+                {
+                    "entity": m["entity"],
+                    "name": m.get("name")
+                    or m["entity"].split(".", 1)[-1].replace("_", " ").title(),
+                }
+            )
+    return out
+
+
 def _area_light_button(area: dict) -> dict:
-    """Area all-lights toggle — same compact flux_action chrome as Gates & Doors."""
+    """Area all-lights toggle — on-state CSS when any member is on; hold opens popup."""
     entity = area["entity"]
     name = area.get("name") or entity
     icon = area.get("icon") or "mdi:lightbulb-group"
+    popup_hash = _area_lights_hash(area)
     return {
         "type": "custom:button-card",
         "template": "flux_action",
@@ -696,12 +721,16 @@ def _area_light_button(area: dict) -> dict:
         "show_icon": True,
         "show_entity_picture": False,
         "show_label": True,
+        # Light groups report on when any member is on — label + state CSS follow that.
         "label": (
             "[[[ return entity?.state === 'on' ? 'On' "
             ": (entity?.state === 'off' ? 'Off' : (entity?.state || '—')); ]]]"
         ),
         "tap_action": {"action": "toggle"},
-        "hold_action": {"action": "more-info"},
+        "hold_action": {
+            "action": "navigate",
+            "navigation_path": popup_hash,
+        },
         "styles": {
             "grid": [
                 {"grid-template-areas": "'i n' 'i l'"},
@@ -713,6 +742,7 @@ def _area_light_button(area: dict) -> dict:
                 {"height": "auto"},
                 {"min-height": "unset"},
                 {"max-height": "none"},
+                {"transition": "background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease"},
             ],
             "img_cell": [
                 {"border-radius": "16px"},
@@ -741,19 +771,134 @@ def _area_light_button(area: dict) -> dict:
             {
                 "value": "on",
                 "styles": {
+                    "card": [
+                        {"background": "rgba(255, 193, 7, 0.22)"},
+                        {"border": "1px solid rgba(255, 193, 7, 0.72)"},
+                        {
+                            "box-shadow": (
+                                "0 0 18px rgba(255, 193, 7, 0.28), "
+                                "0 4px 16px rgba(0, 0, 0, 0.22)"
+                            )
+                        },
+                    ],
                     "icon": [{"color": "#FFD54F"}],
                     "img_cell": [
-                        {
-                            "background-color": (
-                                "color-mix(in srgb, #FFD54F 28%, var(--contrast1))"
-                            )
-                        }
+                        {"background-color": "rgba(255, 193, 7, 0.45)"},
+                        {"box-shadow": "0 0 12px rgba(255, 193, 7, 0.35)"},
                     ],
+                    "name": [{"color": "#FFF8E1"}, {"font-weight": "700"}],
                     "label": [{"color": "#FFD54F"}, {"font-weight": "700"}],
                 },
             }
         ],
     }
+
+
+def _area_member_light_tile(member: dict) -> dict:
+    """Individual light in the area popup — flux_light chrome, tap toggles."""
+    entity = member["entity"]
+    name = member["name"]
+    return {
+        "type": "custom:button-card",
+        "template": "flux_light",
+        "entity": entity,
+        "name": name,
+        "icon": "mdi:lightbulb",
+        "show_icon": True,
+        "show_label": True,
+        "label": (
+            "[[[\n"
+            "  if (entity?.state !== 'on') return 'Off';\n"
+            "  const b = entity?.attributes?.brightness;\n"
+            "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
+            "]]]"
+        ),
+        "tap_action": {"action": "toggle"},
+        "hold_action": {"action": "more-info"},
+        "styles": {
+            "card": [
+                {"height": "auto"},
+                {"min-height": "64px"},
+                {"padding": "10px 12px"},
+            ],
+        },
+    }
+
+
+def _area_lights_popup(area: dict) -> dict:
+    """Bubble popup listing every light in the area group."""
+    name = area.get("name") or "Lights"
+    entity = area["entity"]
+    icon = area.get("icon") or "mdi:lightbulb-group"
+    members = _area_light_members(area)
+    cards: list[dict] = [
+        {
+            "type": "custom:button-card",
+            "template": "flux_light",
+            "entity": entity,
+            "name": f"All {name}",
+            "icon": icon,
+            "show_icon": True,
+            "show_label": True,
+            "label": (
+                "[[[ return entity?.state === 'on' ? 'All on' "
+                ": (entity?.state === 'off' ? 'All off' : (entity?.state || '—')); ]]]"
+            ),
+            "tap_action": {"action": "toggle"},
+            "hold_action": {"action": "more-info"},
+            "styles": {
+                "card": [
+                    {"height": "auto"},
+                    {"min-height": "72px"},
+                    {"padding": "12px 14px"},
+                ],
+            },
+        }
+    ]
+    for member in members:
+        cards.append(_area_member_light_tile(member))
+    if len(cards) == 1:
+        cards.append(
+            {
+                "type": "markdown",
+                "content": (
+                    f"No member lights listed for **{name}**. "
+                    "Add `members:` under this area in `area_lights.yaml`."
+                ),
+            }
+        )
+    return {
+        "type": "custom:bubble-card",
+        "card_type": "pop-up",
+        "hash": _area_lights_hash(area),
+        "name": name,
+        "icon": icon,
+        "entity": entity,
+        "button_type": "name",
+        "bg_blur": "14",
+        "bg_opacity": "90",
+        "bg_color": "var(--md-sys-color-surface)",
+        "sub_button": {"main": [], "bottom": []},
+        "popup_style": "classic",
+        "is_sidebar_hidden": True,
+        "width_desktop": "520px",
+        "styles": (
+            "#root { max-height: 100% !important; }\n"
+            ".bubble-pop-up-container {\n"
+            "  padding: 8px 12px 24px 12px !important;\n"
+            "  max-height: min(80dvh, 720px) !important;\n"
+            "  overflow-y: auto !important;\n"
+            "  -webkit-overflow-scrolling: touch !important;\n"
+            "}\n"
+            ".bubble-pop-up-container > * { margin-bottom: 8px !important; }\n"
+        ),
+        "cards": cards,
+    }
+
+
+def _area_lights_popups(cfg: dict) -> list[dict]:
+    areas = list((cfg.get("area_lights") or {}).get("areas") or _DEFAULT_AREA_LIGHTS)
+    return [_area_lights_popup(a) for a in areas[:6]]
 
 
 def _lights_band(cfg: dict) -> dict:
@@ -1192,13 +1337,14 @@ def build_tablet_overview_view(
             ),
         },
     )
-    # Bubble pop-up must live in the overview DOM; keep it zero-height when closed
-    # so it does not steal flex space from the 16:9 layout.
+    # Bubble pop-ups must live in the overview DOM; keep them zero-height when
+    # closed so they do not steal flex space from the 16:9 layout.
     overview_body = {
         "type": "vertical-stack",
         "cards": [
             layout,
             build_reolink_fullscreen_popup(cfg),
+            *_area_lights_popups(cfg),
         ],
         "card_mod": {
             "style": (
@@ -1224,7 +1370,7 @@ def build_tablet_overview_view(
                 "  max-height: 100% !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
-                "#root > *:last-child {\n"
+                "#root > *:not(:first-child) {\n"
                 "  flex: 0 0 0 !important;\n"
                 "  height: 0 !important;\n"
                 "  min-height: 0 !important;\n"

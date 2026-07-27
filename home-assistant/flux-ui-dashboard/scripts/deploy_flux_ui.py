@@ -272,8 +272,16 @@ def write_tablet_yaml_from_config(config: dict) -> Path:
     import yaml
 
     TABLET_YAML.parent.mkdir(parents=True, exist_ok=True)
+    header = (
+        "# Flux UI 16:9 tablet dashboard — MANUAL YAML (source of truth)\n"
+        "#\n"
+        "# Edit this file (or /config/dashboards/flux_ui_tablet.yaml on HA) for layout.\n"
+        "# Normal deploy only copies this file; it does NOT regenerate from Python.\n"
+        "# Regenerate from builders only with: deploy_flux_ui.py --rebuild-tablet-yaml\n"
+        "#\n"
+    )
     TABLET_YAML.write_text(
-        yaml.dump(config, sort_keys=False, allow_unicode=True, width=120)
+        header + yaml.dump(config, sort_keys=False, allow_unicode=True, width=120)
     )
     print(f"  wrote {TABLET_YAML.relative_to(ROOT)} ({TABLET_YAML.stat().st_size} bytes)")
     return TABLET_YAML
@@ -808,6 +816,11 @@ def build_config(
             "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
+            "#area-lights-kitchen",
+            "#area-lights-dining",
+            '"navigation_path": "#area-lights-kitchen"',
+            '"template": "flux_light"',
+            "rgba(255, 193, 7, 0.22)",
             "max-height: 100% !important",
             ".loading-indicator",
             '"font-size": "22px"',

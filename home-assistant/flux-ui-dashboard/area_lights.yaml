@@ -1,22 +1,70 @@
 # Tablet overview — area light toggles (left of cameras).
 # Helpers are defined in packages/flux_ui_area_lights.yaml.
+# `members` drive the hold-to-open Bubble popup (individual lights in the group).
 
 areas:
   - name: Kitchen
     entity: light.kitchen_all
     icon: mdi:stove
+    members:
+      - entity: light.kitchen
+        name: Kitchen
+      - entity: light.cooking
+        name: Cooking
+      - entity: light.scullery
+        name: Scullery
+      - entity: light.sink
+        name: Sink
+      - entity: light.bar
+        name: Bar
+      - entity: light.breakfast_high
+        name: Breakfast High
+      - entity: light.c_bus_light_036_c_bus_light_036
+        name: C-Bus 036
+
   - name: Dining
     entity: light.dining_all
     icon: mdi:silverware-fork-knife
+    members:
+      - entity: light.dining_room
+        name: Dining Room
+      - entity: light.dining_centre
+        name: Dining Centre
+      - entity: light.dining_pic_light
+        name: Picture Light
+
   - name: Black Lounge
     entity: light.black_lounge_all
     icon: mdi:sofa
+    members:
+      - entity: light.black_lounge
+        name: Black Lounge
+
   - name: White Lounge
     entity: light.white_lounge_all
     icon: mdi:sofa-outline
+    members:
+      - entity: light.white_lounge
+        name: White Lounge
+      - entity: light.white_lounge_centre
+        name: Centre
+      - entity: light.white_lounge_surround
+        name: Surround
+      - entity: light.white_lounge_surround_2
+        name: Surround 2
+      - entity: light.white_lounge_cabinet
+        name: Cabinet
+
   - name: Walkway
     entity: light.walkway_all
     icon: mdi:walk
+    members:
+      - entity: light.walkway
+        name: Walkway
+
   - name: Kids Hallway
     entity: light.kids_hallway_all
     icon: mdi:human-male-child
+    members:
+      - entity: light.kids_hall_footlights
+        name: Footlights
