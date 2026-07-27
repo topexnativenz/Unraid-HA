@@ -153,9 +153,20 @@ def verify_build(path: Path) -> list[str]:
             "Gates & Doors",
             "max-height: 180px !important",
             "media_player.kitchen_sonos",
+            "1.1fr 1.1fr",
+            "align-content: stretch",
+            "max-height: none",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
+        if "1.05fr 1.25fr" in overview_blob:
+            errors.append(
+                "Tablet rooms/cameras columns must be equal width (not 1.05fr 1.25fr)"
+            )
+        if "align-content: start" in overview_blob:
+            errors.append(
+                "Tablet overview must use align-content: stretch (start leaves gaps above Tesla)"
+            )
         if "room_selector" in overview_blob:
             errors.append("Tablet overview still has room_selector filter chips")
         if '"content": "Default"' in overview_blob and '"content": "Outdoor"' in overview_blob:

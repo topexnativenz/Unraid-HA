@@ -136,7 +136,8 @@ OVERVIEW_LAYOUT_CARD_MOD = {
         "  max-height: 100% !important;\n"
         "}\n"
         "#root, .layout {\n"
-        "  align-content: start !important;\n"
+        # Stretch tracks into the locked 100dvh — `start` left a void above Tesla.
+        "  align-content: stretch !important;\n"
         "  overscroll-behavior: none !important;\n"
         "  touch-action: none !important;\n"
         "}\n"

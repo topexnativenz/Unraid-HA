@@ -446,7 +446,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "  height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
-                "  gap: 4px !important;\n"
+                "  gap: 2px !important;\n"
                 "}\n"
                 "#root > *:first-child {\n"
                 "  flex: 0 0 auto !important;\n"
@@ -454,8 +454,7 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "}\n"
                 "#root > *:not(:first-child) {\n"
                 "  flex: 1 1 auto !important;\n"
-                # Keep 140px — do not raise min-height or shared grid rows shift.
-                "  min-height: 140px !important;\n"
+                "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
             )
@@ -626,41 +625,78 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
     return [r for r in rooms if (r.get("category") or "default") == slug]
 
 
-def _room_pair_row(rooms: list[dict]) -> dict:
-    tiles = []
-    for room in rooms:
-        tile = flux_room_tile(room, columns=12)
-        tile.pop("grid_options", None)
-        tiles.append(tile)
-    if not tiles:
-        return wrap_glass({"type": "markdown", "content": "No rooms configured."})
+def _tablet_room_tile(room: dict) -> dict:
+    """Room tile that fills its 2×2 cell (phone flux_room is locked to 186px)."""
+    tile = flux_room_tile(room, columns=12)
+    tile.pop("grid_options", None)
+    styles = tile.setdefault("styles", {})
+    card_styles = list(styles.get("card") or [])
+    card_styles.extend(
+        [
+            {"height": "100%"},
+            {"min-height": "0"},
+            {"max-height": "none"},
+        ]
+    )
+    styles["card"] = card_styles
+    return tile
+
+
+def _overview_2x2_mod_card(cards: list[dict], *, view_layout: dict) -> dict:
+    """Equal 2×2 grid that fills the mid-row cell (grid cards need mod-card)."""
     return {
-        "type": "grid",
-        "columns": 2 if len(tiles) <= 4 else min(6, len(tiles)),
-        "square": False,
-        "cards": tiles,
+        "type": "custom:mod-card",
+        "view_layout": view_layout,
+        "card": {
+            "type": "grid",
+            "columns": 2,
+            "square": False,
+            "cards": cards,
+        },
         "card_mod": {
-            "style": (
-                ":host, ha-card {\n"
-                "  height: 100% !important;\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "}\n"
-                "#root {\n"
-                "  display: grid !important;\n"
-                "  grid-template-columns: 1fr 1fr !important;\n"
-                "  grid-template-rows: 1fr 1fr !important;\n"
-                "  height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  gap: 8px !important;\n"
-                "  align-items: stretch !important;\n"
-                "}\n"
-                "#root > * {\n"
-                "  min-height: 0 !important;\n"
-                "  height: 100% !important;\n"
-                "}\n"
-            )
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  width: 100% !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    "hui-grid-card {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  width: 100% !important;\n"
+                    "}\n"
+                ),
+                "hui-grid-card": {
+                    "$": (
+                        "#root {\n"
+                        "  display: grid !important;\n"
+                        "  grid-template-columns: 1fr 1fr !important;\n"
+                        "  grid-template-rows: 1fr 1fr !important;\n"
+                        "  height: 100% !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  width: 100% !important;\n"
+                        "  gap: 8px !important;\n"
+                        "  align-items: stretch !important;\n"
+                        "  justify-items: stretch !important;\n"
+                        "  box-sizing: border-box !important;\n"
+                        "}\n"
+                        "#root > * {\n"
+                        "  min-height: 0 !important;\n"
+                        "  min-width: 0 !important;\n"
+                        "  height: 100% !important;\n"
+                        "  width: 100% !important;\n"
+                        "  overflow: hidden !important;\n"
+                        "}\n"
+                    )
+                },
+            }
         },
     }
 
@@ -671,32 +707,13 @@ def _rooms_band(cfg: dict) -> dict:
     default_rooms = _rooms_for_category(rooms, "default")
     # Fall back to all rooms if none are tagged default.
     show = default_rooms or rooms
-    return {
-        "type": "vertical-stack",
-        "view_layout": _area("rooms"),
-        "cards": [_room_pair_row(show)],
-        "card_mod": {
-            "style": (
-                ":host, ha-card {\n"
-                "  height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "}\n"
-                "#root {\n"
-                "  height: 100% !important;\n"
-                "  display: flex !important;\n"
-                "  flex-direction: column !important;\n"
-                "}\n"
-                "#root > * {\n"
-                "  flex: 1 1 auto !important;\n"
-                "  min-height: 0 !important;\n"
-                "  height: 100% !important;\n"
-                "}\n"
-            )
-        },
-    }
+    tiles = [_tablet_room_tile(room) for room in show[:4]]
+    if not tiles:
+        return _overview_2x2_mod_card(
+            [wrap_glass({"type": "markdown", "content": "No rooms configured."})],
+            view_layout=_area("rooms"),
+        )
+    return _overview_2x2_mod_card(tiles, view_layout=_area("rooms"))
 
 
 def _camera_card_mod() -> dict:
@@ -876,58 +893,18 @@ def _tablet_overview_cameras(cfg: dict) -> list[dict]:
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """2×2 camera grid beside rooms — bottoms align with the music column."""
+    """2×2 camera grid beside rooms — same cell size, shared mid-row fill."""
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
-    fill_mod = {
-        "style": (
-            ":host, ha-card {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "  max-height: none !important;\n"
-            "  overflow: hidden !important;\n"
-            "  box-sizing: border-box !important;\n"
-            "  padding: 0 !important;\n"
-            "  background: transparent !important;\n"
-            "  box-shadow: none !important;\n"
-            "  border: none !important;\n"
-            "}\n"
-            "#root {\n"
-            "  display: grid !important;\n"
-            "  grid-template-columns: 1fr 1fr !important;\n"
-            "  grid-template-rows: 1fr 1fr !important;\n"
-            "  height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "  gap: 8px !important;\n"
-            "  align-items: stretch !important;\n"
-            "  width: 100% !important;\n"
-            "  box-sizing: border-box !important;\n"
-            "}\n"
-            "#root > * {\n"
-            "  position: relative !important;\n"
-            "  width: 100% !important;\n"
-            "  min-width: 0 !important;\n"
-            "  min-height: 0 !important;\n"
-            "  height: 100% !important;\n"
-            "  overflow: hidden !important;\n"
-            "}\n"
-        )
-    }
     if cameras:
         feeds = list(cameras[:4])
-        return {
-            "type": "grid",
-            "columns": 2,
-            "square": False,
-            "view_layout": _area("cameras"),
-            "cards": [_camera_feed_card(cam) for cam in feeds],
-            "card_mod": fill_mod,
-        }
+        return _overview_2x2_mod_card(
+            [_camera_feed_card(cam) for cam in feeds],
+            view_layout=_area("cameras"),
+        )
 
-    return {
-        "type": "vertical-stack",
-        "view_layout": _area("cameras"),
-        "cards": [
+    return _overview_2x2_mod_card(
+        [
             wrap_glass(
                 {
                     "type": "markdown",
@@ -938,8 +915,8 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 }
             )
         ],
-        "card_mod": fill_mod,
-    }
+        view_layout=_area("cameras"),
+    )
 
 def build_tablet_overview_view(
     cfg: dict,
@@ -972,13 +949,14 @@ def build_tablet_overview_view(
             # Top: clock + Gates + music head. Mid: rooms 2×2 | cameras 2×2 |
             # music (shared bottom). Bottom: Tesla reserved so it never clips
             # off-screen under the room/camera grids.
-            "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
+            # Rooms + cameras share equal column width so the two 2×2 grids line up.
+            "grid-template-columns": "1.1fr 1.1fr 1.05fr 1.15fr",
             "grid-template-rows": "auto minmax(0, 1fr) minmax(150px, 180px)",
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
             "align-items": "stretch",
             "justify-items": "stretch",
-            "grid-gap": "10px",
+            "grid-gap": "8px",
             "height": "100%",
             "max_height": "100%",
             "grid-template-areas": (
