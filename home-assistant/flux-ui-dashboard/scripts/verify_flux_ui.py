@@ -187,7 +187,7 @@ def verify_build(path: Path) -> list[str]:
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
-            errors.append("Tablet clock still uses smaller type — expect 136px time / 26px date")
+            errors.append("Tablet clock still uses smaller type — expect 136px time / 30px date")
         if "hour12: true" in overview_blob:
             errors.append("Tablet clock still shows 12h AM/PM — expect 24h HH:MM")
         if "mdi:thermometer-lines" in overview_blob:
