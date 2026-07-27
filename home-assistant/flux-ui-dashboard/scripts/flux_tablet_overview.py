@@ -61,10 +61,14 @@ REOLINK_POPUP_STYLES = """\
 
 def _area(name: str) -> dict:
     """Grid area placement — stretch overview bands to their tracks."""
+    if name == "lights":
+        # Compact Gates-style toggles — top of mid, do not stretch into Tesla.
+        return {"grid-area": name, "place-self": "start stretch"}
+    if name == "cameras":
+        # Sit on the mid-row floor so bottoms flush with Music.
+        return {"grid-area": name, "place-self": "end stretch"}
     if name in (
         "calendar_notification",
-        "cameras",
-        "lights",
         "tesla",
         "music",
         "greeting",
@@ -682,78 +686,94 @@ _DEFAULT_AREA_LIGHTS: list[dict] = [
 
 
 def _area_light_button(area: dict) -> dict:
-    """Single toggle for every light in an area (HA light group helper)."""
+    """Area all-lights toggle — same compact flux_action chrome as Gates & Doors."""
     entity = area["entity"]
     name = area.get("name") or entity
     icon = area.get("icon") or "mdi:lightbulb-group"
-    return wrap_glass(
-        {
-            "type": "custom:button-card",
-            "template": "flux_glass",
-            "entity": entity,
-            "name": name,
-            "icon": icon,
-            "show_state": False,
-            "show_icon": True,
-            "show_name": True,
-            "tap_action": {"action": "toggle"},
-            "hold_action": {"action": "more-info"},
-            "styles": {
-                "card": [
-                    {"height": "100%"},
-                    {"min-height": "0"},
-                    {"max-height": "none"},
-                    {"width": "100%"},
-                    {"padding": "10px 12px"},
-                    {"overflow": "hidden"},
-                    {"box-sizing": "border-box"},
-                    {"display": "flex"},
-                    {"align-items": "center"},
-                    {"justify-content": "flex-start"},
-                ],
-                "grid": [
-                    {"grid-template-areas": "'i n'"},
-                    {"grid-template-columns": "min-content 1fr"},
-                    {"grid-template-rows": "1fr"},
-                    {"column-gap": "10px"},
-                    {"align-items": "center"},
-                    {"height": "100%"},
-                    {"width": "100%"},
-                ],
-                "icon": [
-                    {"width": "28px"},
-                    {"height": "28px"},
-                    {"color": "var(--md-sys-color-on-surface-variant)"},
-                ],
-                "name": [
-                    {"font-size": "20px"},
-                    {"font-weight": "600"},
-                    {"justify-self": "start"},
-                    {"text-align": "left"},
-                    {"white-space": "nowrap"},
-                    {"overflow": "hidden"},
-                    {"text-overflow": "ellipsis"},
-                ],
-            },
-            "state": [
-                {
-                    "value": "on",
-                    "styles": {
-                        "icon": [{"color": "#FFD54F"}],
-                        "name": [{"color": "var(--md-sys-color-on-surface)"}],
-                    },
-                }
+    return {
+        "type": "custom:button-card",
+        "template": "flux_action",
+        "entity": entity,
+        "name": name,
+        "icon": icon,
+        "show_icon": True,
+        "show_entity_picture": False,
+        "show_label": True,
+        "label": (
+            "[[[ return entity?.state === 'on' ? 'On' "
+            ": (entity?.state === 'off' ? 'Off' : (entity?.state || '—')); ]]]"
+        ),
+        "tap_action": {"action": "toggle"},
+        "hold_action": {"action": "more-info"},
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'i n' 'i l'"},
+                {"grid-template-columns": "52px 1fr"},
+                {"grid-template-rows": "min-content min-content"},
+                {"column-gap": "12px"},
             ],
-        }
-    )
+            "card": [
+                {"height": "auto"},
+                {"min-height": "unset"},
+                {"max-height": "none"},
+            ],
+            "img_cell": [
+                {"border-radius": "16px"},
+                {"width": "52px"},
+                {"height": "52px"},
+                {"place-self": "center"},
+                {"background-color": "var(--contrast1)"},
+            ],
+            "icon": [
+                {"width": "26px"},
+                {"height": "26px"},
+                {"color": "var(--md-sys-color-primary)"},
+            ],
+            "name": [
+                {"font-weight": "600"},
+                {"font-size": "13px"},
+                {"justify-self": "start"},
+                {"text-align": "left"},
+            ],
+            "label": [
+                {"justify-self": "start"},
+                {"text-align": "left"},
+            ],
+        },
+        "state": [
+            {
+                "value": "on",
+                "styles": {
+                    "icon": [{"color": "#FFD54F"}],
+                    "img_cell": [
+                        {
+                            "background-color": (
+                                "color-mix(in srgb, #FFD54F 28%, var(--contrast1))"
+                            )
+                        }
+                    ],
+                    "label": [{"color": "#FFD54F"}, {"font-weight": "700"}],
+                },
+            }
+        ],
+    }
 
 
 def _lights_band(cfg: dict) -> dict:
-    """Left mid — 6 area all-lights toggles (2×3), fills track under Gates."""
+    """Left mid — compact 2-col Gates-style toggles (top-aligned, not stretched)."""
     areas = list((cfg.get("area_lights") or {}).get("areas") or _DEFAULT_AREA_LIGHTS)
     buttons = [_area_light_button(a) for a in areas[:6]]
     while len(buttons) < 6:
-        buttons.append(wrap_glass({"type": "markdown", "content": "Light"}))
+        buttons.append(
+            {
+                "type": "custom:button-card",
+                "template": "flux_action",
+                "name": "Light",
+                "label": "—",
+                "icon": "mdi:lightbulb-outline",
+                "show_icon": True,
+            }
+        )
 
     return {
         "type": "custom:mod-card",
@@ -762,38 +782,7 @@ def _lights_band(cfg: dict) -> dict:
             "type": "vertical-stack",
             "cards": [
                 _section_title("Lights"),
-                {
-                    "type": "custom:layout-card",
-                    "layout_type": "custom:grid-layout",
-                    "layout": {
-                        "grid-template-columns": "1fr 1fr",
-                        "grid-template-rows": "1fr 1fr 1fr",
-                        "grid-gap": "8px",
-                        "gap": "8px",
-                        "height": "100%",
-                        "width": "100%",
-                        "margin": "0",
-                        "padding": "0",
-                        "card_margin": "0",
-                        "align-items": "stretch",
-                        "justify-items": "stretch",
-                    },
-                    "cards": buttons,
-                    "card_mod": {
-                        "style": (
-                            ":host {\n"
-                            "  display: block !important;\n"
-                            "  height: 100% !important;\n"
-                            "  max-height: 100% !important;\n"
-                            "  min-height: 0 !important;\n"
-                            "  width: 100% !important;\n"
-                            "  overflow: hidden !important;\n"
-                            "  box-sizing: border-box !important;\n"
-                            "}\n"
-                            + _fill_track_style()
-                        )
-                    },
-                },
+                {"type": "grid", "columns": 2, "square": False, "cards": buttons},
             ],
         },
         "card_mod": {
@@ -801,20 +790,21 @@ def _lights_band(cfg: dict) -> dict:
                 ".": (
                     ":host {\n"
                     "  display: block !important;\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
+                    "  align-self: start !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
                     "}\n"
                     "ha-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
                     "  border: none !important;\n"
                     "}\n"
                     "hui-vertical-stack-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  display: block !important;\n"
                     "}\n"
                 ),
@@ -823,17 +813,14 @@ def _lights_band(cfg: dict) -> dict:
                         "#root {\n"
                         "  display: flex !important;\n"
                         "  flex-direction: column !important;\n"
-                        "  height: 100% !important;\n"
+                        "  height: auto !important;\n"
                         "  min-height: 0 !important;\n"
                         "  gap: 8px !important;\n"
                         "}\n"
-                        "#root > *:first-child {\n"
+                        "#root > * {\n"
                         "  flex: 0 0 auto !important;\n"
-                        "}\n"
-                        "#root > *:last-child {\n"
-                        "  flex: 1 1 auto !important;\n"
+                        "  height: auto !important;\n"
                         "  min-height: 0 !important;\n"
-                        "  overflow: hidden !important;\n"
                         "}\n"
                     )
                 },
@@ -843,7 +830,7 @@ def _lights_band(cfg: dict) -> dict:
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
-    """Right mid — 2×2 cameras; top under Gates, bottom flush with Music."""
+    """Right mid — 2×2 cameras, bottom-aligned flush with Music (not stretched tall)."""
     del use_auto_entities
     cameras = _tablet_overview_cameras(cfg)
     cam_tiles = [_camera_feed_card(cam) for cam in cameras[:4]]
@@ -888,12 +875,15 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                     "cards": cam_tiles,
                     "card_mod": {
                         "style": (
+                            # Width-driven square 2×2 — definite height for Fully;
+                            # outer band is end-aligned so bottoms meet Music.
                             ":host {\n"
                             "  display: block !important;\n"
-                            "  height: 100% !important;\n"
+                            "  width: 100% !important;\n"
+                            "  height: auto !important;\n"
+                            "  aspect-ratio: 1 / 1 !important;\n"
                             "  max-height: 100% !important;\n"
                             "  min-height: 0 !important;\n"
-                            "  width: 100% !important;\n"
                             "  overflow: hidden !important;\n"
                             "  box-sizing: border-box !important;\n"
                             "}\n"
@@ -908,20 +898,21 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                 ".": (
                     ":host {\n"
                     "  display: block !important;\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
+                    "  align-self: end !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
                     "}\n"
                     "ha-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
                     "  border: none !important;\n"
                     "}\n"
                     "hui-vertical-stack-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  display: block !important;\n"
                     "}\n"
                 ),
@@ -930,7 +921,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                         "#root {\n"
                         "  display: flex !important;\n"
                         "  flex-direction: column !important;\n"
-                        "  height: 100% !important;\n"
+                        "  height: auto !important;\n"
                         "  min-height: 0 !important;\n"
                         "  gap: 8px !important;\n"
                         "}\n"
@@ -938,9 +929,9 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                         "  flex: 0 0 auto !important;\n"
                         "}\n"
                         "#root > *:last-child {\n"
-                        "  flex: 1 1 auto !important;\n"
+                        "  flex: 0 0 auto !important;\n"
                         "  min-height: 0 !important;\n"
-                        "  overflow: hidden !important;\n"
+                        "  width: 100% !important;\n"
                         "}\n"
                     )
                 },
@@ -1175,12 +1166,11 @@ def build_tablet_overview_view(
         overview=True,
         layout={
             # 15.6" / 1920×1080: everything locked inside 100dvh.
-            # Top: clock | gates (~24%). Mid: lights | cameras — largest track so
-            # content sits under Gates and bottoms flush with Music. Bottom: short
-            # Tesla strip (~14%) pinned to the viewport (must not cover mid).
+            # Top: clock | gates. Mid: leftover — compact Lights (top) + Cameras
+            # bottom-aligned to Music. Bottom: short Tesla flush under that edge.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 24fr) minmax(0, 62fr) minmax(0, 14fr)"
+                "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
