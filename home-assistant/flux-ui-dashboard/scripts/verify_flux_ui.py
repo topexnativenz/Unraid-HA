@@ -157,7 +157,7 @@ def verify_build(path: Path) -> list[str]:
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
             "max-height: none",
-            '"font-size": "84px"',
+            '"font-size": "112px"',
             "1fr 1fr 1fr 1fr",
             "minmax(0, 1fr) minmax(0, 1fr)",
             '"font-size": "22px"',
@@ -183,6 +183,12 @@ def verify_build(path: Path) -> list[str]:
                 "Tablet Tesla row must use flexible % tracks (minmax(0, 24%)), "
                 "not fixed px mins that push off-screen"
             )
+        if '"font-size": "84px"' in overview_blob:
+            errors.append("Tablet clock still uses 84px — expect larger 112px time")
+        if "mdi:thermometer-lines" in overview_blob:
+            errors.append("Tablet clock corner still has weather/temp chips under the time")
+        if " · ${tz}" in overview_blob or "timeZoneName" in overview_blob:
+            errors.append("Tablet clock date still appends NZST/NZDT — show weekday/date only")
         if '"grid-area": "cameras"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
             errors.append(
                 "Tablet must use unified mid band, not separate rooms/cameras grid-areas"

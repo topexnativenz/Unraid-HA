@@ -81,21 +81,14 @@ def nz_clock_time_js() -> str:
 
 
 def nz_clock_date_js() -> str:
-    """Weekday + date + NZST/NZDT — Shelly Wall Display–style subtitle."""
+    """Weekday + date in Pacific/Auckland (no NZST/NZDT suffix)."""
     return (
         "[[[\n"
-        "  const d = new Date();\n"
-        "  const date = d.toLocaleDateString('en-NZ', {\n"
+        "  return new Date().toLocaleDateString('en-NZ', {\n"
         f"    timeZone: '{NZ_TIMEZONE}',\n"
         "    weekday: 'long',\n"
         "    day: 'numeric',\n"
         "    month: 'long'\n"
         "  });\n"
-        "  const parts = new Intl.DateTimeFormat('en-NZ', {\n"
-        f"    timeZone: '{NZ_TIMEZONE}',\n"
-        "    timeZoneName: 'short'\n"
-        "  }).formatToParts(d);\n"
-        "  const tz = (parts.find((p) => p.type === 'timeZoneName') || {}).value || 'NZST';\n"
-        "  return `${date} · ${tz}`;\n"
         "]]]"
     )

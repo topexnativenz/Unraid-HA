@@ -145,162 +145,81 @@ def _calendar_body_mod() -> dict:
 
 
 def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
-    """Top-left corner — Shelly Wall Display–style NZ digital clock + date.
-
-    Large HH:MM (Pacific/Auckland) with weekday/date · NZST|NZDT underneath.
-    Weather chips stay under the clock for at-a-glance conditions.
-    """
-    del cfg  # reserved (was bitmoji); keep signature for call sites
-    high_low = (
-        "{% set f = state_attr('" + weather_entity + "', 'forecast') %}"
-        "{% if f and f[0] is mapping %}"
-        "{{ f[0].get('temperature', '—') }}° / {{ f[0].get('templow', '—') }}°"
-        "{% else %}"
-        "{% set t = state_attr('" + weather_entity + "', 'temperature') %}"
-        "{{ t }}°"
-        "{% endif %}"
-    )
+    """Top-left corner — large NZ digital clock + weekday/date (no weather chips)."""
+    del weather_entity, cfg  # weather lives in the calendar column
     return {
         "type": "custom:mod-card",
         "view_layout": _area("greeting"),
         "card": {
-            "type": "vertical-stack",
-            "cards": [
-                {
-                    "type": "custom:button-card",
-                    "template": "flux_glass",
-                    "show_icon": False,
-                    "show_name": True,
-                    "show_label": True,
-                    "show_state": False,
-                    "name": nz_clock_time_js(),
-                    "label": nz_clock_date_js(),
-                    "tap_action": {
-                        "action": "navigate",
-                        "navigation_path": f"{URL_PREFIX}/active",
-                    },
-                    "styles": {
-                        "card": [
-                            {"padding": "16px 18px 10px"},
-                            {"min-height": "0"},
-                            {"height": "100%"},
-                            {"overflow": "hidden"},
-                            {"display": "flex"},
-                            {"align-items": "flex-start"},
-                            {"justify-content": "center"},
-                        ],
-                        "grid": [
-                            {"grid-template-areas": "'n' 'l'"},
-                            {"grid-template-columns": "1fr"},
-                            {"grid-template-rows": "min-content min-content"},
-                            {"row-gap": "10px"},
-                            {"justify-items": "center"},
-                            {"align-content": "start"},
-                            {"height": "100%"},
-                            {"padding-top": "8px"},
-                        ],
-                        "name": [
-                            {"font-size": "84px"},
-                            {"font-weight": "700"},
-                            {"letter-spacing": "0.04em"},
-                            {"line-height": "0.95"},
-                            {"justify-self": "center"},
-                            {"text-align": "center"},
-                            {"width": "100%"},
-                            {"font-variant-numeric": "tabular-nums"},
-                            {"color": "var(--md-sys-color-on-surface)"},
-                        ],
-                        "label": [
-                            {"font-size": "17px"},
-                            {"font-weight": "600"},
-                            {"letter-spacing": "0.02em"},
-                            {"justify-self": "center"},
-                            {"text-align": "center"},
-                            {"width": "100%"},
-                            {"color": "var(--md-sys-color-on-surface-variant)"},
-                            {"opacity": "0.92"},
-                            {"padding-left": "0"},
-                        ],
-                    },
-                },
-                {
-                    "type": "custom:mushroom-chips-card",
-                    "alignment": "center",
-                    "chips": [
-                        {
-                            "type": "entity",
-                            "entity": weather_entity,
-                            "icon": "mdi:weather-partly-cloudy",
-                            "content_info": "state",
-                        },
-                        {
-                            "type": "template",
-                            "icon": "mdi:thermometer-lines",
-                            "content": high_low,
-                            "tap_action": {
-                                "action": "more-info",
-                                "entity": weather_entity,
-                            },
-                            "card_mod": {
-                                "style": (
-                                    "ha-card {\n"
-                                    "  --chip-background: color-mix(in srgb, "
-                                    "var(--md-sys-color-on-primary) 25%, transparent) !important;\n"
-                                    "  --color: var(--md-sys-color-primary) !important;\n"
-                                    "  border-radius: 24px !important;\n"
-                                    "  font-weight: 600 !important;\n"
-                                    "}\n"
-                                )
-                            },
-                        },
-                    ],
-                    "card_mod": {
-                        "style": (
-                            "ha-card {\n"
-                            "  background: transparent !important;\n"
-                            "  box-shadow: none !important;\n"
-                            "  border: none !important;\n"
-                            "}\n"
-                            ".chip-container { gap: 8px !important; }\n"
-                        )
-                    },
-                },
-            ],
+            "type": "custom:button-card",
+            "template": "flux_glass",
+            "show_icon": False,
+            "show_name": True,
+            "show_label": True,
+            "show_state": False,
+            "name": nz_clock_time_js(),
+            "label": nz_clock_date_js(),
+            "tap_action": {
+                "action": "navigate",
+                "navigation_path": f"{URL_PREFIX}/active",
+            },
+            "styles": {
+                "card": [
+                    {"padding": "12px 16px"},
+                    {"min-height": "0"},
+                    {"height": "100%"},
+                    {"overflow": "hidden"},
+                    {"display": "flex"},
+                    {"align-items": "center"},
+                    {"justify-content": "center"},
+                ],
+                "grid": [
+                    {"grid-template-areas": "'n' 'l'"},
+                    {"grid-template-columns": "1fr"},
+                    {"grid-template-rows": "min-content min-content"},
+                    {"row-gap": "8px"},
+                    {"justify-items": "center"},
+                    {"align-content": "center"},
+                    {"height": "100%"},
+                    {"width": "100%"},
+                ],
+                "name": [
+                    {"font-size": "112px"},
+                    {"font-weight": "700"},
+                    {"letter-spacing": "0.04em"},
+                    {"line-height": "0.92"},
+                    {"justify-self": "center"},
+                    {"text-align": "center"},
+                    {"width": "100%"},
+                    {"font-variant-numeric": "tabular-nums"},
+                    {"color": "var(--md-sys-color-on-surface)"},
+                ],
+                "label": [
+                    {"font-size": "18px"},
+                    {"font-weight": "600"},
+                    {"letter-spacing": "0.02em"},
+                    {"justify-self": "center"},
+                    {"text-align": "center"},
+                    {"width": "100%"},
+                    {"color": "var(--md-sys-color-on-surface-variant)"},
+                    {"opacity": "0.92"},
+                    {"padding-left": "0"},
+                ],
+            },
         },
         "card_mod": {
-            "style": {
-                ".": (
-                    ":host {\n"
-                    "  display: block !important;\n"
-                    "  height: 100% !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "}\n"
-                    "hui-vertical-stack-card {\n"
-                    "  height: 100% !important;\n"
-                    "  display: block !important;\n"
-                    "}\n"
-                ),
-                "hui-vertical-stack-card": {
-                    "$": (
-                        "#root {\n"
-                        "  display: flex !important;\n"
-                        "  flex-direction: column !important;\n"
-                        "  height: 100% !important;\n"
-                        "  min-height: 0 !important;\n"
-                        "  gap: 8px !important;\n"
-                        "}\n"
-                        "#root > *:first-child {\n"
-                        "  flex: 1 1 auto !important;\n"
-                        "  min-height: 0 !important;\n"
-                        "  height: auto !important;\n"
-                        "}\n"
-                        "#root > *:last-child {\n"
-                        "  flex: 0 0 auto !important;\n"
-                        "}\n"
-                    )
-                },
-            }
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+                "ha-card {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "}\n"
+            )
         },
     }
 
