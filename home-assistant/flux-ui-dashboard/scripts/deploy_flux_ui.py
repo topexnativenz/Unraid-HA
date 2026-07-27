@@ -804,15 +804,8 @@ def build_config(
             raise SystemExit(1)
         if "minmax(0, 1fr) minmax(0, 1fr)" in blob:
             print(
-                "\nERROR: Tablet mid grid must use 1fr 1fr rows inside a 2:1 band, "
-                "not minmax(0,1fr) minmax(0,1fr).\n",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
-        if '"grid-template-rows": "auto auto"' in blob:
-            print(
-                "\nERROR: Tablet mid grid must not use auto rows "
-                "(collapses cameras on Fully).\n",
+                "\nERROR: Tablet mid 2x2 must use auto auto rows with "
+                "aspect-ratio 1:1 tiles (not minmax 1fr stretch rows).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
