@@ -62,13 +62,11 @@ REOLINK_POPUP_STYLES = """\
 def _area(name: str) -> dict:
     """Grid area placement — stretch overview bands to their tracks."""
     if name == "lights":
-        # Compact Gates-style toggles — top of mid, do not stretch into Tesla.
+        # Compact Gates-style toggles — top of mid only (do not stretch).
         return {"grid-area": name, "place-self": "start stretch"}
-    if name == "cameras":
-        # Sit on the mid-row floor so bottoms flush with Music.
-        return {"grid-area": name, "place-self": "end stretch"}
     if name in (
         "calendar_notification",
+        "cameras",
         "tesla",
         "music",
         "greeting",
@@ -830,7 +828,11 @@ def _lights_band(cfg: dict) -> dict:
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
-    """Right mid — 2×2 cameras, bottom-aligned flush with Music (not stretched tall)."""
+    """Right mid — 2×2 cameras fill the mid track (bottom flush with Music).
+
+    Music spans top+mid, so stretching cameras to 100% of mid puts their
+    bottom on the same edge as Music. No aspect-ratio — Fully collapses that.
+    """
     del use_auto_entities
     cameras = _tablet_overview_cameras(cfg)
     cam_tiles = [_camera_feed_card(cam) for cam in cameras[:4]]
@@ -875,15 +877,12 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                     "cards": cam_tiles,
                     "card_mod": {
                         "style": (
-                            # Width-driven square 2×2 — definite height for Fully;
-                            # outer band is end-aligned so bottoms meet Music.
                             ":host {\n"
                             "  display: block !important;\n"
-                            "  width: 100% !important;\n"
-                            "  height: auto !important;\n"
-                            "  aspect-ratio: 1 / 1 !important;\n"
+                            "  height: 100% !important;\n"
                             "  max-height: 100% !important;\n"
                             "  min-height: 0 !important;\n"
+                            "  width: 100% !important;\n"
                             "  overflow: hidden !important;\n"
                             "  box-sizing: border-box !important;\n"
                             "}\n"
@@ -898,21 +897,20 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                 ".": (
                     ":host {\n"
                     "  display: block !important;\n"
-                    "  height: auto !important;\n"
+                    "  height: 100% !important;\n"
                     "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
-                    "  align-self: end !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
                     "}\n"
                     "ha-card {\n"
-                    "  height: auto !important;\n"
+                    "  height: 100% !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
                     "  border: none !important;\n"
                     "}\n"
                     "hui-vertical-stack-card {\n"
-                    "  height: auto !important;\n"
+                    "  height: 100% !important;\n"
                     "  display: block !important;\n"
                     "}\n"
                 ),
@@ -921,7 +919,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                         "#root {\n"
                         "  display: flex !important;\n"
                         "  flex-direction: column !important;\n"
-                        "  height: auto !important;\n"
+                        "  height: 100% !important;\n"
                         "  min-height: 0 !important;\n"
                         "  gap: 8px !important;\n"
                         "}\n"
@@ -929,9 +927,9 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                         "  flex: 0 0 auto !important;\n"
                         "}\n"
                         "#root > *:last-child {\n"
-                        "  flex: 0 0 auto !important;\n"
+                        "  flex: 1 1 auto !important;\n"
                         "  min-height: 0 !important;\n"
-                        "  width: 100% !important;\n"
+                        "  overflow: hidden !important;\n"
                         "}\n"
                     )
                 },
@@ -1165,12 +1163,13 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # 15.6" / 1920×1080: everything locked inside 100dvh.
-            # Top: clock | gates. Mid: leftover — compact Lights (top) + Cameras
-            # bottom-aligned to Music. Bottom: short Tesla flush under that edge.
+            # 15.6" / 1920×1080 — all bands visible inside 100dvh.
+            # Top ~26%: clock | gates. Mid ~52%: compact Lights (top) + Cameras
+            # filling to Music bottom. Bottom ~18%: Tesla snug under that edge.
+            # Never use mid=1fr with huge top/tesla fr — mid collapses on Fully.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)"
+                "minmax(0, 26fr) minmax(0, 52fr) minmax(0, 18fr)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",

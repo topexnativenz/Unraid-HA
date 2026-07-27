@@ -109,8 +109,9 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(0, 28fr)",
-            "minmax(0, 16fr)",
+            "minmax(0, 26fr)",
+            "minmax(0, 52fr)",
+            "minmax(0, 18fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -164,8 +165,6 @@ def verify_build(path: Path) -> list[str]:
             "flux_action",
             '"columns": 2',
             '"place-self": "start stretch"',
-            '"place-self": "end stretch"',
-            "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
             "lights cameras music calendar_notification",
@@ -177,7 +176,7 @@ def verify_build(path: Path) -> list[str]:
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
-            "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)",
+            "minmax(0, 26fr) minmax(0, 52fr) minmax(0, 18fr)",
             '"font-size": "136px"',
             '"font-size": "30px"',
             "width:68%",
@@ -206,17 +205,17 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
-        if "aspect-ratio: 2 / 1" in overview_blob:
+        if "aspect-ratio: 1 / 1" in overview_blob or "aspect-ratio: 2 / 1" in overview_blob:
             errors.append(
-                "Tablet mid must not use a 2:1 rooms+cameras frame"
+                "Tablet cameras must fill mid with 1fr rows (aspect-ratio collapses on Fully)"
             )
-        if "minmax(0, 24fr) minmax(0, 62fr) minmax(0, 14fr)" in overview_blob:
+        if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in overview_blob:
             errors.append(
-                "Tablet mid must leave leftover to 1fr (not 62fr stretch) so Tesla sits under cameras"
+                "Tablet mid must not be 1fr (collapses lights/cameras) — expect 52fr mid"
             )
-        if "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)" in overview_blob:
+        if '"place-self": "end stretch"' in overview_blob:
             errors.append(
-                "Tablet Tesla row too tall (20fr) — expect short 16fr strip under mid"
+                "Tablet cameras must stretch-fill mid (not end-align + aspect-ratio)"
             )
         if '"name": "Lights"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
             errors.append("Tablet mid band missing Lights/Cameras section headings")
@@ -224,7 +223,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible fr tracks (minmax(0, 16fr)), "
+                "Tablet Tesla row must use flexible fr tracks (minmax(0, 18fr)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:

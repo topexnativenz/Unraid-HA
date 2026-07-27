@@ -666,9 +666,10 @@ def build_config(
             "Weather Forecast",
             "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "minmax(0, 28fr)",
-            "minmax(0, 16fr)",
-            "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)",
+            "minmax(0, 26fr)",
+            "minmax(0, 52fr)",
+            "minmax(0, 18fr)",
+            "minmax(0, 26fr) minmax(0, 52fr) minmax(0, 18fr)",
             "aspect-ratio: unset",
             '"font-size": "24px"',
             '"name": "Lights"',
@@ -682,8 +683,6 @@ def build_config(
             "flux_action",
             '"columns": 2',
             '"place-self": "start stretch"',
-            '"place-self": "end stretch"',
-            "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",
@@ -804,27 +803,28 @@ def build_config(
         if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
                 "\nERROR: Tablet Tesla row must use flexible fr tracks "
-                "(minmax(0, 16fr)), not fixed px mins that push off-screen.\n",
+                "(minmax(0, 18fr)), not fixed px mins that push off-screen.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "aspect-ratio: 2 / 1" in blob:
+        if "aspect-ratio: 1 / 1" in blob or "aspect-ratio: 2 / 1" in blob:
             print(
-                "\nERROR: Tablet mid must not use a 2:1 rooms+cameras frame.\n",
+                "\nERROR: Tablet cameras must fill mid with 1fr rows "
+                "(aspect-ratio collapses on Fully).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "minmax(0, 24fr) minmax(0, 62fr) minmax(0, 14fr)" in blob:
+        if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in blob:
             print(
-                "\nERROR: Tablet mid must leave leftover to 1fr "
-                "(not 62fr stretch) so Tesla sits under cameras.\n",
+                "\nERROR: Tablet mid must not be 1fr "
+                "(collapses lights/cameras) — expect 52fr mid.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)" in blob:
+        if '"place-self": "end stretch"' in blob:
             print(
-                "\nERROR: Tablet Tesla row too tall (20fr) — "
-                "expect short 16fr strip under mid.\n",
+                "\nERROR: Tablet cameras must stretch-fill mid "
+                "(not end-align + aspect-ratio).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
