@@ -109,7 +109,8 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(220px, 240px)",
+            "minmax(0, 30%)",
+            "minmax(0, 24%)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -151,13 +152,14 @@ def verify_build(path: Path) -> list[str]:
             "Weather Forecast",
             ".loading-indicator",
             "Gates & Doors",
-            "max-height: 240px !important",
+            "max-height: 100% !important",
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
             "max-height: none",
             '"font-size": "84px"',
             "1fr 1fr 1fr 1fr",
+            "minmax(0, 1fr) minmax(0, 1fr)",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
@@ -173,10 +175,19 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet overview must use align-content: stretch (start leaves gaps above Tesla)"
             )
-        if "minmax(150px, 180px)" in overview_blob:
-            errors.append("Tablet Tesla row still capped at 180px — expect 220–240px")
-        if "max-height: 180px" in overview_blob:
-            errors.append("Tablet Tesla cards still use max-height 180px — expect 240px")
+        if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
+            errors.append(
+                "Tablet Tesla row must use flexible % tracks (minmax(0, 24%)), "
+                "not fixed px mins that push off-screen"
+            )
+        if '"grid-area": "cameras"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
+            errors.append(
+                "Tablet must use unified mid band, not separate rooms/cameras grid-areas"
+            )
+        if "max-height: 240px" in overview_blob or "max-height: 180px" in overview_blob:
+            errors.append(
+                "Tablet Tesla must use max-height 100% (cell-fit), not fixed px caps"
+            )
         if "room_selector" in overview_blob:
             errors.append("Tablet overview still has room_selector filter chips")
         if '"content": "Default"' in overview_blob and '"content": "Outdoor"' in overview_blob:
@@ -199,8 +210,8 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet music must hide mediocre Home/Sonos footer bar via mod-card")
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside rooms as 2x2, not a full-width row")
-        if "min-height: 200px" in overview_blob and "max-height: 240px" not in overview_blob:
-            errors.append("Tablet Tesla band must cap height so cards stay on-screen")
+        if "min-height: 200px" in overview_blob and "max-height: 100%" not in overview_blob:
+            errors.append("Tablet Tesla band must fill its % track (max-height 100%)")
         if '"grid-area": "weather"' in blob:
             errors.append("Tablet still has standalone weather grid area — weather belongs above calendar")
         if "Software tracker" in blob or "Last charges (7 days)" in blob:

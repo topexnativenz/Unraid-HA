@@ -628,10 +628,10 @@ def build_config(
             '"template": "flux_room"',
             "calendar_notification",
             "simple_tab",
-            '"grid-area": "cameras"',
+            '"grid-area": "mid"',
             '"grid-area": "tesla"',
             '"grid-area": "music"',
-            '"grid-area": "rooms"',
+            '"grid-area": "greeting"',
             "Model X",
             "Model S",
             "camera.back_courtyard_fluent",
@@ -665,14 +665,15 @@ def build_config(
             "Weather Forecast",
             "mid mid music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "minmax(220px, 240px)",
+            "minmax(0, 30%)",
+            "minmax(0, 24%)",
             "aspect-ratio: unset",
             "height: 100% !important",
             "position: absolute !important",
-            "max-height: 240px !important",
+            "max-height: 100% !important",
             ".loading-indicator",
-            "88px",
             "1fr 1fr 1fr 1fr",
+            "minmax(0, 1fr) minmax(0, 1fr)",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
@@ -784,9 +785,17 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "minmax(150px, 180px)" in blob:
+        if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
-                "\nERROR: Tablet Tesla row still capped at 180px — expect 220–240px.\n",
+                "\nERROR: Tablet Tesla row must use flexible % tracks "
+                "(minmax(0, 24%)), not fixed px mins that push off-screen.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if '"grid-area": "cameras"' in blob or '"grid-area": "rooms"' in blob:
+            print(
+                "\nERROR: Tablet must use unified mid band, not separate "
+                "rooms/cameras grid-areas.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -812,13 +821,13 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if '"domain": "camera"' in blob and '"grid-area": "cameras"' in blob:
+        if '"domain": "camera"' in blob and '"grid-area": "mid"' in blob:
             # Overview must not auto-discover every camera (causes 2+ rows).
-            cameras_idx = blob.find('"grid-area": "cameras"')
-            cameras_slice = blob[max(0, cameras_idx - 200) : cameras_idx + 1200]
-            if '"domain": "camera"' in cameras_slice and "camera.side_door" not in cameras_slice:
+            mid_idx = blob.find('"grid-area": "mid"')
+            mid_slice = blob[max(0, mid_idx - 200) : mid_idx + 2500]
+            if '"domain": "camera"' in mid_slice and "camera.side_door" not in mid_slice:
                 print(
-                    "\nERROR: Tablet cameras band still auto-discovers camera domain.\n",
+                    "\nERROR: Tablet mid band still auto-discovers camera domain.\n",
                     file=sys.stderr,
                 )
                 raise SystemExit(1)

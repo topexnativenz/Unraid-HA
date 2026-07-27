@@ -12,8 +12,9 @@ from typing import Any
 
 _TESLA_DIR = Path(__file__).resolve().parents[1] / "www" / "flux-ui" / "tesla"
 
-# Keep in sync with overview grid-template-rows Tesla track.
-TESLA_BAND_MAX_PX = 240
+# Tesla band fills its grid track (see overview % row). No fixed px max —
+# fixed 220–240px mins previously pushed Tesla below the Fully Kiosk viewport.
+TESLA_BAND_MAX = "100%"
 
 _DEFAULT_TESLA: dict[str, Any] = {
     "model_s": {
@@ -92,7 +93,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
     power = vehicle.get("charger_power") or battery
     image_uri = _image_data_uri(vehicle.get("image") or "model-s-white.webp")
     accent = vehicle.get("accent") or "#E8EEF4"
-    max_h = f"{TESLA_BAND_MAX_PX}px"
+    max_h = TESLA_BAND_MAX
 
     return {
         "type": "custom:button-card",
@@ -118,7 +119,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"border-radius": "18px"},
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
-                {"padding": "10px 14px 12px 14px"},
+                {"padding": "8px 12px 10px 12px"},
                 {"min-height": "0"},
                 {"height": "100%"},
                 {"max-height": max_h},
@@ -132,10 +133,11 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                     {"width": "100%"},
                     {"justify-self": "center"},
                     {"align-self": "center"},
-                    {"padding": "8px 0 6px 0"},
+                    {"min-height": "0"},
+                    {"padding": "4px 0 2px 0"},
                 ],
-                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "4px"}],
-                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "10px"}],
+                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "2px"}],
+                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "6px"}],
             },
         },
         "state": [
@@ -174,10 +176,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             ),
             "car": (
                 "[[[\n"
-                f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
-                f"align-items:center;min-height:96px;max-height:132px;flex:1;\">"
+                f"  return `<div style=\"width:100%;height:100%;display:flex;justify-content:center;"
+                f"align-items:center;min-height:0;max-height:100%;flex:1;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:100%;max-height:132px;object-fit:contain;"
+                f"style=\"width:100%;max-height:100%;object-fit:contain;"
                 f"object-position:center center;background:transparent;"
                 f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"
@@ -195,7 +197,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 f"  const title = '{name}';\n"
                 "  return `<div style=\"display:flex;justify-content:space-between;"
                 "align-items:baseline;gap:12px;\">"
-                "<div style=\"font-size:34px;font-weight:700;line-height:1;color:${color};"
+                "<div style=\"font-size:28px;font-weight:700;line-height:1;color:${color};"
                 "letter-spacing:-0.02em;${glow}\">${pct}"
                 "<span style=\"font-size:15px;opacity:0.8;margin-left:2px;\">%</span></div>"
                 "<div style=\"font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);"
@@ -242,14 +244,14 @@ def build_tablet_tesla_tiles(cfg: dict) -> list[dict]:
 
 def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
     """Two equal Tesla cards — layout-card so gap matches rooms/cameras (8px)."""
-    max_h = f"{TESLA_BAND_MAX_PX}px"
+    max_h = TESLA_BAND_MAX
     return {
         "type": "custom:layout-card",
         "layout_type": "custom:grid-layout",
         "view_layout": view_layout,
         "layout": {
             "grid-template-columns": "1fr 1fr",
-            "grid-template-rows": "1fr",
+            "grid-template-rows": "minmax(0, 1fr)",
             "grid-gap": "8px",
             "gap": "8px",
             "height": "100%",

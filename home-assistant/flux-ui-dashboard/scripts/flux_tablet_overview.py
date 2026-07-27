@@ -708,11 +708,17 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
 
 
 def _tablet_room_tile(room: dict) -> dict:
-    """Room tile that fills its 2×2 cell (phone flux_room is locked to 186px)."""
+    """Room tile that fills its mid-grid cell (phone flux_room is locked to 186px)."""
     tile = flux_room_tile(room, columns=12)
     tile.pop("grid_options", None)
     styles = tile.setdefault("styles", {})
-    card_styles = list(styles.get("card") or [])
+    # Drop any fixed heights from the card; template still merges 186px at runtime
+    # so card_mod !important is required for equal room/camera cells.
+    card_styles = [
+        s
+        for s in (styles.get("card") or [])
+        if not any(k in s for k in ("height", "min-height", "max-height"))
+    ]
     card_styles.extend(
         [
             {"height": "100%"},
@@ -721,6 +727,17 @@ def _tablet_room_tile(room: dict) -> dict:
         ]
     )
     styles["card"] = card_styles
+    tile["card_mod"] = {
+        "style": (
+            "ha-card {\n"
+            "  height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "  max-height: none !important;\n"
+            "  width: 100% !important;\n"
+            "  box-sizing: border-box !important;\n"
+            "}\n"
+        )
+    }
     return tile
 
 
@@ -841,7 +858,9 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         "view_layout": _area("mid"),
         "layout": {
             "grid-template-columns": "1fr 1fr 1fr 1fr",
-            "grid-template-rows": "1fr 1fr",
+            # minmax(0, 1fr) so both rows share height equally (plain 1fr can
+            # size to content and leave rooms shorter than cameras).
+            "grid-template-rows": "minmax(0, 1fr) minmax(0, 1fr)",
             "grid-gap": "8px",
             "gap": "8px",
             "height": "100%",
@@ -880,7 +899,17 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 "  min-height: 0 !important;\n"
                 "  min-width: 0 !important;\n"
                 "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
                 "  overflow: hidden !important;\n"
+                "}\n"
+                "#root > * ha-card,\n"
+                ".layout > * ha-card {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: none !important;\n"
+                "  width: 100% !important;\n"
+                "  aspect-ratio: unset !important;\n"
+                "  box-sizing: border-box !important;\n"
                 "}\n"
             )
         },
@@ -898,7 +927,7 @@ def _camera_card_mod() -> dict:
             "  overflow: hidden !important;\n"
             "  width: 100% !important;\n"
             "  height: 100% !important;\n"
-            "  min-height: 120px !important;\n"
+            "  min-height: 0 !important;\n"
             "  aspect-ratio: unset !important;\n"
             "  background: #111 !important;\n"
             "  box-sizing: border-box !important;\n"
@@ -1091,10 +1120,11 @@ def build_tablet_overview_view(
         overview=True,
         layout={
             # Top: clock | gates. Mid: ONE 4×2 grid (rooms+cameras equal cells).
-            # Bottom: Tesla. Uniform 8px gaps.
+            # Bottom: Tesla. % tracks (zero mins) always fit inside 100dvh —
+            # fixed px mins (e.g. 220px Tesla) pushed the band off Fully Kiosk.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(180px, 0.42fr) minmax(0, 1.15fr) minmax(220px, 240px)"
+                "minmax(0, 30%) minmax(0, 1fr) minmax(0, 24%)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
