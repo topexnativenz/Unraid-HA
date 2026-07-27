@@ -667,9 +667,9 @@ def build_config(
             "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
             "minmax(0, 26fr)",
-            "minmax(0, 52fr)",
-            "minmax(0, 18fr)",
-            "minmax(0, 26fr) minmax(0, 52fr) minmax(0, 18fr)",
+            "minmax(0, 42fr)",
+            "minmax(0, 28fr)",
+            "minmax(0, 26fr) minmax(0, 42fr) minmax(0, 28fr)",
             "aspect-ratio: unset",
             '"font-size": "24px"',
             '"name": "Lights"',
@@ -814,7 +814,7 @@ def build_config(
         if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
                 "\nERROR: Tablet Tesla row must use flexible fr tracks "
-                "(minmax(0, 18fr)), not fixed px mins that push off-screen.\n",
+                "(minmax(0, 28fr)), not fixed px mins that push off-screen.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -827,7 +827,7 @@ def build_config(
         if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in blob:
             print(
                 "\nERROR: Tablet mid must not be 1fr "
-                "(collapses lights/cameras) — expect 52fr mid.\n",
+                "(collapses lights/cameras) — expect 42fr mid.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

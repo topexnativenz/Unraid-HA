@@ -110,8 +110,8 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "16px"',
             "overflow: visible",
             "minmax(0, 26fr)",
-            "minmax(0, 52fr)",
-            "minmax(0, 18fr)",
+            "minmax(0, 42fr)",
+            "minmax(0, 28fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -177,7 +177,7 @@ def verify_build(path: Path) -> list[str]:
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
-            "minmax(0, 26fr) minmax(0, 52fr) minmax(0, 18fr)",
+            "minmax(0, 26fr) minmax(0, 42fr) minmax(0, 28fr)",
             '"font-size": "136px"',
             '"font-size": "30px"',
             "width:68%",
@@ -212,7 +212,7 @@ def verify_build(path: Path) -> list[str]:
             )
         if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in overview_blob:
             errors.append(
-                "Tablet mid must not be 1fr (collapses lights/cameras) — expect 52fr mid"
+                "Tablet mid must not be 1fr (collapses lights/cameras) — expect 42fr mid"
             )
         if '"grid-area": "cameras"' in overview_blob:
             cam_idx = overview_blob.find('"grid-area": "cameras"')
@@ -231,7 +231,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible fr tracks (minmax(0, 18fr)), "
+                "Tablet Tesla row must use flexible fr tracks (minmax(0, 28fr)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
