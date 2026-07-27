@@ -182,9 +182,6 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
-        if "minmax(0, 1fr) minmax(0, 1fr)" in overview_blob:
-            # Accept either explicit 1fr 1fr or minmax form for mid rows.
-            pass
         if '"grid-template-rows": "auto auto"' in overview_blob:
             errors.append(
                 "Tablet mid grid must not use auto rows (collapses cameras on Fully)"
@@ -200,7 +197,7 @@ def verify_build(path: Path) -> list[str]:
                 errors.append("Tablet mid band must use place-self start stretch (square tiles)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible % tracks (minmax(0, 24%)), "
+                "Tablet Tesla row must use flexible % tracks (minmax(0, 26%)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
