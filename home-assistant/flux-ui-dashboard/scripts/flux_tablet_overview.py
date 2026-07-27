@@ -66,13 +66,15 @@ def _area(name: str) -> dict:
         "calendar_notification",
         "cameras",
         "rooms",
-        "mid",
         "tesla",
         "music",
         "greeting",
         "simple_tab",
     ):
         return {"grid-area": name, "place-self": "stretch stretch"}
+    if name == "mid":
+        # Content-sized square tiles — top-align so mid does not stretch into Tesla.
+        return {"grid-area": name, "place-self": "start stretch"}
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -632,12 +634,37 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
     return [r for r in rooms if (r.get("category") or "default") == slug]
 
 
-def _tablet_room_tile(room: dict) -> dict:
-    """Room tile sized like tablet camera tiles — fills a square mid-grid cell.
+def _square_mid_tile(inner: dict) -> dict:
+    """Wrap any mid tile so it is a width-driven 1:1 square (rooms == cameras)."""
+    return {
+        "type": "custom:mod-card",
+        "card": inner,
+        "card_mod": {
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  width: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  aspect-ratio: 1 / 1 !important;\n"
+                "  max-height: none !important;\n"
+                "  min-height: 0 !important;\n"
+                "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card {\n"
+                "  height: 100% !important;\n"
+                "  width: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: none !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+            )
+        },
+    }
 
-    Phone ``flux_room`` locks 186px; tablet uses ``flux_room_fill`` + the same
-    host fill pattern as camera stills so every cell matches.
-    """
+
+def _tablet_room_tile(room: dict) -> dict:
+    """Square room tile — same outer sizing wrapper as camera tiles."""
     tile = flux_room_tile(room, columns=12)
     tile.pop("grid_options", None)
     tile["template"] = "flux_room_fill"
@@ -658,7 +685,6 @@ def _tablet_room_tile(room: dict) -> dict:
         ]
     )
     styles["card"] = card_styles
-    # Match camera tile structure: wrap_glass + fill card_mod on ha-card.
     tile["card_mod"] = {
         "style": (
             "ha-card {\n"
@@ -672,70 +698,45 @@ def _tablet_room_tile(room: dict) -> dict:
             "}\n"
         )
     }
-    # Outer mod-card sizes the layout-card cell (button-card host otherwise
-    # collapses to content height on Fully — cameras avoid that via absolute media).
-    return {
-        "type": "custom:mod-card",
-        "card": wrap_glass(tile),
-        "card_mod": {
-            "style": (
-                ":host {\n"
-                "  display: block !important;\n"
-                "  width: 100% !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  aspect-ratio: 1 / 1 !important;\n"
-                "  overflow: hidden !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                "ha-card {\n"
-                "  height: 100% !important;\n"
-                "  width: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-            )
-        },
-    }
+    return _square_mid_tile(wrap_glass(tile))
 
 
 def _equal_2x2_layout(cards: list[dict], *, grid_area: str) -> dict:
-    """Equal 2×2 grid that fills its parent cell — same sizing for rooms and cameras."""
+    """Width-driven 2x2 of identical squares — does not stretch with row height."""
     return {
         "type": "custom:layout-card",
         "layout_type": "custom:grid-layout",
-        "view_layout": {"grid-area": grid_area, "place-self": "stretch stretch"},
+        "view_layout": {"grid-area": grid_area, "place-self": "start stretch"},
         "layout": {
             "grid-template-columns": "1fr 1fr",
-            "grid-template-rows": "1fr 1fr",
+            "grid-template-rows": "auto auto",
             "grid-gap": "8px",
             "gap": "8px",
-            "height": "100%",
+            "height": "auto",
             "width": "100%",
             "max_width": "100%",
             "margin": "0",
             "padding": "0",
             "card_margin": "0",
-            "align-items": "stretch",
+            "align-items": "start",
             "justify-items": "stretch",
-            "align-content": "stretch",
+            "align-content": "start",
         },
         "cards": cards,
         "card_mod": {
             "style": (
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  max-height: none !important;\n"
                 "  min-height: 0 !important;\n"
                 "  width: 100% !important;\n"
-                "  overflow: hidden !important;\n"
+                "  overflow: visible !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "ha-card, #root, .layout, layout-card {\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  max-height: none !important;\n"
                 "  min-height: 0 !important;\n"
                 "  width: 100% !important;\n"
                 "  background: transparent !important;\n"
@@ -743,16 +744,16 @@ def _equal_2x2_layout(cards: list[dict], *, grid_area: str) -> dict:
                 "  border: none !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
+                "#root, .layout {\n"
+                "  align-content: start !important;\n"
+                "}\n"
                 "#root > *, .layout > * {\n"
                 "  min-height: 0 !important;\n"
                 "  min-width: 0 !important;\n"
                 "  width: 100% !important;\n"
                 "  height: auto !important;\n"
-                "  max-height: 100% !important;\n"
                 "  aspect-ratio: 1 / 1 !important;\n"
                 "  overflow: hidden !important;\n"
-                "  align-self: stretch !important;\n"
-                "  justify-self: stretch !important;\n"
                 "}\n"
                 "#root > * ha-card,\n"
                 ".layout > * ha-card {\n"
@@ -769,7 +770,7 @@ def _equal_2x2_layout(cards: list[dict], *, grid_area: str) -> dict:
 
 
 def _overview_2x2_mod_card(cards: list[dict], *, view_layout: dict) -> dict:
-    """Equal 2×2 grid that fills the mid-row cell (grid cards need mod-card)."""
+    """Equal 2x2 grid that fills the mid-row cell (grid cards need mod-card)."""
     return {
         "type": "custom:mod-card",
         "view_layout": view_layout,
@@ -839,14 +840,14 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
 
 
 def _mid_placeholder(label: str) -> dict:
-    return wrap_glass({"type": "markdown", "content": label})
+    return _square_mid_tile(wrap_glass({"type": "markdown", "content": label}))
 
 
 def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """Rooms | Cameras mid band — matching 2×2 grids, titles, even 8px gaps.
+    """Top-aligned Rooms | Cameras band — identical square tiles, natural height.
 
-    Fills the mid track so the bottom edge meets the Tesla row. Twin 2×2
-    layout-cards force equal cell sizes (per-tile aspect-ratio collapsed cams).
+    Mid does not stretch to fill the overview row (that made rooms tall and
+    Tesla collide). Both 2x2 grids size from column width via aspect-ratio 1:1.
     """
     del use_auto_entities
     rooms = cfg.get("rooms") or []
@@ -874,36 +875,36 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         "view_layout": _area("mid"),
         "layout": {
             "grid-template-columns": "1fr 1fr",
-            "grid-template-rows": "min-content 1fr",
+            "grid-template-rows": "min-content auto",
             "grid-template-areas": (
                 '"rooms_title cameras_title"\n'
                 '"rooms_grid cameras_grid"'
             ),
             "grid-gap": "8px",
             "gap": "8px",
-            "height": "100%",
+            "height": "auto",
             "width": "100%",
             "max_width": "100%",
             "margin": "0",
             "padding": "0",
             "card_margin": "0",
-            "align-items": "stretch",
+            "align-items": "start",
             "justify-items": "stretch",
-            "align-content": "stretch",
+            "align-content": "start",
         },
         "cards": [
             _section_title(
                 "Rooms",
                 view_layout={
                     "grid-area": "rooms_title",
-                    "place-self": "stretch stretch",
+                    "place-self": "start stretch",
                 },
             ),
             _section_title(
                 "Cameras",
                 view_layout={
                     "grid-area": "cameras_title",
-                    "place-self": "stretch stretch",
+                    "place-self": "start stretch",
                 },
             ),
             _equal_2x2_layout(room_tiles, grid_area="rooms_grid"),
@@ -915,21 +916,25 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 "  display: block !important;\n"
                 "  width: 100% !important;\n"
                 "  max-width: 100% !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  max-height: none !important;\n"
                 "  min-height: 0 !important;\n"
-                "  overflow: hidden !important;\n"
+                "  align-self: start !important;\n"
+                "  overflow: visible !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "ha-card, #root, .layout, layout-card {\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  max-height: none !important;\n"
                 "  min-height: 0 !important;\n"
                 "  width: 100% !important;\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
                 "  box-sizing: border-box !important;\n"
+                "}\n"
+                "#root, .layout {\n"
+                "  align-content: start !important;\n"
                 "}\n"
                 "#root > *, .layout > * {\n"
                 "  min-height: 0 !important;\n"
@@ -1095,7 +1100,7 @@ def _with_camera_card_mod(tile: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera tile — last-stream JPEG still (fills 2×2 cell).
+    """Square camera tile — same outer wrapper as room tiles.
 
     All outdoor cams use ``/local/flux-ui/camera-stills/`` snapshots (not Eufy
     event images). Tap: Reolink → fullscreen bubble; Eufy → wake-then-live view.
@@ -1106,17 +1111,16 @@ def _camera_feed_card(camera: dict) -> dict:
     stream = (camera.get("stream") or "").strip()
 
     if stream:
-        return _with_camera_card_mod(build_eufy_overview_tile(camera))
-
-    # Reolink / cameras without RTSP sensor — still tile → bubble live.
-    if entity == REOLINK_CAMERA_ENTITY:
-        return _with_camera_card_mod(
+        inner = _with_camera_card_mod(build_eufy_overview_tile(camera))
+    elif entity == REOLINK_CAMERA_ENTITY:
+        inner = _with_camera_card_mod(
             build_overview_still_tile(camera, tap_path=REOLINK_CAMERA_HASH)
         )
-
-    return _with_camera_card_mod(
-        build_overview_still_tile(camera, tap_path=f"{URL_PREFIX}/overview")
-    )
+    else:
+        inner = _with_camera_card_mod(
+            build_overview_still_tile(camera, tap_path=f"{URL_PREFIX}/overview")
+        )
+    return _square_mid_tile(inner)
 
 
 def _tablet_overview_cameras(cfg: dict) -> list[dict]:
@@ -1157,12 +1161,13 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Top: clock | gates. Mid: ONE 4×2 grid (rooms+cameras equal cells).
-            # Bottom: Tesla. % tracks (zero mins) always fit inside 100dvh —
-            # fixed px mins (e.g. 220px Tesla) pushed the band off Fully Kiosk.
+            # Top: clock | gates. Mid: rooms|cameras (content-sized squares).
+            # Bottom: Tesla. Mid is auto so 8px gaps above/below stay equal;
+            # leftover height goes to top/Tesla via fr (not % — % maxes dump
+            # free space into auto and reopen the Tesla overlap gap).
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 28%) minmax(0, 1fr) minmax(0, 26%)"
+                "minmax(0, 28fr) auto minmax(0, 26fr)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",

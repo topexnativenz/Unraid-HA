@@ -109,8 +109,8 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(0, 28%)",
-            "minmax(0, 26%)",
+            "minmax(0, 28fr)",
+            "minmax(0, 26fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -145,7 +145,7 @@ def verify_build(path: Path) -> list[str]:
             "mediocre-massive-media-player-card",
             "mushroom-chips-card",
             "aspect-ratio: unset",
-            '"place-self": "stretch stretch"',
+            '"place-self": "start stretch"',
             "rooms_title cameras_title",
             "rooms_grid cameras_grid",
             '"font-size": "24px"',
@@ -169,6 +169,8 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "30px"',
             "width:78%",
             "hourCycle: 'h12'",
+            "minmax(0, 28fr) auto minmax(0, 26fr)",
+            '"grid-template-rows": "auto auto"',
             '"font-size": "22px"',
             "justify-content: center !important",
             "align-items: center !important",
@@ -187,13 +189,17 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
-        if '"grid-template-rows": "auto auto"' in overview_blob:
-            errors.append(
-                "Tablet mid grid must not use auto rows (collapses cameras on Fully)"
-            )
         if "aspect-ratio: 2 / 1" in overview_blob:
             errors.append(
-                "Tablet mid must fill the mid track (not a short 2:1 band with a gap above Tesla)"
+                "Tablet mid must not use a 2:1 stretch band"
+            )
+        if "minmax(0, 28%)" in overview_blob or "minmax(0, 26%)" in overview_blob:
+            errors.append(
+                "Tablet overview rows must use fr tracks (not %) so auto mid does not absorb free space"
+            )
+        if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 26fr)" in overview_blob:
+            errors.append(
+                "Tablet mid row must be auto (not 1fr) so tiles do not stretch into Tesla"
             )
         if '"name": "Rooms"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
             errors.append("Tablet mid band missing Rooms/Cameras section headings")
@@ -213,11 +219,13 @@ def verify_build(path: Path) -> list[str]:
         mid_idx = overview_blob.find('"grid-area": "mid"')
         if mid_idx >= 0:
             mid_slice = overview_blob[mid_idx : mid_idx + 160]
-            if "stretch stretch" not in mid_slice:
-                errors.append("Tablet mid band must stretch to fill track (bottom-align with Tesla)")
+            if "start stretch" not in mid_slice:
+                errors.append("Tablet mid band must be top-aligned (place-self start stretch)")
+            if '"place-self": "stretch stretch"' in mid_slice:
+                errors.append("Tablet mid band must not stretch-fill (causes Tesla overlap)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible % tracks (minmax(0, 26%)), "
+                "Tablet Tesla row must use flexible fr tracks (minmax(0, 26fr)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
