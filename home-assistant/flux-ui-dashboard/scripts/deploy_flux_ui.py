@@ -674,6 +674,8 @@ def build_config(
             ".loading-indicator",
             "1fr 1fr 1fr 1fr",
             "minmax(0, 1fr) minmax(0, 1fr)",
+            '"font-size": "22px"',
+            "justify-content: center !important",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
