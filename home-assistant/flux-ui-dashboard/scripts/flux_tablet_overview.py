@@ -64,9 +64,11 @@ def _area(name: str) -> dict:
     if name == "lights":
         # Compact Gates-style toggles — top of mid only (do not stretch).
         return {"grid-area": name, "place-self": "start stretch"}
+    if name == "cameras":
+        # Square 2×2 sits on the mid-row floor — bottom flush with Music.
+        return {"grid-area": name, "place-self": "end stretch"}
     if name in (
         "calendar_notification",
-        "cameras",
         "tesla",
         "music",
         "greeting",
@@ -828,10 +830,11 @@ def _lights_band(cfg: dict) -> dict:
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
-    """Right mid — 2×2 cameras fill the mid track (bottom flush with Music).
+    """Right mid — square 2×2 cameras, bottom flush with Music.
 
-    Music spans top+mid, so stretching cameras to 100% of mid puts their
-    bottom on the same edge as Music. No aspect-ratio — Fully collapses that.
+    Music spans top+mid so its bottom is the mid-row floor. End-align a
+    width-driven square tile grid on that floor (bring cards up vs stretch-fill).
+    Mid track is 52fr (definite height) so Fully can resolve aspect-ratio.
     """
     del use_auto_entities
     cameras = _tablet_overview_cameras(cfg)
@@ -877,12 +880,15 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                     "cards": cam_tiles,
                     "card_mod": {
                         "style": (
+                            # Width is definite from the overview column; 1:1
+                            # yields square cells. Cap so a short mid still fits.
                             ":host {\n"
                             "  display: block !important;\n"
-                            "  height: 100% !important;\n"
-                            "  max-height: 100% !important;\n"
-                            "  min-height: 0 !important;\n"
                             "  width: 100% !important;\n"
+                            "  height: auto !important;\n"
+                            "  aspect-ratio: 1 / 1 !important;\n"
+                            "  max-height: calc(100% - 36px) !important;\n"
+                            "  min-height: 0 !important;\n"
                             "  overflow: hidden !important;\n"
                             "  box-sizing: border-box !important;\n"
                             "}\n"
@@ -897,20 +903,24 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                 ".": (
                     ":host {\n"
                     "  display: block !important;\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
                     "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
+                    "  width: 100% !important;\n"
+                    "  align-self: end !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
                     "}\n"
                     "ha-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
+                    "  max-height: 100% !important;\n"
                     "  background: transparent !important;\n"
                     "  box-shadow: none !important;\n"
                     "  border: none !important;\n"
                     "}\n"
                     "hui-vertical-stack-card {\n"
-                    "  height: 100% !important;\n"
+                    "  height: auto !important;\n"
+                    "  max-height: 100% !important;\n"
                     "  display: block !important;\n"
                     "}\n"
                 ),
@@ -919,17 +929,20 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                         "#root {\n"
                         "  display: flex !important;\n"
                         "  flex-direction: column !important;\n"
-                        "  height: 100% !important;\n"
+                        "  height: auto !important;\n"
+                        "  max-height: 100% !important;\n"
                         "  min-height: 0 !important;\n"
                         "  gap: 8px !important;\n"
+                        "  justify-content: flex-end !important;\n"
                         "}\n"
                         "#root > *:first-child {\n"
                         "  flex: 0 0 auto !important;\n"
                         "}\n"
                         "#root > *:last-child {\n"
-                        "  flex: 1 1 auto !important;\n"
+                        "  flex: 0 0 auto !important;\n"
                         "  min-height: 0 !important;\n"
-                        "  overflow: hidden !important;\n"
+                        "  width: 100% !important;\n"
+                        "  max-height: 100% !important;\n"
                         "}\n"
                     )
                 },

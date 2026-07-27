@@ -165,6 +165,8 @@ def verify_build(path: Path) -> list[str]:
             "flux_action",
             '"columns": 2',
             '"place-self": "start stretch"',
+            '"place-self": "end stretch"',
+            "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
             "lights cameras music calendar_notification",
@@ -205,18 +207,21 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
-        if "aspect-ratio: 1 / 1" in overview_blob or "aspect-ratio: 2 / 1" in overview_blob:
+        if "aspect-ratio: 2 / 1" in overview_blob:
             errors.append(
-                "Tablet cameras must fill mid with 1fr rows (aspect-ratio collapses on Fully)"
+                "Tablet mid must not use a 2:1 rooms+cameras frame"
             )
         if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in overview_blob:
             errors.append(
                 "Tablet mid must not be 1fr (collapses lights/cameras) — expect 52fr mid"
             )
-        if '"place-self": "end stretch"' in overview_blob:
-            errors.append(
-                "Tablet cameras must stretch-fill mid (not end-align + aspect-ratio)"
-            )
+        if '"grid-area": "cameras"' in overview_blob:
+            cam_idx = overview_blob.find('"grid-area": "cameras"')
+            cam_slice = overview_blob[cam_idx : cam_idx + 220]
+            if "end stretch" not in cam_slice:
+                errors.append(
+                    "Tablet cameras must be end-aligned so 2x2 bottom meets Music"
+                )
         if '"name": "Lights"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
             errors.append("Tablet mid band missing Lights/Cameras section headings")
         if '"font-size": "16px"' in overview_blob and '"font-size": "24px"' not in overview_blob:

@@ -683,6 +683,8 @@ def build_config(
             "flux_action",
             '"columns": 2',
             '"place-self": "start stretch"',
+            '"place-self": "end stretch"',
+            "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",
@@ -807,10 +809,9 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "aspect-ratio: 1 / 1" in blob or "aspect-ratio: 2 / 1" in blob:
+        if "aspect-ratio: 2 / 1" in blob:
             print(
-                "\nERROR: Tablet cameras must fill mid with 1fr rows "
-                "(aspect-ratio collapses on Fully).\n",
+                "\nERROR: Tablet mid must not use a 2:1 rooms+cameras frame.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -818,13 +819,6 @@ def build_config(
             print(
                 "\nERROR: Tablet mid must not be 1fr "
                 "(collapses lights/cameras) — expect 52fr mid.\n",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
-        if '"place-self": "end stretch"' in blob:
-            print(
-                "\nERROR: Tablet cameras must stretch-fill mid "
-                "(not end-align + aspect-ratio).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
