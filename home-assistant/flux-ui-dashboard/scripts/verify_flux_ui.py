@@ -144,9 +144,13 @@ def verify_build(path: Path) -> list[str]:
             "camera_view",
             "mediocre-massive-media-player-card",
             "mushroom-chips-card",
-            "aspect-ratio: 2 / 1",
-            '"place-self": "start stretch"',
-            '"grid-template-rows": "1fr 1fr"',
+            "aspect-ratio: unset",
+            '"place-self": "stretch stretch"',
+            "rooms_title cameras_title",
+            "rooms_grid cameras_grid",
+            '"font-size": "24px"',
+            '"name": "Rooms"',
+            '"name": "Cameras"',
             "height: 100% !important",
             "position: absolute !important",
             "mid mid music calendar_notification",
@@ -163,7 +167,6 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "30px"',
             "width:78%",
             "hourCycle: 'h23'",
-            "1fr 1fr 1fr 1fr",
             '"font-size": "22px"',
             "justify-content: center !important",
             "align-items: center !important",
@@ -186,15 +189,19 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet mid grid must not use auto rows (collapses cameras on Fully)"
             )
-        if "aspect-ratio: 1 / 1" in overview_blob and "aspect-ratio: 2 / 1" not in overview_blob:
+        if "aspect-ratio: 2 / 1" in overview_blob:
             errors.append(
-                "Tablet mid must size the band as 2:1 (not per-tile 1:1 which collapses cams)"
+                "Tablet mid must fill the mid track (not a short 2:1 band with a gap above Tesla)"
             )
+        if '"name": "Rooms"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
+            errors.append("Tablet mid band missing Rooms/Cameras section headings")
+        if '"font-size": "16px"' in overview_blob and '"font-size": "24px"' not in overview_blob:
+            errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         mid_idx = overview_blob.find('"grid-area": "mid"')
         if mid_idx >= 0:
-            mid_slice = overview_blob[mid_idx : mid_idx + 120]
-            if "start stretch" not in mid_slice:
-                errors.append("Tablet mid band must use place-self start stretch (square tiles)")
+            mid_slice = overview_blob[mid_idx : mid_idx + 160]
+            if "stretch stretch" not in mid_slice:
+                errors.append("Tablet mid band must stretch to fill track (bottom-align with Tesla)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
                 "Tablet Tesla row must use flexible % tracks (minmax(0, 26%)), "

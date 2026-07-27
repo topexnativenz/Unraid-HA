@@ -667,14 +667,17 @@ def build_config(
             "tesla tesla tesla calendar_notification",
             "minmax(0, 28%)",
             "minmax(0, 26%)",
-            "aspect-ratio: 2 / 1",
-            '"place-self": "start stretch"',
-            '"grid-template-rows": "1fr 1fr"',
+            "aspect-ratio: unset",
+            '"place-self": "stretch stretch"',
+            "rooms_title cameras_title",
+            "rooms_grid cameras_grid",
+            '"font-size": "24px"',
+            '"name": "Rooms"',
+            '"name": "Cameras"',
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",
             ".loading-indicator",
-            "1fr 1fr 1fr 1fr",
             '"font-size": "22px"',
             "justify-content: center !important",
         ):
@@ -809,9 +812,16 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "aspect-ratio: 1 / 1" in blob and "aspect-ratio: 2 / 1" not in blob:
+        if "aspect-ratio: 2 / 1" in blob:
             print(
-                "\nERROR: Tablet mid must use a 2:1 band (not per-tile 1:1).\n",
+                "\nERROR: Tablet mid must fill the mid track "
+                "(not a short 2:1 band with a gap above Tesla).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if '"name": "Rooms"' not in blob or '"name": "Cameras"' not in blob:
+            print(
+                "\nERROR: Tablet mid band missing Rooms/Cameras section headings.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

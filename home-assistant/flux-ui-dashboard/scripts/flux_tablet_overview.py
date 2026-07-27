@@ -66,21 +66,22 @@ def _area(name: str) -> dict:
         "calendar_notification",
         "cameras",
         "rooms",
+        "mid",
         "tesla",
         "music",
         "greeting",
         "simple_tab",
     ):
         return {"grid-area": name, "place-self": "stretch stretch"}
-    if name == "mid":
-        # Mid band sizes itself to a 2:1 square-tile frame — top-align in the row.
-        return {"grid-area": name, "place-self": "start stretch"}
     return {"grid-area": name, "place-self": "start stretch"}
 
 
-def _section_title(title: str, *, size: str = "16px") -> dict:
-    """Section title — button-card static text renders on Fully Kiosk (markdown does not)."""
-    return {
+def _section_title(title: str, *, size: str = "24px", view_layout: dict | None = None) -> dict:
+    """Section title — button-card static text renders on Fully Kiosk (markdown does not).
+
+    Default 24px is 50% larger than the previous 16px overview headings.
+    """
+    card: dict = {
         "type": "custom:button-card",
         "show_icon": False,
         "show_name": True,
@@ -91,7 +92,7 @@ def _section_title(title: str, *, size: str = "16px") -> dict:
                 {"background": "transparent"},
                 {"box-shadow": "none"},
                 {"border": "none"},
-                {"padding": "6px 8px 2px 10px"},
+                {"padding": "4px 8px 2px 8px"},
                 {"margin": "0"},
                 {"height": "auto"},
                 {"min-height": "unset"},
@@ -104,7 +105,7 @@ def _section_title(title: str, *, size: str = "16px") -> dict:
                 {"text-align": "left"},
                 {"color": "var(--primary-text-color)"},
                 {"letter-spacing": "0.01em"},
-                {"line-height": "1.4"},
+                {"line-height": "1.25"},
             ],
             "grid": [
                 {"grid-template-areas": "'n'"},
@@ -112,6 +113,9 @@ def _section_title(title: str, *, size: str = "16px") -> dict:
             ],
         },
     }
+    if view_layout:
+        card["view_layout"] = view_layout
+    return card
 
 
 def _calendar_body_mod() -> dict:
@@ -633,7 +637,7 @@ def _tablet_room_tile(room: dict) -> dict:
     tile = flux_room_tile(room, columns=12)
     tile.pop("grid_options", None)
     styles = tile.setdefault("styles", {})
-    # Drop any fixed heights from the card; template still merges 186px at runtime
+    # Drop fixed heights from the card; template still merges 186px at runtime
     # so card_mod !important is required for equal room/camera cells.
     card_styles = [
         s
@@ -646,11 +650,19 @@ def _tablet_room_tile(room: dict) -> dict:
             {"min-height": "0"},
             {"max-height": "none"},
             {"width": "100%"},
+            {"overflow": "hidden"},
         ]
     )
     styles["card"] = card_styles
+    # Piercing card_mod — template 186px otherwise wins on Fully Kiosk.
     tile["card_mod"] = {
         "style": (
+            ":host {\n"
+            "  display: block !important;\n"
+            "  height: 100% !important;\n"
+            "  width: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "}\n"
             "ha-card {\n"
             "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
@@ -658,10 +670,76 @@ def _tablet_room_tile(room: dict) -> dict:
             "  width: 100% !important;\n"
             "  aspect-ratio: unset !important;\n"
             "  box-sizing: border-box !important;\n"
+            "  overflow: hidden !important;\n"
             "}\n"
         )
     }
     return tile
+
+
+def _equal_2x2_layout(cards: list[dict], *, grid_area: str) -> dict:
+    """Equal 2×2 grid that fills its parent cell — same sizing for rooms and cameras."""
+    return {
+        "type": "custom:layout-card",
+        "layout_type": "custom:grid-layout",
+        "view_layout": {"grid-area": grid_area, "place-self": "stretch stretch"},
+        "layout": {
+            "grid-template-columns": "1fr 1fr",
+            "grid-template-rows": "1fr 1fr",
+            "grid-gap": "8px",
+            "gap": "8px",
+            "height": "100%",
+            "width": "100%",
+            "max_width": "100%",
+            "margin": "0",
+            "padding": "0",
+            "card_margin": "0",
+            "align-items": "stretch",
+            "justify-items": "stretch",
+            "align-content": "stretch",
+        },
+        "cards": cards,
+        "card_mod": {
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card, #root, .layout, layout-card {\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "#root > *, .layout > * {\n"
+                "  min-height: 0 !important;\n"
+                "  min-width: 0 !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  width: 100% !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+                "#root > * ha-card,\n"
+                ".layout > * ha-card {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: none !important;\n"
+                "  width: 100% !important;\n"
+                "  aspect-ratio: unset !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+            )
+        },
+    }
 
 
 def _overview_2x2_mod_card(cards: list[dict], *, view_layout: dict) -> dict:
@@ -739,11 +817,10 @@ def _mid_placeholder(label: str) -> dict:
 
 
 def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """One 4×2 grid: rooms left, cameras right — equal square cells + 8px gaps.
+    """Rooms | Cameras mid band — matching 2×2 grids, titles, even 8px gaps.
 
-    layout-card children cannot reliably use per-tile ``aspect-ratio: auto``
-    (cameras collapsed to 0 height on Fully). Instead the whole mid band is a
-    2:1 frame; a 4×2 ``1fr`` grid inside then yields equal square cells.
+    Fills the mid track so the bottom edge meets the Tesla row. Twin 2×2
+    layout-cards force equal cell sizes (per-tile aspect-ratio collapsed cams).
     """
     del use_auto_entities
     rooms = cfg.get("rooms") or []
@@ -765,24 +842,17 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
     while len(cam_tiles) < 4:
         cam_tiles.append(_mid_placeholder("Camera"))
 
-    # Row-major: room room cam cam / room room cam cam
-    cards = [
-        room_tiles[0],
-        room_tiles[1],
-        cam_tiles[0],
-        cam_tiles[1],
-        room_tiles[2],
-        room_tiles[3],
-        cam_tiles[2],
-        cam_tiles[3],
-    ]
     return {
         "type": "custom:layout-card",
         "layout_type": "custom:grid-layout",
         "view_layout": _area("mid"),
         "layout": {
-            "grid-template-columns": "1fr 1fr 1fr 1fr",
-            "grid-template-rows": "1fr 1fr",
+            "grid-template-columns": "1fr 1fr",
+            "grid-template-rows": "min-content 1fr",
+            "grid-template-areas": (
+                '"rooms_title cameras_title"\n'
+                '"rooms_grid cameras_grid"'
+            ),
             "grid-gap": "8px",
             "gap": "8px",
             "height": "100%",
@@ -795,20 +865,33 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "justify-items": "stretch",
             "align-content": "stretch",
         },
-        "cards": cards,
+        "cards": [
+            _section_title(
+                "Rooms",
+                view_layout={
+                    "grid-area": "rooms_title",
+                    "place-self": "stretch stretch",
+                },
+            ),
+            _section_title(
+                "Cameras",
+                view_layout={
+                    "grid-area": "cameras_title",
+                    "place-self": "stretch stretch",
+                },
+            ),
+            _equal_2x2_layout(room_tiles, grid_area="rooms_grid"),
+            _equal_2x2_layout(cam_tiles, grid_area="cameras_grid"),
+        ],
         "card_mod": {
             "style": (
-                # 4 columns × 2 square rows ≈ 2:1 band. Cap at track height so
-                # Tesla stays on-screen when the mid row is shorter than width/2.
                 ":host {\n"
                 "  display: block !important;\n"
                 "  width: 100% !important;\n"
                 "  max-width: 100% !important;\n"
-                "  height: auto !important;\n"
-                "  aspect-ratio: 2 / 1 !important;\n"
+                "  height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
-                "  align-self: start !important;\n"
                 "  overflow: hidden !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
@@ -825,19 +908,6 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 "#root > *, .layout > * {\n"
                 "  min-height: 0 !important;\n"
                 "  min-width: 0 !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
-                "  width: 100% !important;\n"
-                "  overflow: hidden !important;\n"
-                "}\n"
-                "#root > * ha-card,\n"
-                ".layout > * ha-card {\n"
-                "  height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  max-height: none !important;\n"
-                "  width: 100% !important;\n"
-                "  aspect-ratio: unset !important;\n"
-                "  box-sizing: border-box !important;\n"
                 "}\n"
             )
         },
