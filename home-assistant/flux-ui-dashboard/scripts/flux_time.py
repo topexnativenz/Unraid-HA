@@ -57,7 +57,7 @@ def nz_time_short_js() -> str:
 
 
 def nz_clock_time_js() -> str:
-    """Large digital 24h HH:MM in Pacific/Auckland; refreshes every 15s."""
+    """Large digital 12h h:mm in Pacific/Auckland (no AM/PM); refreshes every 15s."""
     return (
         "[[[\n"
         "  if (this && !this.__fluxNzClock) {\n"
@@ -67,10 +67,10 @@ def nz_clock_time_js() -> str:
         "  }\n"
         "  const parts = new Intl.DateTimeFormat('en-NZ', {\n"
         f"    timeZone: '{NZ_TIMEZONE}',\n"
-        "    hour: '2-digit',\n"
+        "    hour: 'numeric',\n"
         "    minute: '2-digit',\n"
-        "    hour12: false,\n"
-        "    hourCycle: 'h23'\n"
+        "    hour12: true,\n"
+        "    hourCycle: 'h12'\n"
         "  }).formatToParts(new Date());\n"
         "  const hour = (parts.find((p) => p.type === 'hour') || {}).value || '';\n"
         "  const minute = (parts.find((p) => p.type === 'minute') || {}).value || '';\n"

@@ -102,7 +102,7 @@ def verify_build(path: Path) -> list[str]:
             '"show_progress_bar": false',
             '"today_indicator": "dot"',
             "__fluxNzClock",
-            "hour12: false",
+            "hour12: true",
             "Pacific/Auckland",
             "weather.homemetservice",
             "100dvh",
@@ -166,7 +166,7 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "136px"',
             '"font-size": "30px"',
             "width:78%",
-            "hourCycle: 'h23'",
+            "hourCycle: 'h12'",
             '"font-size": "22px"',
             "justify-content: center !important",
             "align-items: center !important",
@@ -209,8 +209,14 @@ def verify_build(path: Path) -> list[str]:
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
             errors.append("Tablet clock still uses smaller type — expect 136px time / 30px date")
-        if "hour12: true" in overview_blob:
-            errors.append("Tablet clock still shows 12h AM/PM — expect 24h HH:MM")
+        if "hour12: false" in overview_blob:
+            errors.append("Tablet clock still uses 24h — expect 12h h:mm without AM/PM")
+        if "dayPeriod" in overview_blob and "__fluxNzClock" in overview_blob:
+            # Clock must not append AM/PM from dayPeriod.
+            clock_idx = overview_blob.find("__fluxNzClock")
+            clock_slice = overview_blob[clock_idx : clock_idx + 900]
+            if "dayPeriod" in clock_slice and "${period}" in clock_slice:
+                errors.append("Tablet clock must not display AM/PM — time digits only")
         if "mdi:thermometer-lines" in overview_blob:
             errors.append("Tablet clock corner still has weather/temp chips under the time")
         if " · ${tz}" in overview_blob or "timeZoneName" in overview_blob:
