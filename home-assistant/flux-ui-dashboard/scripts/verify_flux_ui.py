@@ -160,6 +160,9 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "84px"',
             "1fr 1fr 1fr 1fr",
             "minmax(0, 1fr) minmax(0, 1fr)",
+            '"font-size": "22px"',
+            "justify-content: center !important",
+            "align-items: center !important",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")

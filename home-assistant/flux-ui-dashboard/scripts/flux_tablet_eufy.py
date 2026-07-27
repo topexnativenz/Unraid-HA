@@ -169,9 +169,9 @@ def build_overview_still_tile(
                     {"background-repeat": "no-repeat"},
                 ],
                 "grid": [
-                    {"grid-template-areas": "'still' 'n'"},
+                    {"grid-template-areas": "'still'"},
                     {"grid-template-columns": "1fr"},
-                    {"grid-template-rows": "1fr min-content"},
+                    {"grid-template-rows": "1fr"},
                     {"position": "relative"},
                 ],
                 "custom_fields": {
@@ -187,12 +187,31 @@ def build_overview_still_tile(
                 },
                 "name": [
                     {"position": "absolute"},
-                    {"left": "8px"},
-                    {"bottom": "6px"},
+                    {"inset": "0"},
+                    {"left": "0"},
+                    {"right": "0"},
+                    {"top": "0"},
+                    {"bottom": "0"},
+                    {"display": "flex"},
+                    {"align-items": "center"},
+                    {"justify-content": "center"},
+                    {"text-align": "center"},
+                    {"width": "100%"},
+                    {"height": "100%"},
+                    {"box-sizing": "border-box"},
+                    {"padding": "12px"},
+                    {"margin": "0"},
                     {"color": "#fff"},
-                    {"font-size": "12px"},
-                    {"font-weight": "600"},
-                    {"text-shadow": "0 1px 4px rgba(0,0,0,0.85)"},
+                    {"font-size": "22px"},
+                    {"font-weight": "700"},
+                    {"letter-spacing": "0.02em"},
+                    {"line-height": "1.15"},
+                    {
+                        "text-shadow": (
+                            "0 2px 8px rgba(0,0,0,0.95), "
+                            "0 0 18px rgba(0,0,0,0.7)"
+                        )
+                    },
                     {"pointer-events": "none"},
                     {"z-index": 2},
                 ],
