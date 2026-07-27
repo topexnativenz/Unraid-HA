@@ -24,8 +24,8 @@ _DEFAULT_TESLA: dict[str, Any] = {
         "charger_power": "sensor.model_s_p100d_charger_power",
         "image": "model-s-white.webp",
         "accent": "#E8EEF4",
-        # Side profile fits the 16:9 Tesla band at full width.
-        "image_max_width": "100%",
+        # Match Model X — both side profiles sit equally in the short 16:9 band.
+        "image_max_width": "78%",
     },
     "model_x": {
         "name": "Model X",
@@ -34,7 +34,6 @@ _DEFAULT_TESLA: dict[str, Any] = {
         "charger_power": "sensor.x_charger_power",
         "image": "model-x-blue.webp",
         "accent": "#4FC3F7",
-        # Longer X silhouette clips at 100% width in the short band — scale in.
         "image_max_width": "78%",
     },
 }
