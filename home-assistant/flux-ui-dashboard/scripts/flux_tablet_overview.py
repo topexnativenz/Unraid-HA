@@ -195,7 +195,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     {"color": "var(--md-sys-color-on-surface)"},
                 ],
                 "label": [
-                    {"font-size": "26px"},
+                    {"font-size": "30px"},
                     {"font-weight": "600"},
                     {"letter-spacing": "0.02em"},
                     {"justify-self": "center"},

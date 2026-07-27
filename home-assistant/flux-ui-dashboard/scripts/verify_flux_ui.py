@@ -158,7 +158,7 @@ def verify_build(path: Path) -> list[str]:
             "align-content: stretch",
             "max-height: none",
             '"font-size": "136px"',
-            '"font-size": "26px"',
+            '"font-size": "30px"',
             "width:78%",
             "hourCycle: 'h23'",
             "1fr 1fr 1fr 1fr",
