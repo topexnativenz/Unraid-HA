@@ -665,11 +665,11 @@ def build_config(
             "Weather Forecast",
             "mid mid music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "minmax(0, 30%)",
-            "minmax(0, 24%)",
-            "aspect-ratio: 1 / 1",
+            "minmax(0, 28%)",
+            "minmax(0, 26%)",
+            "aspect-ratio: 2 / 1",
             '"place-self": "start stretch"',
-            '"grid-template-rows": "auto auto"',
+            '"grid-template-rows": "1fr 1fr"',
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",
@@ -797,8 +797,21 @@ def build_config(
             raise SystemExit(1)
         if "minmax(0, 1fr) minmax(0, 1fr)" in blob:
             print(
-                "\nERROR: Tablet mid grid must use auto rows + 1:1 square tiles, "
-                "not stretched 1fr rows.\n",
+                "\nERROR: Tablet mid grid must use 1fr 1fr rows inside a 2:1 band, "
+                "not minmax(0,1fr) minmax(0,1fr).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if '"grid-template-rows": "auto auto"' in blob:
+            print(
+                "\nERROR: Tablet mid grid must not use auto rows "
+                "(collapses cameras on Fully).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "aspect-ratio: 1 / 1" in blob and "aspect-ratio: 2 / 1" not in blob:
+            print(
+                "\nERROR: Tablet mid must use a 2:1 band (not per-tile 1:1).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

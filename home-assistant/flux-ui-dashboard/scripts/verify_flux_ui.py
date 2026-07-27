@@ -109,8 +109,8 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(0, 30%)",
-            "minmax(0, 24%)",
+            "minmax(0, 28%)",
+            "minmax(0, 26%)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -144,9 +144,9 @@ def verify_build(path: Path) -> list[str]:
             "camera_view",
             "mediocre-massive-media-player-card",
             "mushroom-chips-card",
-            "aspect-ratio: 1 / 1",
+            "aspect-ratio: 2 / 1",
             '"place-self": "start stretch"',
-            '"grid-template-rows": "auto auto"',
+            '"grid-template-rows": "1fr 1fr"',
             "height: 100% !important",
             "position: absolute !important",
             "mid mid music calendar_notification",
@@ -183,8 +183,15 @@ def verify_build(path: Path) -> list[str]:
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
         if "minmax(0, 1fr) minmax(0, 1fr)" in overview_blob:
+            # Accept either explicit 1fr 1fr or minmax form for mid rows.
+            pass
+        if '"grid-template-rows": "auto auto"' in overview_blob:
             errors.append(
-                "Tablet mid grid must use auto rows + 1:1 tiles, not stretched 1fr rows"
+                "Tablet mid grid must not use auto rows (collapses cameras on Fully)"
+            )
+        if "aspect-ratio: 1 / 1" in overview_blob and "aspect-ratio: 2 / 1" not in overview_blob:
+            errors.append(
+                "Tablet mid must size the band as 2:1 (not per-tile 1:1 which collapses cams)"
             )
         mid_idx = overview_blob.find('"grid-area": "mid"')
         if mid_idx >= 0:

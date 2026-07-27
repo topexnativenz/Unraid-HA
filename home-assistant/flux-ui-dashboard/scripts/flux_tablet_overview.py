@@ -61,7 +61,7 @@ REOLINK_POPUP_STYLES = """\
 
 
 def _area(name: str) -> dict:
-    """Grid area placement — stretch all overview bands to their tracks."""
+    """Grid area placement — stretch overview bands to their tracks."""
     if name in (
         "calendar_notification",
         "cameras",
@@ -73,7 +73,7 @@ def _area(name: str) -> dict:
     ):
         return {"grid-area": name, "place-self": "stretch stretch"}
     if name == "mid":
-        # Square tile grid — do not stretch to the full 1fr row (pushes Tesla off-screen).
+        # Mid band sizes itself to a 2:1 square-tile frame — top-align in the row.
         return {"grid-area": name, "place-self": "start stretch"}
     return {"grid-area": name, "place-self": "start stretch"}
 
@@ -629,32 +629,34 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
 
 
 def _tablet_room_tile(room: dict) -> dict:
-    """Square room tile for the tablet mid 4×2 grid."""
+    """Room tile that fills its mid-grid cell (phone flux_room is locked to 186px)."""
     tile = flux_room_tile(room, columns=12)
     tile.pop("grid_options", None)
     styles = tile.setdefault("styles", {})
+    # Drop any fixed heights from the card; template still merges 186px at runtime
+    # so card_mod !important is required for equal room/camera cells.
     card_styles = [
         s
         for s in (styles.get("card") or [])
-        if not any(k in s for k in ("height", "min-height", "max-height"))
+        if not any(k in s for k in ("height", "min-height", "max-height", "aspect-ratio"))
     ]
     card_styles.extend(
         [
-            {"width": "100%"},
-            {"aspect-ratio": "1 / 1"},
-            {"height": "auto"},
+            {"height": "100%"},
             {"min-height": "0"},
+            {"max-height": "none"},
+            {"width": "100%"},
         ]
     )
     styles["card"] = card_styles
     tile["card_mod"] = {
         "style": (
             "ha-card {\n"
-            "  width: 100% !important;\n"
-            "  aspect-ratio: 1 / 1 !important;\n"
-            "  height: auto !important;\n"
+            "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
             "  max-height: none !important;\n"
+            "  width: 100% !important;\n"
+            "  aspect-ratio: unset !important;\n"
             "  box-sizing: border-box !important;\n"
             "}\n"
         )
@@ -737,10 +739,11 @@ def _mid_placeholder(label: str) -> dict:
 
 
 def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """One 4×2 grid: rooms left, cameras right — square cells + 8px gaps.
+    """One 4×2 grid: rooms left, cameras right — equal square cells + 8px gaps.
 
-    Cells use aspect-ratio 1:1 so the mid band does not stretch vertically
-    and push the Tesla row off the 100dvh viewport.
+    layout-card children cannot reliably use per-tile ``aspect-ratio: auto``
+    (cameras collapsed to 0 height on Fully). Instead the whole mid band is a
+    2:1 frame; a 4×2 ``1fr`` grid inside then yields equal square cells.
     """
     del use_auto_entities
     rooms = cfg.get("rooms") or []
@@ -779,34 +782,38 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         "view_layout": _area("mid"),
         "layout": {
             "grid-template-columns": "1fr 1fr 1fr 1fr",
-            "grid-template-rows": "auto auto",
+            "grid-template-rows": "1fr 1fr",
             "grid-gap": "8px",
             "gap": "8px",
-            "height": "auto",
+            "height": "100%",
             "width": "100%",
             "max_width": "100%",
             "margin": "0",
             "padding": "0",
             "card_margin": "0",
-            "align-items": "start",
+            "align-items": "stretch",
             "justify-items": "stretch",
-            "align-content": "start",
+            "align-content": "stretch",
         },
         "cards": cards,
         "card_mod": {
             "style": (
+                # 4 columns × 2 square rows ≈ 2:1 band. Cap at track height so
+                # Tesla stays on-screen when the mid row is shorter than width/2.
                 ":host {\n"
                 "  display: block !important;\n"
+                "  width: 100% !important;\n"
+                "  max-width: 100% !important;\n"
                 "  height: auto !important;\n"
+                "  aspect-ratio: 2 / 1 !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
-                "  width: 100% !important;\n"
                 "  align-self: start !important;\n"
                 "  overflow: hidden !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "ha-card, #root, .layout, layout-card {\n"
-                "  height: auto !important;\n"
+                "  height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
                 "  width: 100% !important;\n"
@@ -815,25 +822,21 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 "  border: none !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
-                "#root, .layout {\n"
-                "  align-content: start !important;\n"
-                "}\n"
                 "#root > *, .layout > * {\n"
                 "  min-height: 0 !important;\n"
                 "  min-width: 0 !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
                 "  width: 100% !important;\n"
-                "  height: auto !important;\n"
-                "  max-height: none !important;\n"
-                "  aspect-ratio: 1 / 1 !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
                 "#root > * ha-card,\n"
                 ".layout > * ha-card {\n"
-                "  width: 100% !important;\n"
-                "  aspect-ratio: 1 / 1 !important;\n"
-                "  height: auto !important;\n"
+                "  height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
                 "  max-height: none !important;\n"
+                "  width: 100% !important;\n"
+                "  aspect-ratio: unset !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
             )
@@ -842,7 +845,7 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
 
 
 def _camera_card_mod() -> dict:
-    """Square camera tile — object-fit cover inside a 1:1 cell."""
+    """Camera tile — fills its mid-grid cell (object-fit cover, no letterbox)."""
     return {
         "style": (
             "ha-card {\n"
@@ -851,9 +854,9 @@ def _camera_card_mod() -> dict:
             "  margin: 0 !important;\n"
             "  overflow: hidden !important;\n"
             "  width: 100% !important;\n"
-            "  aspect-ratio: 1 / 1 !important;\n"
-            "  height: auto !important;\n"
+            "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
+            "  aspect-ratio: unset !important;\n"
             "  background: #111 !important;\n"
             "  box-sizing: border-box !important;\n"
             "}\n"
@@ -1063,7 +1066,7 @@ def build_tablet_overview_view(
             # fixed px mins (e.g. 220px Tesla) pushed the band off Fully Kiosk.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 30%) minmax(0, 1fr) minmax(0, 24%)"
+                "minmax(0, 28%) minmax(0, 1fr) minmax(0, 26%)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
