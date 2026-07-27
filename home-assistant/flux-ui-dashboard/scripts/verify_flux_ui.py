@@ -169,7 +169,7 @@ def verify_build(path: Path) -> list[str]:
             "height: 100% !important",
             "position: absolute !important",
             "lights cameras music calendar_notification",
-            "tesla tesla tesla calendar_notification",
+            "tesla tesla music calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
             "Gates & Doors",
@@ -305,10 +305,15 @@ def verify_build(path: Path) -> list[str]:
             )
         if '"type": "custom:mediocre-media-player-card"' in overview_blob:
             errors.append("Tablet music still uses compact mediocre-media-player-card")
+        if "tesla tesla tesla calendar_notification" in overview_blob:
+            errors.append(
+                "Tablet Tesla must sit under lights+cameras only "
+                "(Music spans full height so bottoms align)"
+            )
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
             "lights cameras music calendar_notification",
-            "tesla tesla tesla calendar_notification",
+            "tesla tesla music calendar_notification",
         )
         if any(row not in overview_blob for row in locked_area_rows):
             errors.append(

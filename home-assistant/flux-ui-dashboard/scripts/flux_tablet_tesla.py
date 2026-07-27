@@ -1,4 +1,4 @@
-"""Tesla tiles for the 16:9 tablet overview (full-width row under cameras).
+"""Tesla tiles for the 16:9 tablet overview (under lights + cameras).
 
 Visual language matches Tesla companion cards: black stage, floating side-profile
 car photo on top, status + SOC underneath — no glass chrome.

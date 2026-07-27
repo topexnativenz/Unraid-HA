@@ -1170,8 +1170,9 @@ def build_tablet_overview_view(
         overview=True,
         layout={
             # 15.6" / 1920×1080 — all bands visible inside 100dvh.
-            # Top ~26%: clock | gates. Mid ~52%: compact Lights (top) + Cameras
-            # filling to Music bottom. Bottom ~18%: Tesla snug under that edge.
+            # Top ~26%: clock | gates. Mid ~52%: Lights + Cameras (top-aligned).
+            # Bottom ~18%: Tesla under Lights+Cameras only; Music spans full
+            # height so Tesla / Cameras-column / Music share one bottom edge.
             # Never use mid=1fr with huge top/tesla fr — mid collapses on Fully.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
@@ -1187,7 +1188,7 @@ def build_tablet_overview_view(
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
                 '"lights cameras music calendar_notification"\n'
-                '"tesla tesla tesla calendar_notification"'
+                '"tesla tesla music calendar_notification"'
             ),
         },
     )

@@ -665,7 +665,7 @@ def build_config(
             "media_player.kitchen_sonos",
             "Weather Forecast",
             "lights cameras music calendar_notification",
-            "tesla tesla tesla calendar_notification",
+            "tesla tesla music calendar_notification",
             "minmax(0, 26fr)",
             "minmax(0, 52fr)",
             "minmax(0, 18fr)",
@@ -783,7 +783,7 @@ def build_config(
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
             "lights cameras music calendar_notification",
-            "tesla tesla tesla calendar_notification",
+            "tesla tesla music calendar_notification",
         )
         if any(row not in blob for row in locked_area_rows):
             print(
