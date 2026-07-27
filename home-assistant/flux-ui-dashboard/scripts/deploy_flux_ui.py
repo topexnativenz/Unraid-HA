@@ -384,7 +384,7 @@ def copy_tablet_yaml_dashboard(mount: str) -> None:
     if not TABLET_YAML.exists():
         raise SystemExit(
             f"ERROR: missing {TABLET_YAML}.\n"
-            "  Create it with: python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml\n"
+            "  Create it with: python3 scripts/deploy_flux_ui.py --export-tablet-yaml\n"
             "  Or export from a tablet build."
         )
     dst_dir = Path(mount) / "dashboards"
