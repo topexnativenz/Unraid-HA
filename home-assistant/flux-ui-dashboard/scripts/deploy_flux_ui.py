@@ -737,10 +737,17 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if ":host > div > div:last-child" not in blob:
+        if "custom:mod-card" not in blob:
+            print(
+                "\nERROR: Tablet music must wrap mediocre player in "
+                "custom:mod-card so footer hide styles apply.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "mediocre-massive-media-player-card > div > div:last-child" not in blob:
             print(
                 "\nERROR: Tablet music must hide mediocre Home/Sonos footer "
-                "(card_mod :host > div > div:last-child).\n",
+                "(mod-card → mediocre-massive-media-player-card > div > div:last-child).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

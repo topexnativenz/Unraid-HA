@@ -481,47 +481,133 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
 def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
     """Massive player for the tablet music column — fills space, does not grow rows.
 
-    Hides the mediocre large-card footer (Home + dots + speaker / mini player bar).
-    Disables artwork tap → speaker-grouping so hiding Home cannot trap the view.
+    Mediocre massive has no ha-card, so card-mod on the card itself cannot reliably
+    style its light-DOM footer. Wrap in mod-card (from card-mod) and hide the
+    Home / dots / speaker footer from the parent ha-card stylesheet.
     """
-    card = _mediocre_player_card(entity, zone_name)
-    card["card_mod"] = {
+    del zone_name
+    inner = {
+        "type": "custom:mediocre-massive-media-player-card",
+        "entity_id": entity,
+        "mode": "panel",
+        "use_art_colors": True,
+        "options": {
+            "show_volume_step_buttons": True,
+            "hide_selected_player_header": True,
+        },
+    }
+    # mod-card (Lit) hosts the player in its shadow root — no ha-card wrapper.
+    # Style from :host so we can reach mediocre's light-DOM footer.
+    return {
+        "type": "custom:mod-card",
+        "card": inner,
+        "card_mod": {
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  background: transparent !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "mediocre-massive-media-player-card {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    "/* ArtworkColorWrap root grid: content + footer */\n"
+                    "mediocre-massive-media-player-card > div {\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  grid-template-rows: 1fr !important;\n"
+                    "  row-gap: 0 !important;\n"
+                    "  padding: 4px !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    "/* Home / dots / speaker + MiniPlayer strip */\n"
+                    "mediocre-massive-media-player-card > div > div:last-child {\n"
+                    "  display: none !important;\n"
+                    "  height: 0 !important;\n"
+                    "  max-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  margin: 0 !important;\n"
+                    "  padding: 0 !important;\n"
+                    "  border: none !important;\n"
+                    "}\n"
+                    "/* Artwork tap → speaker-grouping traps UI once Home is hidden */\n"
+                    "mediocre-massive-media-player-card button:has(img) {\n"
+                    "  pointer-events: none !important;\n"
+                    "  cursor: default !important;\n"
+                    "}\n"
+                ),
+                # Also inject directly onto the mediocre element (no shadow root).
+                "mediocre-massive-media-player-card": (
+                    "> div {\n"
+                    "  height: 100% !important;\n"
+                    "  grid-template-rows: 1fr !important;\n"
+                    "  row-gap: 0 !important;\n"
+                    "  padding: 4px !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    "> div > div:last-child {\n"
+                    "  display: none !important;\n"
+                    "  height: 0 !important;\n"
+                    "  max-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  margin: 0 !important;\n"
+                    "  padding: 0 !important;\n"
+                    "  border: none !important;\n"
+                    "}\n"
+                    "button:has(img) {\n"
+                    "  pointer-events: none !important;\n"
+                    "  cursor: default !important;\n"
+                    "}\n"
+                ),
+            }
+        },
+    }
+
+
+def _source_chip_mod() -> dict:
+    return {
         "style": (
-            ":host, ha-card {\n"
-            "  height: 100% !important;\n"
-            "  max-height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "  overflow: hidden !important;\n"
-            "  box-sizing: border-box !important;\n"
+            "ha-card {\n"
+            "  --chip-height: 32px !important;\n"
+            "  --chip-padding: 0 10px !important;\n"
+            "  --chip-font-size: 12px !important;\n"
+            "  --chip-icon-size: 16px !important;\n"
+            "  --chip-spacing: 6px !important;\n"
+            "  background: transparent !important;\n"
+            "  box-shadow: none !important;\n"
+            "  border: none !important;\n"
+            "  padding: 0 2px 2px !important;\n"
             "}\n"
-            "/* Light-DOM: content row + footer row */\n"
-            ":host > div {\n"
-            "  height: 100% !important;\n"
-            "  max-height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "  grid-template-rows: 1fr !important;\n"
-            "  row-gap: 0 !important;\n"
-            "  padding: 4px !important;\n"
-            "  box-sizing: border-box !important;\n"
+            ".chip-container {\n"
+            "  flex-wrap: wrap !important;\n"
+            "  justify-content: flex-start !important;\n"
+            "  row-gap: 6px !important;\n"
+            "  max-height: 72px !important;\n"
+            "  overflow-y: auto !important;\n"
+            "  -webkit-overflow-scrolling: touch !important;\n"
             "}\n"
-            "/* Hide Home / dots / speaker footer and MiniPlayer strip */\n"
-            ":host > div > div:last-child {\n"
-            "  display: none !important;\n"
-            "}\n"
-            "/* Artwork tap → speaker-grouping traps UI once Home is hidden */\n"
-            ":host > div > div:first-child button:has(img) {\n"
-            "  pointer-events: none !important;\n"
-            "  cursor: default !important;\n"
-            "}\n"
-            "ha-card h3 + div, ha-card .device, ha-card [class*='device-name'] "
-            "{ display: none !important; }\n"
         )
     }
-    return card
 
 
 def _tablet_source_selector(entity: str) -> dict:
-    """In-card source chips from media_player.source_list (select_source)."""
+    """In-card source row: always-visible current source + source_list chips.
+
+    card-mod does not apply to auto-entities itself; mushroom-chips-card has
+    ha-card so its styles work. Current-source chip always renders even when
+    source_list is empty (common while streaming).
+    """
     template = (
         "{% set sources = state_attr('"
         + entity
@@ -530,65 +616,87 @@ def _tablet_source_selector(entity: str) -> dict:
         + entity
         + "', 'source') %}\n"
         "{% for source in sources %}\n"
-        "  {{\n"
-        "    {\n"
-        "      'type': 'template',\n"
-        "      'entity': '"
+        "{% set icon = (\n"
+        "  'mdi:television' if source | lower in ['tv', 'hdmi']\n"
+        "  else (\n"
+        "    'mdi:audio-input-stereo-minijack' if 'line' in source | lower\n"
+        "    else 'mdi:music-note'\n"
+        "  )\n"
+        ") %}\n"
+        "{% if source == current %}\n"
+        "  {{ {'type': 'template', 'entity': '"
         + entity
-        + "',\n"
-        "      'content': source,\n"
-        "      'icon': (\n"
-        "        'mdi:television' if source | lower in ['tv', 'hdmi']\n"
-        "        else (\n"
-        "          'mdi:audio-input-stereo-minijack'\n"
-        "          if 'line' in source | lower\n"
-        "          else 'mdi:music-note'\n"
-        "        )\n"
-        "      ),\n"
-        "      'icon_color': ('teal' if source == current else none),\n"
-        "      'tap_action': {\n"
-        "        'action': 'call-service',\n"
-        "        'service': 'media_player.select_source',\n"
-        "        'service_data': {\n"
-        "          'entity_id': '"
+        + "', 'content': source, 'icon': icon, 'icon_color': 'teal',"
+        " 'tap_action': {'action': 'call-service',"
+        " 'service': 'media_player.select_source',"
+        " 'service_data': {'entity_id': '"
         + entity
-        + "',\n"
-        "          'source': source,\n"
-        "        },\n"
-        "      },\n"
-        "    }\n"
-        "  }},\n"
+        + "', 'source': source}}} }},\n"
+        "{% else %}\n"
+        "  {{ {'type': 'template', 'entity': '"
+        + entity
+        + "', 'content': source, 'icon': icon,"
+        " 'tap_action': {'action': 'call-service',"
+        " 'service': 'media_player.select_source',"
+        " 'service_data': {'entity_id': '"
+        + entity
+        + "', 'source': source}}} }},\n"
+        "{% endif %}\n"
         "{% endfor %}\n"
     )
-    return {
-        "type": "custom:auto-entities",
-        "show_empty": False,
+    current_chip = {
+        "type": "custom:mushroom-chips-card",
+        "alignment": "start",
+        "chips": [
+            {
+                "type": "template",
+                "entity": entity,
+                "icon": "mdi:import",
+                "content": (
+                    "{{ state_attr('"
+                    + entity
+                    + "', 'source') or 'Source' }}"
+                ),
+                "tap_action": {
+                    "action": "more-info",
+                    "entity": entity,
+                },
+            }
+        ],
+        "card_mod": _source_chip_mod(),
+    }
+    # Dynamic favorites / TV / Line-in — hidden entirely when source_list empty.
+    source_list_chips = {
+        "type": "custom:mod-card",
         "card": {
-            "type": "custom:mushroom-chips-card",
-            "alignment": "start",
+            "type": "custom:auto-entities",
+            "show_empty": False,
+            "card": {
+                "type": "custom:mushroom-chips-card",
+                "alignment": "start",
+                "card_mod": _source_chip_mod(),
+            },
+            "card_param": "chips",
+            "filter": {"template": template},
         },
-        "card_param": "chips",
-        "filter": {"template": template},
+        "card_mod": {
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  background: transparent !important;\n"
+                    "}\n"
+                )
+            }
+        },
+    }
+    return {
+        "type": "vertical-stack",
+        "cards": [current_chip, source_list_chips],
         "card_mod": {
             "style": (
-                "ha-card {\n"
-                "  --chip-height: 32px !important;\n"
-                "  --chip-padding: 0 10px !important;\n"
-                "  --chip-font-size: 12px !important;\n"
-                "  --chip-icon-size: 16px !important;\n"
-                "  --chip-spacing: 6px !important;\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  padding: 0 2px 4px !important;\n"
-                "}\n"
-                ".chip-container, mushroom-chips-card {\n"
-                "  flex-wrap: wrap !important;\n"
-                "  justify-content: flex-start !important;\n"
-                "  row-gap: 6px !important;\n"
-                "  max-height: 72px !important;\n"
-                "  overflow-y: auto !important;\n"
-                "  -webkit-overflow-scrolling: touch !important;\n"
+                "#root {\n"
+                "  gap: 2px !important;\n"
                 "}\n"
             )
         },

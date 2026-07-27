@@ -170,8 +170,12 @@ def verify_build(path: Path) -> list[str]:
             )
         if "media_player.select_source" not in overview_blob:
             errors.append("Tablet music missing in-card source selector (select_source)")
-        if ":host > div > div:last-child" not in overview_blob:
-            errors.append("Tablet music must hide mediocre Home/Sonos footer bar")
+        if "mdi:import" not in overview_blob:
+            errors.append("Tablet music missing always-visible Source chip")
+        if "custom:mod-card" not in overview_blob:
+            errors.append("Tablet music must wrap mediocre player in mod-card to hide footer")
+        if "mediocre-massive-media-player-card > div > div:last-child" not in overview_blob:
+            errors.append("Tablet music must hide mediocre Home/Sonos footer bar via mod-card")
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside rooms as 2x2, not a full-width row")
         if "min-height: 200px" in overview_blob and "max-height: 180px" not in overview_blob:
