@@ -2,6 +2,7 @@
 # Helpers are defined in packages/flux_ui_area_lights.yaml.
 
 areas:
+  # light.kitchen_all membership: packages/flux_ui_area_lights.yaml (excludes Bar).
   - name: Kitchen
     entity: light.kitchen_all
     icon: mdi:stove
