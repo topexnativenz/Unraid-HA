@@ -57,6 +57,7 @@ REQUIRED_PACKAGES = (
     "flux_ui_weather.yaml",
     "flux_ui_tablet_led.yaml",
     "flux_ui_eufy_cameras.yaml",
+    "flux_ui_area_lights.yaml",
 )
 
 TABLET_LED_ENTITY = "input_text.flux_ui_tablet_rgb_led"
@@ -625,10 +626,10 @@ def build_config(
             "custom:grid-layout",
             "weather-forecast",
             "Gates & Doors",
-            '"template": "flux_room"',
             "calendar_notification",
             "simple_tab",
-            '"grid-area": "mid"',
+            '"grid-area": "lights"',
+            '"grid-area": "cameras"',
             '"grid-area": "tesla"',
             '"grid-area": "music"',
             '"grid-area": "greeting"',
@@ -663,22 +664,21 @@ def build_config(
             "mediocre-massive-media-player-card",
             "media_player.kitchen_sonos",
             "Weather Forecast",
-            "mid mid music calendar_notification",
+            "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "minmax(0, 28fr)",
             "minmax(0, 26fr)",
-            "minmax(0, 28fr) auto minmax(0, 26fr)",
+            "minmax(0, 20fr)",
+            "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)",
             "aspect-ratio: unset",
-            '"place-self": "start stretch"',
-            "rooms_title cameras_title",
-            "mid_tiles mid_tiles",
             '"font-size": "24px"',
-            '"name": "Rooms"',
+            '"name": "Lights"',
             '"name": "Cameras"',
-            "flux_room_fill",
-            "aspect-ratio: 2 / 1",
-            '"grid-template-columns": "1fr 1fr 1fr 1fr"',
-            '"grid-template-rows": "1fr 1fr"',
+            "light.kitchen_all",
+            "light.dining_all",
+            "light.black_lounge_all",
+            "light.white_lounge_all",
+            "light.walkway_all",
+            "light.kids_hallway_all",
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",
@@ -698,7 +698,7 @@ def build_config(
             raise SystemExit(1)
         if "cameras cameras cameras calendar_notification" in blob:
             print(
-                "\nERROR: Tablet cameras must sit beside rooms as 2x2 "
+                "\nERROR: Tablet cameras must sit beside lights as 2x2 "
                 "(not a full-width one-row cameras band).\n",
                 file=sys.stderr,
             )
@@ -767,7 +767,7 @@ def build_config(
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "mid mid music calendar_notification",
+            "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in blob for row in locked_area_rows):
@@ -776,10 +776,10 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if '"rooms cameras music calendar_notification"' in blob:
+        if "mid mid music calendar_notification" in blob:
             print(
-                "\nERROR: Tablet must use unified mid band "
-                "(mid mid), not separate rooms|cameras areas.\n",
+                "\nERROR: Tablet must use lights|cameras mid row "
+                "(not unified mid mid rooms band).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -791,7 +791,7 @@ def build_config(
             raise SystemExit(1)
         if "1.05fr 1.25fr" in blob:
             print(
-                "\nERROR: Tablet still uses unequal rooms/cameras columns "
+                "\nERROR: Tablet still uses unequal lights/cameras columns "
                 "(1.05fr 1.25fr).\n",
                 file=sys.stderr,
             )
@@ -799,48 +799,34 @@ def build_config(
         if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
                 "\nERROR: Tablet Tesla row must use flexible fr tracks "
-                "(minmax(0, 26fr)), not fixed px mins that push off-screen.\n",
+                "(minmax(0, 20fr)), not fixed px mins that push off-screen.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "aspect-ratio: 1 / 1" in blob:
+        if "aspect-ratio: 1 / 1" in blob or "aspect-ratio: 2 / 1" in blob:
             print(
-                "\nERROR: Tablet mid must not use per-tile aspect-ratio 1/1 "
-                "(collapses cameras on Fully — use host 2:1 + 1fr fill).\n",
+                "\nERROR: Tablet mid must fill lights/cameras tracks "
+                "(no aspect-ratio frames).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if '"grid-template-rows": "auto auto"' in blob:
+        if "minmax(0, 28fr) auto minmax(0, 26fr)" in blob:
             print(
-                "\nERROR: Tablet mid must not use auto auto rows "
-                "(collapses cameras on Fully — use 1fr 1fr inside 2:1 frame).\n",
+                "\nERROR: Tablet mid row must be 1fr "
+                "(fill between Gates and Tesla), not auto.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "minmax(0, 28%)" in blob or "minmax(0, 26%)" in blob:
+        if '"name": "Lights"' not in blob or '"name": "Cameras"' not in blob:
             print(
-                "\nERROR: Tablet overview rows must use fr tracks (not %) "
-                "so auto mid does not absorb free space into Tesla.\n",
+                "\nERROR: Tablet mid band missing Lights/Cameras section headings.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 26fr)" in blob:
+        if '"grid-area": "mid"' in blob or '"grid-area": "rooms"' in blob:
             print(
-                "\nERROR: Tablet mid row must be auto (not 1fr) "
-                "so tiles do not stretch into Tesla.\n",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
-        if '"name": "Rooms"' not in blob or '"name": "Cameras"' not in blob:
-            print(
-                "\nERROR: Tablet mid band missing Rooms/Cameras section headings.\n",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
-        if '"grid-area": "cameras"' in blob or '"grid-area": "rooms"' in blob:
-            print(
-                "\nERROR: Tablet must use unified mid band, not separate "
-                "rooms/cameras grid-areas.\n",
+                "\nERROR: Tablet overview must use lights|cameras areas, "
+                "not mid/rooms room cards.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -866,13 +852,13 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if '"domain": "camera"' in blob and '"grid-area": "mid"' in blob:
+        if '"domain": "camera"' in blob and '"grid-area": "cameras"' in blob:
             # Overview must not auto-discover every camera (causes 2+ rows).
-            mid_idx = blob.find('"grid-area": "mid"')
-            mid_slice = blob[max(0, mid_idx - 200) : mid_idx + 2500]
-            if '"domain": "camera"' in mid_slice and "camera.side_door" not in mid_slice:
+            cam_idx = blob.find('"grid-area": "cameras"')
+            cam_slice = blob[max(0, cam_idx - 200) : cam_idx + 2500]
+            if '"domain": "camera"' in cam_slice and "camera.side_door" not in cam_slice:
                 print(
-                    "\nERROR: Tablet mid band still auto-discovers camera domain.\n",
+                    "\nERROR: Tablet cameras band still auto-discovers camera domain.\n",
                     file=sys.stderr,
                 )
                 raise SystemExit(1)

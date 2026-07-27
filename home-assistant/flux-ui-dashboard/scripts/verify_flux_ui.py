@@ -109,13 +109,14 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(0, 28fr)",
             "minmax(0, 26fr)",
+            "minmax(0, 20fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
             "Gates & Doors",
-            '"grid-area": "mid"',
+            '"grid-area": "lights"',
+            '"grid-area": "cameras"',
             '"grid-area": "tesla"',
             '"grid-area": "music"',
             '"grid-area": "greeting"',
@@ -145,19 +146,24 @@ def verify_build(path: Path) -> list[str]:
             "mediocre-massive-media-player-card",
             "mushroom-chips-card",
             "aspect-ratio: unset",
-            '"place-self": "start stretch"',
-            "rooms_title cameras_title",
-            "mid_tiles mid_tiles",
             '"font-size": "24px"',
-            '"name": "Rooms"',
+            '"name": "Lights"',
             '"name": "Cameras"',
-            "flux_room_fill",
-            "aspect-ratio: 2 / 1",
-            '"grid-template-columns": "1fr 1fr 1fr 1fr"',
-            '"grid-template-rows": "1fr 1fr"',
+            "light.kitchen_all",
+            "light.dining_all",
+            "light.black_lounge_all",
+            "light.white_lounge_all",
+            "light.walkway_all",
+            "light.kids_hallway_all",
+            '"name": "Kitchen"',
+            '"name": "Dining"',
+            '"name": "Black Lounge"',
+            '"name": "White Lounge"',
+            '"name": "Walkway"',
+            '"name": "Kids Hallway"',
             "height: 100% !important",
             "position: absolute !important",
-            "mid mid music calendar_notification",
+            "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
@@ -166,12 +172,11 @@ def verify_build(path: Path) -> list[str]:
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
-            "max-height: none",
+            "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)",
             '"font-size": "136px"',
             '"font-size": "30px"',
             "width:78%",
             "hourCycle: 'h12'",
-            "minmax(0, 28fr) auto minmax(0, 26fr)",
             '"font-size": "22px"',
             "justify-content: center !important",
             "align-items: center !important",
@@ -180,59 +185,37 @@ def verify_build(path: Path) -> list[str]:
                 errors.append(f"Tablet build missing {needle}")
         if "1.05fr 1.25fr" in overview_blob:
             errors.append(
-                "Tablet rooms/cameras columns must be equal width (not 1.05fr 1.25fr)"
+                "Tablet lights/cameras columns must use equal overview cols (not 1.05fr 1.25fr)"
             )
-        if '"rooms cameras music calendar_notification"' in overview_blob:
+        if "mid mid music calendar_notification" in overview_blob:
             errors.append(
-                "Tablet must use unified mid band (mid mid), not separate rooms|cameras areas"
+                "Tablet must use lights|cameras mid row (not unified mid mid rooms band)"
             )
+        if '"name": "Rooms"' in overview_blob and '"grid-area": "lights"' in overview_blob:
+            # Room index cards must not appear on tablet overview.
+            lights_idx = overview_blob.find('"grid-area": "lights"')
+            cams_idx = overview_blob.find('"grid-area": "cameras"')
+            if lights_idx >= 0 and '"name": "Rooms"' in overview_blob[lights_idx:cams_idx + 200]:
+                errors.append("Tablet overview still has Rooms section — use Lights area toggles")
         if '"align-content": "start"' in overview_blob and '"align-content": "stretch"' not in overview_blob:
             errors.append(
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
-        if "aspect-ratio: 1 / 1" in overview_blob:
+        if "aspect-ratio: 1 / 1" in overview_blob or "aspect-ratio: 2 / 1" in overview_blob:
             errors.append(
-                "Tablet mid must not use per-tile aspect-ratio 1/1 "
-                "(collapses cameras on Fully — use host 2:1 + 1fr fill)"
+                "Tablet mid must fill the lights/cameras track (no aspect-ratio frames)"
             )
-        if '"grid-template-rows": "auto auto"' in overview_blob:
+        if "minmax(0, 28fr) auto minmax(0, 26fr)" in overview_blob:
             errors.append(
-                "Tablet mid must not use auto auto rows "
-                "(collapses cameras on Fully — use 1fr 1fr inside 2:1 frame)"
+                "Tablet mid row must be 1fr (fill between Gates and Tesla), not auto"
             )
-        if "minmax(0, 28%)" in overview_blob or "minmax(0, 26%)" in overview_blob:
-            errors.append(
-                "Tablet overview rows must use fr tracks (not %) so auto mid does not absorb free space"
-            )
-        if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 26fr)" in overview_blob:
-            errors.append(
-                "Tablet mid row must be auto (not 1fr) so tiles do not stretch into Tesla"
-            )
-        if '"name": "Rooms"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
-            errors.append("Tablet mid band missing Rooms/Cameras section headings")
-        if "flux_room_fill" not in overview_blob:
-            errors.append(
-                "Tablet rooms must use flux_room_fill (not phone flux_room 186px lock)"
-            )
-        if overview_blob.count('"template": "flux_room"') > 0 and "flux_room_fill" in overview_blob:
-            # Overview mid rooms must not keep the phone template.
-            mid_idx = overview_blob.find('"grid-area": "mid"')
-            mid_end = overview_blob.find('"grid-area": "tesla"', mid_idx)
-            mid_slice = overview_blob[mid_idx:mid_end] if mid_idx >= 0 else ""
-            if '"template": "flux_room"' in mid_slice and "flux_room_fill" not in mid_slice:
-                errors.append("Tablet mid rooms still use flux_room instead of flux_room_fill")
+        if '"name": "Lights"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
+            errors.append("Tablet mid band missing Lights/Cameras section headings")
         if '"font-size": "16px"' in overview_blob and '"font-size": "24px"' not in overview_blob:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
-        mid_idx = overview_blob.find('"grid-area": "mid"')
-        if mid_idx >= 0:
-            mid_slice = overview_blob[mid_idx : mid_idx + 160]
-            if "start stretch" not in mid_slice:
-                errors.append("Tablet mid band must be top-aligned (place-self start stretch)")
-            if '"place-self": "stretch stretch"' in mid_slice:
-                errors.append("Tablet mid band must not stretch-fill (causes Tesla overlap)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible fr tracks (minmax(0, 26fr)), "
+                "Tablet Tesla row must use flexible fr tracks (minmax(0, 20fr)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
@@ -249,9 +232,9 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet clock corner still has weather/temp chips under the time")
         if " · ${tz}" in overview_blob or "timeZoneName" in overview_blob:
             errors.append("Tablet clock date still appends NZST/NZDT — show weekday/date only")
-        if '"grid-area": "cameras"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
+        if '"grid-area": "mid"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
             errors.append(
-                "Tablet must use unified mid band, not separate rooms/cameras grid-areas"
+                "Tablet overview must use lights|cameras areas (not mid/rooms room cards)"
             )
         if "max-height: 240px" in overview_blob or "max-height: 180px" in overview_blob:
             errors.append(
@@ -278,7 +261,7 @@ def verify_build(path: Path) -> list[str]:
         if "mediocre-massive-media-player-card > div > div:last-child" not in overview_blob:
             errors.append("Tablet music must hide mediocre Home/Sonos footer bar via mod-card")
         if "cameras cameras cameras calendar_notification" in overview_blob:
-            errors.append("Tablet cameras must sit beside rooms as 2x2, not a full-width row")
+            errors.append("Tablet cameras must sit beside lights as 2x2, not a full-width row")
         if "min-height: 200px" in overview_blob and "max-height: 100%" not in overview_blob:
             errors.append("Tablet Tesla band must fill its % track (max-height 100%)")
         if '"grid-area": "weather"' in blob:
@@ -308,7 +291,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet music still uses compact mediocre-media-player-card")
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "mid mid music calendar_notification",
+            "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in overview_blob for row in locked_area_rows):

@@ -1,0 +1,22 @@
+# Tablet overview — area light toggles (left of cameras).
+# Helpers are defined in packages/flux_ui_area_lights.yaml.
+
+areas:
+  - name: Kitchen
+    entity: light.kitchen_all
+    icon: mdi:stove
+  - name: Dining
+    entity: light.dining_all
+    icon: mdi:silverware-fork-knife
+  - name: Black Lounge
+    entity: light.black_lounge_all
+    icon: mdi:sofa
+  - name: White Lounge
+    entity: light.white_lounge_all
+    icon: mdi:sofa-outline
+  - name: Walkway
+    entity: light.walkway_all
+    icon: mdi:walk
+  - name: Kids Hallway
+    entity: light.kids_hallway_all
+    icon: mdi:human-male-child

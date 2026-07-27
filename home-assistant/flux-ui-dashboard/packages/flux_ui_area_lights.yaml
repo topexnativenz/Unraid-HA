@@ -1,0 +1,52 @@
+# Tablet overview — one light group helper per area (toggle all circuits).
+# C-Bus MQTT lights are discovered on HA; this package only aggregates them.
+# Entity ids: light.kitchen_all, light.dining_all, …
+
+light:
+  - platform: group
+    name: Kitchen All
+    unique_id: flux_ui_kitchen_all
+    entities:
+      - light.kitchen
+      - light.cooking
+      - light.scullery
+      - light.sink
+      - light.bar
+      - light.breakfast_high
+      - light.c_bus_light_036_c_bus_light_036
+
+  - platform: group
+    name: Dining All
+    unique_id: flux_ui_dining_all
+    entities:
+      - light.dining_room
+      - light.dining_centre
+      - light.dining_pic_light
+
+  - platform: group
+    name: Black Lounge All
+    unique_id: flux_ui_black_lounge_all
+    entities:
+      - light.black_lounge
+
+  - platform: group
+    name: White Lounge All
+    unique_id: flux_ui_white_lounge_all
+    entities:
+      - light.white_lounge
+      - light.white_lounge_centre
+      - light.white_lounge_surround
+      - light.white_lounge_surround_2
+      - light.white_lounge_cabinet
+
+  - platform: group
+    name: Walkway All
+    unique_id: flux_ui_walkway_all
+    entities:
+      - light.walkway
+
+  - platform: group
+    name: Kids Hallway All
+    unique_id: flux_ui_kids_hallway_all
+    entities:
+      - light.kids_hall_footlights

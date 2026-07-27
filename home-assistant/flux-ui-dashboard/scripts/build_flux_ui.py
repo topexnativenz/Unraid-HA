@@ -87,6 +87,7 @@ ROOM_SENSORS = ROOT / "room_sensors.yaml"
 SCENES = ROOT / "scenes.yaml"
 CAMERAS = ROOT / "cameras.yaml"
 LIGHT_GROUPS = ROOT / "light_groups.yaml"
+AREA_LIGHTS = ROOT / "area_lights.yaml"
 GARAGE_DIR = ROOT.parent / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
 
@@ -152,6 +153,10 @@ def load_entities() -> dict:
     cfg["light_groups"] = (
         yaml.safe_load(LIGHT_GROUPS.read_text()).get("groups", []) if LIGHT_GROUPS.exists() else []
     )
+    if AREA_LIGHTS.exists():
+        cfg["area_lights"] = yaml.safe_load(AREA_LIGHTS.read_text()) or {}
+    else:
+        cfg["area_lights"] = {}
     return cfg
 
 

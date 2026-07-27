@@ -7,7 +7,6 @@ reliably fill a 1920×1080 landscape canvas.
 from __future__ import annotations
 
 from flux_action_builders import garage_action, lock_action, scene_action
-from flux_layouts import flux_room_tile
 from flux_media_player import build_tablet_music_card
 from flux_navbar import URL_PREFIX
 from flux_overview_tabs import build_events_tab_cards
@@ -65,16 +64,13 @@ def _area(name: str) -> dict:
     if name in (
         "calendar_notification",
         "cameras",
-        "rooms",
+        "lights",
         "tesla",
         "music",
         "greeting",
         "simple_tab",
     ):
         return {"grid-area": name, "place-self": "stretch stretch"}
-    if name == "mid":
-        # Content-sized 2:1 tile frame — top-align so mid does not stretch into Tesla.
-        return {"grid-area": name, "place-self": "start stretch"}
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -630,56 +626,8 @@ def _calendar_notification(
     }
 
 
-def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
-    return [r for r in rooms if (r.get("category") or "default") == slug]
-
-
-def _tablet_room_tile(room: dict) -> dict:
-    """Room tile that fills its mid-grid cell (phone flux_room locks 186px)."""
-    tile = flux_room_tile(room, columns=12)
-    tile.pop("grid_options", None)
-    tile["template"] = "flux_room_fill"
-    styles = tile.setdefault("styles", {})
-    card_styles = [
-        s
-        for s in (styles.get("card") or [])
-        if not any(k in s for k in ("height", "min-height", "max-height", "aspect-ratio"))
-    ]
-    card_styles.extend(
-        [
-            {"height": "100%"},
-            {"min-height": "0"},
-            {"max-height": "none"},
-            {"width": "100%"},
-            {"overflow": "hidden"},
-            {"box-sizing": "border-box"},
-        ]
-    )
-    styles["card"] = card_styles
-    tile["card_mod"] = {
-        "style": (
-            ":host {\n"
-            "  display: block !important;\n"
-            "  height: 100% !important;\n"
-            "  width: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "}\n"
-            "ha-card {\n"
-            "  height: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "  max-height: none !important;\n"
-            "  width: 100% !important;\n"
-            "  aspect-ratio: unset !important;\n"
-            "  box-sizing: border-box !important;\n"
-            "  overflow: hidden !important;\n"
-            "}\n"
-        )
-    }
-    return wrap_glass(tile)
-
-
-def _mid_fill_style() -> str:
-    """Children fill definite 1fr cells — never size height from per-tile aspect-ratio."""
+def _fill_track_style() -> str:
+    """Children fill definite 1fr grid cells (Fully-safe — no per-tile aspect-ratio)."""
     return (
         "ha-card, #root, .layout, layout-card {\n"
         "  height: 100% !important;\n"
@@ -711,183 +659,304 @@ def _mid_fill_style() -> str:
     )
 
 
-def _mid_square_tiles_grid(cards: list[dict]) -> dict:
-    """4×2 fill grid inside a 2:1 frame — equal square room + camera cells.
+_DEFAULT_AREA_LIGHTS: list[dict] = [
+    {"name": "Kitchen", "entity": "light.kitchen_all", "icon": "mdi:stove"},
+    {"name": "Dining", "entity": "light.dining_all", "icon": "mdi:silverware-fork-knife"},
+    {
+        "name": "Black Lounge",
+        "entity": "light.black_lounge_all",
+        "icon": "mdi:sofa",
+    },
+    {
+        "name": "White Lounge",
+        "entity": "light.white_lounge_all",
+        "icon": "mdi:sofa-outline",
+    },
+    {"name": "Walkway", "entity": "light.walkway_all", "icon": "mdi:walk"},
+    {
+        "name": "Kids Hallway",
+        "entity": "light.kids_hallway_all",
+        "icon": "mdi:human-male-child",
+    },
+]
 
-    Fully Kiosk collapses per-tile ``aspect-ratio: 1/1`` inside ``auto`` rows.
-    Width-driven ``aspect-ratio: 2/1`` on the host gives a definite height; the
-    inner ``1fr 1fr`` rows then yield identical squares for rooms and cameras.
-    """
+
+def _area_light_button(area: dict) -> dict:
+    """Single toggle for every light in an area (HA light group helper)."""
+    entity = area["entity"]
+    name = area.get("name") or entity
+    icon = area.get("icon") or "mdi:lightbulb-group"
+    return wrap_glass(
+        {
+            "type": "custom:button-card",
+            "template": "flux_glass",
+            "entity": entity,
+            "name": name,
+            "icon": icon,
+            "show_state": False,
+            "show_icon": True,
+            "show_name": True,
+            "tap_action": {"action": "toggle"},
+            "hold_action": {"action": "more-info"},
+            "styles": {
+                "card": [
+                    {"height": "100%"},
+                    {"min-height": "0"},
+                    {"max-height": "none"},
+                    {"width": "100%"},
+                    {"padding": "10px 12px"},
+                    {"overflow": "hidden"},
+                    {"box-sizing": "border-box"},
+                    {"display": "flex"},
+                    {"align-items": "center"},
+                    {"justify-content": "flex-start"},
+                ],
+                "grid": [
+                    {"grid-template-areas": "'i n'"},
+                    {"grid-template-columns": "min-content 1fr"},
+                    {"grid-template-rows": "1fr"},
+                    {"column-gap": "10px"},
+                    {"align-items": "center"},
+                    {"height": "100%"},
+                    {"width": "100%"},
+                ],
+                "icon": [
+                    {"width": "28px"},
+                    {"height": "28px"},
+                    {"color": "var(--md-sys-color-on-surface-variant)"},
+                ],
+                "name": [
+                    {"font-size": "20px"},
+                    {"font-weight": "600"},
+                    {"justify-self": "start"},
+                    {"text-align": "left"},
+                    {"white-space": "nowrap"},
+                    {"overflow": "hidden"},
+                    {"text-overflow": "ellipsis"},
+                ],
+            },
+            "state": [
+                {
+                    "value": "on",
+                    "styles": {
+                        "icon": [{"color": "#FFD54F"}],
+                        "name": [{"color": "var(--md-sys-color-on-surface)"}],
+                    },
+                }
+            ],
+        }
+    )
+
+
+def _lights_band(cfg: dict) -> dict:
+    """Left mid — 6 area all-lights toggles (2×3), fills track under Gates."""
+    areas = list((cfg.get("area_lights") or {}).get("areas") or _DEFAULT_AREA_LIGHTS)
+    buttons = [_area_light_button(a) for a in areas[:6]]
+    while len(buttons) < 6:
+        buttons.append(wrap_glass({"type": "markdown", "content": "Light"}))
+
     return {
-        "type": "custom:layout-card",
-        "layout_type": "custom:grid-layout",
-        "view_layout": {
-            "grid-area": "mid_tiles",
-            "place-self": "start stretch",
+        "type": "custom:mod-card",
+        "view_layout": _area("lights"),
+        "card": {
+            "type": "vertical-stack",
+            "cards": [
+                _section_title("Lights"),
+                {
+                    "type": "custom:layout-card",
+                    "layout_type": "custom:grid-layout",
+                    "layout": {
+                        "grid-template-columns": "1fr 1fr",
+                        "grid-template-rows": "1fr 1fr 1fr",
+                        "grid-gap": "8px",
+                        "gap": "8px",
+                        "height": "100%",
+                        "width": "100%",
+                        "margin": "0",
+                        "padding": "0",
+                        "card_margin": "0",
+                        "align-items": "stretch",
+                        "justify-items": "stretch",
+                    },
+                    "cards": buttons,
+                    "card_mod": {
+                        "style": (
+                            ":host {\n"
+                            "  display: block !important;\n"
+                            "  height: 100% !important;\n"
+                            "  max-height: 100% !important;\n"
+                            "  min-height: 0 !important;\n"
+                            "  width: 100% !important;\n"
+                            "  overflow: hidden !important;\n"
+                            "  box-sizing: border-box !important;\n"
+                            "}\n"
+                            + _fill_track_style()
+                        )
+                    },
+                },
+            ],
         },
-        "layout": {
-            "grid-template-columns": "1fr 1fr 1fr 1fr",
-            "grid-template-rows": "1fr 1fr",
-            "grid-gap": "8px",
-            "gap": "8px",
-            "height": "100%",
-            "width": "100%",
-            "max_width": "100%",
-            "margin": "0",
-            "padding": "0",
-            "card_margin": "0",
-            "align-items": "stretch",
-            "justify-items": "stretch",
-            "align-content": "stretch",
-        },
-        "cards": cards,
         "card_mod": {
-            "style": (
-                ":host {\n"
-                "  display: block !important;\n"
-                "  width: 100% !important;\n"
-                "  max-width: 100% !important;\n"
-                "  height: auto !important;\n"
-                "  aspect-ratio: 2 / 1 !important;\n"
-                "  max-height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  align-self: start !important;\n"
-                "  overflow: hidden !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                + _mid_fill_style()
-            )
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    "ha-card {\n"
+                    "  height: 100% !important;\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "}\n"
+                    "hui-vertical-stack-card {\n"
+                    "  height: 100% !important;\n"
+                    "  display: block !important;\n"
+                    "}\n"
+                ),
+                "hui-vertical-stack-card": {
+                    "$": (
+                        "#root {\n"
+                        "  display: flex !important;\n"
+                        "  flex-direction: column !important;\n"
+                        "  height: 100% !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  gap: 8px !important;\n"
+                        "}\n"
+                        "#root > *:first-child {\n"
+                        "  flex: 0 0 auto !important;\n"
+                        "}\n"
+                        "#root > *:last-child {\n"
+                        "  flex: 1 1 auto !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  overflow: hidden !important;\n"
+                        "}\n"
+                    )
+                },
+            }
         },
     }
 
 
-def _rooms_band(cfg: dict) -> dict:
-    """Deprecated — use _mid_rooms_cameras_band (kept for callers/tests)."""
-    return _mid_rooms_cameras_band(cfg, use_auto_entities=True)
-
-
-def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """Deprecated — cameras live in the unified mid band."""
-    del cfg, use_auto_entities
-    return {"type": "markdown", "content": ""}
-
-
-def _mid_placeholder(label: str) -> dict:
-    return wrap_glass({"type": "markdown", "content": label})
-
-
-def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """Rooms | Cameras mid band — headings + one 2:1 square-tile frame.
-
-    Top-aligned content-sized band (overview mid row is ``auto``) so 8px gaps
-    above/below stay even and Tesla does not collide. Rooms and cameras share
-    one 4×2 ``1fr`` grid (left rooms, right cameras) so every cell is identical.
-    """
+def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
+    """Right mid — 2×2 cameras; top under Gates, bottom flush with Music."""
     del use_auto_entities
-    rooms = cfg.get("rooms") or []
-    default_rooms = _rooms_for_category(rooms, "default")
-    show = default_rooms or rooms
-    room_tiles = [_tablet_room_tile(room) for room in show[:4]]
-    while len(room_tiles) < 4:
-        room_tiles.append(_mid_placeholder("Room"))
-
     cameras = _tablet_overview_cameras(cfg)
     cam_tiles = [_camera_feed_card(cam) for cam in cameras[:4]]
     if not cam_tiles:
         cam_tiles = [
-            _mid_placeholder(
-                "Configure tablet cameras in `cameras.yaml` "
-                "or `entities.yaml` → `tablet.overview_cameras`."
+            wrap_glass(
+                {
+                    "type": "markdown",
+                    "content": (
+                        "Configure tablet cameras in `cameras.yaml` "
+                        "or `entities.yaml` → `tablet.overview_cameras`."
+                    ),
+                }
             )
         ]
     while len(cam_tiles) < 4:
-        cam_tiles.append(_mid_placeholder("Camera"))
-
-    # Row-major: room room cam cam / room room cam cam — identical square cells.
-    tiles = [
-        room_tiles[0],
-        room_tiles[1],
-        cam_tiles[0],
-        cam_tiles[1],
-        room_tiles[2],
-        room_tiles[3],
-        cam_tiles[2],
-        cam_tiles[3],
-    ]
+        cam_tiles.append(wrap_glass({"type": "markdown", "content": "Camera"}))
 
     return {
-        "type": "custom:layout-card",
-        "layout_type": "custom:grid-layout",
-        "view_layout": _area("mid"),
-        "layout": {
-            "grid-template-columns": "1fr 1fr",
-            "grid-template-rows": "min-content auto",
-            "grid-template-areas": (
-                '"rooms_title cameras_title"\n'
-                '"mid_tiles mid_tiles"'
-            ),
-            "grid-gap": "8px",
-            "gap": "8px",
-            "height": "auto",
-            "width": "100%",
-            "max_width": "100%",
-            "margin": "0",
-            "padding": "0",
-            "card_margin": "0",
-            "align-items": "start",
-            "justify-items": "stretch",
-            "align-content": "start",
+        "type": "custom:mod-card",
+        "view_layout": _area("cameras"),
+        "card": {
+            "type": "vertical-stack",
+            "cards": [
+                _section_title("Cameras"),
+                {
+                    "type": "custom:layout-card",
+                    "layout_type": "custom:grid-layout",
+                    "layout": {
+                        "grid-template-columns": "1fr 1fr",
+                        "grid-template-rows": "1fr 1fr",
+                        "grid-gap": "8px",
+                        "gap": "8px",
+                        "height": "100%",
+                        "width": "100%",
+                        "margin": "0",
+                        "padding": "0",
+                        "card_margin": "0",
+                        "align-items": "stretch",
+                        "justify-items": "stretch",
+                    },
+                    "cards": cam_tiles,
+                    "card_mod": {
+                        "style": (
+                            ":host {\n"
+                            "  display: block !important;\n"
+                            "  height: 100% !important;\n"
+                            "  max-height: 100% !important;\n"
+                            "  min-height: 0 !important;\n"
+                            "  width: 100% !important;\n"
+                            "  overflow: hidden !important;\n"
+                            "  box-sizing: border-box !important;\n"
+                            "}\n"
+                            + _fill_track_style()
+                        )
+                    },
+                },
+            ],
         },
-        "cards": [
-            _section_title(
-                "Rooms",
-                view_layout={
-                    "grid-area": "rooms_title",
-                    "place-self": "start stretch",
-                },
-            ),
-            _section_title(
-                "Cameras",
-                view_layout={
-                    "grid-area": "cameras_title",
-                    "place-self": "start stretch",
-                },
-            ),
-            _mid_square_tiles_grid(tiles),
-        ],
         "card_mod": {
-            "style": (
-                ":host {\n"
-                "  display: block !important;\n"
-                "  width: 100% !important;\n"
-                "  max-width: 100% !important;\n"
-                "  height: auto !important;\n"
-                "  max-height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  align-self: start !important;\n"
-                "  overflow: hidden !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                "ha-card, #root, .layout, layout-card {\n"
-                "  height: auto !important;\n"
-                "  max-height: none !important;\n"
-                "  min-height: 0 !important;\n"
-                "  width: 100% !important;\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                "#root, .layout {\n"
-                "  align-content: start !important;\n"
-                "}\n"
-                "#root > *, .layout > * {\n"
-                "  min-height: 0 !important;\n"
-                "  min-width: 0 !important;\n"
-                "}\n"
-            )
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "}\n"
+                    "ha-card {\n"
+                    "  height: 100% !important;\n"
+                    "  background: transparent !important;\n"
+                    "  box-shadow: none !important;\n"
+                    "  border: none !important;\n"
+                    "}\n"
+                    "hui-vertical-stack-card {\n"
+                    "  height: 100% !important;\n"
+                    "  display: block !important;\n"
+                    "}\n"
+                ),
+                "hui-vertical-stack-card": {
+                    "$": (
+                        "#root {\n"
+                        "  display: flex !important;\n"
+                        "  flex-direction: column !important;\n"
+                        "  height: 100% !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  gap: 8px !important;\n"
+                        "}\n"
+                        "#root > *:first-child {\n"
+                        "  flex: 0 0 auto !important;\n"
+                        "}\n"
+                        "#root > *:last-child {\n"
+                        "  flex: 1 1 auto !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  overflow: hidden !important;\n"
+                        "}\n"
+                    )
+                },
+            }
         },
     }
+
+
+# Back-compat aliases for callers/tests that still import mid helpers.
+def _rooms_band(cfg: dict) -> dict:
+    return _lights_band(cfg)
+
+
+def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
+    del use_auto_entities
+    return _lights_band(cfg)
 
 
 def _camera_card_mod() -> dict:
@@ -1097,20 +1166,21 @@ def build_tablet_overview_view(
         _calendar_notification(
             cfg, weather_entity, use_calendar_pro=use_calendar_pro
         ),
-        _mid_rooms_cameras_band(cfg, use_auto_entities=use_auto_entities),
+        _lights_band(cfg),
+        _cameras_band(cfg, use_auto_entities=use_auto_entities),
         build_tablet_tesla_band(cfg, view_layout=_area("tesla")),
     ]
     layout = tablet_layout_card(
         content_cards,
         overview=True,
         layout={
-            # Top: clock | gates. Mid: headings + 2:1 square-tile frame (auto).
-            # Bottom: Tesla. Mid is content-sized so 8px gaps stay even; leftover
-            # height goes to top/Tesla via fr (not % — % maxes dump free space
-            # into auto mid and reopen Tesla overlap).
+            # 15.6" / 1920×1080: everything locked inside 100dvh.
+            # Top: clock | gates. Mid: area lights | cameras (fills leftover;
+            # cameras top under Gates, bottom flush with Music). Bottom: Tesla
+            # pinned to the viewport edge.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 28fr) auto minmax(0, 26fr)"
+                "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
@@ -1121,7 +1191,7 @@ def build_tablet_overview_view(
             "max_height": "100%",
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
-                '"mid mid music calendar_notification"\n'
+                '"lights cameras music calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
         },
