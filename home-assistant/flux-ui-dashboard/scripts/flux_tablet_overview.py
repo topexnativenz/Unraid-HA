@@ -418,7 +418,7 @@ def _weather_forecast_cards(weather_entity: str) -> list[dict]:
 
 
 def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
-    """Music column — artwork-first massive player (no Sonos chip header)."""
+    """Music column — source chips + artwork-first massive player (no footer bar)."""
     body = build_tablet_music_card(cfg, use_mediocre=use_mediocre_media)
     return {
         "type": "vertical-stack",

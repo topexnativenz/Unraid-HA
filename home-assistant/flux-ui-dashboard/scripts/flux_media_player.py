@@ -479,7 +479,11 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
 
 
 def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
-    """Massive player for the tablet music column — fills space, does not grow rows."""
+    """Massive player for the tablet music column — fills space, does not grow rows.
+
+    Hides the mediocre large-card footer (Home + dots + speaker / mini player bar).
+    Disables artwork tap → speaker-grouping so hiding Home cannot trap the view.
+    """
     card = _mediocre_player_card(entity, zone_name)
     card["card_mod"] = {
         "style": (
@@ -487,14 +491,108 @@ def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
             "  height: 100% !important;\n"
             "  max-height: 100% !important;\n"
             "  min-height: 0 !important;\n"
-            "  overflow: auto !important;\n"
+            "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
+            "}\n"
+            "/* Light-DOM: content row + footer row */\n"
+            ":host > div {\n"
+            "  height: 100% !important;\n"
+            "  max-height: 100% !important;\n"
+            "  min-height: 0 !important;\n"
+            "  grid-template-rows: 1fr !important;\n"
+            "  row-gap: 0 !important;\n"
+            "  padding: 4px !important;\n"
+            "  box-sizing: border-box !important;\n"
+            "}\n"
+            "/* Hide Home / dots / speaker footer and MiniPlayer strip */\n"
+            ":host > div > div:last-child {\n"
+            "  display: none !important;\n"
+            "}\n"
+            "/* Artwork tap → speaker-grouping traps UI once Home is hidden */\n"
+            ":host > div > div:first-child button:has(img) {\n"
+            "  pointer-events: none !important;\n"
+            "  cursor: default !important;\n"
             "}\n"
             "ha-card h3 + div, ha-card .device, ha-card [class*='device-name'] "
             "{ display: none !important; }\n"
         )
     }
     return card
+
+
+def _tablet_source_selector(entity: str) -> dict:
+    """In-card source chips from media_player.source_list (select_source)."""
+    template = (
+        "{% set sources = state_attr('"
+        + entity
+        + "', 'source_list') or [] %}\n"
+        "{% set current = state_attr('"
+        + entity
+        + "', 'source') %}\n"
+        "{% for source in sources %}\n"
+        "  {{\n"
+        "    {\n"
+        "      'type': 'template',\n"
+        "      'entity': '"
+        + entity
+        + "',\n"
+        "      'content': source,\n"
+        "      'icon': (\n"
+        "        'mdi:television' if source | lower in ['tv', 'hdmi']\n"
+        "        else (\n"
+        "          'mdi:audio-input-stereo-minijack'\n"
+        "          if 'line' in source | lower\n"
+        "          else 'mdi:music-note'\n"
+        "        )\n"
+        "      ),\n"
+        "      'icon_color': ('teal' if source == current else none),\n"
+        "      'tap_action': {\n"
+        "        'action': 'call-service',\n"
+        "        'service': 'media_player.select_source',\n"
+        "        'service_data': {\n"
+        "          'entity_id': '"
+        + entity
+        + "',\n"
+        "          'source': source,\n"
+        "        },\n"
+        "      },\n"
+        "    }\n"
+        "  }},\n"
+        "{% endfor %}\n"
+    )
+    return {
+        "type": "custom:auto-entities",
+        "show_empty": False,
+        "card": {
+            "type": "custom:mushroom-chips-card",
+            "alignment": "start",
+        },
+        "card_param": "chips",
+        "filter": {"template": template},
+        "card_mod": {
+            "style": (
+                "ha-card {\n"
+                "  --chip-height: 32px !important;\n"
+                "  --chip-padding: 0 10px !important;\n"
+                "  --chip-font-size: 12px !important;\n"
+                "  --chip-icon-size: 16px !important;\n"
+                "  --chip-spacing: 6px !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  padding: 0 2px 4px !important;\n"
+                "}\n"
+                ".chip-container, mushroom-chips-card {\n"
+                "  flex-wrap: wrap !important;\n"
+                "  justify-content: flex-start !important;\n"
+                "  row-gap: 6px !important;\n"
+                "  max-height: 72px !important;\n"
+                "  overflow-y: auto !important;\n"
+                "  -webkit-overflow-scrolling: touch !important;\n"
+                "}\n"
+            )
+        },
+    }
 
 
 def _mediocre_compact_player_card(entity: str, zone_name: str) -> dict:
@@ -571,7 +669,8 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
     """Tablet music column — fixed Kitchen Sonos massive player (no zone picker).
 
     Other zones stay on the phone popup/navbar. Tablet is kitchen-only so the
-    artwork sits under Music with no speaker chips or group header.
+    artwork sits under Music with no speaker chips or group header. Source chips
+    (select_source) sit above the player inside the same card stack.
     """
     player = _tablet_music_player(cfg)
     if not player:
@@ -585,15 +684,16 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
 
     entity = player["entity"]
     name = player.get("name") or "Kitchen SONOS"
+    stack: list[dict] = [_tablet_source_selector(entity)]
     if use_mediocre:
         # No speaker_group — that UI lists every zone above the artwork.
-        card = _mediocre_tablet_player_card(entity, name)
+        stack.append(_mediocre_tablet_player_card(entity, name))
     else:
-        card = _mushroom_player_card(entity, name)
+        stack.append(_mushroom_player_card(entity, name))
 
     return {
         "type": "vertical-stack",
-        "cards": [card],
+        "cards": stack,
         "card_mod": {
             "style": (
                 ":host, ha-card {\n"
@@ -608,9 +708,13 @@ def build_tablet_music_card(cfg: dict, *, use_mediocre: bool = True) -> dict:
                 "  flex-direction: column !important;\n"
                 "  height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
-                "  gap: 0 !important;\n"
+                "  gap: 4px !important;\n"
                 "}\n"
-                "#root > * {\n"
+                "#root > *:first-child {\n"
+                "  flex: 0 0 auto !important;\n"
+                "  min-height: 0 !important;\n"
+                "}\n"
+                "#root > *:not(:first-child) {\n"
                 "  flex: 1 1 auto !important;\n"
                 "  min-height: 0 !important;\n"
                 "}\n"

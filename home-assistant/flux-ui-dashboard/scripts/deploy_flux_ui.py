@@ -730,6 +730,20 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if "media_player.select_source" not in blob:
+            print(
+                "\nERROR: Tablet music missing in-card source selector "
+                "(media_player.select_source chips).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if ":host > div > div:last-child" not in blob:
+            print(
+                "\nERROR: Tablet music must hide mediocre Home/Sonos footer "
+                "(card_mod :host > div > div:last-child).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",

@@ -168,6 +168,10 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet music must not include zone/group chip header (stretches overview)"
             )
+        if "media_player.select_source" not in overview_blob:
+            errors.append("Tablet music missing in-card source selector (select_source)")
+        if ":host > div > div:last-child" not in overview_blob:
+            errors.append("Tablet music must hide mediocre Home/Sonos footer bar")
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside rooms as 2x2, not a full-width row")
         if "min-height: 200px" in overview_blob and "max-height: 180px" not in overview_blob:
