@@ -109,8 +109,9 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(0, 26fr)",
-            "minmax(0, 20fr)",
+            "minmax(0, 24fr)",
+            "minmax(0, 62fr)",
+            "minmax(0, 14fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -172,10 +173,10 @@ def verify_build(path: Path) -> list[str]:
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
-            "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)",
+            "minmax(0, 24fr) minmax(0, 62fr) minmax(0, 14fr)",
             '"font-size": "136px"',
             '"font-size": "30px"',
-            "width:78%",
+            "width:68%",
             "hourCycle: 'h12'",
             '"font-size": "22px"',
             "justify-content: center !important",
@@ -205,9 +206,9 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet mid must fill the lights/cameras track (no aspect-ratio frames)"
             )
-        if "minmax(0, 28fr) auto minmax(0, 26fr)" in overview_blob:
+        if "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)" in overview_blob:
             errors.append(
-                "Tablet mid row must be 1fr (fill between Gates and Tesla), not auto"
+                "Tablet Tesla row too tall (20fr) — expect short 14fr strip under mid"
             )
         if '"name": "Lights"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
             errors.append("Tablet mid band missing Lights/Cameras section headings")
@@ -215,7 +216,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible fr tracks (minmax(0, 20fr)), "
+                "Tablet Tesla row must use flexible fr tracks (minmax(0, 14fr)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:

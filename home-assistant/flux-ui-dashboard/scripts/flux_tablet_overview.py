@@ -1175,12 +1175,12 @@ def build_tablet_overview_view(
         overview=True,
         layout={
             # 15.6" / 1920×1080: everything locked inside 100dvh.
-            # Top: clock | gates. Mid: area lights | cameras (fills leftover;
-            # cameras top under Gates, bottom flush with Music). Bottom: Tesla
-            # pinned to the viewport edge.
+            # Top: clock | gates (~24%). Mid: lights | cameras — largest track so
+            # content sits under Gates and bottoms flush with Music. Bottom: short
+            # Tesla strip (~14%) pinned to the viewport (must not cover mid).
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 26fr) minmax(0, 1fr) minmax(0, 20fr)"
+                "minmax(0, 24fr) minmax(0, 62fr) minmax(0, 14fr)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",

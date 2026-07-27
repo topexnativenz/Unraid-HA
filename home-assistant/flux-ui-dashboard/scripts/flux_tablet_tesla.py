@@ -12,8 +12,7 @@ from typing import Any
 
 _TESLA_DIR = Path(__file__).resolve().parents[1] / "www" / "flux-ui" / "tesla"
 
-# Tesla band fills its grid track (see overview % row). No fixed px max —
-# fixed 220–240px mins previously pushed Tesla below the Fully Kiosk viewport.
+# Tesla band fills its short bottom track (~14% of 15.6" viewport).
 TESLA_BAND_MAX = "100%"
 
 _DEFAULT_TESLA: dict[str, Any] = {
@@ -24,8 +23,8 @@ _DEFAULT_TESLA: dict[str, Any] = {
         "charger_power": "sensor.model_s_p100d_charger_power",
         "image": "model-s-white.webp",
         "accent": "#E8EEF4",
-        # Match Model X — both side profiles sit equally in the short 16:9 band.
-        "image_max_width": "78%",
+        # Compact for the short bottom strip under lights/cameras/music.
+        "image_max_width": "68%",
     },
     "model_x": {
         "name": "Model X",
@@ -34,7 +33,7 @@ _DEFAULT_TESLA: dict[str, Any] = {
         "charger_power": "sensor.x_charger_power",
         "image": "model-x-blue.webp",
         "accent": "#4FC3F7",
-        "image_max_width": "78%",
+        "image_max_width": "68%",
     },
 }
 
@@ -120,10 +119,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"background": "#000000"},
                 {"box-shadow": "none"},
                 {"border": "1px solid rgba(255,255,255,0.08)"},
-                {"border-radius": "18px"},
+                {"border-radius": "14px"},
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
-                {"padding": "8px 12px 10px 12px"},
+                {"padding": "4px 10px 6px 10px"},
                 {"min-height": "0"},
                 {"height": "100%"},
                 {"max-height": max_h},
@@ -139,10 +138,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                     {"align-self": "center"},
                     {"min-height": "0"},
                     {"overflow": "hidden"},
-                    {"padding": "4px 0 2px 0"},
+                    {"padding": "0"},
                 ],
-                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "2px"}],
-                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "6px"}],
+                "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "0"}],
+                "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "2px"}],
             },
         },
         "state": [
@@ -172,7 +171,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "    ? 'text-shadow:0 0 10px rgba(129,199,132,0.95),0 0 22px rgba(76,175,80,0.7);'\n"
                 "    : '';\n"
                 "  return `<div style=\"display:flex;justify-content:space-between;align-items:center;"
-                "gap:10px;font-size:11px;letter-spacing:0.04em;text-transform:uppercase;"
+                "gap:10px;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;"
                 "font-weight:600;color:rgba(255,255,255,0.78);\">"
                 "<span>• ${left}</span>"
                 "<span style=\"color:${rightColor};font-weight:700;${rightGlow}\">${right}</span>"
@@ -184,9 +183,9 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 f"  return `<div style=\"width:100%;height:100%;display:flex;justify-content:center;"
                 f"align-items:center;min-height:0;max-height:100%;overflow:hidden;flex:1;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:{img_w};max-width:{img_w};max-height:92%;"
+                f"style=\"width:{img_w};max-width:{img_w};max-height:88%;"
                 f"object-fit:contain;object-position:center center;background:transparent;"
-                f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
+                f"filter:drop-shadow(0 8px 12px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"
             ),
             "soc": (
@@ -202,10 +201,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 f"  const title = '{name}';\n"
                 "  return `<div style=\"display:flex;justify-content:space-between;"
                 "align-items:baseline;gap:12px;\">"
-                "<div style=\"font-size:28px;font-weight:700;line-height:1;color:${color};"
+                "<div style=\"font-size:22px;font-weight:700;line-height:1;color:${color};"
                 "letter-spacing:-0.02em;${glow}\">${pct}"
-                "<span style=\"font-size:15px;opacity:0.8;margin-left:2px;\">%</span></div>"
-                "<div style=\"font-size:12px;font-weight:600;color:rgba(255,255,255,0.7);"
+                "<span style=\"font-size:13px;opacity:0.8;margin-left:2px;\">%</span></div>"
+                "<div style=\"font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);"
                 "text-align:right;\">${title}</div></div>`;\n"
                 "]]]"
             ),
