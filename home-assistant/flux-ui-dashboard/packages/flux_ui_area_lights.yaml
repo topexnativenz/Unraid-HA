@@ -6,12 +6,13 @@ light:
   - platform: group
     name: Kitchen All
     unique_id: flux_ui_kitchen_all
-    # Kitchen button on tablet Lights — all kitchen circuits except Bar.
+    # Kitchen button on tablet Lights — kitchen + breakfast/bar circuits.
     entities:
       - light.kitchen
       - light.cooking
       - light.scullery
       - light.sink
+      - light.bar
       - light.breakfast_high
       - light.c_bus_light_036_c_bus_light_036
 
