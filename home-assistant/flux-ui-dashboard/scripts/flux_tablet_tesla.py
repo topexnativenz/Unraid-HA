@@ -115,10 +115,11 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"border-radius": "18px"},
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
-                {"padding": "12px 16px 16px 16px"},
-                {"min-height": "200px"},
+                {"padding": "8px 12px 10px 12px"},
+                {"min-height": "0"},
                 {"height": "100%"},
-                {"overflow": "visible"},
+                {"max-height": "180px"},
+                {"overflow": "hidden"},
                 {"transition": "box-shadow 0.35s ease, border-color 0.35s ease"},
             ],
             "custom_fields": {
@@ -174,9 +175,9 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             "car": (
                 "[[[\n"
                 f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
-                f"align-items:center;min-height:110px;flex:1;\">"
+                f"align-items:center;min-height:72px;max-height:96px;flex:1;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:100%;max-height:150px;object-fit:contain;"
+                f"style=\"width:100%;max-height:96px;object-fit:contain;"
                 f"object-position:center center;background:transparent;"
                 f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"
@@ -240,7 +241,7 @@ def build_tablet_tesla_tiles(cfg: dict) -> list[dict]:
 
 
 def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
-    """Two equal columns — stretch to fill the Tesla grid row under cameras."""
+    """Two equal Tesla cards — fixed bottom row under rooms/cameras (viewport-safe)."""
     return {
         "type": "grid",
         "columns": 2,
@@ -251,32 +252,35 @@ def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
             "style": (
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: auto !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 180px !important;\n"
                 "  min-height: 0 !important;\n"
                 "  box-sizing: border-box !important;\n"
-                "  padding-top: 2px !important;\n"
-                "  overflow: visible !important;\n"
+                "  padding-top: 0 !important;\n"
+                "  overflow: hidden !important;\n"
                 "}\n"
                 "ha-card {\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
-                "  padding-bottom: 0 !important;\n"
-                "  height: auto !important;\n"
+                "  padding: 0 !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 180px !important;\n"
                 "  box-sizing: border-box !important;\n"
-                "  overflow: visible !important;\n"
+                "  overflow: hidden !important;\n"
                 "}\n"
                 "#root {\n"
                 "  background: transparent !important;\n"
                 "  gap: 12px !important;\n"
-                "  height: auto !important;\n"
-                "  min-height: 200px !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 180px !important;\n"
+                "  min-height: 0 !important;\n"
                 "  align-items: stretch !important;\n"
                 "}\n"
                 "#root > * {\n"
-                "  height: auto !important;\n"
-                "  min-height: 200px !important;\n"
-                "  max-height: none !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  max-height: 180px !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
             )

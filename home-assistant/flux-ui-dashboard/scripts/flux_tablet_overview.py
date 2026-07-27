@@ -68,8 +68,8 @@ def _area(name: str) -> dict:
         # Share the mid row with music — stretch so bottoms finish together.
         return {"grid-area": name, "place-self": "stretch stretch"}
     if name == "tesla":
-        # Fixed-size Tesla tiles seat on the bottom row (max-content).
-        return {"grid-area": name, "place-self": "end stretch"}
+        # Reserved bottom row under rooms/cameras — never end-align past the viewport.
+        return {"grid-area": name, "place-self": "stretch stretch"}
     if name == "music":
         return {"grid-area": name, "place-self": "stretch stretch"}
     # Greeting / toggles — no vertical stretch (avoids huge gaps).
@@ -463,9 +463,9 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
     }
 
 
-# Calendar column spans the full tablet viewport (weather stacked above calendar).
-_CALENDAR_COLUMN_HEIGHT = "calc(100dvh - 16px)"
-_CALENDAR_BODY_HEIGHT = "calc(100dvh - 240px)"
+# Calendar column fills the locked overview grid (not raw 100dvh — that clips Tesla).
+_CALENDAR_COLUMN_HEIGHT = "100%"
+_CALENDAR_BODY_HEIGHT = "calc(100% - 200px)"
 
 
 def _calendar_notification(
@@ -652,7 +652,7 @@ def _room_pair_row(rooms: list[dict]) -> dict:
                 "  grid-template-columns: 1fr 1fr !important;\n"
                 "  grid-template-rows: 1fr 1fr !important;\n"
                 "  height: 100% !important;\n"
-                "  min-height: 280px !important;\n"
+                "  min-height: 0 !important;\n"
                 "  gap: 8px !important;\n"
                 "  align-items: stretch !important;\n"
                 "}\n"
@@ -897,7 +897,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
             "  grid-template-columns: 1fr 1fr !important;\n"
             "  grid-template-rows: 1fr 1fr !important;\n"
             "  height: 100% !important;\n"
-            "  min-height: 280px !important;\n"
+            "  min-height: 0 !important;\n"
             "  gap: 8px !important;\n"
             "  align-items: stretch !important;\n"
             "  width: 100% !important;\n"
@@ -969,17 +969,18 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Rooms 2×2 under clock, cameras 2×2 beside them — shared mid row
-            # with music so bottoms finish together. Tesla under that band.
+            # Top: clock + Gates + music head. Mid: rooms 2×2 | cameras 2×2 |
+            # music (shared bottom). Bottom: Tesla reserved so it never clips
+            # off-screen under the room/camera grids.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
-            "grid-template-rows": (
-                "max-content 1fr max-content"
-            ),
-            "grid-auto-rows": "max-content",
+            "grid-template-rows": "auto minmax(0, 1fr) minmax(150px, 180px)",
+            "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
             "align-items": "stretch",
             "justify-items": "stretch",
             "grid-gap": "10px",
+            "height": "100%",
+            "max_height": "100%",
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
                 '"rooms cameras music calendar_notification"\n'

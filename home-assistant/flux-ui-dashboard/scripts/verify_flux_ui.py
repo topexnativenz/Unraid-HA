@@ -106,11 +106,10 @@ def verify_build(path: Path) -> list[str]:
             "Pacific/Auckland",
             "weather.homemetservice",
             "100dvh",
-            'calc(100dvh - 16px)',
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "max-content 1fr max-content",
+            "minmax(150px, 180px)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -152,10 +151,7 @@ def verify_build(path: Path) -> list[str]:
             "Weather Forecast",
             ".loading-indicator",
             "Gates & Doors",
-            "calc(100dvh - 240px)",
-            '"min_height": "320px"',
-            '"height": "calc(100dvh - 240px)"',
-            "min-height: 200px",
+            "max-height: 180px !important",
             "media_player.kitchen_sonos",
         ):
             if needle not in blob:
@@ -174,6 +170,8 @@ def verify_build(path: Path) -> list[str]:
             )
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside rooms as 2x2, not a full-width row")
+        if "min-height: 200px" in overview_blob and "max-height: 180px" not in overview_blob:
+            errors.append("Tablet Tesla band must cap height so cards stay on-screen")
         if '"grid-area": "weather"' in blob:
             errors.append("Tablet still has standalone weather grid area — weather belongs above calendar")
         if "Software tracker" in blob or "Last charges (7 days)" in blob:
