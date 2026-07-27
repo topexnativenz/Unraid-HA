@@ -61,10 +61,17 @@ REOLINK_POPUP_STYLES = """\
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Stretch mid/bottom bands; clock/gates fill the top row."""
-    if name == "calendar_notification":
-        return {"grid-area": name, "place-self": "stretch stretch"}
-    if name in ("cameras", "rooms", "tesla", "music", "greeting", "simple_tab"):
+    """Grid area placement — stretch all overview bands to their tracks."""
+    if name in (
+        "calendar_notification",
+        "cameras",
+        "rooms",
+        "mid",
+        "tesla",
+        "music",
+        "greeting",
+        "simple_tab",
+    ):
         return {"grid-area": name, "place-self": "stretch stretch"}
     return {"grid-area": name, "place-self": "start stretch"}
 
@@ -174,28 +181,29 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     },
                     "styles": {
                         "card": [
-                            {"padding": "18px 20px 14px"},
+                            {"padding": "16px 18px 10px"},
                             {"min-height": "0"},
                             {"height": "100%"},
                             {"overflow": "hidden"},
                             {"display": "flex"},
-                            {"align-items": "center"},
+                            {"align-items": "flex-start"},
                             {"justify-content": "center"},
                         ],
                         "grid": [
                             {"grid-template-areas": "'n' 'l'"},
                             {"grid-template-columns": "1fr"},
                             {"grid-template-rows": "min-content min-content"},
-                            {"row-gap": "8px"},
+                            {"row-gap": "10px"},
                             {"justify-items": "center"},
-                            {"align-content": "center"},
+                            {"align-content": "start"},
                             {"height": "100%"},
+                            {"padding-top": "8px"},
                         ],
                         "name": [
-                            {"font-size": "76px"},
+                            {"font-size": "84px"},
                             {"font-weight": "700"},
                             {"letter-spacing": "0.04em"},
-                            {"line-height": "1"},
+                            {"line-height": "0.95"},
                             {"justify-self": "center"},
                             {"text-align": "center"},
                             {"width": "100%"},
@@ -203,7 +211,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                             {"color": "var(--md-sys-color-on-surface)"},
                         ],
                         "label": [
-                            {"font-size": "16px"},
+                            {"font-size": "17px"},
                             {"font-weight": "600"},
                             {"letter-spacing": "0.02em"},
                             {"justify-self": "center"},
@@ -776,18 +784,107 @@ def _overview_2x2_mod_card(cards: list[dict], *, view_layout: dict) -> dict:
 
 
 def _rooms_band(cfg: dict) -> dict:
-    """Default-category room tiles in a 2×2 under the clock (beside cameras)."""
+    """Deprecated — use _mid_rooms_cameras_band (kept for callers/tests)."""
+    return _mid_rooms_cameras_band(cfg, use_auto_entities=True)
+
+
+def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
+    """Deprecated — cameras live in the unified mid band."""
+    del cfg, use_auto_entities
+    return {"type": "markdown", "content": ""}
+
+
+def _mid_placeholder(label: str) -> dict:
+    return wrap_glass({"type": "markdown", "content": label})
+
+
+def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
+    """One 4×2 grid: rooms left, cameras right — identical cell sizes + 8px gaps.
+
+    Separate rooms|cameras areas sized independently on Fully Kiosk (cameras
+    collapsed to content height). A single layout-card track forces equality.
+    """
+    del use_auto_entities
     rooms = cfg.get("rooms") or []
     default_rooms = _rooms_for_category(rooms, "default")
-    # Fall back to all rooms if none are tagged default.
     show = default_rooms or rooms
-    tiles = [_tablet_room_tile(room) for room in show[:4]]
-    if not tiles:
-        return _overview_2x2_mod_card(
-            [wrap_glass({"type": "markdown", "content": "No rooms configured."})],
-            view_layout=_area("rooms"),
-        )
-    return _overview_2x2_mod_card(tiles, view_layout=_area("rooms"))
+    room_tiles = [_tablet_room_tile(room) for room in show[:4]]
+    while len(room_tiles) < 4:
+        room_tiles.append(_mid_placeholder("Room"))
+
+    cameras = _tablet_overview_cameras(cfg)
+    cam_tiles = [_camera_feed_card(cam) for cam in cameras[:4]]
+    if not cam_tiles:
+        cam_tiles = [
+            _mid_placeholder(
+                "Configure tablet cameras in `cameras.yaml` "
+                "or `entities.yaml` → `tablet.overview_cameras`."
+            )
+        ]
+    while len(cam_tiles) < 4:
+        cam_tiles.append(_mid_placeholder("Camera"))
+
+    # Row-major: room room cam cam / room room cam cam
+    cards = [
+        room_tiles[0],
+        room_tiles[1],
+        cam_tiles[0],
+        cam_tiles[1],
+        room_tiles[2],
+        room_tiles[3],
+        cam_tiles[2],
+        cam_tiles[3],
+    ]
+    return {
+        "type": "custom:layout-card",
+        "layout_type": "custom:grid-layout",
+        "view_layout": _area("mid"),
+        "layout": {
+            "grid-template-columns": "1fr 1fr 1fr 1fr",
+            "grid-template-rows": "1fr 1fr",
+            "grid-gap": "8px",
+            "gap": "8px",
+            "height": "100%",
+            "width": "100%",
+            "max_width": "100%",
+            "margin": "0",
+            "padding": "0",
+            "card_margin": "0",
+            "align-items": "stretch",
+            "justify-items": "stretch",
+            "align-content": "stretch",
+        },
+        "cards": cards,
+        "card_mod": {
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card, #root, .layout, layout-card {\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "#root > *, .layout > * {\n"
+                "  min-height: 0 !important;\n"
+                "  min-width: 0 !important;\n"
+                "  height: 100% !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+            )
+        },
+    }
 
 
 def _camera_card_mod() -> dict:
@@ -966,32 +1063,6 @@ def _tablet_overview_cameras(cfg: dict) -> list[dict]:
     return manual[:4]
 
 
-def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """2×2 camera grid beside rooms — same cell size, shared mid-row fill."""
-    del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
-    cameras = _tablet_overview_cameras(cfg)
-    if cameras:
-        feeds = list(cameras[:4])
-        return _overview_2x2_mod_card(
-            [_camera_feed_card(cam) for cam in feeds],
-            view_layout=_area("cameras"),
-        )
-
-    return _overview_2x2_mod_card(
-        [
-            wrap_glass(
-                {
-                    "type": "markdown",
-                    "content": (
-                        "Configure the 4 tablet cameras in `cameras.yaml` "
-                        "or `entities.yaml` → `tablet.overview_cameras`."
-                    ),
-                }
-            )
-        ],
-        view_layout=_area("cameras"),
-    )
-
 def build_tablet_overview_view(
     cfg: dict,
     weather_entity: str,
@@ -1012,16 +1083,15 @@ def build_tablet_overview_view(
         _calendar_notification(
             cfg, weather_entity, use_calendar_pro=use_calendar_pro
         ),
-        _rooms_band(cfg),
-        _cameras_band(cfg, use_auto_entities=use_auto_entities),
+        _mid_rooms_cameras_band(cfg, use_auto_entities=use_auto_entities),
         build_tablet_tesla_band(cfg, view_layout=_area("tesla")),
     ]
     layout = tablet_layout_card(
         content_cards,
         overview=True,
         layout={
-            # Top: taller clock/gates band. Mid: equal rooms|cameras 2×2.
-            # Bottom: larger Tesla strip. Uniform 8px gaps everywhere.
+            # Top: clock | gates. Mid: ONE 4×2 grid (rooms+cameras equal cells).
+            # Bottom: Tesla. Uniform 8px gaps.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
                 "minmax(180px, 0.42fr) minmax(0, 1.15fr) minmax(220px, 240px)"
@@ -1035,7 +1105,7 @@ def build_tablet_overview_view(
             "max_height": "100%",
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
-                '"rooms cameras music calendar_notification"\n'
+                '"mid mid music calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
         },

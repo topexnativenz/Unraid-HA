@@ -12,6 +12,9 @@ from typing import Any
 
 _TESLA_DIR = Path(__file__).resolve().parents[1] / "www" / "flux-ui" / "tesla"
 
+# Keep in sync with overview grid-template-rows Tesla track.
+TESLA_BAND_MAX_PX = 240
+
 _DEFAULT_TESLA: dict[str, Any] = {
     "model_s": {
         "name": "Model S",
@@ -89,6 +92,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
     power = vehicle.get("charger_power") or battery
     image_uri = _image_data_uri(vehicle.get("image") or "model-s-white.webp")
     accent = vehicle.get("accent") or "#E8EEF4"
+    max_h = f"{TESLA_BAND_MAX_PX}px"
 
     return {
         "type": "custom:button-card",
@@ -108,7 +112,6 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"grid-template-rows": "min-content 1fr min-content min-content"},
             ],
             "card": [
-                # Black stage so the cutout car floats like the Tesla companion card.
                 {"background": "#000000"},
                 {"box-shadow": "none"},
                 {"border": "1px solid rgba(255,255,255,0.08)"},
@@ -118,7 +121,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"padding": "10px 14px 12px 14px"},
                 {"min-height": "0"},
                 {"height": "100%"},
-                {"max-height": "240px"},
+                {"max-height": max_h},
                 {"overflow": "hidden"},
                 {"transition": "box-shadow 0.35s ease, border-color 0.35s ease"},
             ],
@@ -135,7 +138,6 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "bar": [{"grid-area": "bar"}, {"width": "100%"}, {"padding-top": "10px"}],
             },
         },
-        # Green glow pulse while the vehicle reports charging / connected.
         "state": [
             {
                 "operator": "template",
@@ -149,7 +151,6 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             }
         ],
         "custom_fields": {
-            # Top meta row — mirrors companion-card "15 hours … PARKED" strip.
             "hdr": (
                 "[[[\n"
                 f"  const charging = (() => {{ {_charging_js(charging)} }})();\n"
@@ -171,7 +172,6 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 "</div>`;\n"
                 "]]]"
             ),
-            # Hero car — full-width floating side profile (same treatment as companion card).
             "car": (
                 "[[[\n"
                 f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
@@ -232,7 +232,7 @@ def tablet_tesla_config(cfg: dict) -> dict[str, Any]:
 
 
 def build_tablet_tesla_tiles(cfg: dict) -> list[dict]:
-    """Model X + Model S — each fills half of the camera row width."""
+    """Model X + Model S — each fills half of the Tesla band."""
     tesla = tablet_tesla_config(cfg)
     return [
         _tesla_vehicle_card(tesla["model_x"]),
@@ -241,54 +241,55 @@ def build_tablet_tesla_tiles(cfg: dict) -> list[dict]:
 
 
 def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
-    """Two equal Tesla cards — larger bottom row, same 8px gap as rooms/cameras."""
+    """Two equal Tesla cards — layout-card so gap matches rooms/cameras (8px)."""
+    max_h = f"{TESLA_BAND_MAX_PX}px"
     return {
-        "type": "custom:mod-card",
+        "type": "custom:layout-card",
+        "layout_type": "custom:grid-layout",
         "view_layout": view_layout,
-        "card": {
-            "type": "grid",
-            "columns": 2,
-            "square": False,
-            "cards": build_tablet_tesla_tiles(cfg),
+        "layout": {
+            "grid-template-columns": "1fr 1fr",
+            "grid-template-rows": "1fr",
+            "grid-gap": "8px",
+            "gap": "8px",
+            "height": "100%",
+            "width": "100%",
+            "max_width": "100%",
+            "margin": "0",
+            "padding": "0",
+            "card_margin": "0",
+            "align-items": "stretch",
+            "justify-items": "stretch",
         },
+        "cards": build_tablet_tesla_tiles(cfg),
         "card_mod": {
-            "style": {
-                ".": (
-                    ":host {\n"
-                    "  display: block !important;\n"
-                    "  height: 100% !important;\n"
-                    "  max-height: 240px !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "  box-sizing: border-box !important;\n"
-                    "  overflow: hidden !important;\n"
-                    "}\n"
-                    "hui-grid-card {\n"
-                    "  display: block !important;\n"
-                    "  height: 100% !important;\n"
-                    "  max-height: 240px !important;\n"
-                    "  min-height: 0 !important;\n"
-                    "}\n"
-                ),
-                "hui-grid-card": {
-                    "$": (
-                        "#root {\n"
-                        "  display: grid !important;\n"
-                        "  grid-template-columns: 1fr 1fr !important;\n"
-                        "  height: 100% !important;\n"
-                        "  max-height: 240px !important;\n"
-                        "  min-height: 0 !important;\n"
-                        "  gap: 8px !important;\n"
-                        "  align-items: stretch !important;\n"
-                        "  box-sizing: border-box !important;\n"
-                        "}\n"
-                        "#root > * {\n"
-                        "  height: 100% !important;\n"
-                        "  min-height: 0 !important;\n"
-                        "  max-height: 240px !important;\n"
-                        "  overflow: hidden !important;\n"
-                        "}\n"
-                    )
-                },
-            }
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  height: 100% !important;\n"
+                f"  max-height: {max_h} !important;\n"
+                "  min-height: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card, #root, .layout, layout-card {\n"
+                "  height: 100% !important;\n"
+                f"  max-height: {max_h} !important;\n"
+                "  min-height: 0 !important;\n"
+                "  width: 100% !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "#root > *, .layout > * {\n"
+                "  min-height: 0 !important;\n"
+                "  min-width: 0 !important;\n"
+                "  height: 100% !important;\n"
+                f"  max-height: {max_h} !important;\n"
+                "  overflow: hidden !important;\n"
+                "}\n"
+            )
         },
     }

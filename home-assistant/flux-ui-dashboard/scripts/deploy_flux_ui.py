@@ -663,7 +663,7 @@ def build_config(
             "mediocre-massive-media-player-card",
             "media_player.kitchen_sonos",
             "Weather Forecast",
-            "rooms cameras music calendar_notification",
+            "mid mid music calendar_notification",
             "tesla tesla tesla calendar_notification",
             "minmax(220px, 240px)",
             "aspect-ratio: unset",
@@ -672,6 +672,7 @@ def build_config(
             "max-height: 240px !important",
             ".loading-indicator",
             "88px",
+            "1fr 1fr 1fr 1fr",
         ):
             if needle not in blob:
                 print(f"\nERROR: Tablet build missing {needle}.", file=sys.stderr)
@@ -754,7 +755,7 @@ def build_config(
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "rooms cameras music calendar_notification",
+            "mid mid music calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in blob for row in locked_area_rows):
@@ -763,10 +764,16 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "1.1fr 1.1fr" not in blob and "1fr 1fr 1.05fr 1.15fr" not in blob:
+        if '"rooms cameras music calendar_notification"' in blob:
             print(
-                "\nERROR: Tablet rooms/cameras columns must be equal "
-                "(1fr 1fr 1.05fr 1.15fr).\n",
+                "\nERROR: Tablet must use unified mid band "
+                "(mid mid), not separate rooms|cameras areas.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "1fr 1fr 1.05fr 1.15fr" not in blob:
+            print(
+                "\nERROR: Tablet overview columns must be 1fr 1fr 1.05fr 1.15fr.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

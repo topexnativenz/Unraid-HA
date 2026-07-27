@@ -114,10 +114,10 @@ def verify_build(path: Path) -> list[str]:
             '"overflow": "hidden"',
             "custom:mod-card",
             "Gates & Doors",
-            '"grid-area": "cameras"',
+            '"grid-area": "mid"',
             '"grid-area": "tesla"',
             '"grid-area": "music"',
-            '"grid-area": "rooms"',
+            '"grid-area": "greeting"',
             "Model X",
             "Model S",
             "camera.back_courtyard_fluent",
@@ -146,7 +146,7 @@ def verify_build(path: Path) -> list[str]:
             "aspect-ratio: unset",
             "height: 100% !important",
             "position: absolute !important",
-            "rooms cameras music calendar_notification",
+            "mid mid music calendar_notification",
             "tesla tesla tesla calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
@@ -156,7 +156,8 @@ def verify_build(path: Path) -> list[str]:
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
             "max-height: none",
-            '"font-size": "76px"',
+            '"font-size": "84px"',
+            "1fr 1fr 1fr 1fr",
         ):
             if needle not in blob:
                 errors.append(f"Tablet build missing {needle}")
@@ -164,9 +165,9 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet rooms/cameras columns must be equal width (not 1.05fr 1.25fr)"
             )
-        if "1.1fr 1.1fr" in overview_blob and "1fr 1fr 1.05fr" not in overview_blob:
+        if '"rooms cameras music calendar_notification"' in overview_blob:
             errors.append(
-                "Tablet rooms/cameras columns should be 1fr 1fr (equal)"
+                "Tablet must use unified mid band (mid mid), not separate rooms|cameras areas"
             )
         if "align-content: start" in overview_blob:
             errors.append(
@@ -227,7 +228,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet music still uses compact mediocre-media-player-card")
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "rooms cameras music calendar_notification",
+            "mid mid music calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in overview_blob for row in locked_area_rows):
