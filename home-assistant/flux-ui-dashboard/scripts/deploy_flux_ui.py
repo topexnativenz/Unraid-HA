@@ -795,6 +795,13 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if "minmax(0, 1fr) minmax(0, 1fr)" in blob:
+            print(
+                "\nERROR: Tablet mid grid must use auto rows + 1:1 square tiles, "
+                "not stretched 1fr rows.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if '"grid-area": "cameras"' in blob or '"grid-area": "rooms"' in blob:
             print(
                 "\nERROR: Tablet must use unified mid band, not separate "
