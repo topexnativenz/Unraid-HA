@@ -763,6 +763,19 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if "1.1fr 1.1fr" not in blob:
+            print(
+                "\nERROR: Tablet rooms/cameras columns must be equal (1.1fr 1.1fr).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "1.05fr 1.25fr" in blob:
+            print(
+                "\nERROR: Tablet still uses unequal rooms/cameras columns "
+                "(1.05fr 1.25fr).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         if '"grid-area": "weather"' in blob:
             print(
                 "\nERROR: Tablet still has standalone weather grid area.\n",
