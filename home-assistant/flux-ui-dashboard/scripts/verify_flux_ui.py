@@ -144,7 +144,9 @@ def verify_build(path: Path) -> list[str]:
             "camera_view",
             "mediocre-massive-media-player-card",
             "mushroom-chips-card",
-            "aspect-ratio: unset",
+            "aspect-ratio: 1 / 1",
+            '"place-self": "start stretch"',
+            '"grid-template-rows": "auto auto"',
             "height: 100% !important",
             "position: absolute !important",
             "mid mid music calendar_notification",
@@ -162,7 +164,6 @@ def verify_build(path: Path) -> list[str]:
             "width:78%",
             "hourCycle: 'h23'",
             "1fr 1fr 1fr 1fr",
-            "minmax(0, 1fr) minmax(0, 1fr)",
             '"font-size": "22px"',
             "justify-content: center !important",
             "align-items: center !important",
@@ -177,10 +178,19 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet must use unified mid band (mid mid), not separate rooms|cameras areas"
             )
-        if "align-content: start" in overview_blob:
+        if '"align-content": "start"' in overview_blob and '"align-content": "stretch"' not in overview_blob:
             errors.append(
-                "Tablet overview must use align-content: stretch (start leaves gaps above Tesla)"
+                "Tablet overview layout must use align-content: stretch on the root grid"
             )
+        if "minmax(0, 1fr) minmax(0, 1fr)" in overview_blob:
+            errors.append(
+                "Tablet mid grid must use auto rows + 1:1 tiles, not stretched 1fr rows"
+            )
+        mid_idx = overview_blob.find('"grid-area": "mid"')
+        if mid_idx >= 0:
+            mid_slice = overview_blob[mid_idx : mid_idx + 120]
+            if "start stretch" not in mid_slice:
+                errors.append("Tablet mid band must use place-self start stretch (square tiles)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
                 "Tablet Tesla row must use flexible % tracks (minmax(0, 24%)), "

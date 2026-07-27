@@ -137,9 +137,9 @@ def build_overview_still_tile(
             "card_mod": {
                 "style": (
                     "ha-card {\n"
-                    "  aspect-ratio: unset !important;\n"
-                    "  height: 100% !important;\n"
-                    "  min-height: 120px !important;\n"
+                    "  aspect-ratio: 1 / 1 !important;\n"
+                    "  height: auto !important;\n"
+                    "  min-height: 0 !important;\n"
                     "  padding: 0 !important;\n"
                     "  overflow: hidden !important;\n"
                     "  background: #111 !important;\n"
@@ -156,9 +156,10 @@ def build_overview_still_tile(
             },
             "styles": {
                 "card": [
-                    {"height": "100%"},
-                    {"min-height": "120px"},
-                    {"aspect-ratio": "unset"},
+                    {"width": "100%"},
+                    {"aspect-ratio": "1 / 1"},
+                    {"height": "auto"},
+                    {"min-height": "0"},
                     {"padding": "0"},
                     {"overflow": "hidden"},
                     {"background-color": "#111"},

@@ -66,13 +66,15 @@ def _area(name: str) -> dict:
         "calendar_notification",
         "cameras",
         "rooms",
-        "mid",
         "tesla",
         "music",
         "greeting",
         "simple_tab",
     ):
         return {"grid-area": name, "place-self": "stretch stretch"}
+    if name == "mid":
+        # Square tile grid — do not stretch to the full 1fr row (pushes Tesla off-screen).
+        return {"grid-area": name, "place-self": "start stretch"}
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -627,12 +629,10 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
 
 
 def _tablet_room_tile(room: dict) -> dict:
-    """Room tile that fills its mid-grid cell (phone flux_room is locked to 186px)."""
+    """Square room tile for the tablet mid 4×2 grid."""
     tile = flux_room_tile(room, columns=12)
     tile.pop("grid_options", None)
     styles = tile.setdefault("styles", {})
-    # Drop any fixed heights from the card; template still merges 186px at runtime
-    # so card_mod !important is required for equal room/camera cells.
     card_styles = [
         s
         for s in (styles.get("card") or [])
@@ -640,19 +640,21 @@ def _tablet_room_tile(room: dict) -> dict:
     ]
     card_styles.extend(
         [
-            {"height": "100%"},
+            {"width": "100%"},
+            {"aspect-ratio": "1 / 1"},
+            {"height": "auto"},
             {"min-height": "0"},
-            {"max-height": "none"},
         ]
     )
     styles["card"] = card_styles
     tile["card_mod"] = {
         "style": (
             "ha-card {\n"
-            "  height: 100% !important;\n"
+            "  width: 100% !important;\n"
+            "  aspect-ratio: 1 / 1 !important;\n"
+            "  height: auto !important;\n"
             "  min-height: 0 !important;\n"
             "  max-height: none !important;\n"
-            "  width: 100% !important;\n"
             "  box-sizing: border-box !important;\n"
             "}\n"
         )
@@ -735,10 +737,10 @@ def _mid_placeholder(label: str) -> dict:
 
 
 def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
-    """One 4×2 grid: rooms left, cameras right — identical cell sizes + 8px gaps.
+    """One 4×2 grid: rooms left, cameras right — square cells + 8px gaps.
 
-    Separate rooms|cameras areas sized independently on Fully Kiosk (cameras
-    collapsed to content height). A single layout-card track forces equality.
+    Cells use aspect-ratio 1:1 so the mid band does not stretch vertically
+    and push the Tesla row off the 100dvh viewport.
     """
     del use_auto_entities
     rooms = cfg.get("rooms") or []
@@ -777,35 +779,34 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
         "view_layout": _area("mid"),
         "layout": {
             "grid-template-columns": "1fr 1fr 1fr 1fr",
-            # minmax(0, 1fr) so both rows share height equally (plain 1fr can
-            # size to content and leave rooms shorter than cameras).
-            "grid-template-rows": "minmax(0, 1fr) minmax(0, 1fr)",
+            "grid-template-rows": "auto auto",
             "grid-gap": "8px",
             "gap": "8px",
-            "height": "100%",
+            "height": "auto",
             "width": "100%",
             "max_width": "100%",
             "margin": "0",
             "padding": "0",
             "card_margin": "0",
-            "align-items": "stretch",
+            "align-items": "start",
             "justify-items": "stretch",
-            "align-content": "stretch",
+            "align-content": "start",
         },
         "cards": cards,
         "card_mod": {
             "style": (
                 ":host {\n"
                 "  display: block !important;\n"
-                "  height: 100% !important;\n"
+                "  height: auto !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
                 "  width: 100% !important;\n"
+                "  align-self: start !important;\n"
                 "  overflow: hidden !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
                 "ha-card, #root, .layout, layout-card {\n"
-                "  height: 100% !important;\n"
+                "  height: auto !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
                 "  width: 100% !important;\n"
@@ -814,20 +815,25 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
                 "  border: none !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
+                "#root, .layout {\n"
+                "  align-content: start !important;\n"
+                "}\n"
                 "#root > *, .layout > * {\n"
                 "  min-height: 0 !important;\n"
                 "  min-width: 0 !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
+                "  width: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  max-height: none !important;\n"
+                "  aspect-ratio: 1 / 1 !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"
                 "#root > * ha-card,\n"
                 ".layout > * ha-card {\n"
-                "  height: 100% !important;\n"
+                "  width: 100% !important;\n"
+                "  aspect-ratio: 1 / 1 !important;\n"
+                "  height: auto !important;\n"
                 "  min-height: 0 !important;\n"
                 "  max-height: none !important;\n"
-                "  width: 100% !important;\n"
-                "  aspect-ratio: unset !important;\n"
                 "  box-sizing: border-box !important;\n"
                 "}\n"
             )
@@ -836,7 +842,7 @@ def _mid_rooms_cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
 
 
 def _camera_card_mod() -> dict:
-    """Camera tile — fills its 2×2 cell (object-fit cover, no letterbox)."""
+    """Square camera tile — object-fit cover inside a 1:1 cell."""
     return {
         "style": (
             "ha-card {\n"
@@ -845,9 +851,9 @@ def _camera_card_mod() -> dict:
             "  margin: 0 !important;\n"
             "  overflow: hidden !important;\n"
             "  width: 100% !important;\n"
-            "  height: 100% !important;\n"
+            "  aspect-ratio: 1 / 1 !important;\n"
+            "  height: auto !important;\n"
             "  min-height: 0 !important;\n"
-            "  aspect-ratio: unset !important;\n"
             "  background: #111 !important;\n"
             "  box-sizing: border-box !important;\n"
             "}\n"
@@ -980,7 +986,7 @@ def build_reolink_fullscreen_popup(cfg: dict | None = None) -> dict:
 
 
 def _with_camera_card_mod(tile: dict) -> dict:
-    """Append fixed-height cover card_mod (deploy requires aspect-ratio: unset)."""
+    """Append square-tile cover card_mod for tablet mid-grid cameras."""
     tile = dict(tile)
     existing = tile.get("card_mod") or {}
     base = existing.get("style", "") if isinstance(existing, dict) else ""
