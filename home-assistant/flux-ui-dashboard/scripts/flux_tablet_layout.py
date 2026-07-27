@@ -155,7 +155,7 @@ def tablet_layout_card(cards: list[dict], *, layout: dict, overview: bool = Fals
         "height": "100%" if overview else "auto",
         "margin": "0",
         "padding": "8px 12px 8px 12px" if overview else "8px 12px 16px 12px",
-        "grid-gap": "12px",
+        "grid-gap": "8px" if overview else "12px",
         **layout,
     }
     if overview:

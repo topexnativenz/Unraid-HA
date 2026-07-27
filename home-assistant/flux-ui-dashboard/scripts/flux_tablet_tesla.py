@@ -105,7 +105,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             "grid": [
                 {"grid-template-areas": "'hdr' 'car' 'soc' 'bar'"},
                 {"grid-template-columns": "1fr"},
-                {"grid-template-rows": "min-content min-content min-content min-content"},
+                {"grid-template-rows": "min-content 1fr min-content min-content"},
             ],
             "card": [
                 # Black stage so the cutout car floats like the Tesla companion card.
@@ -115,10 +115,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                 {"border-radius": "18px"},
                 {"backdrop-filter": "none"},
                 {"-webkit-backdrop-filter": "none"},
-                {"padding": "8px 12px 10px 12px"},
+                {"padding": "10px 14px 12px 14px"},
                 {"min-height": "0"},
                 {"height": "100%"},
-                {"max-height": "180px"},
+                {"max-height": "240px"},
                 {"overflow": "hidden"},
                 {"transition": "box-shadow 0.35s ease, border-color 0.35s ease"},
             ],
@@ -175,9 +175,9 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             "car": (
                 "[[[\n"
                 f"  return `<div style=\"width:100%;display:flex;justify-content:center;"
-                f"align-items:center;min-height:72px;max-height:96px;flex:1;\">"
+                f"align-items:center;min-height:96px;max-height:132px;flex:1;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:100%;max-height:96px;object-fit:contain;"
+                f"style=\"width:100%;max-height:132px;object-fit:contain;"
                 f"object-position:center center;background:transparent;"
                 f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"
@@ -241,48 +241,54 @@ def build_tablet_tesla_tiles(cfg: dict) -> list[dict]:
 
 
 def build_tablet_tesla_band(cfg: dict, *, view_layout: dict) -> dict:
-    """Two equal Tesla cards — fixed bottom row under rooms/cameras (viewport-safe)."""
+    """Two equal Tesla cards — larger bottom row, same 8px gap as rooms/cameras."""
     return {
-        "type": "grid",
-        "columns": 2,
-        "square": False,
+        "type": "custom:mod-card",
         "view_layout": view_layout,
-        "cards": build_tablet_tesla_tiles(cfg),
+        "card": {
+            "type": "grid",
+            "columns": 2,
+            "square": False,
+            "cards": build_tablet_tesla_tiles(cfg),
+        },
         "card_mod": {
-            "style": (
-                ":host {\n"
-                "  display: block !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 180px !important;\n"
-                "  min-height: 0 !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "  padding-top: 0 !important;\n"
-                "  overflow: hidden !important;\n"
-                "}\n"
-                "ha-card {\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  padding: 0 !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 180px !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "  overflow: hidden !important;\n"
-                "}\n"
-                "#root {\n"
-                "  background: transparent !important;\n"
-                "  gap: 12px !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 180px !important;\n"
-                "  min-height: 0 !important;\n"
-                "  align-items: stretch !important;\n"
-                "}\n"
-                "#root > * {\n"
-                "  height: 100% !important;\n"
-                "  min-height: 0 !important;\n"
-                "  max-height: 180px !important;\n"
-                "  overflow: hidden !important;\n"
-                "}\n"
-            )
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 240px !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  box-sizing: border-box !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "hui-grid-card {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  max-height: 240px !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "}\n"
+                ),
+                "hui-grid-card": {
+                    "$": (
+                        "#root {\n"
+                        "  display: grid !important;\n"
+                        "  grid-template-columns: 1fr 1fr !important;\n"
+                        "  height: 100% !important;\n"
+                        "  max-height: 240px !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  gap: 8px !important;\n"
+                        "  align-items: stretch !important;\n"
+                        "  box-sizing: border-box !important;\n"
+                        "}\n"
+                        "#root > * {\n"
+                        "  height: 100% !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  max-height: 240px !important;\n"
+                        "  overflow: hidden !important;\n"
+                        "}\n"
+                    )
+                },
+            }
         },
     }

@@ -652,7 +652,7 @@ def build_config(
             "__fluxNzClock",
             "hour12: true",
             "Pacific/Auckland",
-            "gap: 12px !important",
+            "gap: 8px !important",
             '"width": "100%"',
             '"days_to_show": 7',
             '"refresh_on_navigate": false',
@@ -665,11 +665,11 @@ def build_config(
             "Weather Forecast",
             "rooms cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "minmax(150px, 180px)",
+            "minmax(220px, 240px)",
             "aspect-ratio: unset",
             "height: 100% !important",
             "position: absolute !important",
-            "max-height: 180px !important",
+            "max-height: 240px !important",
             ".loading-indicator",
             "88px",
         ):
@@ -763,9 +763,10 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "1.1fr 1.1fr" not in blob:
+        if "1.1fr 1.1fr" not in blob and "1fr 1fr 1.05fr 1.15fr" not in blob:
             print(
-                "\nERROR: Tablet rooms/cameras columns must be equal (1.1fr 1.1fr).\n",
+                "\nERROR: Tablet rooms/cameras columns must be equal "
+                "(1fr 1fr 1.05fr 1.15fr).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -773,6 +774,12 @@ def build_config(
             print(
                 "\nERROR: Tablet still uses unequal rooms/cameras columns "
                 "(1.05fr 1.25fr).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "minmax(150px, 180px)" in blob:
+            print(
+                "\nERROR: Tablet Tesla row still capped at 180px — expect 220–240px.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

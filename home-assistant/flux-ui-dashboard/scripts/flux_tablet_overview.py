@@ -61,18 +61,11 @@ REOLINK_POPUP_STYLES = """\
 
 
 def _area(name: str) -> dict:
-    """Grid area placement. Cameras expand; Tesla stays fixed at the bottom edge."""
+    """Grid area placement. Stretch mid/bottom bands; clock/gates fill the top row."""
     if name == "calendar_notification":
         return {"grid-area": name, "place-self": "stretch stretch"}
-    if name in ("cameras", "rooms"):
-        # Share the mid row with music — stretch so bottoms finish together.
+    if name in ("cameras", "rooms", "tesla", "music", "greeting", "simple_tab"):
         return {"grid-area": name, "place-self": "stretch stretch"}
-    if name == "tesla":
-        # Reserved bottom row under rooms/cameras — never end-align past the viewport.
-        return {"grid-area": name, "place-self": "stretch stretch"}
-    if name == "music":
-        return {"grid-area": name, "place-self": "stretch stretch"}
-    # Greeting / toggles — no vertical stretch (avoids huge gaps).
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -161,99 +154,146 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
         "{% endif %}"
     )
     return {
-        "type": "vertical-stack",
+        "type": "custom:mod-card",
         "view_layout": _area("greeting"),
-        "cards": [
-            {
-                "type": "custom:button-card",
-                "template": "flux_glass",
-                "show_icon": False,
-                "show_name": True,
-                "show_label": True,
-                "show_state": False,
-                "name": nz_clock_time_js(),
-                "label": nz_clock_date_js(),
-                "tap_action": {
-                    "action": "navigate",
-                    "navigation_path": f"{URL_PREFIX}/active",
-                },
-                "styles": {
-                    "card": [
-                        {"padding": "14px 18px 12px"},
-                        {"min-height": "108px"},
-                        {"overflow": "hidden"},
-                    ],
-                    "grid": [
-                        {"grid-template-areas": "'n' 'l'"},
-                        {"grid-template-columns": "1fr"},
-                        {"grid-template-rows": "min-content min-content"},
-                        {"row-gap": "6px"},
-                        {"justify-items": "center"},
-                    ],
-                    "name": [
-                        {"font-size": "60px"},
-                        {"font-weight": "700"},
-                        {"letter-spacing": "0.04em"},
-                        {"line-height": "1.05"},
-                        {"justify-self": "center"},
-                        {"text-align": "center"},
-                        {"width": "100%"},
-                        {"font-variant-numeric": "tabular-nums"},
-                        {"color": "var(--md-sys-color-on-surface)"},
-                    ],
-                    "label": [
-                        {"font-size": "15px"},
-                        {"font-weight": "600"},
-                        {"letter-spacing": "0.02em"},
-                        {"justify-self": "center"},
-                        {"text-align": "center"},
-                        {"width": "100%"},
-                        {"color": "var(--md-sys-color-on-surface-variant)"},
-                        {"opacity": "0.92"},
-                        {"padding-left": "0"},
-                    ],
-                },
-            },
-            {
-                "type": "custom:mushroom-chips-card",
-                "alignment": "center",
-                "chips": [
-                    {
-                        "type": "entity",
-                        "entity": weather_entity,
-                        "icon": "mdi:weather-partly-cloudy",
-                        "content_info": "state",
+        "card": {
+            "type": "vertical-stack",
+            "cards": [
+                {
+                    "type": "custom:button-card",
+                    "template": "flux_glass",
+                    "show_icon": False,
+                    "show_name": True,
+                    "show_label": True,
+                    "show_state": False,
+                    "name": nz_clock_time_js(),
+                    "label": nz_clock_date_js(),
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{URL_PREFIX}/active",
                     },
-                    {
-                        "type": "template",
-                        "icon": "mdi:thermometer-lines",
-                        "content": high_low,
-                        "tap_action": {"action": "more-info", "entity": weather_entity},
-                        "card_mod": {
-                            "style": (
-                                "ha-card {\n"
-                                "  --chip-background: color-mix(in srgb, "
-                                "var(--md-sys-color-on-primary) 25%, transparent) !important;\n"
-                                "  --color: var(--md-sys-color-primary) !important;\n"
-                                "  border-radius: 24px !important;\n"
-                                "  font-weight: 600 !important;\n"
-                                "}\n"
-                            )
+                    "styles": {
+                        "card": [
+                            {"padding": "18px 20px 14px"},
+                            {"min-height": "0"},
+                            {"height": "100%"},
+                            {"overflow": "hidden"},
+                            {"display": "flex"},
+                            {"align-items": "center"},
+                            {"justify-content": "center"},
+                        ],
+                        "grid": [
+                            {"grid-template-areas": "'n' 'l'"},
+                            {"grid-template-columns": "1fr"},
+                            {"grid-template-rows": "min-content min-content"},
+                            {"row-gap": "8px"},
+                            {"justify-items": "center"},
+                            {"align-content": "center"},
+                            {"height": "100%"},
+                        ],
+                        "name": [
+                            {"font-size": "76px"},
+                            {"font-weight": "700"},
+                            {"letter-spacing": "0.04em"},
+                            {"line-height": "1"},
+                            {"justify-self": "center"},
+                            {"text-align": "center"},
+                            {"width": "100%"},
+                            {"font-variant-numeric": "tabular-nums"},
+                            {"color": "var(--md-sys-color-on-surface)"},
+                        ],
+                        "label": [
+                            {"font-size": "16px"},
+                            {"font-weight": "600"},
+                            {"letter-spacing": "0.02em"},
+                            {"justify-self": "center"},
+                            {"text-align": "center"},
+                            {"width": "100%"},
+                            {"color": "var(--md-sys-color-on-surface-variant)"},
+                            {"opacity": "0.92"},
+                            {"padding-left": "0"},
+                        ],
+                    },
+                },
+                {
+                    "type": "custom:mushroom-chips-card",
+                    "alignment": "center",
+                    "chips": [
+                        {
+                            "type": "entity",
+                            "entity": weather_entity,
+                            "icon": "mdi:weather-partly-cloudy",
+                            "content_info": "state",
                         },
+                        {
+                            "type": "template",
+                            "icon": "mdi:thermometer-lines",
+                            "content": high_low,
+                            "tap_action": {
+                                "action": "more-info",
+                                "entity": weather_entity,
+                            },
+                            "card_mod": {
+                                "style": (
+                                    "ha-card {\n"
+                                    "  --chip-background: color-mix(in srgb, "
+                                    "var(--md-sys-color-on-primary) 25%, transparent) !important;\n"
+                                    "  --color: var(--md-sys-color-primary) !important;\n"
+                                    "  border-radius: 24px !important;\n"
+                                    "  font-weight: 600 !important;\n"
+                                    "}\n"
+                                )
+                            },
+                        },
+                    ],
+                    "card_mod": {
+                        "style": (
+                            "ha-card {\n"
+                            "  background: transparent !important;\n"
+                            "  box-shadow: none !important;\n"
+                            "  border: none !important;\n"
+                            "}\n"
+                            ".chip-container { gap: 8px !important; }\n"
+                        )
                     },
-                ],
-                "card_mod": {
-                    "style": (
-                        "ha-card {\n"
-                        "  background: transparent !important;\n"
-                        "  box-shadow: none !important;\n"
-                        "  border: none !important;\n"
+                },
+            ],
+        },
+        "card_mod": {
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "hui-vertical-stack-card {\n"
+                    "  height: 100% !important;\n"
+                    "  display: block !important;\n"
+                    "}\n"
+                ),
+                "hui-vertical-stack-card": {
+                    "$": (
+                        "#root {\n"
+                        "  display: flex !important;\n"
+                        "  flex-direction: column !important;\n"
+                        "  height: 100% !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  gap: 8px !important;\n"
                         "}\n"
-                        ".chip-container { gap: 8px !important; }\n"
+                        "#root > *:first-child {\n"
+                        "  flex: 1 1 auto !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  height: auto !important;\n"
+                        "}\n"
+                        "#root > *:last-child {\n"
+                        "  flex: 0 0 auto !important;\n"
+                        "}\n"
                     )
                 },
-            },
-        ],
+            }
+        },
     }
 
 
@@ -387,9 +427,43 @@ def _simple_tab_panel(cfg: dict, weather_entity: str, *, use_simple_tabs: bool) 
     del weather_entity, use_simple_tabs
     toggles_cards = _toggles_tab_cards(cfg)
     return {
-        "type": "vertical-stack",
+        "type": "custom:mod-card",
         "view_layout": _area("simple_tab"),
-        "cards": [_section_title("Gates & Doors"), *toggles_cards],
+        "card": {
+            "type": "vertical-stack",
+            "cards": [_section_title("Gates & Doors"), *toggles_cards],
+        },
+        "card_mod": {
+            "style": {
+                ".": (
+                    ":host {\n"
+                    "  display: block !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 0 !important;\n"
+                    "  overflow: hidden !important;\n"
+                    "}\n"
+                    "hui-vertical-stack-card {\n"
+                    "  height: 100% !important;\n"
+                    "  display: block !important;\n"
+                    "}\n"
+                ),
+                "hui-vertical-stack-card": {
+                    "$": (
+                        "#root {\n"
+                        "  display: flex !important;\n"
+                        "  flex-direction: column !important;\n"
+                        "  height: 100% !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "  gap: 8px !important;\n"
+                        "}\n"
+                        "#root > *:not(:first-child) {\n"
+                        "  flex: 1 1 auto !important;\n"
+                        "  min-height: 0 !important;\n"
+                        "}\n"
+                    )
+                },
+            }
+        },
     }
 
 
@@ -946,12 +1020,12 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # Top: clock + Gates + music head. Mid: rooms 2×2 | cameras 2×2 |
-            # music (shared bottom). Bottom: Tesla reserved so it never clips
-            # off-screen under the room/camera grids.
-            # Rooms + cameras share equal column width so the two 2×2 grids line up.
-            "grid-template-columns": "1.1fr 1.1fr 1.05fr 1.15fr",
-            "grid-template-rows": "auto minmax(0, 1fr) minmax(150px, 180px)",
+            # Top: taller clock/gates band. Mid: equal rooms|cameras 2×2.
+            # Bottom: larger Tesla strip. Uniform 8px gaps everywhere.
+            "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
+            "grid-template-rows": (
+                "minmax(180px, 0.42fr) minmax(0, 1.15fr) minmax(220px, 240px)"
+            ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",
             "align-items": "stretch",
