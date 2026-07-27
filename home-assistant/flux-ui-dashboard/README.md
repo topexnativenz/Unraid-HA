@@ -2,24 +2,13 @@
 
 Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard). Installed **alongside** Mobile Home; does not modify `mobile-home` or its default panel settings.
 
-## Phase 4 tablet (16:9) — **manual YAML**
+## Phase 4 tablet (16:9)
 
-The wall tablet dashboard is **YAML mode**. Edit it yourself; normal deploys
-**do not** regenerate it from Python or call `lovelace/config/save`.
+`/flux-ui-tablet` is a **storage** Lovelace dashboard pushed on every deploy
+(`lovelace/config/save`). Build: `python3 scripts/build_flux_ui.py --tablet`.
 
-| Edit here | HA copies to |
-|-----------|----------------|
-| [`lovelace/dashboards/flux_ui_tablet.yaml`](lovelace/dashboards/flux_ui_tablet.yaml) | `/config/dashboards/flux_ui_tablet.yaml` |
-
-URL: `/flux-ui-tablet/overview`
-
-- **Normal deploy** (`update_and_deploy.sh`): copies the YAML file only.
-- **Regenerate from builders** (rare):  
-  `python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml`
-- First switch to YAML mode may need a **one-time HA restart**.
-
-Python builders (`flux_tablet_overview.py`, etc.) are optional codegen only —
-not the live source of truth.
+Optional snapshot: `lovelace/dashboards/flux_ui_tablet.yaml` (export with
+`deploy_flux_ui.py --export-tablet-yaml`) — not used as the live source.
 
 **rk3576_u RGB LED:** `packages/flux_ui_tablet_led.yaml` pulses
 `light.rk3576_u_rk3576_u_rgb` (MQTT AndroidTablet Controls → RGB) green while

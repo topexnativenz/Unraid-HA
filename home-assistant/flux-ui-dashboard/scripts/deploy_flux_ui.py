@@ -338,6 +338,47 @@ def ensure_tablet_yaml_in_configuration(mount: str) -> None:
     print(f"  added lovelace.dashboards → {TABLET_YAML_FILENAME}")
 
 
+def clear_tablet_yaml_from_configuration(mount: str) -> None:
+    """Remove flux-ui-tablet YAML-mode registration so storage mode can take over."""
+    conf = Path(mount) / "configuration.yaml"
+    if not conf.exists():
+        return
+    text = conf.read_text()
+    if TABLET_YAML_FILENAME not in text and f"{TABLET_URL_PATH}:" not in text:
+        return
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    i = 0
+    removed = False
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.lstrip()
+        # Match "    flux-ui-tablet:" (or similar indent) under dashboards
+        if stripped.startswith(f"{TABLET_URL_PATH}:"):
+            indent = len(line) - len(line.lstrip(" "))
+            i += 1
+            while i < len(lines):
+                nxt = lines[i]
+                if not nxt.strip():
+                    i += 1
+                    break
+                nxt_indent = len(nxt) - len(nxt.lstrip(" "))
+                if nxt_indent <= indent and nxt.strip():
+                    break
+                i += 1
+            removed = True
+            continue
+        out.append(line)
+        i += 1
+    if not removed:
+        return
+    conf.write_text("".join(out))
+    print(
+        f"  removed {TABLET_URL_PATH} YAML dashboard from configuration.yaml "
+        "(restoring storage mode)"
+    )
+
+
 def copy_tablet_yaml_dashboard(mount: str) -> None:
     """Copy editable tablet YAML to HA; does not regenerate from Python."""
     if not TABLET_YAML.exists():
@@ -1363,11 +1404,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
     )
 
     tablet_config: dict | None = None
-    deploy_tablet = not args.skip_tablet
-    rebuild_tablet_yaml = bool(getattr(args, "rebuild_tablet_yaml", False))
-
-    if deploy_tablet and rebuild_tablet_yaml:
-        print("Rebuilding Flux UI 16:9 tablet YAML from Python builders…")
+    if not args.skip_tablet:
+        print("Building Flux UI 16:9 tablet variant…")
         tablet_config = build_config(
             mobile_storage,
             use_navbar_card=use_navbar,
@@ -1378,18 +1416,9 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_mediocre_media=use_mediocre_media,
             tablet=True,
         )
-        write_tablet_yaml_from_config(tablet_config)
-    elif deploy_tablet:
-        print(
-            "Tablet dashboard: manual YAML mode "
-            f"({TABLET_YAML.relative_to(ROOT)}) — not regenerating from Python"
-        )
-        if not TABLET_YAML.exists():
-            raise SystemExit(
-                f"ERROR: missing {TABLET_YAML}.\n"
-                "  Run once with --rebuild-tablet-yaml to export from builders,\n"
-                "  then edit that YAML file by hand."
-            )
+        # Keep an optional YAML snapshot in-repo for reference / manual export.
+        if getattr(args, "export_tablet_yaml", False):
+            write_tablet_yaml_from_config(tablet_config)
 
     # Verify built JSON BEFORE writing HA storage / live API save.
     # Previous bug: SMB storage was written, then verify failed on weather entity
@@ -1398,7 +1427,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
     print("Verifying built phone config…")
     subprocess.run(["python3", str(VERIFY)], check=True)
     if tablet_config:
-        print("Verifying rebuilt tablet config…")
+        print("Verifying built tablet config…")
         subprocess.run(
             [
                 "python3",
@@ -1422,8 +1451,11 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 await ensure_tablet_led_helpers(token, args.ha_url)
                 await _sync_sonos_input_select(token, args.ha_url)
             write_storage(args.mount, config)
-            if deploy_tablet:
-                copy_tablet_yaml_dashboard(args.mount)
+            if tablet_config:
+                write_tablet_storage(args.mount, tablet_config)
+            # If a prior YAML-mode experiment registered flux-ui-tablet in
+            # configuration.yaml, strip it so storage mode is authoritative.
+            clear_tablet_yaml_from_configuration(args.mount)
         except SystemExit:
             raise
         except Exception as exc:
@@ -1433,11 +1465,6 @@ async def deploy_async(args: argparse.Namespace) -> int:
         if mounted:
             print("Offline deploy: storage + theme + www copied to HA config share.")
             print("Restart HA or reload frontend, then open /flux-ui/overview")
-            if deploy_tablet:
-                print(
-                    f"Tablet YAML at /config/{TABLET_YAML_FILENAME} — "
-                    "restart HA once if newly registered, then edit that file."
-                )
         else:
             print("Offline deploy: build verified. Re-run setup_e2e.sh when on your LAN with HA_TOKEN.")
         if mounted:
@@ -1449,18 +1476,10 @@ async def deploy_async(args: argparse.Namespace) -> int:
     print("Pushing phone dashboard via lovelace/config/save…")
     await save_dashboard(token, args.ha_url, config)
 
-    if deploy_tablet:
-        # YAML-mode tablet is loaded from /config/dashboards/flux_ui_tablet.yaml.
-        # Do not lovelace/config/save — that would clobber manual edits.
-        await remove_storage_tablet_dashboard(token, args.ha_url)
-        print(
-            f"Tablet dashboard is YAML mode ({TABLET_YAML_FILENAME}). "
-            "Edit that file on the HA share; deploy will not overwrite from Python "
-            "unless you pass --rebuild-tablet-yaml."
-        )
-        print(
-            "If /flux-ui-tablet is missing after first switch, restart Home Assistant once."
-        )
+    if tablet_config:
+        await ensure_tablet_dashboard(token, args.ha_url)
+        print("Pushing tablet dashboard via lovelace/config/save…")
+        await save_dashboard(token, args.ha_url, tablet_config, url_path=TABLET_URL_PATH)
 
     if token and ha_up and not args.offline:
         await _sync_sonos_input_select(token, args.ha_url)
@@ -1475,9 +1494,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
         unmount(args.mount)
 
     print(f"Flux UI deployed at {args.ha_url}/{URL_PATH}/overview")
-    if deploy_tablet:
-        print(f"Flux UI 16:9 YAML at {args.ha_url}/{TABLET_URL_PATH}/overview")
-        print(f"  edit: /config/{TABLET_YAML_FILENAME} (or repo {TABLET_YAML.relative_to(ROOT)})")
+    if tablet_config:
+        print(f"Flux UI 16:9 deployed at {args.ha_url}/{TABLET_URL_PATH}/overview")
     print("Kiosk mode: mobile header hidden on Flux UI (swipe left for sidebar, More → Profile).")
     print("Hard-refresh or reset Companion frontend cache if header still visible.")
     return 0
@@ -1498,12 +1516,9 @@ def main() -> int:
         help="Skip the 16:9 tablet dashboard (flux-ui-tablet)",
     )
     parser.add_argument(
-        "--rebuild-tablet-yaml",
+        "--export-tablet-yaml",
         action="store_true",
-        help=(
-            "Regenerate lovelace/dashboards/flux_ui_tablet.yaml from Python builders. "
-            "Default deploy only copies that YAML (manual edits preserved)."
-        ),
+        help="Also write lovelace/dashboards/flux_ui_tablet.yaml snapshot from this build",
     )
     parser.add_argument(
         "--offline-ok",
