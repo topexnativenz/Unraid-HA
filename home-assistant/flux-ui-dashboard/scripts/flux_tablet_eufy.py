@@ -77,7 +77,7 @@ def _rtsp_switch_entity(camera_entity: str) -> str:
 
 
 def _still_img_html(entity: str) -> str:
-    """Absolute cover image — fills the 160px tile (no letterbox bars)."""
+    """Absolute cover image — fills the camera tile (no letterbox bars)."""
     fname = camera_still_filename(entity)
     # JS template so cache token updates when snapshots refresh.
     return (
@@ -138,9 +138,8 @@ def build_overview_still_tile(
                 "style": (
                     "ha-card {\n"
                     "  aspect-ratio: unset !important;\n"
-                    "  height: 160px !important;\n"
-                    "  min-height: 160px !important;\n"
-                    "  max-height: 160px !important;\n"
+                    "  height: 100% !important;\n"
+                    "  min-height: 120px !important;\n"
                     "  padding: 0 !important;\n"
                     "  overflow: hidden !important;\n"
                     "  background: #111 !important;\n"
@@ -157,9 +156,8 @@ def build_overview_still_tile(
             },
             "styles": {
                 "card": [
-                    {"height": "160px"},
-                    {"min-height": "160px"},
-                    {"max-height": "160px"},
+                    {"height": "100%"},
+                    {"min-height": "120px"},
                     {"aspect-ratio": "unset"},
                     {"padding": "0"},
                     {"overflow": "hidden"},

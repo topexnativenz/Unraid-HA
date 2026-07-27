@@ -64,15 +64,15 @@ def _area(name: str) -> dict:
     """Grid area placement. Cameras expand; Tesla stays fixed at the bottom edge."""
     if name == "calendar_notification":
         return {"grid-area": name, "place-self": "stretch stretch"}
-    if name == "cameras":
-        # Size to content — do not stretch into the Tesla row below.
-        return {"grid-area": name, "place-self": "start stretch"}
+    if name in ("cameras", "rooms"):
+        # Share the mid row with music — stretch so bottoms finish together.
+        return {"grid-area": name, "place-self": "stretch stretch"}
     if name == "tesla":
         # Fixed-size Tesla tiles seat on the bottom row (max-content).
         return {"grid-area": name, "place-self": "end stretch"}
     if name == "music":
         return {"grid-area": name, "place-self": "stretch stretch"}
-    # Greeting / toggles / rooms — no vertical stretch (avoids huge gaps).
+    # Greeting / toggles — no vertical stretch (avoids huge gaps).
     return {"grid-area": name, "place-self": "start stretch"}
 
 
@@ -639,11 +639,34 @@ def _room_pair_row(rooms: list[dict]) -> dict:
         "columns": 2 if len(tiles) <= 4 else min(6, len(tiles)),
         "square": False,
         "cards": tiles,
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  height: 100% !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "}\n"
+                "#root {\n"
+                "  display: grid !important;\n"
+                "  grid-template-columns: 1fr 1fr !important;\n"
+                "  grid-template-rows: 1fr 1fr !important;\n"
+                "  height: 100% !important;\n"
+                "  min-height: 280px !important;\n"
+                "  gap: 8px !important;\n"
+                "  align-items: stretch !important;\n"
+                "}\n"
+                "#root > * {\n"
+                "  min-height: 0 !important;\n"
+                "  height: 100% !important;\n"
+                "}\n"
+            )
+        },
     }
 
 
 def _rooms_band(cfg: dict) -> dict:
-    """Default-category room tiles — no Default/Others/Outdoor filter chips."""
+    """Default-category room tiles in a 2×2 under the clock (beside cameras)."""
     rooms = cfg.get("rooms") or []
     default_rooms = _rooms_for_category(rooms, "default")
     # Fall back to all rooms if none are tagged default.
@@ -652,11 +675,32 @@ def _rooms_band(cfg: dict) -> dict:
         "type": "vertical-stack",
         "view_layout": _area("rooms"),
         "cards": [_room_pair_row(show)],
+        "card_mod": {
+            "style": (
+                ":host, ha-card {\n"
+                "  height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  background: transparent !important;\n"
+                "  box-shadow: none !important;\n"
+                "  border: none !important;\n"
+                "}\n"
+                "#root {\n"
+                "  height: 100% !important;\n"
+                "  display: flex !important;\n"
+                "  flex-direction: column !important;\n"
+                "}\n"
+                "#root > * {\n"
+                "  flex: 1 1 auto !important;\n"
+                "  min-height: 0 !important;\n"
+                "  height: 100% !important;\n"
+                "}\n"
+            )
+        },
     }
 
 
 def _camera_card_mod() -> dict:
-    """Fixed 160px tile — stills/video paint inside without reflow."""
+    """Camera tile — fills its 2×2 cell (object-fit cover, no letterbox)."""
     return {
         "style": (
             "ha-card {\n"
@@ -665,9 +709,8 @@ def _camera_card_mod() -> dict:
             "  margin: 0 !important;\n"
             "  overflow: hidden !important;\n"
             "  width: 100% !important;\n"
-            "  height: 160px !important;\n"
-            "  min-height: 160px !important;\n"
-            "  max-height: 160px !important;\n"
+            "  height: 100% !important;\n"
+            "  min-height: 120px !important;\n"
             "  aspect-ratio: unset !important;\n"
             "  background: #111 !important;\n"
             "  box-sizing: border-box !important;\n"
@@ -797,7 +840,7 @@ def _with_camera_card_mod(tile: dict) -> dict:
 
 
 def _camera_feed_card(camera: dict) -> dict:
-    """Landscape camera tile — last-stream JPEG still (160px).
+    """Landscape camera tile — last-stream JPEG still (fills 2×2 cell).
 
     All outdoor cams use ``/local/flux-ui/camera-stills/`` snapshots (not Eufy
     event images). Tap: Reolink → fullscreen bubble; Eufy → wake-then-live view.
@@ -822,7 +865,7 @@ def _camera_feed_card(camera: dict) -> dict:
 
 
 def _tablet_overview_cameras(cfg: dict) -> list[dict]:
-    """Curated 4-camera row — never auto-discover the whole house."""
+    """Curated 4-camera set — never auto-discover the whole house."""
     tablet = cfg.get("tablet") or {}
     curated = list(tablet.get("overview_cameras") or [])
     if curated:
@@ -832,103 +875,52 @@ def _tablet_overview_cameras(cfg: dict) -> list[dict]:
     return manual[:4]
 
 
-def _camera_pair(cameras: list[dict]) -> dict:
-    """Two cameras side-by-side — same outer width as one Tesla card."""
-    return {
-        "type": "grid",
-        "columns": 2,
-        "square": False,
-        "cards": [_camera_feed_card(cam) for cam in cameras],
-        "card_mod": {
-            "style": (
-                ":host, ha-card {\n"
-                "  background: transparent !important;\n"
-                "  box-shadow: none !important;\n"
-                "  border: none !important;\n"
-                "  height: 160px !important;\n"
-                "  min-height: 160px !important;\n"
-                "  max-height: 160px !important;\n"
-                "  padding: 0 !important;\n"
-                "  margin: 0 !important;\n"
-                "  overflow: hidden !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                "#root {\n"
-                "  display: grid !important;\n"
-                "  grid-template-columns: 1fr 1fr !important;\n"
-                "  gap: 4px !important;\n"
-                "  align-items: stretch !important;\n"
-                "  height: 160px !important;\n"
-                "  min-height: 160px !important;\n"
-                "  max-height: 160px !important;\n"
-                "  width: 100% !important;\n"
-                "  box-sizing: border-box !important;\n"
-                "}\n"
-                "#root > * {\n"
-                "  position: relative !important;\n"
-                "  width: 100% !important;\n"
-                "  min-width: 0 !important;\n"
-                "  height: 160px !important;\n"
-                "  min-height: 160px !important;\n"
-                "  max-height: 160px !important;\n"
-                "  overflow: hidden !important;\n"
-                "}\n"
-            )
-        },
-    }
-
-
 def _cameras_band(cfg: dict, *, use_auto_entities: bool) -> dict:
+    """2×2 camera grid beside rooms — bottoms align with the music column."""
     del use_auto_entities  # Tablet overview is always curated — never dump all cameras.
     cameras = _tablet_overview_cameras(cfg)
-    # Outer 2 columns mirror the Tesla band (same 12px gap). Each column is a
-    # pair of cameras so 2 cams = 1 Tesla card width. Keep tight top/bottom pad.
     fill_mod = {
         "style": (
             ":host, ha-card {\n"
-            "  height: auto !important;\n"
+            "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
             "  max-height: none !important;\n"
-            "  overflow: visible !important;\n"
+            "  overflow: hidden !important;\n"
             "  box-sizing: border-box !important;\n"
-            "  padding: 4px 0 4px 0 !important;\n"
+            "  padding: 0 !important;\n"
+            "  background: transparent !important;\n"
+            "  box-shadow: none !important;\n"
+            "  border: none !important;\n"
             "}\n"
             "#root {\n"
             "  display: grid !important;\n"
             "  grid-template-columns: 1fr 1fr !important;\n"
-            "  height: auto !important;\n"
-            "  min-height: 0 !important;\n"
-            "  gap: 12px !important;\n"
+            "  grid-template-rows: 1fr 1fr !important;\n"
+            "  height: 100% !important;\n"
+            "  min-height: 280px !important;\n"
+            "  gap: 8px !important;\n"
             "  align-items: stretch !important;\n"
             "  width: 100% !important;\n"
+            "  box-sizing: border-box !important;\n"
             "}\n"
             "#root > * {\n"
             "  position: relative !important;\n"
             "  width: 100% !important;\n"
             "  min-width: 0 !important;\n"
-            "  height: 160px !important;\n"
-            "  min-height: 160px !important;\n"
-            "  max-height: 160px !important;\n"
+            "  min-height: 0 !important;\n"
+            "  height: 100% !important;\n"
             "  overflow: hidden !important;\n"
             "}\n"
         )
     }
     if cameras:
         feeds = list(cameras[:4])
-        left = feeds[0:2]
-        right = feeds[2:4]
-        pair_cards = [_camera_pair(left)]
-        if right:
-            pair_cards.append(_camera_pair(right))
         return {
             "type": "grid",
             "columns": 2,
             "square": False,
-            "view_layout": {
-                "grid-area": "cameras",
-                "place-self": "start stretch",
-            },
-            "cards": pair_cards,
+            "view_layout": _area("cameras"),
+            "cards": [_camera_feed_card(cam) for cam in feeds],
             "card_mod": fill_mod,
         }
 
@@ -977,21 +969,20 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # No Default/Others/Outdoor chips. Gates stays tall beside clock+rooms;
-            # room tiles sit under the clock only.
+            # Rooms 2×2 under clock, cameras 2×2 beside them — shared mid row
+            # with music so bottoms finish together. Tesla under that band.
             "grid-template-columns": "1.05fr 1.25fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "max-content max-content max-content max-content"
+                "max-content 1fr max-content"
             ),
             "grid-auto-rows": "max-content",
-            "align-content": "start",
-            "align-items": "start",
+            "align-content": "stretch",
+            "align-items": "stretch",
             "justify-items": "stretch",
             "grid-gap": "10px",
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
-                '"rooms simple_tab music calendar_notification"\n'
-                '"cameras cameras cameras calendar_notification"\n'
+                '"rooms cameras music calendar_notification"\n'
                 '"tesla tesla tesla calendar_notification"'
             ),
         },

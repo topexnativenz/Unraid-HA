@@ -110,8 +110,8 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "max-content max-content max-content max-content",
-            '"align-content": "start"',
+            "max-content 1fr max-content",
+            '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
             "Gates & Doors",
@@ -145,11 +145,10 @@ def verify_build(path: Path) -> list[str]:
             "mediocre-massive-media-player-card",
             "mushroom-chips-card",
             "aspect-ratio: unset",
-            "padding: 4px 0 4px 0",
-            "height: 160px !important",
+            "height: 100% !important",
             "position: absolute !important",
-            "cameras cameras cameras calendar_notification",
-            "rooms simple_tab music calendar_notification",
+            "rooms cameras music calendar_notification",
+            "tesla tesla tesla calendar_notification",
             "Weather Forecast",
             ".loading-indicator",
             "Gates & Doors",
@@ -173,6 +172,8 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet music must not include zone/group chip header (stretches overview)"
             )
+        if "cameras cameras cameras calendar_notification" in overview_blob:
+            errors.append("Tablet cameras must sit beside rooms as 2x2, not a full-width row")
         if '"grid-area": "weather"' in blob:
             errors.append("Tablet still has standalone weather grid area — weather belongs above calendar")
         if "Software tracker" in blob or "Last charges (7 days)" in blob:
@@ -200,8 +201,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet music still uses compact mediocre-media-player-card")
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "rooms simple_tab music calendar_notification",
-            "cameras cameras cameras calendar_notification",
+            "rooms cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in overview_blob for row in locked_area_rows):

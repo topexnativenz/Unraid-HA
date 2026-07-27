@@ -663,13 +663,12 @@ def build_config(
             "mediocre-massive-media-player-card",
             "media_player.kitchen_sonos",
             "Weather Forecast",
-            "cameras cameras cameras calendar_notification",
-            "rooms simple_tab music calendar_notification",
+            "rooms cameras music calendar_notification",
+            "tesla tesla tesla calendar_notification",
             "calc(100dvh - 240px)",
-            "max-content max-content max-content max-content",
+            "max-content 1fr max-content",
             "aspect-ratio: unset",
-            "padding: 4px 0 4px 0",
-            "height: 160px !important",
+            "height: 100% !important",
             "position: absolute !important",
             "min-height: 200px",
             ".loading-indicator",
@@ -682,6 +681,13 @@ def build_config(
             print(
                 "\nERROR: Tablet overview still has room_selector "
                 "(Default/Others/Outdoor filter chips).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "cameras cameras cameras calendar_notification" in blob:
+            print(
+                "\nERROR: Tablet cameras must sit beside rooms as 2x2 "
+                "(not a full-width one-row cameras band).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -728,8 +734,7 @@ def build_config(
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
-            "rooms simple_tab music calendar_notification",
-            "cameras cameras cameras calendar_notification",
+            "rooms cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
         )
         if any(row not in blob for row in locked_area_rows):
