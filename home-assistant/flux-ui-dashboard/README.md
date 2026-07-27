@@ -35,10 +35,6 @@ tap Eufy → `eufy-*` live subview (wake + WebRTC MSE). Package:
 `packages/flux_ui_eufy_cameras.yaml`. Unused Eufy cameras are disabled via
 `scripts/fix_eufy_cameras.py`.
 
-**Area lights:** tap toggles `light.*_all` group; button shows amber **on** CSS
-when any member is on. Hold opens Bubble `#area-lights-*` with every light in
-that group (`area_lights.yaml` → `members`).
-
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
 
 Mobile overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard) (`dashboard/mobile/views/01-overview.yaml`):
