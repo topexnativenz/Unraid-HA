@@ -102,7 +102,7 @@ def verify_build(path: Path) -> list[str]:
             '"show_progress_bar": false',
             '"today_indicator": "dot"',
             "__fluxNzClock",
-            "hour12: true",
+            "hour12: false",
             "Pacific/Auckland",
             "weather.homemetservice",
             "100dvh",
@@ -157,7 +157,10 @@ def verify_build(path: Path) -> list[str]:
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
             "max-height: none",
-            '"font-size": "112px"',
+            '"font-size": "136px"',
+            '"font-size": "26px"',
+            "width:78%",
+            "hourCycle: 'h23'",
             "1fr 1fr 1fr 1fr",
             "minmax(0, 1fr) minmax(0, 1fr)",
             '"font-size": "22px"',
@@ -183,8 +186,10 @@ def verify_build(path: Path) -> list[str]:
                 "Tablet Tesla row must use flexible % tracks (minmax(0, 24%)), "
                 "not fixed px mins that push off-screen"
             )
-        if '"font-size": "84px"' in overview_blob:
-            errors.append("Tablet clock still uses 84px — expect larger 112px time")
+        if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
+            errors.append("Tablet clock still uses smaller type — expect 136px time / 26px date")
+        if "hour12: true" in overview_blob:
+            errors.append("Tablet clock still shows 12h AM/PM — expect 24h HH:MM")
         if "mdi:thermometer-lines" in overview_blob:
             errors.append("Tablet clock corner still has weather/temp chips under the time")
         if " · ${tz}" in overview_blob or "timeZoneName" in overview_blob:

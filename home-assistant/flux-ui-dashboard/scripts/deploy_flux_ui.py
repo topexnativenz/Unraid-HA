@@ -650,7 +650,7 @@ def build_config(
             '"camera_view": "live"',
             "data:image/webp;base64,",
             "__fluxNzClock",
-            "hour12: true",
+            "hour12: false",
             "Pacific/Auckland",
             "gap: 8px !important",
             '"width": "100%"',
@@ -833,9 +833,9 @@ def build_config(
                     file=sys.stderr,
                 )
                 raise SystemExit(1)
-        if "__fluxNzClock" not in blob or "hour12: true" not in blob:
+        if "__fluxNzClock" not in blob or "hour12: false" not in blob:
             print(
-                "\nERROR: Tablet build missing NZ digital clock (Shelly-style greeting corner).\n",
+                "\nERROR: Tablet build missing NZ digital clock (24h HH:MM greeting corner).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)

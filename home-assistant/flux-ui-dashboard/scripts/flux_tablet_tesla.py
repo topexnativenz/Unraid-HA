@@ -24,6 +24,8 @@ _DEFAULT_TESLA: dict[str, Any] = {
         "charger_power": "sensor.model_s_p100d_charger_power",
         "image": "model-s-white.webp",
         "accent": "#E8EEF4",
+        # Side profile fits the 16:9 Tesla band at full width.
+        "image_max_width": "100%",
     },
     "model_x": {
         "name": "Model X",
@@ -32,6 +34,8 @@ _DEFAULT_TESLA: dict[str, Any] = {
         "charger_power": "sensor.x_charger_power",
         "image": "model-x-blue.webp",
         "accent": "#4FC3F7",
+        # Longer X silhouette clips at 100% width in the short band — scale in.
+        "image_max_width": "78%",
     },
 }
 
@@ -94,6 +98,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
     image_uri = _image_data_uri(vehicle.get("image") or "model-s-white.webp")
     accent = vehicle.get("accent") or "#E8EEF4"
     max_h = TESLA_BAND_MAX
+    img_w = vehicle.get("image_max_width") or "100%"
 
     return {
         "type": "custom:button-card",
@@ -134,6 +139,7 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
                     {"justify-self": "center"},
                     {"align-self": "center"},
                     {"min-height": "0"},
+                    {"overflow": "hidden"},
                     {"padding": "4px 0 2px 0"},
                 ],
                 "soc": [{"grid-area": "soc"}, {"width": "100%"}, {"padding-top": "2px"}],
@@ -177,10 +183,10 @@ def _tesla_vehicle_card(vehicle: dict) -> dict:
             "car": (
                 "[[[\n"
                 f"  return `<div style=\"width:100%;height:100%;display:flex;justify-content:center;"
-                f"align-items:center;min-height:0;max-height:100%;flex:1;\">"
+                f"align-items:center;min-height:0;max-height:100%;overflow:hidden;flex:1;\">"
                 f"<img src=\"{image_uri}\" alt=\"{name}\" "
-                f"style=\"width:100%;max-height:100%;object-fit:contain;"
-                f"object-position:center center;background:transparent;"
+                f"style=\"width:{img_w};max-width:{img_w};max-height:92%;"
+                f"object-fit:contain;object-position:center center;background:transparent;"
                 f"filter:drop-shadow(0 14px 18px rgba(0,0,0,0.55));\" /></div>`;\n"
                 "]]]"
             ),

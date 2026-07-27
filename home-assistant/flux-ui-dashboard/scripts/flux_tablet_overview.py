@@ -184,10 +184,10 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     {"width": "100%"},
                 ],
                 "name": [
-                    {"font-size": "112px"},
+                    {"font-size": "136px"},
                     {"font-weight": "700"},
                     {"letter-spacing": "0.04em"},
-                    {"line-height": "0.92"},
+                    {"line-height": "0.9"},
                     {"justify-self": "center"},
                     {"text-align": "center"},
                     {"width": "100%"},
@@ -195,7 +195,7 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
                     {"color": "var(--md-sys-color-on-surface)"},
                 ],
                 "label": [
-                    {"font-size": "18px"},
+                    {"font-size": "26px"},
                     {"font-weight": "600"},
                     {"letter-spacing": "0.02em"},
                     {"justify-self": "center"},
