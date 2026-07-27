@@ -674,6 +674,8 @@ def build_config(
             '"font-size": "24px"',
             '"name": "Rooms"',
             '"name": "Cameras"',
+            "flux_room_fill",
+            "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",

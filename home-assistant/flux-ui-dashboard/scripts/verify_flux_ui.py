@@ -151,6 +151,8 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "24px"',
             '"name": "Rooms"',
             '"name": "Cameras"',
+            "flux_room_fill",
+            "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
             "mid mid music calendar_notification",
@@ -195,6 +197,17 @@ def verify_build(path: Path) -> list[str]:
             )
         if '"name": "Rooms"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
             errors.append("Tablet mid band missing Rooms/Cameras section headings")
+        if "flux_room_fill" not in overview_blob:
+            errors.append(
+                "Tablet rooms must use flux_room_fill (not phone flux_room 186px lock)"
+            )
+        if overview_blob.count('"template": "flux_room"') > 0 and "flux_room_fill" in overview_blob:
+            # Overview mid rooms must not keep the phone template.
+            mid_idx = overview_blob.find('"grid-area": "mid"')
+            mid_end = overview_blob.find('"grid-area": "tesla"', mid_idx)
+            mid_slice = overview_blob[mid_idx:mid_end] if mid_idx >= 0 else ""
+            if '"template": "flux_room"' in mid_slice and "flux_room_fill" not in mid_slice:
+                errors.append("Tablet mid rooms still use flux_room instead of flux_room_fill")
         if '"font-size": "16px"' in overview_blob and '"font-size": "24px"' not in overview_blob:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         mid_idx = overview_blob.find('"grid-area": "mid"')

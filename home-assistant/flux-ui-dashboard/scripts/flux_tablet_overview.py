@@ -633,12 +633,15 @@ def _rooms_for_category(rooms: list[dict], slug: str) -> list[dict]:
 
 
 def _tablet_room_tile(room: dict) -> dict:
-    """Room tile that fills its mid-grid cell (phone flux_room is locked to 186px)."""
+    """Room tile sized like tablet camera tiles — fills a square mid-grid cell.
+
+    Phone ``flux_room`` locks 186px; tablet uses ``flux_room_fill`` + the same
+    host fill pattern as camera stills so every cell matches.
+    """
     tile = flux_room_tile(room, columns=12)
     tile.pop("grid_options", None)
+    tile["template"] = "flux_room_fill"
     styles = tile.setdefault("styles", {})
-    # Drop fixed heights from the card; template still merges 186px at runtime
-    # so card_mod !important is required for equal room/camera cells.
     card_styles = [
         s
         for s in (styles.get("card") or [])
@@ -651,18 +654,13 @@ def _tablet_room_tile(room: dict) -> dict:
             {"max-height": "none"},
             {"width": "100%"},
             {"overflow": "hidden"},
+            {"box-sizing": "border-box"},
         ]
     )
     styles["card"] = card_styles
-    # Piercing card_mod — template 186px otherwise wins on Fully Kiosk.
+    # Match camera tile structure: wrap_glass + fill card_mod on ha-card.
     tile["card_mod"] = {
         "style": (
-            ":host {\n"
-            "  display: block !important;\n"
-            "  height: 100% !important;\n"
-            "  width: 100% !important;\n"
-            "  min-height: 0 !important;\n"
-            "}\n"
             "ha-card {\n"
             "  height: 100% !important;\n"
             "  min-height: 0 !important;\n"
@@ -674,7 +672,32 @@ def _tablet_room_tile(room: dict) -> dict:
             "}\n"
         )
     }
-    return tile
+    # Outer mod-card sizes the layout-card cell (button-card host otherwise
+    # collapses to content height on Fully — cameras avoid that via absolute media).
+    return {
+        "type": "custom:mod-card",
+        "card": wrap_glass(tile),
+        "card_mod": {
+            "style": (
+                ":host {\n"
+                "  display: block !important;\n"
+                "  width: 100% !important;\n"
+                "  height: 100% !important;\n"
+                "  max-height: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  aspect-ratio: 1 / 1 !important;\n"
+                "  overflow: hidden !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+                "ha-card {\n"
+                "  height: 100% !important;\n"
+                "  width: 100% !important;\n"
+                "  min-height: 0 !important;\n"
+                "  box-sizing: border-box !important;\n"
+                "}\n"
+            )
+        },
+    }
 
 
 def _equal_2x2_layout(cards: list[dict], *, grid_area: str) -> dict:
@@ -723,10 +746,13 @@ def _equal_2x2_layout(cards: list[dict], *, grid_area: str) -> dict:
                 "#root > *, .layout > * {\n"
                 "  min-height: 0 !important;\n"
                 "  min-width: 0 !important;\n"
-                "  height: 100% !important;\n"
-                "  max-height: 100% !important;\n"
                 "  width: 100% !important;\n"
+                "  height: auto !important;\n"
+                "  max-height: 100% !important;\n"
+                "  aspect-ratio: 1 / 1 !important;\n"
                 "  overflow: hidden !important;\n"
+                "  align-self: stretch !important;\n"
+                "  justify-self: stretch !important;\n"
                 "}\n"
                 "#root > * ha-card,\n"
                 ".layout > * ha-card {\n"

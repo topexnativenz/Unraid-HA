@@ -421,6 +421,101 @@ BUTTON_CARD_TEMPLATES: dict = {
             },
         ],
     },
+    # Tablet mid-grid rooms — same as flux_room but fills the cell (no 186px lock).
+    "flux_room_fill": {
+        "template": "flux_glass",
+        "show_icon": False,
+        "show_name": False,
+        "show_label": False,
+        "styles": {
+            "grid": [
+                {"grid-template-areas": "'info sensors'"},
+                {"grid-template-columns": "1fr 44px"},
+                {"grid-template-rows": "1fr"},
+                {"column-gap": "10px"},
+                {"align-items": "stretch"},
+                {"align-content": "stretch"},
+                {"justify-content": "start"},
+                {"height": "100%"},
+                {"min-height": "0"},
+                {"width": "100%"},
+            ],
+            "custom_fields": {
+                "info": [
+                    {"grid-area": "info"},
+                    {"justify-self": "start"},
+                    {"align-self": "start"},
+                    {"width": "100%"},
+                    {"z-index": "2"},
+                ],
+                "bg": [
+                    {"position": "absolute"},
+                    {"bottom": "4px"},
+                    {"left": "0"},
+                    {"z-index": "0"},
+                    {"pointer-events": "none"},
+                    {"width": "96px"},
+                    {"height": "96px"},
+                    {"display": "flex"},
+                    {"align-items": "flex-end"},
+                    {"justify-content": "flex-start"},
+                ],
+                "sensors": [
+                    {"grid-area": "sensors"},
+                    {"justify-self": "center"},
+                    {"align-self": "stretch"},
+                    {"width": "40px"},
+                    {"min-width": "40px"},
+                    {"height": "100%"},
+                    {"min-height": "0"},
+                    {"padding-top": "0"},
+                    {"padding-bottom": "0"},
+                    {"z-index": "2"},
+                ],
+            },
+            "card": [
+                {"position": "relative"},
+                {"overflow": "hidden"},
+                {"padding": "14px 12px 14px 14px"},
+                {"height": "100%"},
+                {"min-height": "0"},
+                {"max-height": "none"},
+                {"width": "100%"},
+                {"box-sizing": "border-box"},
+                {"display": "flex"},
+                {"align-items": "stretch"},
+            ],
+        },
+        "state": [
+            {
+                "operator": "template",
+                "value": (
+                    "[[[ return (variables.lights || []).some("
+                    "e => states[e]?.state === 'on'); ]]]"
+                ),
+                "styles": {
+                    "card": [
+                        {
+                            "background": (
+                                "color-mix(in srgb, var(--md-sys-color-surface-container) "
+                                "72%, rgba(255, 193, 7, 0.08))"
+                            )
+                        },
+                        {"border": "1px solid rgba(255, 193, 7, 0.38)"},
+                        {
+                            "box-shadow": (
+                                "0 0 20px rgba(255, 193, 7, 0.14), "
+                                "0 4px 24px rgba(0, 0, 0, 0.28)"
+                            )
+                        },
+                    ],
+                    "custom_fields": {
+                        "bg": [{"opacity": "0.28"}],
+                    },
+                },
+            },
+        ],
+    },
     "flux_icon_button": {
         "template": "flux_glass",
         "show_icon": True,
