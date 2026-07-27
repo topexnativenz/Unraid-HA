@@ -165,7 +165,6 @@ def verify_build(path: Path) -> list[str]:
             "flux_action",
             '"columns": 2',
             '"place-self": "start stretch"',
-            '"place-self": "end stretch"',
             "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
@@ -218,9 +217,13 @@ def verify_build(path: Path) -> list[str]:
         if '"grid-area": "cameras"' in overview_blob:
             cam_idx = overview_blob.find('"grid-area": "cameras"')
             cam_slice = overview_blob[cam_idx : cam_idx + 220]
-            if "end stretch" not in cam_slice:
+            if "start stretch" not in cam_slice:
                 errors.append(
-                    "Tablet cameras must be end-aligned so 2x2 bottom meets Music"
+                    "Tablet cameras must be top-aligned so Cameras heading lines up with Lights"
+                )
+            if "end stretch" in cam_slice:
+                errors.append(
+                    "Tablet cameras must not be end-aligned (Cameras heading must match Lights)"
                 )
         if '"name": "Lights"' not in overview_blob or '"name": "Cameras"' not in overview_blob:
             errors.append("Tablet mid band missing Lights/Cameras section headings")

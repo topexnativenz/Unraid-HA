@@ -683,7 +683,6 @@ def build_config(
             "flux_action",
             '"columns": 2',
             '"place-self": "start stretch"',
-            '"place-self": "end stretch"',
             "aspect-ratio: 1 / 1",
             "height: 100% !important",
             "position: absolute !important",
@@ -709,6 +708,16 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if '"grid-area": "cameras"' in blob:
+            cam_place_idx = blob.find('"grid-area": "cameras"')
+            cam_place_slice = blob[cam_place_idx : cam_place_idx + 220]
+            if "start stretch" not in cam_place_slice or "end stretch" in cam_place_slice:
+                print(
+                    "\nERROR: Tablet cameras must use place-self: start stretch "
+                    "(Cameras heading aligned with Lights).\n",
+                    file=sys.stderr,
+                )
+                raise SystemExit(1)
         if "[class*='loading']" in blob:
             print(
                 "\nERROR: Calendar card-mod must not use [class*='loading'] (hides events).\n",

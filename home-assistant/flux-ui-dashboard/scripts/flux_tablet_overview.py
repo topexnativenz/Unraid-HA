@@ -61,12 +61,9 @@ REOLINK_POPUP_STYLES = """\
 
 def _area(name: str) -> dict:
     """Grid area placement — stretch overview bands to their tracks."""
-    if name == "lights":
-        # Compact Gates-style toggles — top of mid only (do not stretch).
+    if name in ("lights", "cameras"):
+        # Compact Lights + Cameras share a top edge (headings in line).
         return {"grid-area": name, "place-self": "start stretch"}
-    if name == "cameras":
-        # Square 2×2 sits on the mid-row floor — bottom flush with Music.
-        return {"grid-area": name, "place-self": "end stretch"}
     if name in (
         "calendar_notification",
         "tesla",
@@ -830,11 +827,10 @@ def _lights_band(cfg: dict) -> dict:
 
 
 def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
-    """Right mid — square 2×2 cameras, bottom flush with Music.
+    """Right mid — square 2×2 cameras; heading top-aligned with Lights.
 
-    Music spans top+mid so its bottom is the mid-row floor. End-align a
-    width-driven square tile grid on that floor (bring cards up vs stretch-fill).
-    Mid track is 52fr (definite height) so Fully can resolve aspect-ratio.
+    Sizing unchanged (width-driven 1:1 tile grid). Only placement is start so
+    the Cameras heading shares a row with Lights.
     """
     del use_auto_entities
     cameras = _tablet_overview_cameras(cfg)
@@ -880,8 +876,6 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                     "cards": cam_tiles,
                     "card_mod": {
                         "style": (
-                            # Width is definite from the overview column; 1:1
-                            # yields square cells. Cap so a short mid still fits.
                             ":host {\n"
                             "  display: block !important;\n"
                             "  width: 100% !important;\n"
@@ -907,7 +901,7 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                     "  max-height: 100% !important;\n"
                     "  min-height: 0 !important;\n"
                     "  width: 100% !important;\n"
-                    "  align-self: end !important;\n"
+                    "  align-self: start !important;\n"
                     "  overflow: hidden !important;\n"
                     "  box-sizing: border-box !important;\n"
                     "}\n"
@@ -933,7 +927,6 @@ def _cameras_band(cfg: dict, *, use_auto_entities: bool = True) -> dict:
                         "  max-height: 100% !important;\n"
                         "  min-height: 0 !important;\n"
                         "  gap: 8px !important;\n"
-                        "  justify-content: flex-end !important;\n"
                         "}\n"
                         "#root > *:first-child {\n"
                         "  flex: 0 0 auto !important;\n"
