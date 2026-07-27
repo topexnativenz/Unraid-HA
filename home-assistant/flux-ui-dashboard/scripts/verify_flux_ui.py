@@ -147,12 +147,14 @@ def verify_build(path: Path) -> list[str]:
             "aspect-ratio: unset",
             '"place-self": "start stretch"',
             "rooms_title cameras_title",
-            "rooms_grid cameras_grid",
+            "mid_tiles mid_tiles",
             '"font-size": "24px"',
             '"name": "Rooms"',
             '"name": "Cameras"',
             "flux_room_fill",
-            "aspect-ratio: 1 / 1",
+            "aspect-ratio: 2 / 1",
+            '"grid-template-columns": "1fr 1fr 1fr 1fr"',
+            '"grid-template-rows": "1fr 1fr"',
             "height: 100% !important",
             "position: absolute !important",
             "mid mid music calendar_notification",
@@ -170,7 +172,6 @@ def verify_build(path: Path) -> list[str]:
             "width:78%",
             "hourCycle: 'h12'",
             "minmax(0, 28fr) auto minmax(0, 26fr)",
-            '"grid-template-rows": "auto auto"',
             '"font-size": "22px"',
             "justify-content: center !important",
             "align-items: center !important",
@@ -189,9 +190,15 @@ def verify_build(path: Path) -> list[str]:
             errors.append(
                 "Tablet overview layout must use align-content: stretch on the root grid"
             )
-        if "aspect-ratio: 2 / 1" in overview_blob:
+        if "aspect-ratio: 1 / 1" in overview_blob:
             errors.append(
-                "Tablet mid must not use a 2:1 stretch band"
+                "Tablet mid must not use per-tile aspect-ratio 1/1 "
+                "(collapses cameras on Fully — use host 2:1 + 1fr fill)"
+            )
+        if '"grid-template-rows": "auto auto"' in overview_blob:
+            errors.append(
+                "Tablet mid must not use auto auto rows "
+                "(collapses cameras on Fully — use 1fr 1fr inside 2:1 frame)"
             )
         if "minmax(0, 28%)" in overview_blob or "minmax(0, 26%)" in overview_blob:
             errors.append(

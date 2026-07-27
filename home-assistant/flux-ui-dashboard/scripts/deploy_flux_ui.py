@@ -668,16 +668,17 @@ def build_config(
             "minmax(0, 28fr)",
             "minmax(0, 26fr)",
             "minmax(0, 28fr) auto minmax(0, 26fr)",
-            '"grid-template-rows": "auto auto"',
             "aspect-ratio: unset",
             '"place-self": "start stretch"',
             "rooms_title cameras_title",
-            "rooms_grid cameras_grid",
+            "mid_tiles mid_tiles",
             '"font-size": "24px"',
             '"name": "Rooms"',
             '"name": "Cameras"',
             "flux_room_fill",
-            "aspect-ratio: 1 / 1",
+            "aspect-ratio: 2 / 1",
+            '"grid-template-columns": "1fr 1fr 1fr 1fr"',
+            '"grid-template-rows": "1fr 1fr"',
             "height: 100% !important",
             "position: absolute !important",
             "max-height: 100% !important",
@@ -797,21 +798,22 @@ def build_config(
             raise SystemExit(1)
         if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
-                "\nERROR: Tablet Tesla row must use flexible % tracks "
-                "(minmax(0, 24%)), not fixed px mins that push off-screen.\n",
+                "\nERROR: Tablet Tesla row must use flexible fr tracks "
+                "(minmax(0, 26fr)), not fixed px mins that push off-screen.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "minmax(0, 1fr) minmax(0, 1fr)" in blob:
+        if "aspect-ratio: 1 / 1" in blob:
             print(
-                "\nERROR: Tablet mid 2x2 must use auto auto rows with "
-                "aspect-ratio 1:1 tiles (not minmax 1fr stretch rows).\n",
+                "\nERROR: Tablet mid must not use per-tile aspect-ratio 1/1 "
+                "(collapses cameras on Fully — use host 2:1 + 1fr fill).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
-        if "aspect-ratio: 2 / 1" in blob:
+        if '"grid-template-rows": "auto auto"' in blob:
             print(
-                "\nERROR: Tablet mid must not use a 2:1 stretch band.\n",
+                "\nERROR: Tablet mid must not use auto auto rows "
+                "(collapses cameras on Fully — use 1fr 1fr inside 2:1 frame).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
