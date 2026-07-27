@@ -150,7 +150,7 @@ def verify_build(path: Path) -> list[str]:
             '"font-size": "24px"',
             '"name": "Lights"',
             '"name": "Cameras"',
-            "light.kitchen_all",
+            "light.kitchen",
             "light.dining_all",
             "light.black_lounge_all",
             "light.white_lounge_all",

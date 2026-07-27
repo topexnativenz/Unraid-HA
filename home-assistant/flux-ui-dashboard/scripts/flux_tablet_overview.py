@@ -661,7 +661,7 @@ def _fill_track_style() -> str:
 
 
 _DEFAULT_AREA_LIGHTS: list[dict] = [
-    {"name": "Kitchen", "entity": "light.kitchen_all", "icon": "mdi:stove"},
+    {"name": "Kitchen", "entity": "light.kitchen", "icon": "mdi:stove"},
     {"name": "Dining", "entity": "light.dining_all", "icon": "mdi:silverware-fork-knife"},
     {
         "name": "Black Lounge",

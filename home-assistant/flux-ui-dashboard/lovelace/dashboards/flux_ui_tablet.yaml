@@ -1205,7 +1205,7 @@ views:
               cards:
               - type: custom:button-card
                 template: flux_action
-                entity: light.kitchen_all
+                entity: light.kitchen
                 name: Kitchen
                 icon: mdi:stove
                 show_icon: true
