@@ -2,11 +2,24 @@
 
 Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard). Installed **alongside** Mobile Home; does not modify `mobile-home` or its default panel settings.
 
-## Phase 4 tablet (16:9)
+## Phase 4 tablet (16:9) — **manual YAML**
 
-`/flux-ui-tablet` follows the [ElementZoom MD3 Dynamic Tablet Dashboard](https://github.com/ElementZoom/Material-Design-3-Dynamic-Tablet-Dashboard) author framework (`dashboard.yaml` Overview grid): greeting · Climate/Toggles/Scenes `simple-tabs` · weather forecast · calendar · room selector · room cards · cameras · bottom nav.
+The wall tablet dashboard is **YAML mode**. Edit it yourself; normal deploys
+**do not** regenerate it from Python or call `lovelace/config/save`.
 
-Build: `python3 scripts/build_flux_ui.py --tablet` → `generated/lovelace.flux_ui_tablet.json`.
+| Edit here | HA copies to |
+|-----------|----------------|
+| [`lovelace/dashboards/flux_ui_tablet.yaml`](lovelace/dashboards/flux_ui_tablet.yaml) | `/config/dashboards/flux_ui_tablet.yaml` |
+
+URL: `/flux-ui-tablet/overview`
+
+- **Normal deploy** (`update_and_deploy.sh`): copies the YAML file only.
+- **Regenerate from builders** (rare):  
+  `python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml`
+- First switch to YAML mode may need a **one-time HA restart**.
+
+Python builders (`flux_tablet_overview.py`, etc.) are optional codegen only —
+not the live source of truth.
 
 **rk3576_u RGB LED:** `packages/flux_ui_tablet_led.yaml` pulses
 `light.rk3576_u_rk3576_u_rgb` (MQTT AndroidTablet Controls → RGB) green while
