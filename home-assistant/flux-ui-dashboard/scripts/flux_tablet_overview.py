@@ -662,6 +662,11 @@ def _fill_track_style() -> str:
 
 _DEFAULT_AREA_LIGHTS: list[dict] = [
     {"name": "Kitchen", "entity": "light.kitchen", "icon": "mdi:stove"},
+    {
+        "name": "Main Area",
+        "entity": "light.main_atrium",
+        "icon": "mdi:lightbulb-group",
+    },
     {"name": "Dining", "entity": "light.dining_all", "icon": "mdi:silverware-fork-knife"},
     {
         "name": "Black Lounge",
@@ -759,7 +764,7 @@ def _area_light_button(area: dict) -> dict:
 def _lights_band(cfg: dict) -> dict:
     """Left mid — compact 2-col Gates-style toggles (top-aligned, not stretched)."""
     areas = list((cfg.get("area_lights") or {}).get("areas") or _DEFAULT_AREA_LIGHTS)
-    buttons = [_area_light_button(a) for a in areas[:6]]
+    buttons = [_area_light_button(a) for a in areas]
     while len(buttons) < 6:
         buttons.append(
             {
