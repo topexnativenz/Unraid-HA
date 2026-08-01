@@ -258,6 +258,9 @@ def build_events_tab_cards(cfg: dict, *, use_calendar_pro: bool) -> list[dict]:
                 "show_countdown": bool(events.get("show_countdown", False)),
                 "show_progress_bar": bool(events.get("show_progress_bar", False)),
                 "progress_bar_color": "var(--md-sys-color-primary)",
+                # NZ local display (HA time_zone is Pacific/Auckland).
+                "time_24h": bool(events.get("time_24h", False)),
+                "language": events.get("language", "en"),
                 "refresh_interval": refresh_minutes,
                 "refresh_on_navigate": bool(events.get("refresh_on_navigate", False)),
                 "weather": {

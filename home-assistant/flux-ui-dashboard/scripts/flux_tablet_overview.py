@@ -12,7 +12,12 @@ from flux_navbar import URL_PREFIX
 from flux_overview_tabs import build_events_tab_cards
 from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
 from flux_tablet_tesla import build_tablet_tesla_band
-from flux_time import nz_clock_date_js, nz_clock_time_js
+from flux_time import (
+    NZ_CLOCK_ENTITY,
+    NZ_DATE_ENTITY,
+    nz_clock_date_js,
+    nz_clock_time_js,
+)
 from md3_templates import GLASS_CARD_MOD, wrap_glass
 
 # Bubble modular window — Reolink Back Courtyard live stream (fullscreen on tablet).
@@ -158,6 +163,8 @@ def _greeting_stack(weather_entity: str, cfg: dict) -> dict:
         "card": {
             "type": "custom:button-card",
             "template": "flux_glass",
+            "entity": NZ_CLOCK_ENTITY,
+            "triggers_update": [NZ_CLOCK_ENTITY, NZ_DATE_ENTITY, "sensor.time"],
             "show_icon": False,
             "show_name": True,
             "show_label": True,
@@ -522,6 +529,10 @@ def _calendar_notification(
         cal["show_countdown"] = False
         cal["show_progress_bar"] = False
         cal["today_indicator"] = "dot"
+        # Explicit NZ-style 12h times; pair with Fully TZ pin in greeting JS so
+        # calendar-card-pro (uses browser local TZ) stays on Pacific/Auckland.
+        cal["time_24h"] = False
+        cal["language"] = "en"
         cal["refresh_interval"] = int(
             ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
         )

@@ -250,6 +250,12 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet clock corner still has weather/temp chips under the time")
         if " · ${tz}" in overview_blob or "timeZoneName" in overview_blob:
             errors.append("Tablet clock date still appends NZST/NZDT — show weekday/date only")
+        if "sensor.flux_ui_nz_clock" not in overview_blob:
+            errors.append("Tablet clock must bind sensor.flux_ui_nz_clock for NZST/NZDT sync")
+        if "setTimezone" not in overview_blob and "timezoneId" not in overview_blob:
+            errors.append("Tablet clock must pin Fully Kiosk timezone to Pacific/Auckland")
+        if '"time_24h": false' not in overview_blob and '"time_24h":false' not in overview_blob:
+            errors.append("Tablet calendar must set time_24h false for NZ local times")
         if '"grid-area": "mid"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
             errors.append(
                 "Tablet overview must use lights|cameras areas (not mid/rooms room cards)"

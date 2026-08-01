@@ -1,0 +1,19 @@
+# NZ local clock sensors for Flux UI tablet overview.
+# Requires HA General time zone = Pacific/Auckland (NZST/NZDT).
+# Also enable Time & Date helpers (sensor.time / sensor.date) once via
+# Settings → Devices & services → Add integration → Time & Date.
+
+template:
+  - sensor:
+      - name: Flux UI NZ Clock
+        unique_id: flux_ui_nz_clock
+        icon: mdi:clock-outline
+        state: >-
+          {% set h = now().hour %}
+          {% set h12 = h % 12 %}
+          {% if h12 == 0 %}{% set h12 = 12 %}{% endif %}
+          {{ h12 }}:{{ now().strftime('%M') }}
+      - name: Flux UI NZ Date
+        unique_id: flux_ui_nz_date
+        icon: mdi:calendar
+        state: "{{ now().strftime('%A, %-d %B') }}"

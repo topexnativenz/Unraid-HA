@@ -60,6 +60,7 @@ REQUIRED_PACKAGES = (
     "flux_ui_tablet_led.yaml",
     "flux_ui_eufy_cameras.yaml",
     "flux_ui_area_lights.yaml",
+    "flux_ui_time.yaml",
 )
 
 TABLET_LED_ENTITY = "input_text.flux_ui_tablet_rgb_led"
