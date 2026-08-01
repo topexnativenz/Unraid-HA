@@ -1,15 +1,8 @@
-# Flux UI 16:9 tablet dashboard — BASELINE (source of truth)
+# Flux UI 16:9 tablet dashboard — MANUAL YAML (source of truth)
 #
-# This file is the committed baseline design. Normal deploy loads and pushes
-# THIS YAML to HA — it does NOT regenerate from Python builders.
-#
-# Version history: lovelace/dashboards/versions/
-# Before replacing this file, snapshot it:
-#   python3 scripts/deploy_flux_ui.py --snapshot-tablet-yaml [--label <name>]
-# Rebuild from Python builders only when intentional:
-#   python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml
-# Pull live HA into this baseline (snapshots first):
-#   python3 scripts/deploy_flux_ui.py --pull-tablet-yaml
+# Edit this file (or /config/dashboards/flux_ui_tablet.yaml on HA) for layout.
+# Normal deploy only copies this file; it does NOT regenerate from Python.
+# Regenerate from builders only with: deploy_flux_ui.py --rebuild-tablet-yaml
 #
 title: Flux UI 16:9
 button_card_templates:
@@ -515,7 +508,7 @@ views:
           padding: 8px 12px 8px 12px
           grid-gap: 8px
           grid-template-columns: 1fr 1fr 1.05fr 1.15fr
-          grid-template-rows: minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)
+          grid-template-rows: minmax(0, 26fr) minmax(0, 42fr) minmax(0, 28fr)
           grid-auto-rows: minmax(0, auto)
           align-content: stretch
           align-items: stretch
@@ -535,17 +528,34 @@ views:
           card:
             type: custom:button-card
             template: flux_glass
+            entity: sensor.flux_ui_nz_clock
+            triggers_update:
+            - sensor.flux_ui_nz_clock
+            - sensor.flux_ui_nz_date
+            - sensor.time
             show_icon: false
             show_name: true
             show_label: true
             show_state: false
-            name: "[[[\n  if (this && !this.__fluxNzClock) {\n    this.__fluxNzClock = setInterval(() => {\n      try { this.update();\
-              \ } catch (e) {}\n    }, 15000);\n  }\n  const parts = new Intl.DateTimeFormat('en-NZ', {\n    timeZone: 'Pacific/Auckland',\n\
-              \    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    hourCycle: 'h12'\n  }).formatToParts(new\
-              \ Date());\n  const hour = (parts.find((p) => p.type === 'hour') || {}).value || '';\n  const minute = (parts.find((p)\
-              \ => p.type === 'minute') || {}).value || '';\n  return `${hour}:${minute}`;\n]]]"
-            label: "[[[\n  return new Date().toLocaleDateString('en-NZ', {\n    timeZone: 'Pacific/Auckland',\n    weekday:\
-              \ 'long',\n    day: 'numeric',\n    month: 'long'\n  });\n]]]"
+            name: "[[[\n  if (typeof fully !== 'undefined' && !window.__fluxNzTzPinned) {\n    try {\n      if (typeof fully.setT\
+              \ imezone === 'function') fully.setTimezone('Pacific/Auckland');\n      else if (typeof fully.setStringSetting =\
+              \ == 'function') fully.setStringSetting('timezoneId', 'Pacific/Auckland');\n      window.__fluxNzTzPinned = true\
+              \ ;\n    } catch (e) {}\n  }\n  if (this && !this.__fluxNzClock) {\n    this.__fluxNzClock = setInterval(() => {\
+              \ \n      try { this.update(); } catch (e) {}\n    }, 15000);\n  }\n  const haClock = hass?.states?.['sensor.flu\
+              \ x_ui_nz_clock']?.state;\n  if (haClock && /^\\d{1,2}:\\d{2}$/.test(haClock)) return haClock;\n  const haTime =\
+              \  hass?.states?.['sensor.time']?.state;\n  if (haTime && /^\\d{1,2}:\\d{2}/.test(haTime)) {\n    let h = parseI\
+              \ nt(haTime.split(':')[0], 10);\n    const m = haTime.split(':')[1].slice(0, 2);\n    if (h === 0) h = 12; else \
+              \ if (h > 12) h -= 12;\n    return `${h}:${m}`;\n  }\n  const parts = new Intl.DateTimeFormat('en-NZ', {\n    ti\
+              \ meZone: 'Pacific/Auckland',\n    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true\n  }).formatToPart\
+              \ s(new Date());\n  const hour = (parts.find((p) => p.type === 'hour') || {}).value || '';\n  const minute = (pa\
+              \ rts.find((p) => p.type === 'minute') || {}).value || '';\n  return `${hour}:${minute}`;\n]]]"
+            label: "[[[\n  if (typeof fully !== 'undefined' && !window.__fluxNzTzPinned) {\n    try {\n      if (typeof fully.setT\
+              \ imezone === 'function') fully.setTimezone('Pacific/Auckland');\n      else if (typeof fully.setStringSetting =\
+              \ == 'function') fully.setStringSetting('timezoneId', 'Pacific/Auckland');\n      window.__fluxNzTzPinned = true\
+              \ ;\n    } catch (e) {}\n  }\n  const haDate = hass?.states?.['sensor.flux_ui_nz_date']?.state;\n  if (haDate &&\
+              \  haDate !== 'unknown' && haDate !== 'unavailable') return haDate;\n  return new Date().toLocaleDateString('en-\
+              \ NZ', {\n    timeZone: 'Pacific/Auckland',\n    weekday: 'long',\n    day: 'numeric',\n    month: 'long'\n  });\
+              \ \n]]]"
             tap_action:
               action: navigate
               navigation_path: /flux-ui/active
@@ -750,7 +760,7 @@ views:
                     - color: var(--md-sys-color-on-surface)
               - type: custom:button-card
                 template: flux_door
-                entity: binary_sensor.house_garage_door_sensor_door
+                entity: binary_sensor.house_garage_door_is_open
                 triggers_update: all
                 name: House Garage
                 icon: "[[[\nconst isDoorOpen = (st, invert) => {\n  if (!st) return null;\n  const s = String(st.state ??\
@@ -772,7 +782,7 @@ views:
                 variables:
                   invert: false
                   door_name: House Garage
-                  sensor_id: binary_sensor.house_garage_door_sensor_door
+                  sensor_id: binary_sensor.house_garage_door_is_open
                 tap_action:
                   action: call-service
                   service: script.turn_on
@@ -817,7 +827,7 @@ views:
                       ]]]"
               - type: custom:button-card
                 template: flux_door
-                entity: binary_sensor.casa_luna_main_shed_garage_door
+                entity: binary_sensor.shed_main_door_is_open
                 triggers_update: all
                 name: Main Shed
                 icon: "[[[\nconst isDoorOpen = (st, invert) => {\n  if (!st) return null;\n  const s = String(st.state ??\
@@ -839,7 +849,7 @@ views:
                 variables:
                   invert: false
                   door_name: Main Shed
-                  sensor_id: binary_sensor.casa_luna_main_shed_garage_door
+                  sensor_id: binary_sensor.shed_main_door_is_open
                 tap_action:
                   action: call-service
                   service: script.turn_on
@@ -1143,6 +1153,8 @@ views:
               month_font_size: 10px
               show_countdown: false
               show_progress_bar: false
+              time_24h: false
+              language: en
               progress_bar_color: var(--md-sys-color-primary)
               refresh_interval: 360
               refresh_on_navigate: false
@@ -1264,7 +1276,7 @@ views:
                     - font-weight: '700'
               - type: custom:button-card
                 template: flux_action
-                entity: light.main_atrium
+                entity: light.main_area
                 name: Main Area
                 icon: mdi:lightbulb-group
                 show_icon: true
@@ -2137,7 +2149,7 @@ views:
                 \  const title = 'Model X';\n  const left = charging\n    ? (pwr != null && Number(pwr) > 0 ? `${pwr} kW`\
                 \ : 'Charging')\n    : title;\n  const right = charging ? 'CHARGING' : 'NOT CHARGING';\n  const rightColor\
                 \ = charging ? '#81C784' : 'rgba(255,255,255,0.72)';\n  const rightGlow = charging\n    ? 'text-shadow:0 0\
-                \ 10px rgba(129,199,132,0.95),0 0 22px rgba(76,175,80,0.7);'\n    : '';\n  return `<div style=\"display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:30px;letter-spacing:0.04em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,0.78);\"\
+                \ 10px rgba(129,199,132,0.95),0 0 22px rgba(76,175,80,0.7);'\n    : '';\n  return `<div style=\"display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,0.78);\"\
                 ><span>• ${left}</span><span style=\"color:${rightColor};font-weight:700;${rightGlow}\">${right}</span></div>`;\n\
                 ]]]"
               car: "[[[\n  return `<div style=\"width:100%;height:100%;display:flex;justify-content:center;align-items:center;min-height:0;max-height:100%;overflow:hidden;flex:1;\"\
@@ -2149,7 +2161,7 @@ views:
                 \ ? '#81C784' : '#ffffff';\n  const glow = charging\n    ? 'text-shadow:0 0 14px rgba(129,199,132,0.85);'\n\
                 \    : '';\n  const pct = (soc == null || ['unavailable','unknown'].includes(String(soc))) ? '—' : soc;\n\
                 \  const title = 'Model X';\n  return `<div style=\"display:flex;justify-content:space-between;align-items:baseline;gap:12px;\"\
-                ><div style=\"font-size:35px;font-weight:700;line-height:1;color:${color};letter-spacing:-0.02em;${glow}\"\
+                ><div style=\"font-size:22px;font-weight:700;line-height:1;color:${color};letter-spacing:-0.02em;${glow}\"\
                 >${pct}<span style=\"font-size:13px;opacity:0.8;margin-left:2px;\">%</span></div><div style=\"font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-align:right;\"\
                 >${title}</div></div>`;\n]]]"
               bar: "[[[\n  const raw = Number(states['sensor.x_battery_level']?.state);\n  const pct = Number.isFinite(raw)\
@@ -2229,7 +2241,7 @@ views:
                 \  const title = 'Model S';\n  const left = charging\n    ? (pwr != null && Number(pwr) > 0 ? `${pwr} kW`\
                 \ : 'Charging')\n    : title;\n  const right = charging ? 'CHARGING' : 'NOT CHARGING';\n  const rightColor\
                 \ = charging ? '#81C784' : 'rgba(255,255,255,0.72)';\n  const rightGlow = charging\n    ? 'text-shadow:0 0\
-                \ 10px rgba(129,199,132,0.95),0 0 22px rgba(76,175,80,0.7);'\n    : '';\n  return `<div style=\"display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:30px;letter-spacing:0.04em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,0.78);\"\
+                \ 10px rgba(129,199,132,0.95),0 0 22px rgba(76,175,80,0.7);'\n    : '';\n  return `<div style=\"display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;font-weight:600;color:rgba(255,255,255,0.78);\"\
                 ><span>• ${left}</span><span style=\"color:${rightColor};font-weight:700;${rightGlow}\">${right}</span></div>`;\n\
                 ]]]"
               car: "[[[\n  return `<div style=\"width:100%;height:100%;display:flex;justify-content:center;align-items:center;min-height:0;max-height:100%;overflow:hidden;flex:1;\"\
@@ -2241,7 +2253,7 @@ views:
                 \ })();\n  const color = charging ? '#81C784' : '#ffffff';\n  const glow = charging\n    ? 'text-shadow:0\
                 \ 0 14px rgba(129,199,132,0.85);'\n    : '';\n  const pct = (soc == null || ['unavailable','unknown'].includes(String(soc)))\
                 \ ? '—' : soc;\n  const title = 'Model S';\n  return `<div style=\"display:flex;justify-content:space-between;align-items:baseline;gap:12px;\"\
-                ><div style=\"font-size:35px;font-weight:700;line-height:1;color:${color};letter-spacing:-0.02em;${glow}\"\
+                ><div style=\"font-size:22px;font-weight:700;line-height:1;color:${color};letter-spacing:-0.02em;${glow}\"\
                 >${pct}<span style=\"font-size:13px;opacity:0.8;margin-left:2px;\">%</span></div><div style=\"font-size:11px;font-weight:600;color:rgba(255,255,255,0.7);text-align:right;\"\
                 >${title}</div></div>`;\n]]]"
               bar: "[[[\n  const raw = Number(states['sensor.model_s_p100d_battery_level']?.state);\n  const pct = Number.isFinite(raw)\
@@ -2886,14 +2898,14 @@ views:
                 icon_closed: mdi:lightbulb-outline
                 color_on: '#FFD54F'
                 color_off: rgba(255,255,255,0.08)
-              - entity: binary_sensor.house_garage_door_sensor_door
+              - entity: binary_sensor.house_garage_door_is_open
                 name: House Garage
                 invert: false
                 icon: mdi:garage-open
                 icon_closed: mdi:garage
                 color_on: '#F2B8B5'
                 color_off: '#81C784'
-              - entity: binary_sensor.casa_luna_main_shed_garage_door
+              - entity: binary_sensor.shed_main_door_is_open
                 name: Main Shed
                 invert: false
                 icon: mdi:door-sliding-open
@@ -3002,8 +3014,8 @@ views:
             triggers_update:
             - light.garage
             - light.outside_garage
-            - binary_sensor.house_garage_door_sensor_door
-            - binary_sensor.casa_luna_main_shed_garage_door
+            - binary_sensor.house_garage_door_is_open
+            - binary_sensor.shed_main_door_is_open
       - title: Others
         icon: mdi:home
         cards:
@@ -3053,18 +3065,9 @@ views:
                 icon_closed: mdi:lightbulb-outline
                 color_on: '#FFD54F'
                 color_off: rgba(255,255,255,0.08)
-              - entity: binary_sensor.front_door_doorbell_motion_detected
-                color_on: '#B388FF'
-                icon: mdi:motion-sensor
-                icon_closed: mdi:motion-sensor-off
-              - entity: binary_sensor.front_door_doorbell_person_detected
-                color_on: '#B388FF'
-                icon: mdi:motion-sensor
-                icon_closed: mdi:motion-sensor-off
-              - entity: binary_sensor.front_door_doorbell_pet_detected
-                color_on: '#B388FF'
-                icon: mdi:motion-sensor
-                icon_closed: mdi:motion-sensor-off
+              - stub: true
+              - stub: true
+              - stub: true
               room_icon: mdi:door-open
               temperature_entity: null
               humidity_entity: null
@@ -3164,9 +3167,6 @@ views:
             - light.entry_centre
             - light.night_arrival
             - light.outside_entry
-            - binary_sensor.front_door_doorbell_motion_detected
-            - binary_sensor.front_door_doorbell_person_detected
-            - binary_sensor.front_door_doorbell_pet_detected
           - type: custom:button-card
             template: flux_room
             show_icon: false
@@ -4752,112 +4752,72 @@ views:
     cards:
     - type: custom:mushroom-title-card
       title: Cameras
-      subtitle: ''
+      subtitle: Live feeds
       card_mod:
-        style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
-          \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
-          \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
-          \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
+        style: "ha-card {\n  background: transparent !important;\n  box-shadow: none !important;\n  border: none !important;\n\
+          \  padding-left: 4px;\n  padding-bottom: 0;\n}\n.header {\n  font-weight: 600 !important;\n  letter-spacing: 0.01em;\n\
+          \  color: var(--md-sys-color-on-surface) !important;\n}\n.subheader {\n  color: var(--md-sys-color-on-surface-variant)\
+          \ !important;\n  font-size: 13px;\n}\n"
     - type: picture-glance
-      camera_image: camera.front_door_doorbell
+      title: Back Courtyard
+      entities: []
+      camera_image: camera.back_courtyard_fluent
       camera_view: live
-      title: Front Door
-      entities:
-      - binary_sensor.front_door_doorbell_person_detected
-      - binary_sensor.front_door_doorbell_motion_detected
+      show_state: false
       tap_action:
         action: more-info
-        entity: camera.front_door_doorbell
       card_mod:
         style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
           \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
           \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
           \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
     - type: picture-glance
-      camera_image: camera.front_yard
-      camera_view: live
-      title: Front Yard
-      entities:
-      - binary_sensor.front_yard_person_detected
-      - binary_sensor.front_yard_motion_detected
-      tap_action:
-        action: more-info
-        entity: camera.front_yard
-      card_mod:
-        style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
-          \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
-          \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
-          \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
-    - type: picture-glance
+      title: Driveway
+      entities: []
       camera_image: camera.side_door
       camera_view: live
-      title: Driveway
-      entities:
-      - binary_sensor.driveway_person_detected
-      - binary_sensor.driveway_motion_detected
+      show_state: false
       tap_action:
         action: more-info
-        entity: camera.side_door
       card_mod:
         style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
           \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
           \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
           \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
     - type: picture-glance
-      camera_image: camera.garage_door
-      camera_view: live
-      title: Garage
-      entities:
-      - binary_sensor.garage_door_person_detected
-      - binary_sensor.garage_door_motion_detected
-      tap_action:
-        action: more-info
-        entity: camera.garage_door
-      card_mod:
-        style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
-          \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
-          \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
-          \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
-    - type: picture-glance
+      title: Side of House
+      entities: []
       camera_image: camera.side_of_house
       camera_view: live
-      title: Side of House
-      entities:
-      - binary_sensor.side_of_house_person_detected
-      - binary_sensor.side_of_house_motion_detected
+      show_state: false
       tap_action:
         action: more-info
-        entity: camera.side_of_house
       card_mod:
         style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
           \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
           \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
           \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
     - type: picture-glance
-      camera_image: camera.living_room
+      title: Garage Door
+      entities: []
+      camera_image: camera.garage_door
       camera_view: live
-      title: Clubrooms
-      entities:
-      - binary_sensor.clubrooms_1_person_detected
-      - binary_sensor.clubrooms_1_motion_detected
+      show_state: false
       tap_action:
         action: more-info
-        entity: camera.living_room
       card_mod:
         style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
           \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
           \ saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent);\n\
           \  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n"
     - type: picture-glance
-      camera_image: camera.shed_camera_1
+      title: Front door Doorbell
+      entities: []
+      camera_image: camera.front_door_doorbell
       camera_view: live
-      title: Showroom
-      entities:
-      - binary_sensor.showroom_1_person_detected
-      - binary_sensor.showroom_1_motion_detected
+      show_state: false
       tap_action:
         action: more-info
-        entity: camera.shed_camera_1
       card_mod:
         style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
           \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter: blur(18px)\
@@ -4936,9 +4896,9 @@ views:
     - type: conditional
       conditions:
       - condition: template
-        value_template: '{{ states(''binary_sensor.house_garage_door_sensor_door'') | lower in [''on'', ''open'', ''opened'',
-          ''detected'', ''true''] or states(''binary_sensor.casa_luna_main_shed_garage_door'') | lower in [''on'', ''open'',
-          ''opened'', ''detected'', ''true''] }}'
+        value_template: '{{ states(''binary_sensor.house_garage_door_is_open'') | lower in [''on'', ''open'', ''opened'',
+          ''detected'', ''true''] or states(''binary_sensor.shed_main_door_is_open'') | lower in [''on'', ''open'', ''opened'',
+          ''detected'', ''true''] }}'
       card:
         type: grid
         cards:
@@ -4959,12 +4919,12 @@ views:
           - type: conditional
             conditions:
             - condition: template
-              value_template: '{{ states(''binary_sensor.house_garage_door_sensor_door'') | lower in [''on'', ''open'', ''opened'',
+              value_template: '{{ states(''binary_sensor.house_garage_door_is_open'') | lower in [''on'', ''open'', ''opened'',
                 ''detected'', ''true''] }}'
             card:
               type: custom:button-card
               template: flux_door
-              entity: binary_sensor.house_garage_door_sensor_door
+              entity: binary_sensor.house_garage_door_is_open
               triggers_update: all
               name: House Garage
               icon: "[[[\nconst isDoorOpen = (st, invert) => {\n  if (!st) return null;\n  const s = String(st.state ?? '').toLowerCase();\n\
@@ -4984,7 +4944,7 @@ views:
               variables:
                 invert: false
                 door_name: House Garage
-                sensor_id: binary_sensor.house_garage_door_sensor_door
+                sensor_id: binary_sensor.house_garage_door_is_open
               tap_action:
                 action: call-service
                 service: script.turn_on
@@ -5031,12 +4991,12 @@ views:
           - type: conditional
             conditions:
             - condition: template
-              value_template: '{{ states(''binary_sensor.casa_luna_main_shed_garage_door'') | lower in [''on'', ''open'',
-                ''opened'', ''detected'', ''true''] }}'
+              value_template: '{{ states(''binary_sensor.shed_main_door_is_open'') | lower in [''on'', ''open'', ''opened'',
+                ''detected'', ''true''] }}'
             card:
               type: custom:button-card
               template: flux_door
-              entity: binary_sensor.casa_luna_main_shed_garage_door
+              entity: binary_sensor.shed_main_door_is_open
               triggers_update: all
               name: Main Shed
               icon: "[[[\nconst isDoorOpen = (st, invert) => {\n  if (!st) return null;\n  const s = String(st.state ?? '').toLowerCase();\n\
@@ -5056,7 +5016,7 @@ views:
               variables:
                 invert: false
                 door_name: Main Shed
-                sensor_id: binary_sensor.casa_luna_main_shed_garage_door
+                sensor_id: binary_sensor.shed_main_door_is_open
               tap_action:
                 action: call-service
                 service: script.turn_on
@@ -9178,7 +9138,7 @@ views:
             cards:
             - type: custom:button-card
               template: flux_door
-              entity: binary_sensor.house_garage_door_sensor_door
+              entity: binary_sensor.house_garage_door_is_open
               triggers_update: all
               name: House Garage
               icon: "[[[\nconst isDoorOpen = (st, invert) => {\n  if (!st) return null;\n  const s = String(st.state ?? '').toLowerCase();\n\
@@ -9198,7 +9158,7 @@ views:
               variables:
                 invert: false
                 door_name: House Garage
-                sensor_id: binary_sensor.house_garage_door_sensor_door
+                sensor_id: binary_sensor.house_garage_door_is_open
               tap_action:
                 action: call-service
                 service: script.turn_on
@@ -9242,7 +9202,7 @@ views:
                     \ (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
             - type: custom:button-card
               template: flux_door
-              entity: binary_sensor.casa_luna_main_shed_garage_door
+              entity: binary_sensor.shed_main_door_is_open
               triggers_update: all
               name: Main Shed
               icon: "[[[\nconst isDoorOpen = (st, invert) => {\n  if (!st) return null;\n  const s = String(st.state ?? '').toLowerCase();\n\
@@ -9262,7 +9222,7 @@ views:
               variables:
                 invert: false
                 door_name: Main Shed
-                sensor_id: binary_sensor.casa_luna_main_shed_garage_door
+                sensor_id: binary_sensor.shed_main_door_is_open
               tap_action:
                 action: call-service
                 service: script.turn_on

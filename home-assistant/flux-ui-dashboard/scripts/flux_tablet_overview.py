@@ -675,7 +675,7 @@ _DEFAULT_AREA_LIGHTS: list[dict] = [
     {"name": "Kitchen", "entity": "light.kitchen", "icon": "mdi:stove"},
     {
         "name": "Main Area",
-        "entity": "light.main_area",
+        "entity": "light.main_atrium",
         "icon": "mdi:lightbulb-group",
     },
     {"name": "Dining", "entity": "light.dining_all", "icon": "mdi:silverware-fork-knife"},
@@ -1185,14 +1185,11 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # 15.6" / 1920×1080 — all bands visible inside 100dvh.
-            # Top ~26%: clock | gates. Mid ~42%: Lights + Cameras (top-aligned
-            # square). Bottom ~28%: full-width Tesla — taller so card tops meet
-            # the Cameras/Music mid-floor (same width + bottom edge as before).
-            # Never use mid=1fr with huge top/tesla fr — mid collapses on Fully.
+            # 15.6" / 1920×1080 — matches committed baseline YAML
+            # (lovelace/dashboards/flux_ui_tablet.yaml): 30 / 48 / 26 fr.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
             "grid-template-rows": (
-                "minmax(0, 26fr) minmax(0, 42fr) minmax(0, 28fr)"
+                "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)"
             ),
             "grid-auto-rows": "minmax(0, auto)",
             "align-content": "stretch",

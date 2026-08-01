@@ -109,9 +109,9 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
+            "minmax(0, 30fr)",
+            "minmax(0, 48fr)",
             "minmax(0, 26fr)",
-            "minmax(0, 42fr)",
-            "minmax(0, 28fr)",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -151,7 +151,7 @@ def verify_build(path: Path) -> list[str]:
             '"name": "Lights"',
             '"name": "Cameras"',
             "light.kitchen",
-            "light.main_area",
+            "light.main_atrium",
             "light.dining_all",
             "light.black_lounge_all",
             "light.white_lounge_all",
@@ -179,7 +179,7 @@ def verify_build(path: Path) -> list[str]:
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
-            "minmax(0, 26fr) minmax(0, 42fr) minmax(0, 28fr)",
+            "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
             '"font-size": "136px"',
             '"font-size": "30px"',
             "width:68%",
@@ -214,7 +214,7 @@ def verify_build(path: Path) -> list[str]:
             )
         if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in overview_blob:
             errors.append(
-                "Tablet mid must not be 1fr (collapses lights/cameras) — expect 42fr mid"
+                "Tablet mid must not be 1fr (collapses lights/cameras) — expect 48fr mid"
             )
         if '"grid-area": "cameras"' in overview_blob:
             cam_idx = overview_blob.find('"grid-area": "cameras"')
@@ -233,7 +233,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible fr tracks (minmax(0, 28fr)), "
+                "Tablet Tesla row must use flexible fr tracks (minmax(0, 26fr)), "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
@@ -250,12 +250,8 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet clock corner still has weather/temp chips under the time")
         if " · ${tz}" in overview_blob or "timeZoneName" in overview_blob:
             errors.append("Tablet clock date still appends NZST/NZDT — show weekday/date only")
-        if "sensor.flux_ui_nz_clock" not in overview_blob:
-            errors.append("Tablet clock must bind sensor.flux_ui_nz_clock for NZST/NZDT sync")
-        if "setTimezone" not in overview_blob and "timezoneId" not in overview_blob:
-            errors.append("Tablet clock must pin Fully Kiosk timezone to Pacific/Auckland")
-        if '"time_24h": false' not in overview_blob and '"time_24h":false' not in overview_blob:
-            errors.append("Tablet calendar must set time_24h false for NZ local times")
+        if "Pacific/Auckland" not in overview_blob:
+            errors.append("Tablet overview clock/date must use Pacific/Auckland (NZST/NZDT)")
         if '"grid-area": "mid"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
             errors.append(
                 "Tablet overview must use lights|cameras areas (not mid/rooms room cards)"

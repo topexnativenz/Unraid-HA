@@ -8,6 +8,7 @@ import json
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -40,6 +41,9 @@ WEATHER_PANEL = ROOT / "weather_panel.yaml"
 WEATHER_HOURLY_ENTITY = "sensor.flux_ui_hourly_forecast_full"
 TABLET_YAML = ROOT / "lovelace" / "dashboards" / "flux_ui_tablet.yaml"
 TABLET_YAML_FILENAME = "dashboards/flux_ui_tablet.yaml"
+TABLET_VERSIONS_DIR = ROOT / "lovelace" / "dashboards" / "versions"
+TABLET_VERSIONS_MANIFEST = TABLET_VERSIONS_DIR / "MANIFEST.json"
+TABLET_GENERATED_JSON = ROOT / "generated" / "lovelace.flux_ui_tablet.json"
 URL_PATH = "flux-ui"
 STORAGE_KEY = "lovelace.flux_ui"
 MOBILE_STORAGE = "lovelace.mobile_home"
@@ -49,6 +53,21 @@ TABLET_URL_PATH = "flux-ui-tablet"
 TABLET_STORAGE_KEY = "lovelace.flux_ui_tablet"
 TABLET_TITLE = "Flux UI 16:9"
 TABLET_DASHBOARD_ID = "flux_ui_tablet"
+
+TABLET_YAML_HEADER = """# Flux UI 16:9 tablet dashboard — BASELINE (source of truth)
+#
+# This file is the committed baseline design. Normal deploy loads and pushes
+# THIS YAML to HA — it does NOT regenerate from Python builders.
+#
+# Version history: lovelace/dashboards/versions/
+# Before replacing this file, snapshot it:
+#   python3 scripts/deploy_flux_ui.py --snapshot-tablet-yaml [--label <name>]
+# Rebuild from Python builders only when intentional:
+#   python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml
+# Pull live HA into this baseline (snapshots first):
+#   python3 scripts/deploy_flux_ui.py --pull-tablet-yaml
+#
+"""
 
 
 # Packages that must land on HA for tablet RGB / media / tabs to work.
@@ -268,16 +287,108 @@ def write_tablet_storage(mount: str, config: dict) -> None:
     )
 
 
-def write_tablet_yaml_from_config(config: dict) -> Path:
-    """Write the editable tablet Lovelace YAML (source of truth for manual edits)."""
+def snapshot_tablet_yaml(*, label: str = "snapshot") -> Path | None:
+    """Copy current baseline YAML into versions/ before it is replaced."""
+    import re
+
+    if not TABLET_YAML.exists() or TABLET_YAML.stat().st_size < 32:
+        print("  no tablet baseline YAML to snapshot yet")
+        return None
+    TABLET_VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    safe = re.sub(r"[^a-zA-Z0-9._-]+", "-", label).strip("-") or "snapshot"
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    dest = TABLET_VERSIONS_DIR / f"{ts}_{safe}.yaml"
+    shutil.copy2(TABLET_YAML, dest)
+    print(f"  snapshotted tablet baseline → {dest.relative_to(ROOT)}")
+    _update_tablet_versions_manifest(last_snapshot=dest.name)
+    return dest
+
+
+def _update_tablet_versions_manifest(**extra: object) -> None:
+    TABLET_VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    data: dict = {}
+    if TABLET_VERSIONS_MANIFEST.exists():
+        try:
+            data = json.loads(TABLET_VERSIONS_MANIFEST.read_text()) or {}
+        except json.JSONDecodeError:
+            data = {}
+    data.setdefault("current", "flux_ui_tablet.yaml")
+    data.setdefault("baseline", "2026-08-01_baseline.yaml")
+    data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    data.update({k: v for k, v in extra.items() if v is not None})
+    snaps = sorted(
+        p.name
+        for p in TABLET_VERSIONS_DIR.glob("*.yaml")
+        if p.name != "README.md"
+    )
+    data["snapshots"] = snaps
+    TABLET_VERSIONS_MANIFEST.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def write_tablet_yaml_from_config(config: dict, *, snapshot_label: str | None = None) -> Path:
+    """Write the tablet Lovelace YAML baseline (snapshots previous file first)."""
     import yaml
 
+    if snapshot_label:
+        snapshot_tablet_yaml(label=snapshot_label)
     TABLET_YAML.parent.mkdir(parents=True, exist_ok=True)
-    TABLET_YAML.write_text(
-        yaml.dump(config, sort_keys=False, allow_unicode=True, width=120)
-    )
+    body = yaml.dump(config, sort_keys=False, allow_unicode=True, width=120)
+    TABLET_YAML.write_text(TABLET_YAML_HEADER + body)
     print(f"  wrote {TABLET_YAML.relative_to(ROOT)} ({TABLET_YAML.stat().st_size} bytes)")
+    _update_tablet_versions_manifest(current="flux_ui_tablet.yaml")
     return TABLET_YAML
+
+
+def load_tablet_yaml() -> dict:
+    """Load the committed tablet baseline YAML (strips comment header)."""
+    import yaml
+
+    if not TABLET_YAML.exists():
+        raise SystemExit(
+            f"ERROR: missing tablet baseline {TABLET_YAML}.\n"
+            "  Pull live: python3 scripts/deploy_flux_ui.py --pull-tablet-yaml\n"
+            "  Or rebuild: python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml"
+        )
+    raw = TABLET_YAML.read_text()
+    # Drop leading comment header so yaml can parse title/views.
+    lines = raw.splitlines(keepends=True)
+    while lines and lines[0].lstrip().startswith("#"):
+        lines.pop(0)
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    config = yaml.safe_load("".join(lines))
+    if not isinstance(config, dict) or "views" not in config:
+        raise SystemExit(f"ERROR: {TABLET_YAML} is not a valid Lovelace config")
+    return config
+
+
+def write_generated_tablet_json(config: dict) -> Path:
+    """Write HA storage-shaped JSON for verify_flux_ui.py --json."""
+    TABLET_GENERATED_JSON.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": 1,
+        "minor_version": 1,
+        "key": TABLET_STORAGE_KEY,
+        "data": {"config": config},
+    }
+    TABLET_GENERATED_JSON.write_text(json.dumps(payload, indent=2) + "\n")
+    return TABLET_GENERATED_JSON
+
+
+async def pull_tablet_yaml_from_ha(token: str, ha_url: str, *, label: str = "pre-pull") -> dict:
+    """Fetch live flux-ui-tablet into the baseline YAML (versions previous first)."""
+    res = (
+        await ws_call(
+            token, ha_url, [{"type": "lovelace/config", "url_path": TABLET_URL_PATH}]
+        )
+    )[0]
+    if not res.get("success"):
+        raise SystemExit(f"ERROR: could not pull live tablet config: {res.get('error')}")
+    config = res["result"]
+    write_tablet_yaml_from_config(config, snapshot_label=label)
+    write_generated_tablet_json(config)
+    print(f"  pulled live {TABLET_URL_PATH} → {TABLET_YAML.relative_to(ROOT)}")
+    return config
 
 
 def ensure_tablet_yaml_in_configuration(mount: str) -> None:
@@ -385,8 +496,8 @@ def copy_tablet_yaml_dashboard(mount: str) -> None:
     if not TABLET_YAML.exists():
         raise SystemExit(
             f"ERROR: missing {TABLET_YAML}.\n"
-            "  Create it with: python3 scripts/deploy_flux_ui.py --export-tablet-yaml\n"
-            "  Or export from a tablet build."
+            "  Pull live: python3 scripts/deploy_flux_ui.py --pull-tablet-yaml\n"
+            "  Or rebuild: python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml"
         )
     dst_dir = Path(mount) / "dashboards"
     dst_dir.mkdir(parents=True, exist_ok=True)
@@ -830,16 +941,16 @@ def build_config(
             "Weather Forecast",
             "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
+            "minmax(0, 30fr)",
+            "minmax(0, 48fr)",
             "minmax(0, 26fr)",
-            "minmax(0, 42fr)",
-            "minmax(0, 28fr)",
-            "minmax(0, 26fr) minmax(0, 42fr) minmax(0, 28fr)",
+            "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
             "aspect-ratio: unset",
             '"font-size": "24px"',
             '"name": "Lights"',
             '"name": "Cameras"',
             "light.kitchen",
-            "light.main_area",
+            "light.main_atrium",
             "light.dining_all",
             "light.black_lounge_all",
             "light.white_lounge_all",
@@ -993,7 +1104,7 @@ def build_config(
         if "minmax(0, 28fr) minmax(0, 1fr) minmax(0, 16fr)" in blob:
             print(
                 "\nERROR: Tablet mid must not be 1fr "
-                "(collapses lights/cameras) — expect 42fr mid.\n",
+                "(collapses lights/cameras) — expect 48fr mid.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -1408,20 +1519,35 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
     tablet_config: dict | None = None
     if not args.skip_tablet:
-        print("Building Flux UI 16:9 tablet variant…")
-        tablet_config = build_config(
-            mobile_storage,
-            use_navbar_card=use_navbar,
-            use_kiosk=use_kiosk,
-            use_auto_entities=use_auto_entities,
-            use_simple_tabs=use_simple_tabs,
-            use_calendar_pro=use_calendar_pro,
-            use_mediocre_media=use_mediocre_media,
-            tablet=True,
-        )
-        # Keep an optional YAML snapshot in-repo for reference / manual export.
-        if getattr(args, "export_tablet_yaml", False):
-            write_tablet_yaml_from_config(tablet_config)
+        if getattr(args, "rebuild_tablet_yaml", False):
+            print("Rebuilding Flux UI 16:9 tablet from Python builders…")
+            print("  (snapshots current baseline YAML into versions/ first)")
+            tablet_config = build_config(
+                mobile_storage,
+                use_navbar_card=use_navbar,
+                use_kiosk=use_kiosk,
+                use_auto_entities=use_auto_entities,
+                use_simple_tabs=use_simple_tabs,
+                use_calendar_pro=use_calendar_pro,
+                use_mediocre_media=use_mediocre_media,
+                tablet=True,
+            )
+            write_tablet_yaml_from_config(tablet_config, snapshot_label="pre-rebuild")
+            write_generated_tablet_json(tablet_config)
+        else:
+            print("Loading Flux UI 16:9 tablet baseline YAML (not regenerating)…")
+            tablet_config = load_tablet_yaml()
+            write_generated_tablet_json(tablet_config)
+            print(
+                f"  loaded {TABLET_YAML.relative_to(ROOT)} "
+                f"({TABLET_YAML.stat().st_size} bytes, "
+                f"{len(tablet_config.get('views') or [])} views)"
+            )
+        # Legacy alias: --export-tablet-yaml after a rebuild already wrote YAML.
+        if getattr(args, "export_tablet_yaml", False) and not getattr(
+            args, "rebuild_tablet_yaml", False
+        ):
+            print("  --export-tablet-yaml ignored: baseline YAML already is the source")
 
     # Verify built JSON BEFORE writing HA storage / live API save.
     # Previous bug: SMB storage was written, then verify failed on weather entity
@@ -1521,7 +1647,33 @@ def main() -> int:
     parser.add_argument(
         "--export-tablet-yaml",
         action="store_true",
-        help="Also write lovelace/dashboards/flux_ui_tablet.yaml snapshot from this build",
+        help="Deprecated alias — baseline YAML is already the deploy source",
+    )
+    parser.add_argument(
+        "--rebuild-tablet-yaml",
+        action="store_true",
+        help=(
+            "Regenerate tablet dashboard from Python builders, snapshotting the "
+            "current baseline YAML into lovelace/dashboards/versions/ first"
+        ),
+    )
+    parser.add_argument(
+        "--pull-tablet-yaml",
+        action="store_true",
+        help=(
+            "Pull live flux-ui-tablet from HA into the baseline YAML "
+            "(snapshots the previous baseline into versions/ first)"
+        ),
+    )
+    parser.add_argument(
+        "--snapshot-tablet-yaml",
+        action="store_true",
+        help="Copy current baseline YAML into lovelace/dashboards/versions/ and exit",
+    )
+    parser.add_argument(
+        "--label",
+        default=None,
+        help="Label suffix for --snapshot-tablet-yaml / --pull-tablet-yaml",
     )
     parser.add_argument(
         "--offline-ok",
@@ -1529,6 +1681,28 @@ def main() -> int:
         help="If HA unreachable, still copy to SMB and exit 0",
     )
     args = parser.parse_args()
+
+    if args.snapshot_tablet_yaml:
+        snap = snapshot_tablet_yaml(label=args.label or "manual")
+        return 0 if snap else 1
+
+    if args.pull_tablet_yaml:
+
+        async def _pull() -> int:
+            token = get_token(args.token)
+            if not await ha_reachable(args.ha_url, token):
+                raise SystemExit(f"ERROR: HA unreachable at {args.ha_url}")
+            await pull_tablet_yaml_from_ha(
+                token, args.ha_url, label=args.label or "pre-pull"
+            )
+            print(
+                "Tablet baseline updated from live HA "
+                "(previous version kept in versions/)."
+            )
+            return 0
+
+        return run_async(_pull())
+
     return run_async(deploy_async(args))
 
 

@@ -4,11 +4,28 @@ Material Design 3–styled dashboard inspired by [ElementZoom/Flux-UI-Home-Assis
 
 ## Phase 4 tablet (16:9)
 
-`/flux-ui-tablet` is a **storage** Lovelace dashboard pushed on every deploy
-(`lovelace/config/save`). Build: `python3 scripts/build_flux_ui.py --tablet`.
+`/flux-ui-tablet` is a **storage** Lovelace dashboard. Deploy loads the
+committed baseline YAML and pushes it with `lovelace/config/save` — it does
+**not** regenerate the tablet from Python builders by default.
 
-Optional snapshot: `lovelace/dashboards/flux_ui_tablet.yaml` (export with
-`deploy_flux_ui.py --export-tablet-yaml`) — not used as the live source.
+| Path | Role |
+|------|------|
+| [`lovelace/dashboards/flux_ui_tablet.yaml`](lovelace/dashboards/flux_ui_tablet.yaml) | **Baseline** (source of truth) |
+| [`lovelace/dashboards/versions/`](lovelace/dashboards/versions/) | Version history — previous designs kept before overwrite |
+
+```bash
+# Normal deploy — pushes the committed baseline YAML
+bash scripts/update_and_deploy.sh
+
+# Snapshot baseline before a manual edit
+python3 scripts/deploy_flux_ui.py --snapshot-tablet-yaml --label before-change
+
+# Pull live HA into baseline (versions previous file first)
+python3 scripts/deploy_flux_ui.py --pull-tablet-yaml
+
+# Rebuild from Python builders only when intentional (versions first)
+python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml
+```
 
 **rk3576_u RGB LED:** `packages/flux_ui_tablet_led.yaml` pulses
 `light.rk3576_u_rk3576_u_rgb` (MQTT AndroidTablet Controls → RGB) green while
