@@ -23,7 +23,9 @@ from ha_common import (
     mount_config,
     run_async,
     unmount,
+    wait_for_ha,
     ws_call,
+    ws_call_retry,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -625,21 +627,31 @@ def print_fingerprint(config: dict, *, label: str) -> None:
 
 
 async def reload_core_config(token: str, ha_url: str) -> None:
-    res = await ws_call(
-        token,
-        ha_url,
-        [
-            {
-                "type": "call_service",
-                "domain": "homeassistant",
-                "service": "reload_core_config",
-            }
-        ],
-    )
+    try:
+        res = await ws_call_retry(
+            token,
+            ha_url,
+            [
+                {
+                    "type": "call_service",
+                    "domain": "homeassistant",
+                    "service": "reload_core_config",
+                }
+            ],
+            attempts=3,
+            delay_s=2,
+            label="reload_core_config",
+        )
+    except Exception as exc:
+        print(f"  WARNING: reload_core_config call failed ({exc}) — waiting for HA…")
+        await wait_for_ha(token, ha_url, timeout_s=180, label="HA after core reload")
+        return
     if res[0].get("success") is False:
         print(f"  WARNING: reload_core_config failed: {res[0].get('error')}")
     else:
         print("  reloaded HA core config (packages/input_select)")
+    # Core reload often drops the API briefly — never continue until it's back.
+    await wait_for_ha(token, ha_url, timeout_s=180, label="HA after core reload")
 
 
 async def wait_for_entity(token: str, ha_url: str, entity_id: str, *, attempts: int = 5) -> bool:
@@ -686,12 +698,25 @@ async def ensure_weather_package_helpers(token: str, ha_url: str) -> None:
     """Reload packages/templates and wait for MetService forecast sensors."""
     import asyncio
 
+    weather_entity = _weather_entity_from_config()
+    # Avoid a second full core reload when weather helpers are already live —
+    # reload_core_config mid-deploy is what dropped HA during the last run.
+    if await entity_exists(token, ha_url, weather_entity) and await entity_exists(
+        token, ha_url, WEATHER_HOURLY_ENTITY
+    ):
+        print(
+            f"  weather helpers already loaded ({weather_entity}, "
+            f"{WEATHER_HOURLY_ENTITY}) — skip core reload"
+        )
+        return
+
     await asyncio.sleep(1)
     await reload_core_config(token, ha_url)
-    await asyncio.sleep(2)
-    await reload_template(token, ha_url)
-    await asyncio.sleep(3)
-    weather_entity = _weather_entity_from_config()
+    try:
+        await reload_template(token, ha_url)
+    except Exception as exc:
+        print(f"  WARNING: template.reload skipped ({exc})")
+    await wait_for_ha(token, ha_url, timeout_s=120, label="HA after weather helpers")
     if not await wait_for_entity(token, ha_url, weather_entity, attempts=8):
         print(f"  WARNING: {weather_entity} not found — run discover_weather.py --apply")
     if not await wait_for_entity(token, ha_url, WEATHER_HOURLY_ENTITY, attempts=8):
@@ -1255,18 +1280,25 @@ async def ensure_tablet_dashboard(token: str, ha_url: str) -> None:
 
 
 async def save_dashboard(token: str, ha_url: str, config: dict, *, url_path: str = URL_PATH) -> None:
-    res = await ws_call(
+    await wait_for_ha(token, ha_url, timeout_s=120, label=f"HA before saving {url_path}")
+    res = await ws_call_retry(
         token,
         ha_url,
         [{"type": "lovelace/config/save", "url_path": url_path, "config": config}],
+        attempts=8,
+        delay_s=4,
+        label=f"lovelace/config/save ({url_path})",
     )
     if not res[0].get("success"):
         raise RuntimeError(f"lovelace/config/save failed: {res[0].get('error')}")
 
-    verify = await ws_call(
+    verify = await ws_call_retry(
         token,
         ha_url,
         [{"type": "lovelace/config", "url_path": url_path, "force": True}],
+        attempts=5,
+        delay_s=3,
+        label=f"lovelace/config verify ({url_path})",
     )
     if not verify[0].get("success"):
         raise RuntimeError(f"Could not verify saved {url_path} config: {verify[0].get('error')}")
@@ -1601,6 +1633,10 @@ async def deploy_async(args: argparse.Namespace) -> int:
         return 0
 
     assert token is not None
+
+    # Core/package reloads above often leave HA briefly refusing connections.
+    print("Waiting for Home Assistant API before lovelace/config/save…")
+    await wait_for_ha(token, args.ha_url, timeout_s=180, label="HA before dashboard push")
 
     print("Pushing phone dashboard via lovelace/config/save…")
     await save_dashboard(token, args.ha_url, config)

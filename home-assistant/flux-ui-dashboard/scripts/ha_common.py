@@ -44,7 +44,7 @@ def get_token(explicit: str | None = None) -> str:
 
 async def ws_call(token: str, ha_url: str, calls: list[dict]) -> list[dict]:
     ws_url = ha_url.replace("http://", "ws://").replace("https://", "wss://") + "/api/websocket"
-    async with websockets.connect(ws_url, max_size=50_000_000) as ws:
+    async with websockets.connect(ws_url, max_size=50_000_000, open_timeout=30) as ws:
         await ws.recv()
         await ws.send(json.dumps({"type": "auth", "access_token": token}))
         auth = json.loads(await ws.recv())
@@ -68,6 +68,65 @@ async def ws_call(token: str, ha_url: str, calls: list[dict]) -> list[dict]:
         for c in calls:
             results.append(await call(**c))
         return results
+
+
+async def wait_for_ha(
+    token: str,
+    ha_url: str,
+    *,
+    timeout_s: float = 180,
+    interval_s: float = 3,
+    label: str = "HA",
+) -> None:
+    """Block until the HA websocket API accepts auth again (post-reload / restart)."""
+    deadline = asyncio.get_event_loop().time() + timeout_s
+    attempt = 0
+    last_err: Exception | None = None
+    while asyncio.get_event_loop().time() < deadline:
+        attempt += 1
+        try:
+            if await ha_reachable(ha_url, token):
+                if attempt > 1:
+                    print(f"  {label} reachable again after {attempt} attempt(s)")
+                return
+        except Exception as exc:  # pragma: no cover - defensive
+            last_err = exc
+        await asyncio.sleep(interval_s)
+    detail = f" ({last_err})" if last_err else ""
+    raise RuntimeError(
+        f"{label} at {ha_url} did not become reachable within {timeout_s:.0f}s{detail}"
+    )
+
+
+async def ws_call_retry(
+    token: str,
+    ha_url: str,
+    calls: list[dict],
+    *,
+    attempts: int = 8,
+    delay_s: float = 3,
+    label: str = "HA websocket",
+) -> list[dict]:
+    """ws_call with retries — survives core reload / brief connection refused."""
+    last: Exception | None = None
+    for i in range(1, attempts + 1):
+        try:
+            return await ws_call(token, ha_url, calls)
+        except Exception as exc:
+            last = exc
+            if i >= attempts:
+                break
+            print(
+                f"  WARNING: {label} failed ({type(exc).__name__}: {exc}) "
+                f"— retry {i}/{attempts - 1} in {delay_s:.0f}s…"
+            )
+            await asyncio.sleep(delay_s)
+            try:
+                await wait_for_ha(token, ha_url, timeout_s=60, interval_s=2, label=label)
+            except Exception:
+                pass
+    assert last is not None
+    raise last
 
 
 async def get_samba_creds(token: str, ha_url: str) -> tuple[str, str]:
