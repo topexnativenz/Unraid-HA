@@ -666,7 +666,17 @@ async def wait_for_entity(token: str, ha_url: str, entity_id: str, *, attempts: 
 
 
 async def entity_exists(token: str, ha_url: str, entity_id: str) -> bool:
-    res = await ws_call(token, ha_url, [{"type": "get_states"}])
+    try:
+        res = await ws_call_retry(
+            token,
+            ha_url,
+            [{"type": "get_states"}],
+            attempts=3,
+            delay_s=2,
+            label="get_states",
+        )
+    except Exception:
+        return False
     if not res[0].get("success"):
         return False
     return any(s.get("entity_id") == entity_id for s in res[0].get("result", []))

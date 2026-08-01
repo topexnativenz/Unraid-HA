@@ -79,10 +79,11 @@ async def wait_for_ha(
     label: str = "HA",
 ) -> None:
     """Block until the HA websocket API accepts auth again (post-reload / restart)."""
-    deadline = asyncio.get_event_loop().time() + timeout_s
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + timeout_s
     attempt = 0
     last_err: Exception | None = None
-    while asyncio.get_event_loop().time() < deadline:
+    while loop.time() < deadline:
         attempt += 1
         try:
             if await ha_reachable(ha_url, token):
