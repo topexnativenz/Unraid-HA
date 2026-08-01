@@ -1838,6 +1838,14 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--relock-tablet-baseline",
+        action="store_true",
+        help=(
+            "After an intentional edit of flux_ui_tablet.yaml, refresh "
+            "layout_lock_sha256 in versions/MANIFEST.json and exit"
+        ),
+    )
+    parser.add_argument(
         "--snapshot-tablet-yaml",
         action="store_true",
         help="Copy current baseline YAML into lovelace/dashboards/versions/ and exit",
