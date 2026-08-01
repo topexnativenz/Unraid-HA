@@ -1,18 +1,15 @@
-# Flux UI 16:9 tablet dashboard — LOCKED BASELINE (source of truth)
+# Flux UI 16:9 tablet dashboard — BASELINE (source of truth)
 #
-# LAYOUT LOCK: gaps, spacings, grid fr tracks, card sizes, and overview
-# composition are frozen. Normal deploy / page refresh / Companion cache
-# reload MUST push this exact config — they must NOT regenerate layout.
-#
-# The only approved way to change this dashboard is an explicit Cursor agent
-# (or human) edit of this file, followed by updating the layout lock hash.
+# This file is the committed baseline design. Normal deploy loads and pushes
+# THIS YAML to HA — it does NOT regenerate from Python builders.
 #
 # Version history: lovelace/dashboards/versions/
-# Snapshot before any intentional replace:
+# Before replacing this file, snapshot it:
 #   python3 scripts/deploy_flux_ui.py --snapshot-tablet-yaml [--label <name>]
-# Rebuild / pull require an unlock flag (refuses otherwise):
-#   python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml --replace-locked-tablet-baseline
-#   python3 scripts/deploy_flux_ui.py --pull-tablet-yaml --replace-locked-tablet-baseline
+# Rebuild from Python builders only when intentional:
+#   python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml
+# Pull live HA into this baseline (snapshots first):
+#   python3 scripts/deploy_flux_ui.py --pull-tablet-yaml
 #
 title: Flux UI 16:9
 button_card_templates:
@@ -542,24 +539,13 @@ views:
             show_name: true
             show_label: true
             show_state: false
-            name: "[[[\n  if (typeof fully !== 'undefined' && !window.__fluxNzTzPinned) {\n    try {\n      if (typeof fully.setTimezone\
-              \ === 'function') fully.setTimezone('Pacific/Auckland');\n      else if (typeof fully.setStringSetting === 'function')\
-              \ fully.setStringSetting('timezoneId', 'Pacific/Auckland');\n      window.__fluxNzTzPinned = true;\n    } catch\
-              \ (e) {}\n  }\n  if (this && !this.__fluxNzClock) {\n    this.__fluxNzClock = setInterval(() => {\n      try\
-              \ { this.update(); } catch (e) {}\n    }, 15000);\n  }\n  const haClock = hass?.states?.['sensor.flux_ui_nz_clock']?.state;\n\
-              \  if (haClock && /^\\d{1,2}:\\d{2}$/.test(haClock)) return haClock;\n  const haTime = hass?.states?.['sensor.time']?.state;\n\
-              \  if (haTime && /^\\d{1,2}:\\d{2}/.test(haTime)) {\n    let h = parseInt(haTime.split(':')[0], 10);\n    const\
-              \ m = haTime.split(':')[1].slice(0, 2);\n    if (h === 0) h = 12; else if (h > 12) h -= 12;\n    return `${h}:${m}`;\n\
-              \  }\n  const parts = new Intl.DateTimeFormat('en-NZ', {\n    timeZone: 'Pacific/Auckland',\n    hour: 'numeric',\n\
-              \    minute: '2-digit',\n    hour12: true,\n    hourCycle: 'h12'\n  }).formatToParts(new Date());\n  const hour\
-              \ = (parts.find((p) => p.type === 'hour') || {}).value || '';\n  const minute = (parts.find((p) => p.type ===\
-              \ 'minute') || {}).value || '';\n  return `${hour}:${minute}`;\n]]]"
-            label: "[[[\n  if (typeof fully !== 'undefined' && !window.__fluxNzTzPinned) {\n    try {\n      if (typeof fully.setTimezone\
-              \ === 'function') fully.setTimezone('Pacific/Auckland');\n      else if (typeof fully.setStringSetting === 'function')\
-              \ fully.setStringSetting('timezoneId', 'Pacific/Auckland');\n      window.__fluxNzTzPinned = true;\n    } catch\
-              \ (e) {}\n  }\n  const haDate = hass?.states?.['sensor.flux_ui_nz_date']?.state;\n  if (haDate && haDate !==\
-              \ 'unknown' && haDate !== 'unavailable') return haDate;\n  return new Date().toLocaleDateString('en-NZ', {\n\
-              \    timeZone: 'Pacific/Auckland',\n    weekday: 'long',\n    day: 'numeric',\n    month: 'long'\n  });\n]]]"
+            name: "[[[\n  if (this && !this.__fluxNzClock) {\n    this.__fluxNzClock = setInterval(() => {\n      try { this.update();\
+              \ } catch (e) {}\n    }, 15000);\n  }\n  const parts = new Intl.DateTimeFormat('en-NZ', {\n    timeZone: 'Pacific/Auckland',\n\
+              \    hour: 'numeric',\n    minute: '2-digit',\n    hour12: true,\n    hourCycle: 'h12'\n  }).formatToParts(new\
+              \ Date());\n  const hour = (parts.find((p) => p.type === 'hour') || {}).value || '';\n  const minute = (parts.find((p)\
+              \ => p.type === 'minute') || {}).value || '';\n  return `${hour}:${minute}`;\n]]]"
+            label: "[[[\n  return new Date().toLocaleDateString('en-NZ', {\n    timeZone: 'Pacific/Auckland',\n    weekday:\
+              \ 'long',\n    day: 'numeric',\n    month: 'long'\n  });\n]]]"
             tap_action:
               action: navigate
               navigation_path: /flux-ui/active
@@ -601,11 +587,6 @@ views:
               - color: var(--md-sys-color-on-surface-variant)
               - opacity: '0.92'
               - padding-left: '0'
-            entity: sensor.flux_ui_nz_clock
-            triggers_update:
-            - sensor.flux_ui_nz_clock
-            - sensor.flux_ui_nz_date
-            - sensor.time
           card_mod:
             style: ":host {\n  display: block !important;\n  height: 100% !important;\n  min-height: 0 !important;\n  overflow:\
               \ hidden !important;\n}\nha-card {\n  height: 100% !important;\n  min-height: 0 !important;\n}\n"
@@ -1163,10 +1144,11 @@ views:
               show_countdown: false
               show_progress_bar: false
               progress_bar_color: var(--md-sys-color-primary)
-              time_24h: false
-              language: en
               refresh_interval: 360
               refresh_on_navigate: false
+              compact_days_to_show: 7
+              compact_events_complete_days: true
+              show_empty_days: true
               height: calc(100% - 200px)
               max_height: calc(100% - 200px)
               min_height: 320px
@@ -1181,9 +1163,6 @@ views:
                   \ {\n  overflow-x: hidden !important;\n  overflow-y: auto !important;\n  -webkit-overflow-scrolling: touch\
                   \ !important;\n  overscroll-behavior: contain !important;\n  touch-action: pan-y !important;\n}\n.loading-indicator,\n\
                   .loading-indicator .spinner,\nha-card > .loading-indicator {\n  display: none !important;\n}\n"
-              show_empty_days: true
-              compact_days_to_show: 7
-              compact_events_complete_days: true
             card_mod:
               style: ":host, ha-card {\n  height: 100% !important;\n  max-height: 100% !important;\n  min-height: 0 !important;\n\
                 \  background: transparent !important;\n  box-shadow: none !important;\n  border: none !important;\n  overflow:\

@@ -40,9 +40,16 @@
     "room-hall-climate",
     "room-hall-camera"
   ],
-  "updated_at": "2026-08-01T10:28:39.555765+00:00",
+  "updated_at": "2026-08-01T10:52:50.791497+00:00",
   "snapshots": [
     "2026-08-01_baseline.yaml",
-    "20260801T102610Z_pre-baseline-export.yaml"
-  ]
+    "20260801T102610Z_pre-baseline-export.yaml",
+    "20260801T104103Z_pre-ios-calendar-sync.yaml",
+    "20260801T105250Z_pre-layout-lock.yaml"
+  ],
+  "last_snapshot": "20260801T105250Z_pre-layout-lock.yaml",
+  "layout_locked": true,
+  "layout_lock_sha256": "556e8b57152f9b596bd0cc04166917c86a4e69dab81abe636bf7655b5d860883",
+  "layout_lock_updated_at": "2026-08-01T10:52:50.791125+00:00",
+  "layout_lock_reason": "lock-stable-layout-nz-calendar"
 }

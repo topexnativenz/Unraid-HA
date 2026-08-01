@@ -551,9 +551,9 @@ views:
               \  if (haTime && /^\\d{1,2}:\\d{2}/.test(haTime)) {\n    let h = parseInt(haTime.split(':')[0], 10);\n    const\
               \ m = haTime.split(':')[1].slice(0, 2);\n    if (h === 0) h = 12; else if (h > 12) h -= 12;\n    return `${h}:${m}`;\n\
               \  }\n  const parts = new Intl.DateTimeFormat('en-NZ', {\n    timeZone: 'Pacific/Auckland',\n    hour: 'numeric',\n\
-              \    minute: '2-digit',\n    hour12: true,\n    hourCycle: 'h12'\n  }).formatToParts(new Date());\n  const hour\
-              \ = (parts.find((p) => p.type === 'hour') || {}).value || '';\n  const minute = (parts.find((p) => p.type ===\
-              \ 'minute') || {}).value || '';\n  return `${hour}:${minute}`;\n]]]"
+              \    minute: '2-digit',\n    hour12: true\n  }).formatToParts(new Date());\n  const hour = (parts.find((p) =>\
+              \ p.type === 'hour') || {}).value || '';\n  const minute = (parts.find((p) => p.type === 'minute') || {}).value\
+              \ || '';\n  return `${hour}:${minute}`;\n]]]"
             label: "[[[\n  if (typeof fully !== 'undefined' && !window.__fluxNzTzPinned) {\n    try {\n      if (typeof fully.setTimezone\
               \ === 'function') fully.setTimezone('Pacific/Auckland');\n      else if (typeof fully.setStringSetting === 'function')\
               \ fully.setStringSetting('timezoneId', 'Pacific/Auckland');\n      window.__fluxNzTzPinned = true;\n    } catch\

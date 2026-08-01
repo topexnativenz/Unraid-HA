@@ -9,8 +9,12 @@ engine: simple-tabs
 
 events:
   # calendar-card-pro timeline (ElementZoom Events tab)
+  # Phone (iOS) + tablet share these display options. Event times follow the
+  # browser TZ — tablet loads /local/flux-ui/nz-timezone.js so Fully matches NZ.
   days_to_show: 10
   compact_events_to_show: 10
+  time_24h: false
+  language: en
   # NZ MetService — discover_weather.py --apply keeps this in sync
   weather_entity: weather.homemetservice
   first_day_of_week: monday

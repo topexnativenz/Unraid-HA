@@ -515,6 +515,14 @@ def _calendar_notification(
             continue
 
         cal = dict(card)
+        # Match Flux UI phone (iOS) Events calendar-card-pro config for times/dates.
+        # Phone uses time_24h/language from overview_tabs; keep those on tablet too.
+        cal["time_24h"] = bool(
+            ((cfg.get("overview_tabs") or {}).get("events") or {}).get("time_24h", False)
+        )
+        cal["language"] = (
+            ((cfg.get("overview_tabs") or {}).get("events") or {}).get("language", "en")
+        )
         # Full week always visible on tablet — no compact/expand toggle.
         cal["days_to_show"] = 7
         cal["compact_days_to_show"] = 7
@@ -529,10 +537,6 @@ def _calendar_notification(
         cal["show_countdown"] = False
         cal["show_progress_bar"] = False
         cal["today_indicator"] = "dot"
-        # Explicit NZ-style 12h times; pair with Fully TZ pin in greeting JS so
-        # calendar-card-pro (uses browser local TZ) stays on Pacific/Auckland.
-        cal["time_24h"] = False
-        cal["language"] = "en"
         cal["refresh_interval"] = int(
             ((cfg.get("overview_tabs") or {}).get("events") or {}).get("refresh_interval", 360)
         )

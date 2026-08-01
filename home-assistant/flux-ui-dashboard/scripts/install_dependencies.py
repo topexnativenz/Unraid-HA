@@ -14,7 +14,10 @@ from ha_common import DEFAULT_HA, get_token, run_async, ws_call
 URL_PATH = "flux-ui"
 
 # Prefer bundled /local/ assets (E2E), then HACS /hacsfiles/ paths.
+# nz-timezone must register before calendar-card-pro so event times match the
+# iOS / NZ phone dashboard on Fully Kiosk tablets with a wrong device TZ.
 FRONTEND_RESOURCES: list[tuple[str, str]] = [
+    ("nz-timezone", "/local/flux-ui/nz-timezone.js"),
     ("mushroom-local", "/local/community/lovelace-mushroom/mushroom.js"),
     ("card-mod-local", "/local/community/lovelace-card-mod/card-mod.js"),
     ("mushroom-hacs", "/hacsfiles/lovelace-mushroom/mushroom.js"),

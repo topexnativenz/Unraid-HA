@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -56,20 +57,37 @@ TABLET_STORAGE_KEY = "lovelace.flux_ui_tablet"
 TABLET_TITLE = "Flux UI 16:9"
 TABLET_DASHBOARD_ID = "flux_ui_tablet"
 
-TABLET_YAML_HEADER = """# Flux UI 16:9 tablet dashboard — BASELINE (source of truth)
+TABLET_YAML_HEADER = """# Flux UI 16:9 tablet dashboard — LOCKED BASELINE (source of truth)
 #
-# This file is the committed baseline design. Normal deploy loads and pushes
-# THIS YAML to HA — it does NOT regenerate from Python builders.
+# LAYOUT LOCK: gaps, spacings, grid fr tracks, card sizes, and overview
+# composition are frozen. Normal deploy / page refresh / Companion cache
+# reload MUST push this exact config — they must NOT regenerate layout.
+#
+# The only approved way to change this dashboard is an explicit Cursor agent
+# (or human) edit of this file, followed by updating the layout lock hash.
 #
 # Version history: lovelace/dashboards/versions/
-# Before replacing this file, snapshot it:
+# Snapshot before any intentional replace:
 #   python3 scripts/deploy_flux_ui.py --snapshot-tablet-yaml [--label <name>]
-# Rebuild from Python builders only when intentional:
-#   python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml
-# Pull live HA into this baseline (snapshots first):
-#   python3 scripts/deploy_flux_ui.py --pull-tablet-yaml
+# Rebuild / pull require an unlock flag (refuses otherwise):
+#   python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml --replace-locked-tablet-baseline
+#   python3 scripts/deploy_flux_ui.py --pull-tablet-yaml --replace-locked-tablet-baseline
 #
 """
+
+# Overview layout constants that must stay byte-stable across refresh/redeploy.
+# Markers are matched against json.dumps(config) (quoted JSON keys/values).
+TABLET_LOCKED_LAYOUT_MARKERS = (
+    '"grid-gap": "8px"',
+    '"padding": "8px 12px 8px 12px"',
+    "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
+    '"days_to_show": 7',
+    '"compact_days_to_show": 7',
+    '"show_empty_days": true',
+    '"refresh_on_navigate": false',
+    '"time_24h": false',
+    "calc(100% - 200px)",
+)
 
 
 # Packages that must land on HA for tablet RGB / media / tabs to work.
@@ -327,7 +345,92 @@ def _update_tablet_versions_manifest(**extra: object) -> None:
     TABLET_VERSIONS_MANIFEST.write_text(json.dumps(data, indent=2) + "\n")
 
 
-def write_tablet_yaml_from_config(config: dict, *, snapshot_label: str | None = None) -> Path:
+def tablet_config_fingerprint(config: dict) -> str:
+    """Stable SHA-256 of the tablet Lovelace config (layout lock)."""
+    payload = json.dumps(config, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _read_tablet_manifest() -> dict:
+    if not TABLET_VERSIONS_MANIFEST.exists():
+        return {}
+    try:
+        return json.loads(TABLET_VERSIONS_MANIFEST.read_text()) or {}
+    except json.JSONDecodeError:
+        return {}
+
+
+def update_tablet_layout_lock(config: dict, *, reason: str) -> str:
+    """Record the locked fingerprint after an intentional baseline replace."""
+    digest = tablet_config_fingerprint(config)
+    _update_tablet_versions_manifest(
+        current="flux_ui_tablet.yaml",
+        layout_locked=True,
+        layout_lock_sha256=digest,
+        layout_lock_updated_at=datetime.now(timezone.utc).isoformat(),
+        layout_lock_reason=reason,
+    )
+    print(f"  layout lock updated ({reason}): {digest[:16]}…")
+    return digest
+
+
+def assert_tablet_layout_lock(config: dict, *, update_if_missing: bool = False) -> str:
+    """Fail deploy if the loaded baseline does not match the committed lock hash."""
+    digest = tablet_config_fingerprint(config)
+    manifest = _read_tablet_manifest()
+    expected = manifest.get("layout_lock_sha256")
+    if not expected:
+        if update_if_missing:
+            return update_tablet_layout_lock(config, reason="initial-lock")
+        raise SystemExit(
+            "ERROR: tablet layout lock missing in versions/MANIFEST.json.\n"
+            "  Refusing to deploy an unlocked baseline.\n"
+            "  Intentional replace:\n"
+            "    python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml "
+            "--replace-locked-tablet-baseline\n"
+            "  Or re-lock the current YAML via an agent edit that updates the lock."
+        )
+    if digest != expected:
+        raise SystemExit(
+            "ERROR: LOCKED tablet baseline fingerprint mismatch.\n"
+            f"  expected: {expected}\n"
+            f"  actual:   {digest}\n"
+            "  Layout/gaps/sizing drifted from the locked design.\n"
+            "  Do not silently rebuild. Ask the Cursor agent for a direct change,\n"
+            "  or unlock deliberately:\n"
+            "    python3 scripts/deploy_flux_ui.py --pull-tablet-yaml "
+            "--replace-locked-tablet-baseline"
+        )
+    blob = json.dumps(config)
+    missing = [m for m in TABLET_LOCKED_LAYOUT_MARKERS if m not in blob]
+    if missing:
+        raise SystemExit(
+            "ERROR: LOCKED tablet overview layout markers missing:\n  - "
+            + "\n  - ".join(missing)
+            + "\n  Baseline YAML must keep exact gaps/spacings/sizings."
+        )
+    print(f"  layout lock OK ({digest[:16]}…)")
+    return digest
+
+
+def require_tablet_baseline_unlock(args: argparse.Namespace, *, action: str) -> None:
+    if getattr(args, "replace_locked_tablet_baseline", False):
+        print(f"  UNLOCK: replacing locked tablet baseline via {action}")
+        return
+    raise SystemExit(
+        f"ERROR: refusing {action} — tablet baseline is LAYOUT LOCKED.\n"
+        "  Gaps/spacings/sizings stay frozen across refresh and normal deploy.\n"
+        "  Only an explicit Cursor agent change (or unlock) may replace it:\n"
+        f"    python3 scripts/deploy_flux_ui.py {action} --replace-locked-tablet-baseline"
+    )
+
+
+def write_tablet_yaml_from_config(
+    config: dict,
+    *,
+    snapshot_label: str | None = None,
+    lock_reason: str = "baseline-write",
+) -> Path:
     """Write the tablet Lovelace YAML baseline (snapshots previous file first)."""
     import yaml
 
@@ -337,6 +440,7 @@ def write_tablet_yaml_from_config(config: dict, *, snapshot_label: str | None = 
     body = yaml.dump(config, sort_keys=False, allow_unicode=True, width=120)
     TABLET_YAML.write_text(TABLET_YAML_HEADER + body)
     print(f"  wrote {TABLET_YAML.relative_to(ROOT)} ({TABLET_YAML.stat().st_size} bytes)")
+    update_tablet_layout_lock(config, reason=lock_reason)
     _update_tablet_versions_manifest(current="flux_ui_tablet.yaml")
     return TABLET_YAML
 
@@ -348,8 +452,12 @@ def load_tablet_yaml() -> dict:
     if not TABLET_YAML.exists():
         raise SystemExit(
             f"ERROR: missing tablet baseline {TABLET_YAML}.\n"
-            "  Pull live: python3 scripts/deploy_flux_ui.py --pull-tablet-yaml\n"
-            "  Or rebuild: python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml"
+            "  Intentional pull (unlock required):\n"
+            "    python3 scripts/deploy_flux_ui.py --pull-tablet-yaml "
+            "--replace-locked-tablet-baseline\n"
+            "  Intentional rebuild (unlock required):\n"
+            "    python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml "
+            "--replace-locked-tablet-baseline"
         )
     raw = TABLET_YAML.read_text()
     # Drop leading comment header so yaml can parse title/views.
@@ -387,7 +495,9 @@ async def pull_tablet_yaml_from_ha(token: str, ha_url: str, *, label: str = "pre
     if not res.get("success"):
         raise SystemExit(f"ERROR: could not pull live tablet config: {res.get('error')}")
     config = res["result"]
-    write_tablet_yaml_from_config(config, snapshot_label=label)
+    write_tablet_yaml_from_config(
+        config, snapshot_label=label, lock_reason="pull-tablet-yaml"
+    )
     write_generated_tablet_json(config)
     print(f"  pulled live {TABLET_URL_PATH} → {TABLET_YAML.relative_to(ROOT)}")
     return config
@@ -1562,6 +1672,7 @@ async def deploy_async(args: argparse.Namespace) -> int:
     tablet_config: dict | None = None
     if not args.skip_tablet:
         if getattr(args, "rebuild_tablet_yaml", False):
+            require_tablet_baseline_unlock(args, action="--rebuild-tablet-yaml")
             print("Rebuilding Flux UI 16:9 tablet from Python builders…")
             print("  (snapshots current baseline YAML into versions/ first)")
             tablet_config = build_config(
@@ -1574,16 +1685,21 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 use_mediocre_media=use_mediocre_media,
                 tablet=True,
             )
-            write_tablet_yaml_from_config(tablet_config, snapshot_label="pre-rebuild")
+            write_tablet_yaml_from_config(
+                tablet_config,
+                snapshot_label="pre-rebuild",
+                lock_reason="rebuild-tablet-yaml",
+            )
             write_generated_tablet_json(tablet_config)
         else:
-            print("Loading Flux UI 16:9 tablet baseline YAML (not regenerating)…")
+            print("Loading LOCKED Flux UI 16:9 tablet baseline YAML (not regenerating)…")
             tablet_config = load_tablet_yaml()
+            assert_tablet_layout_lock(tablet_config)
             write_generated_tablet_json(tablet_config)
             print(
                 f"  loaded {TABLET_YAML.relative_to(ROOT)} "
                 f"({TABLET_YAML.stat().st_size} bytes, "
-                f"{len(tablet_config.get('views') or [])} views)"
+                f"{len(tablet_config.get('views') or [])} views) — layout frozen"
             )
         # Legacy alias: --export-tablet-yaml after a rebuild already wrote YAML.
         if getattr(args, "export_tablet_yaml", False) and not getattr(
@@ -1700,7 +1816,8 @@ def main() -> int:
         action="store_true",
         help=(
             "Regenerate tablet dashboard from Python builders, snapshotting the "
-            "current baseline YAML into lovelace/dashboards/versions/ first"
+            "current baseline YAML into lovelace/dashboards/versions/ first. "
+            "Requires --replace-locked-tablet-baseline."
         ),
     )
     parser.add_argument(
@@ -1708,7 +1825,16 @@ def main() -> int:
         action="store_true",
         help=(
             "Pull live flux-ui-tablet from HA into the baseline YAML "
-            "(snapshots the previous baseline into versions/ first)"
+            "(snapshots the previous baseline into versions/ first). "
+            "Requires --replace-locked-tablet-baseline."
+        ),
+    )
+    parser.add_argument(
+        "--replace-locked-tablet-baseline",
+        action="store_true",
+        help=(
+            "Required unlock for --rebuild-tablet-yaml / --pull-tablet-yaml. "
+            "Updates the layout lock hash after replacing the frozen baseline."
         ),
     )
     parser.add_argument(
@@ -1732,7 +1858,25 @@ def main() -> int:
         snap = snapshot_tablet_yaml(label=args.label or "manual")
         return 0 if snap else 1
 
+    if args.relock_tablet_baseline:
+        config = load_tablet_yaml()
+        # Validate locked geometry markers still present after the edit.
+        blob = json.dumps(config)
+        missing = [m for m in TABLET_LOCKED_LAYOUT_MARKERS if m not in blob]
+        if missing:
+            raise SystemExit(
+                "ERROR: cannot relock — overview layout markers missing:\n  - "
+                + "\n  - ".join(missing)
+            )
+        digest = update_tablet_layout_lock(
+            config, reason=args.label or "intentional-edit"
+        )
+        write_generated_tablet_json(config)
+        print(f"Relocked tablet baseline ({digest})")
+        return 0
+
     if args.pull_tablet_yaml:
+        require_tablet_baseline_unlock(args, action="--pull-tablet-yaml")
 
         async def _pull() -> int:
             token = get_token(args.token)
@@ -1741,9 +1885,10 @@ def main() -> int:
             await pull_tablet_yaml_from_ha(
                 token, args.ha_url, label=args.label or "pre-pull"
             )
+            # pull_tablet_yaml_from_ha → write_tablet_yaml_from_config updates lock.
             print(
                 "Tablet baseline updated from live HA "
-                "(previous version kept in versions/)."
+                "(previous version kept in versions/; layout lock refreshed)."
             )
             return 0
 

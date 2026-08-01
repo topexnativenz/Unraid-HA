@@ -252,6 +252,28 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet clock date still appends NZST/NZDT — show weekday/date only")
         if "Pacific/Auckland" not in overview_blob:
             errors.append("Tablet overview clock/date must use Pacific/Auckland (NZST/NZDT)")
+        if '"time_24h": false' not in overview_blob and '"time_24h":false' not in overview_blob:
+            errors.append("Tablet calendar missing time_24h:false (must match phone/iOS Events config)")
+        if '"language": "en"' not in overview_blob and '"language":"en"' not in overview_blob:
+            errors.append("Tablet calendar missing language:en (must match phone/iOS Events config)")
+        if "sensor.flux_ui_nz_clock" not in overview_blob:
+            errors.append("Tablet clock must bind sensor.flux_ui_nz_clock (HA NZ local time)")
+        if "fully.setTimezone" not in overview_blob and "timezoneId" not in overview_blob:
+            errors.append("Tablet clock missing Fully Kiosk NZ timezone pin")
+        # Locked overview geometry — must survive refresh / redeploy unchanged.
+        for marker, label in (
+            ('"grid-gap": "8px"', "overview grid-gap 8px"),
+            ('"padding": "8px 12px 8px 12px"', "overview padding 8px 12px"),
+            (
+                "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
+                "overview row fr tracks 30/48/26",
+            ),
+            ('"days_to_show": 7', "calendar days_to_show 7"),
+            ('"compact_days_to_show": 7', "calendar compact_days_to_show 7"),
+            ("calc(100% - 200px)", "calendar height calc(100% - 200px)"),
+        ):
+            if marker not in overview_blob:
+                errors.append(f"LOCKED tablet layout drifted — missing {label}")
         if '"grid-area": "mid"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
             errors.append(
                 "Tablet overview must use lights|cameras areas (not mid/rooms room cards)"
@@ -733,6 +755,10 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
                 errors.append("Live tablet calendar not set to 7 days")
             if '"refresh_on_navigate": false' not in tblob:
                 errors.append("Live tablet calendar should keep cache (refresh_on_navigate false)")
+            if '"time_24h": false' not in tblob:
+                errors.append("Live tablet calendar missing time_24h:false (phone/iOS parity)")
+            if "sensor.flux_ui_nz_clock" not in tblob:
+                errors.append("Live tablet clock missing sensor.flux_ui_nz_clock")
             if "custom:navbar-card" in tblob and '"label": "Home"' in tblob:
                 errors.append("Live tablet still has bottom navbar covering Tesla cards")
             if "flux-tesla-charge-pulse" not in tblob:
@@ -744,6 +770,11 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
     urls = " ".join(r.get("url", "") for r in resources.get("result", []))
     if "kiosk-mode" not in urls and "kiosk_mode" not in urls:
         errors.append("Lovelace resource missing: kiosk-mode (HACS downloaded ≠ registered)")
+    if "nz-timezone" not in urls:
+        errors.append(
+            "Lovelace resource missing: /local/flux-ui/nz-timezone.js "
+            "(tablet calendar times will not match phone/iOS NZST)"
+        )
     for needle in ("mushroom", "card-mod", "button-card"):
         if needle not in urls:
             errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")
