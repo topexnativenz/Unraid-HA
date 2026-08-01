@@ -1257,7 +1257,7 @@ views:
                     - font-weight: '700'
               - type: custom:button-card
                 template: flux_action
-                entity: light.main_atrium
+                entity: light.main_area
                 name: Main Area
                 icon: mdi:lightbulb-group
                 show_icon: true

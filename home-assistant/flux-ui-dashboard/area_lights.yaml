@@ -6,7 +6,7 @@ areas:
     entity: light.kitchen
     icon: mdi:stove
   - name: Main Area
-    entity: light.main_atrium
+    entity: light.main_area
     icon: mdi:lightbulb-group
   - name: Dining
     entity: light.dining_all

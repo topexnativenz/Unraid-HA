@@ -838,7 +838,7 @@ def build_config(
             '"name": "Lights"',
             '"name": "Cameras"',
             "light.kitchen",
-            "light.main_atrium",
+            "light.main_area",
             "light.dining_all",
             "light.black_lounge_all",
             "light.white_lounge_all",

@@ -664,7 +664,7 @@ _DEFAULT_AREA_LIGHTS: list[dict] = [
     {"name": "Kitchen", "entity": "light.kitchen", "icon": "mdi:stove"},
     {
         "name": "Main Area",
-        "entity": "light.main_atrium",
+        "entity": "light.main_area",
         "icon": "mdi:lightbulb-group",
     },
     {"name": "Dining", "entity": "light.dining_all", "icon": "mdi:silverware-fork-knife"},
