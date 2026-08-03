@@ -1131,8 +1131,9 @@ def _with_camera_card_mod(tile: dict) -> dict:
 def _camera_feed_card(camera: dict) -> dict:
     """Camera tile that fills its mid-grid cell (same size as room tiles).
 
-    All outdoor cams use ``/local/flux-ui/camera-stills/`` snapshots (not Eufy
-    event images). Tap: Reolink → fullscreen bubble; Eufy → wake-then-live view.
+    All outdoor cams use branded animated ``/local/flux-ui/camera-stills/*.webp``
+    backgrounds (not live snapshots / Eufy event images). Tap: Reolink →
+    fullscreen bubble; Eufy → wake-then-live view.
     """
     from flux_tablet_eufy import build_eufy_overview_tile, build_overview_still_tile
 

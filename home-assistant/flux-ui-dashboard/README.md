@@ -34,12 +34,13 @@ if discovery used a different ID.
 
 **Tablet cameras:** overview row is Reolink Back Courtyard → Eufy Driveway →
 Side of House → Garage Door (`entities.yaml` → `tablet.overview_cameras`).
-Overview tiles show **last-stream JPEGs** from
-`/local/flux-ui/camera-stills/` (written by `camera.snapshot` while streaming —
-not stale Eufy event images). Tap Reolink → fullscreen Bubble `#back-courtyard`;
+Overview tiles show **branded animated WebP stills** from
+`/local/flux-ui/camera-stills/` (name-themed looping backgrounds — not live
+snapshots). Tap Reolink → fullscreen Bubble `#back-courtyard`;
 tap Eufy → `eufy-*` live subview (wake + WebRTC MSE). Package:
-`packages/flux_ui_eufy_cameras.yaml`. Unused Eufy cameras are disabled via
-`scripts/fix_eufy_cameras.py`.
+`packages/flux_ui_eufy_cameras.yaml` (RTSP keep-alive). Unused Eufy cameras are
+disabled via `scripts/fix_eufy_cameras.py`. Regenerate stills:
+`python3 scripts/generate_camera_stills.py`.
 
 ## Phase 3 (mobile): Context-aware overview + ElementZoom tabs
 

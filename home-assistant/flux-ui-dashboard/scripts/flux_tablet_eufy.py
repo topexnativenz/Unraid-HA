@@ -1,12 +1,9 @@
-"""Tablet outdoor cameras — last-stream stills on overview, live on tap.
+"""Tablet outdoor cameras — branded animated stills on overview, live on tap.
 
-Overview tiles use JPEGs written by ``camera.snapshot`` to
-``/local/flux-ui/camera-stills/<suffix>.jpg`` (see packages/flux_ui_eufy_cameras.yaml).
-Eufy ``/api/camera_proxy`` returns HTTP 500 and event images go stale, so we never
-use ``image.*_event_image`` on the tablet row.
-
-Eufy live: HomeBase RTSP needs ``camera.turn_on`` first (DESCRIBE fails until awake).
-Reolink live: Bubble Card ``#back-courtyard`` fullscreen window.
+Overview tiles use name-themed animated WebPs from
+``/local/flux-ui/camera-stills/<suffix>.webp`` (committed assets).
+Tap opens live (Reolink Bubble / Eufy wake-then-live). Live snapshots are
+no longer written over these branded backgrounds.
 """
 
 from __future__ import annotations
@@ -15,29 +12,24 @@ from flux_navbar import overview_navigation_path
 from flux_tablet_layout import tablet_panel_stack, tablet_panel_view
 from md3_templates import wrap_glass
 
-STILL_TOKEN_ENTITY = "input_text.flux_ui_camera_still_token"
+# Bump when replacing still assets so Fully/Companion caches refresh.
+STILL_ASSET_VERSION = "branded2"
 STILL_LOCAL_DIR = "/local/flux-ui/camera-stills"
+STILL_EXT = "webp"
 
 
 def camera_still_filename(entity: str) -> str:
-    return entity.split(".", 1)[-1] + ".jpg"
+    return entity.split(".", 1)[-1] + f".{STILL_EXT}"
+
+
+def camera_still_url(entity: str) -> str:
+    """Static URL for the branded animated still (cache-busted by asset version)."""
+    return f"{STILL_LOCAL_DIR}/{camera_still_filename(entity)}?v={STILL_ASSET_VERSION}"
 
 
 def camera_still_url_template(entity: str) -> str:
-    """button-card JS — local still + cache-bust token from last snapshot."""
-    fname = camera_still_filename(entity)
-    return (
-        "[[[ const t = states['"
-        + STILL_TOKEN_ENTITY
-        + "'] ? states['"
-        + STILL_TOKEN_ENTITY
-        + "'].state : '0'; "
-        "return `center / cover no-repeat url(\""
-        + STILL_LOCAL_DIR
-        + "/"
-        + fname
-        + "?v=${t}\")`; ]]]"
-    )
+    """button-card CSS background value for the branded animated still."""
+    return f'center / cover no-repeat url("{camera_still_url(entity)}")'
 
 
 def eufy_live_view_path(camera: dict) -> str:
@@ -78,23 +70,12 @@ def _rtsp_switch_entity(camera_entity: str) -> str:
 
 def _still_img_html(entity: str) -> str:
     """Absolute cover image — fills the camera tile (no letterbox bars)."""
-    fname = camera_still_filename(entity)
-    # JS template so cache token updates when snapshots refresh.
+    url = camera_still_url(entity)
     return (
-        "[[[ const t = states['"
-        + STILL_TOKEN_ENTITY
-        + "'] ? states['"
-        + STILL_TOKEN_ENTITY
-        + "'].state : '0'; "
-        "return `<img src=\""
-        + STILL_LOCAL_DIR
-        + "/"
-        + fname
-        + "?v=${t}\" "
-        "alt=\"\" "
-        "style=\"position:absolute;inset:0;width:100%;height:100%;"
+        f'<img src="{url}" alt="" '
+        'style="position:absolute;inset:0;width:100%;height:100%;'
         "object-fit:cover;object-position:center;display:block;"
-        "margin:0;padding:0;border:0;\" />`; ]]]"
+        'margin:0;padding:0;border:0;" />'
     )
 
 
@@ -103,10 +84,9 @@ def build_overview_still_tile(
     *,
     tap_path: str,
 ) -> dict:
-    """Last-stream JPEG tile — tap opens live (bubble hash or eufy subview).
+    """Branded animated still tile — tap opens live (bubble hash or eufy subview).
 
-    Image uses object-fit:cover so ultra-wide cams (Reolink Duo 3) fill the
-    card with no black bars top/bottom.
+    Image uses object-fit:cover so ultra-wide cams fill the card with no bars.
     """
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
@@ -119,21 +99,18 @@ def build_overview_still_tile(
             "show_icon": False,
             "show_state": False,
             "show_entity_picture": False,
-            "triggers_update": [STILL_TOKEN_ENTITY, entity],
+            "triggers_update": [entity],
             "tap_action": {
                 "action": "navigate",
                 "navigation_path": tap_path,
             },
             "hold_action": {
-                "action": "perform-action",
-                "perform_action": "script.flux_ui_camera_snapshot",
-                "data": {"camera_entity": entity},
+                "action": "navigate",
+                "navigation_path": tap_path,
             },
             "custom_fields": {
                 "still": _still_img_html(entity),
             },
-            # card_mod merged by wrap_glass; overview appends _camera_card_mod
-            # (aspect-ratio: unset + img cover) after glass styles.
             "card_mod": {
                 "style": (
                     "ha-card {\n"
@@ -162,7 +139,6 @@ def build_overview_still_tile(
                     {"padding": "0"},
                     {"overflow": "hidden"},
                     {"background-color": "#111"},
-                    # Fallback fill if custom_fields img fails to paint.
                     {"background": camera_still_url_template(entity)},
                     {"background-size": "cover"},
                     {"background-position": "center"},
@@ -221,14 +197,14 @@ def build_overview_still_tile(
 
 
 def build_eufy_overview_tile(camera: dict) -> dict:
-    """Eufy overview tile — last-stream still; tap opens wake-then-live subview."""
+    """Eufy overview tile — branded still; tap opens wake-then-live subview."""
     return build_overview_still_tile(
         camera, tap_path=eufy_live_navigation_path(camera)
     )
 
 
 def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) -> dict:
-    """Full-bleed live view — wake cam, snapshot while live, WebRTC when STREAMING."""
+    """Full-bleed live view — wake cam, WebRTC when STREAMING; branded still while waiting."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     stream = (camera.get("stream") or "").strip()
@@ -265,7 +241,6 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
         },
     }
 
-    # Auto-start once when the title card renders; snapshot after wake via package automation.
     title_js = (
         "[[[ const cam = "
         + repr(entity)
@@ -304,7 +279,7 @@ def build_tablet_eufy_live_view(camera: dict, *, use_navbar_card: bool = False) 
             "show_name": True,
             "show_icon": False,
             "show_entity_picture": False,
-            "triggers_update": [STILL_TOKEN_ENTITY, entity, status],
+            "triggers_update": [entity, status],
             "tap_action": {
                 "action": "perform-action",
                 "perform_action": "camera.turn_on",

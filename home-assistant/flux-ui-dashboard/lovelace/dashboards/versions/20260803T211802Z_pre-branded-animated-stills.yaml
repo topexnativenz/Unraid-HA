@@ -1662,16 +1662,20 @@ views:
                 show_state: false
                 show_entity_picture: false
                 triggers_update:
+                - input_text.flux_ui_camera_still_token
                 - camera.back_courtyard_fluent
                 tap_action:
                   action: navigate
                   navigation_path: '#back-courtyard'
                 hold_action:
-                  action: navigate
-                  navigation_path: '#back-courtyard'
+                  action: perform-action
+                  perform_action: script.flux_ui_camera_snapshot
+                  data:
+                    camera_entity: camera.back_courtyard_fluent
                 custom_fields:
-                  still: <img src="/local/flux-ui/camera-stills/back_courtyard_fluent.webp?v=branded2" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
-                    />
+                  still: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                    : ''0''; return `<img src="/local/flux-ui/camera-stills/back_courtyard_fluent.jpg?v=${t}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
+                    />`; ]]]'
                 card_mod:
                   style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
                     \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter:\
@@ -1704,7 +1708,9 @@ views:
                   - padding: '0'
                   - overflow: hidden
                   - background-color: '#111'
-                  - background: center / cover no-repeat url("/local/flux-ui/camera-stills/back_courtyard_fluent.webp?v=branded2")
+                  - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                      : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/back_courtyard_fluent.jpg?v=${t}")`;
+                      ]]]'
                   - background-size: cover
                   - background-position: center
                   - background-repeat: no-repeat
@@ -1754,16 +1760,20 @@ views:
                 show_state: false
                 show_entity_picture: false
                 triggers_update:
+                - input_text.flux_ui_camera_still_token
                 - camera.side_door
                 tap_action:
                   action: navigate
                   navigation_path: /flux-ui-tablet/eufy-driveway
                 hold_action:
-                  action: navigate
-                  navigation_path: /flux-ui-tablet/eufy-driveway
+                  action: perform-action
+                  perform_action: script.flux_ui_camera_snapshot
+                  data:
+                    camera_entity: camera.side_door
                 custom_fields:
-                  still: <img src="/local/flux-ui/camera-stills/side_door.webp?v=branded2" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
-                    />
+                  still: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                    : ''0''; return `<img src="/local/flux-ui/camera-stills/side_door.jpg?v=${t}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
+                    />`; ]]]'
                 card_mod:
                   style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
                     \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter:\
@@ -1796,7 +1806,9 @@ views:
                   - padding: '0'
                   - overflow: hidden
                   - background-color: '#111'
-                  - background: center / cover no-repeat url("/local/flux-ui/camera-stills/side_door.webp?v=branded2")
+                  - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                      : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/side_door.jpg?v=${t}")`;
+                      ]]]'
                   - background-size: cover
                   - background-position: center
                   - background-repeat: no-repeat
@@ -1846,16 +1858,20 @@ views:
                 show_state: false
                 show_entity_picture: false
                 triggers_update:
+                - input_text.flux_ui_camera_still_token
                 - camera.side_of_house
                 tap_action:
                   action: navigate
                   navigation_path: /flux-ui-tablet/eufy-side-of-house
                 hold_action:
-                  action: navigate
-                  navigation_path: /flux-ui-tablet/eufy-side-of-house
+                  action: perform-action
+                  perform_action: script.flux_ui_camera_snapshot
+                  data:
+                    camera_entity: camera.side_of_house
                 custom_fields:
-                  still: <img src="/local/flux-ui/camera-stills/side_of_house.webp?v=branded2" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
-                    />
+                  still: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                    : ''0''; return `<img src="/local/flux-ui/camera-stills/side_of_house.jpg?v=${t}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
+                    />`; ]]]'
                 card_mod:
                   style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
                     \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter:\
@@ -1888,7 +1904,9 @@ views:
                   - padding: '0'
                   - overflow: hidden
                   - background-color: '#111'
-                  - background: center / cover no-repeat url("/local/flux-ui/camera-stills/side_of_house.webp?v=branded2")
+                  - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                      : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/side_of_house.jpg?v=${t}")`;
+                      ]]]'
                   - background-size: cover
                   - background-position: center
                   - background-repeat: no-repeat
@@ -1938,16 +1956,20 @@ views:
                 show_state: false
                 show_entity_picture: false
                 triggers_update:
+                - input_text.flux_ui_camera_still_token
                 - camera.garage_door
                 tap_action:
                   action: navigate
                   navigation_path: /flux-ui-tablet/eufy-garage-door
                 hold_action:
-                  action: navigate
-                  navigation_path: /flux-ui-tablet/eufy-garage-door
+                  action: perform-action
+                  perform_action: script.flux_ui_camera_snapshot
+                  data:
+                    camera_entity: camera.garage_door
                 custom_fields:
-                  still: <img src="/local/flux-ui/camera-stills/garage_door.webp?v=branded2" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
-                    />
+                  still: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                    : ''0''; return `<img src="/local/flux-ui/camera-stills/garage_door.jpg?v=${t}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;display:block;margin:0;padding:0;border:0;"
+                    />`; ]]]'
                 card_mod:
                   style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
                     \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter:\
@@ -1980,7 +2002,9 @@ views:
                   - padding: '0'
                   - overflow: hidden
                   - background-color: '#111'
-                  - background: center / cover no-repeat url("/local/flux-ui/camera-stills/garage_door.webp?v=branded2")
+                  - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                      : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/garage_door.jpg?v=${t}")`;
+                      ]]]'
                   - background-size: cover
                   - background-position: center
                   - background-repeat: no-repeat
@@ -5217,6 +5241,7 @@ views:
           show_icon: false
           show_entity_picture: false
           triggers_update:
+          - input_text.flux_ui_camera_still_token
           - camera.side_door
           - sensor.side_door_stream_status
           tap_action:
@@ -5229,7 +5254,8 @@ views:
             - height: min(70vh, 720px)
             - padding: '0'
             - overflow: hidden
-            - background: center / cover no-repeat url("/local/flux-ui/camera-stills/side_door.webp?v=branded2")
+            - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/side_door.jpg?v=${t}")`; ]]]'
             - background-color: '#111'
             name:
             - position: absolute
@@ -5352,6 +5378,7 @@ views:
           show_icon: false
           show_entity_picture: false
           triggers_update:
+          - input_text.flux_ui_camera_still_token
           - camera.side_of_house
           - sensor.side_of_house_stream_status
           tap_action:
@@ -5364,7 +5391,8 @@ views:
             - height: min(70vh, 720px)
             - padding: '0'
             - overflow: hidden
-            - background: center / cover no-repeat url("/local/flux-ui/camera-stills/side_of_house.webp?v=branded2")
+            - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/side_of_house.jpg?v=${t}")`; ]]]'
             - background-color: '#111'
             name:
             - position: absolute
@@ -5487,6 +5515,7 @@ views:
           show_icon: false
           show_entity_picture: false
           triggers_update:
+          - input_text.flux_ui_camera_still_token
           - camera.garage_door
           - sensor.garage_door_stream_status
           tap_action:
@@ -5499,7 +5528,8 @@ views:
             - height: min(70vh, 720px)
             - padding: '0'
             - overflow: hidden
-            - background: center / cover no-repeat url("/local/flux-ui/camera-stills/garage_door.webp?v=branded2")
+            - background: '[[[ const t = states[''input_text.flux_ui_camera_still_token''] ? states[''input_text.flux_ui_camera_still_token''].state
+                : ''0''; return `center / cover no-repeat url("/local/flux-ui/camera-stills/garage_door.jpg?v=${t}")`; ]]]'
             - background-color: '#111'
             name:
             - position: absolute

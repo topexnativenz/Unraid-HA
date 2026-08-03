@@ -129,8 +129,7 @@ def verify_build(path: Path) -> list[str]:
             "is_sidebar_hidden",
             '"width_desktop": "100%"',
             "/local/flux-ui/camera-stills/",
-            "input_text.flux_ui_camera_still_token",
-            "script.flux_ui_camera_snapshot",
+            ".webp?v=branded",
             "eufy-driveway",
             "eufy-side-of-house",
             "eufy-garage-door",
@@ -312,8 +311,21 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet overview still includes broken Tesla widgets 2/3")
         if "Live overview" in overview_blob:
             errors.append("Tablet still has Home / Live overview title")
-        if "/local/flux-ui/camera-stills/side_door.jpg" not in overview_blob:
-            errors.append("Tablet overview missing last-stream still paths")
+        if "/local/flux-ui/camera-stills/side_door.webp" not in overview_blob:
+            errors.append("Tablet Driveway tile missing branded animated still (.webp)")
+        if "/local/flux-ui/camera-stills/back_courtyard_fluent.webp" not in overview_blob:
+            errors.append("Tablet Back Courtyard tile missing branded animated still (.webp)")
+        if "/local/flux-ui/camera-stills/garage_door.webp" not in overview_blob:
+            errors.append("Tablet Garage Door tile missing branded animated still (.webp)")
+        if "/local/flux-ui/camera-stills/side_of_house.webp" not in overview_blob:
+            errors.append("Tablet Side of House tile missing branded animated still (.webp)")
+        if "camera-stills/" in overview_blob and ".jpg" in overview_blob:
+            import re as _re
+
+            if _re.search(r"camera-stills/[^\"']+\.jpg", overview_blob):
+                errors.append("Tablet camera stills still reference .jpg — expect branded .webp")
+        if "input_text.flux_ui_camera_still_token" in overview_blob:
+            errors.append("Tablet still uses snapshot cache token — branded WebPs are static assets")
         if "image.side_door_event_image" in overview_blob:
             errors.append("Tablet overview still uses stale Eufy event-image entities")
         if "eufy-driveway" not in blob:

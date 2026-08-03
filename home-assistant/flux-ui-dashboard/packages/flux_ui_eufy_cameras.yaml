@@ -1,54 +1,16 @@
 # Flux UI — outdoor cameras (Reolink + Eufy Three Mile Bush).
 #
-# Overview tiles show last-stream JPEGs from:
-#   /config/www/flux-ui/camera-stills/<entity_suffix>.jpg
-#   → /local/flux-ui/camera-stills/<entity_suffix>.jpg
+# Overview tiles use branded animated WebP stills from:
+#   /config/www/flux-ui/camera-stills/<entity_suffix>.webp
+#   → /local/flux-ui/camera-stills/<entity_suffix>.webp
 #
-# Snapshots are written while a camera is streaming (and again when it
-# returns to idle). input_text.flux_ui_camera_still_token busts browser cache.
+# These assets are committed in the repo and copied on deploy. Live
+# camera.snapshot automations are disabled so they do not overwrite them.
 #
-# Eufy live also needs RTSP + camera.turn_on (battery cams reject DESCRIBE
+# Eufy live still needs RTSP + camera.turn_on (battery cams reject DESCRIBE
 # until awake).
 
-input_text:
-  flux_ui_camera_still_token:
-    name: Flux UI camera still cache token
-    max: 32
-    initial: "0"
-
 script:
-  flux_ui_camera_snapshot:
-    alias: Flux UI — snapshot camera still
-    icon: mdi:camera
-    mode: parallel
-    max: 4
-    fields:
-      camera_entity:
-        description: Camera entity_id
-        example: camera.side_door
-    sequence:
-      - condition: template
-        value_template: >
-          {{ camera_entity is defined and camera_entity[:7] == 'camera.' }}
-      # Eufy writes 0-byte JPEGs unless the entity is actually streaming.
-      - wait_template: "{{ is_state(camera_entity, 'streaming') }}"
-        timeout: "00:00:20"
-        continue_on_timeout: true
-      - condition: template
-        value_template: "{{ is_state(camera_entity, 'streaming') }}"
-      - action: camera.snapshot
-        continue_on_error: true
-        target:
-          entity_id: "{{ camera_entity }}"
-        data:
-          filename: >
-            /config/www/flux-ui/camera-stills/{{ camera_entity.split('.')[1] }}.jpg
-      - action: input_text.set_value
-        target:
-          entity_id: input_text.flux_ui_camera_still_token
-        data:
-          value: "{{ now().timestamp() | int }}"
-
   flux_ui_eufy_start_stream:
     alias: Flux UI — start Eufy outdoor stream
     icon: mdi:cctv
@@ -79,53 +41,6 @@ script:
                          'StreamStatus.STREAMING') }}
         timeout: "00:00:45"
         continue_on_timeout: true
-      - delay:
-          seconds: 5
-      - action: script.turn_on
-        target:
-          entity_id: script.flux_ui_camera_snapshot
-        data:
-          variables:
-            camera_entity: "{{ camera_entity }}"
-
-  flux_ui_camera_refresh_stills:
-    alias: Flux UI — refresh all outdoor camera stills
-    icon: mdi:camera-burst
-    mode: queued
-    max: 1
-    sequence:
-      - variables:
-          cameras:
-            - camera.back_courtyard_fluent
-            - camera.side_door
-            - camera.garage_door
-            - camera.side_of_house
-      - repeat:
-          for_each: "{{ cameras }}"
-          sequence:
-            - condition: template
-              value_template: >
-                {{ states(repeat.item) not in ['unknown', 'unavailable', none, ''] }}
-            - action: camera.turn_on
-              continue_on_error: true
-              target:
-                entity_id: "{{ repeat.item }}"
-            - delay:
-                seconds: 10
-            - action: script.turn_on
-              target:
-                entity_id: script.flux_ui_camera_snapshot
-              data:
-                variables:
-                  camera_entity: "{{ repeat.item }}"
-            - delay:
-                seconds: 2
-            - action: camera.turn_off
-              continue_on_error: true
-              target:
-                entity_id: "{{ repeat.item }}"
-            - delay:
-                seconds: 2
 
 automation:
   - id: flux_ui_eufy_rtsp_keep_on
@@ -150,40 +65,3 @@ automation:
             - switch.side_door_rtsp_stream
             - switch.garage_door_rtsp_stream
             - switch.side_of_house_rtsp_stream
-
-  - id: flux_ui_camera_still_while_streaming
-    alias: Flux UI — snapshot still while camera streaming
-    mode: queued
-    max: 4
-    trigger:
-      - platform: state
-        entity_id:
-          - camera.back_courtyard_fluent
-          - camera.side_door
-          - camera.garage_door
-          - camera.side_of_house
-        to: streaming
-        for:
-          seconds: 8
-    action:
-      - action: script.turn_on
-        target:
-          entity_id: script.flux_ui_camera_snapshot
-        data:
-          variables:
-            camera_entity: "{{ trigger.entity_id }}"
-
-  - id: flux_ui_camera_refresh_stills_periodic
-    alias: Flux UI — refresh outdoor stills (HA start + periodic)
-    mode: single
-    trigger:
-      - platform: homeassistant
-        event: start
-      - platform: time_pattern
-        hours: "/2"
-    action:
-      - delay:
-          seconds: 90
-      - action: script.turn_on
-        target:
-          entity_id: script.flux_ui_camera_refresh_stills

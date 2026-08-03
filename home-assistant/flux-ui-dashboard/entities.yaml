@@ -18,7 +18,7 @@ tablet:
   # Tablet overview Music column — fixed to Kitchen (no zone picker).
   music_entity: media_player.kitchen_sonos
   # Single overview camera row (4 feeds — same width as Tesla band below).
-  # Tiles show last-stream JPEGs from /local/flux-ui/camera-stills/ (see package).
+  # Tiles show branded animated WebP stills from /local/flux-ui/camera-stills/.
   # Reolink tap → bubble live. Eufy tap → wake-then-live subview (needs stream:).
   overview_cameras:
     - entity: camera.back_courtyard_fluent
