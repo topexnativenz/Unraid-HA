@@ -238,10 +238,17 @@ def copy_frontend_assets(mount: str) -> None:
         if not _mkdir_smb(dst_flux):
             print("  WARNING: cannot create www/flux-ui on SMB — skipping flux-ui assets")
             return
+        stills_copied = 0
         for f in src_flux.rglob("*"):
             if not f.is_file():
                 continue
             rel = f.relative_to(src_flux)
+            # Sources/README are for regen only — skip large PNG sources on SMB.
+            if rel.parts[:1] == ("camera-stills",) and (
+                rel.name in {"README.md", ".gitkeep"}
+                or (len(rel.parts) > 1 and rel.parts[1] == "sources")
+            ):
+                continue
             target = dst_flux / rel
             if not _mkdir_smb(target.parent):
                 # Samba often cannot mkdir www/flux-ui/icons — fall back to flat copy
@@ -259,8 +266,30 @@ def copy_frontend_assets(mount: str) -> None:
             try:
                 shutil.copy2(f, target)
                 print(f"  copied www/flux-ui/{rel}")
+                if rel.parts[:1] == ("camera-stills",) and rel.suffix.lower() == ".webp":
+                    stills_copied += 1
             except OSError as exc:
                 print(f"  WARNING: skip www/flux-ui/{rel} ({exc})")
+
+        expected_stills = sorted(
+            p.name
+            for p in (ROOT / "www" / "flux-ui" / "camera-stills").glob("*.webp")
+        )
+        if expected_stills:
+            print(f"  camera stills: copied {stills_copied}/{len(expected_stills)} branded WebP(s)")
+            if stills_copied < len(expected_stills):
+                print(
+                    "  ERROR: branded camera still WebPs missing after copy — "
+                    "tiles will keep old JPEG snapshots. Check SMB www/flux-ui/camera-stills/"
+                )
+                raise SystemExit(2)
+        else:
+            print(
+                "  ERROR: repo has no www/flux-ui/camera-stills/*.webp — "
+                "wrong branch? Deploy cursor/flux-ui-md3-dashboard-bf3a after "
+                "animated stills merge, or set FLUX_UI_BRANCH correctly."
+            )
+            raise SystemExit(2)
 
 
 def write_storage(mount: str, config: dict) -> None:
