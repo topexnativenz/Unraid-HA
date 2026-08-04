@@ -36,6 +36,15 @@ if [[ ! -f "$ROOT/packages/flux_ui_tablet_led.yaml" ]]; then
   exit 1
 fi
 
+STILL_COUNT="$(find "$ROOT/www/flux-ui/camera-stills" -maxdepth 1 -name '*.webp' 2>/dev/null | wc -l | tr -d ' ')"
+if [[ "${STILL_COUNT}" -lt 4 ]]; then
+  echo "ERROR: expected branded camera still WebPs under www/flux-ui/camera-stills/ (found ${STILL_COUNT})."
+  echo "  This branch/SHA is missing the animated stills merge."
+  echo "  Use: FLUX_UI_BRANCH=cursor/flux-ui-md3-dashboard-bf3a (after stills merged) or cursor/camera-animated-stills-bf3a"
+  exit 1
+fi
+echo "==> Camera stills: ${STILL_COUNT} branded WebP(s) ready"
+
 echo "==> Deploying Flux UI from ${HEAD}"
 bash "$ROOT/scripts/setup_e2e.sh" "$@"
 
