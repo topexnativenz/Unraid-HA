@@ -1,51 +1,66 @@
-# AI 3D → Bambu Agent (MCP)
+# AI 3D → Bambu (simple)
 
-Cursor/Claude MCP agent that turns **photos or freeform prompts** into **print-oriented 3MF** for your two **Bambu Lab X1 Carbon** printers, then hands off to **Bambu Studio (macOS)** or **Bambu on iOS**. Prints are **never started automatically**.
+**End-user experience is only two paths:**
+
+1. **Describe** what you want in plain English in Cursor → answer **one size question** → model opens in Bambu Studio.
+2. **Drop a photo** (optional short caption) → answer **one size question** → model opens in Bambu Studio / iOS.
+
+Claude/Cursor auto-detects print intent (see `.cursor/rules/ai-3d-bambu-print.mdc`) and calls **`simple_print_request`**. Nothing starts on the printer until **you** confirm in Bambu.
 
 **Location:** `tools/ai-3d-agent-mcp/`
 
-## Design (locked to your answers)
+---
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Done = open in Studio / iOS slicer | `handoff_to_bambu` → macOS `open -a BambuStudio` or iOS share folder/URL |
-| Functional + hooks + signs + figurines | **Parametric CAD** for hooks/signs/brackets; **AI mesh** for figurines/photos |
-| Dimensional accuracy | Tools **require** `width_mm/depth_mm/height_mm`; mesh is scaled to target |
-| Single + multi-angle photos | `image_paths[]` on `create_job` |
-| AMS multi-colour | Dominant-colour → AMS slot suggestions in manifest (paint in Studio) |
-| Unraid host | MCP + job store on tower; optional HTTP generator container |
-| Self-hosted first | `generation_backend`: `stub` → `http` (TRELLIS/Hunyuan wrapper); paid later |
-| Job history | SQLite + per-job `job.json` + artifacts |
-| No auto-print | Hard guardrail; confirm in Bambu UI |
+## What you do
+
+| You | Agent |
+|-----|--------|
+| “Make me a wall hook for coats” | Asks: roughly how big (mm)? |
+| “40 × 25 × 60 mm” | Builds → opens/stages 3MF on **David’s MacBook Air (2139)** |
+| Drop photo of a figurine | Asks size only → builds → Bambu |
+| In Bambu Studio / iOS | You slice & confirm print (cloud OK) |
+
+No filament / AMS / support quiz unless you ask.
+
+---
+
+## What Claude does (automatic)
 
 ```text
-Prompt / photo(s) + dimensions
-        │
-        ▼
-┌───────────────────┐
-│  Route selector   │  hook/sign/bracket → parametric
-│                   │  figurine / photo  → AI mesh (HTTP/stub)
-└─────────┬─────────┘
-          ▼
-   Repair · scale · flat base (figurines)
-          ▼
-   Export STL + 3MF + AMS suggestions + checklist
-          ▼
-   macOS Bambu Studio  OR  iOS Files → Bambu app
-          ▼
-   YOU confirm slice/print (cloud OK)
+detect print intent
+    → simple_print_request(description and/or photos)
+        → if no size: ask ONLY dimensions
+        → if size given: build → 3MF → handoff to Studio/iOS
+    → you confirm print in Bambu
 ```
 
-## Why dual-path (accuracy)
+Under the hood (you can ignore this day-to-day):
 
-AI image-to-3D is great for likeness, weak for exact mm. For **hooks / signs / brackets** this agent builds **parametric geometry** sized to your numbers. For **figurines / organic** shapes it generates a mesh (self-hosted HTTP or stub), then **uniformly scales** into your bounding box and can add a **flat base**.
+- Hooks / signs / brackets → **parametric CAD** (accurate mm, **no GPU**)
+- Figurines / photos → mesh backend (`stub` today; GPU HTTP or paid Meshy later)
+- Job history saved every time
 
-## Setup (Unraid / tower or Mac)
+---
 
-Python **3.10+** required.
+## GPU reality (your setup)
+
+You are **unsure** either X1C host has a GPU for TRELLIS/Hunyuan. That is fine for v1:
+
+| Request type | Works without GPU? |
+|--------------|--------------------|
+| Text hooks, signs, mounts | **Yes** (parametric) |
+| Photo / figurine likeness | Placeholder mesh until you add GPU **or** paid Meshy/Tripo |
+
+When photo quality matters, either stand up a GPU container on Unraid (`generation_backend=http`) or enable a paid adapter later.
+
+---
+
+## One-time setup
+
+Python **3.10+**.
 
 ```bash
-cd /path/to/Unraid-HA/tools/ai-3d-agent-mcp
+cd tools/ai-3d-agent-mcp
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -54,94 +69,61 @@ cp ai-3d-agent.config.example.json ai-3d-agent.config.json
 
 Edit `ai-3d-agent.config.json`:
 
-- `workspace_root` — durable job store (prefer `/mnt/user/ai-3d-agent/jobs` on Unraid)
-- `printers.X1C-A` / `X1C-B` — rename to match how you think about the two machines
-- `ios_share_base_url` — HTTPS/SMB web path iPhone can open (e.g. Nextcloud/Unraid share)
-- `open_studio_command` — optional SSH-to-Mac opener, e.g.  
-  `ssh macuser@mac-studio 'open -a BambuStudio "{path}"'`  
-  (Mac must mount the same jobs path, or copy the 3MF first)
-- `generation_backend` — `stub` (offline), then `http` when the GPU container is up
+| Key | Purpose |
+|-----|---------|
+| `workspace_root` | Prefer `/mnt/user/ai-3d-agent/jobs` on Unraid |
+| `macos_hostname` | Default `Davids-MacBook-Air-2139.local` (verify in Sharing) |
+| `macos_ssh_user` | Your Mac login short name (enables SSH open) |
+| `macos_jobs_mount` | Mac path to that share, e.g. `/Volumes/ai-3d-agent/jobs` |
+| `ios_share_base_url` | Optional HTTPS link for iPhone |
+| `generation_backend` | `stub` now; `http` when a generator exists |
 
-### Cursor `mcp.json`
+### Cursor MCP snippet
 
 ```json
 "ai-3d-bambu-agent": {
-  "command": "/mnt/user/appdata/ai-3d-agent/.venv/bin/python",
+  "command": "/path/to/tools/ai-3d-agent-mcp/.venv/bin/python",
   "args": ["-m", "ai_3d_agent_mcp"],
-  "cwd": "/mnt/user/appdata/ai-3d-agent",
+  "cwd": "/path/to/tools/ai-3d-agent-mcp",
   "env": {
-    "AI_3D_AGENT_CONFIG": "/mnt/user/appdata/ai-3d-agent/ai-3d-agent.config.json"
+    "AI_3D_AGENT_CONFIG": "/path/to/tools/ai-3d-agent-mcp/ai-3d-agent.config.json"
   }
 }
 ```
 
-Adjust paths if the MCP runs from the git checkout instead of appdata.
+Restart Cursor after saving. The rule `.cursor/rules/ai-3d-bambu-print.mdc` is always-on.
 
-## Agent workflow (what Cursor should do)
+### Mac share (required for Studio open from Unraid)
 
-1. Ask category + **approx W×D×H mm** (`dimension_prompt`).
-2. `create_job(...)` with dimensions (and `image_paths` if any).
-3. `generate_and_package(job_id)`.
-4. Surface **warnings** (non-blocking) + AMS suggestions + final extents.
-5. `handoff_to_bambu(job_id, target="macos_studio"|"ios_bambu", dry_run=false)` — **never** set `confirm_send_to_printer=true`.
-6. You slice / send in Bambu Studio or Bambu iOS via **Bambu cloud**.
+1. Export Unraid share `ai-3d-agent` (jobs folder).
+2. On **David’s MacBook Air (2139)**, mount it so files appear at `macos_jobs_mount`.
+3. Enable Remote Login (SSH) if you want the agent to launch Bambu Studio for you.
+4. Confirm hostname: System Settings → General → Sharing (Bonjour name).
 
-## MCP tools
+If SSH is not set, the 3MF is still created — open it manually from the share in Bambu Studio.
 
-| Tool | Purpose |
-|------|---------|
-| `agent_info` | Config, printers, policy |
-| `dimension_prompt` | Forced dimension questionnaire |
-| `create_job` | Start tracked job (dims required) |
-| `generate_model` | Parametric or AI raw STL |
-| `package_for_bambu` | Repair, scale, base, 3MF, AMS, checklist |
-| `generate_and_package` | Both steps |
-| `handoff_to_bambu` | Open Studio / stage iOS (no print) |
-| `suggest_ams_colors` | Colour slots from images |
-| `list_jobs` / `get_job` | History |
+---
 
-## Self-hosted generator HTTP contract
+## MCP tools (daily vs power-user)
 
-`POST generation_http_url` JSON:
+| Daily | Tool |
+|-------|------|
+| **Primary** | `simple_print_request` |
+| Optional | `detect_print_intent` |
+| History | `list_jobs`, `get_job` |
 
-```json
-{
-  "prompt": "fox figurine",
-  "category": "figurine",
-  "width_mm": 50,
-  "depth_mm": 40,
-  "height_mm": 70,
-  "images": [{"name": "a.jpg", "b64": "..."}],
-  "output_format": "stl"
-}
-```
+Power-user steps (`create_job`, `generate_model`, …) remain available but are not needed in normal chat.
 
-Response JSON: `{ "stl_b64": "..." }` or `{ "download_url": "..." }`, or raw STL bytes.
-
-CPU test server:
-
-```bash
-source .venv/bin/activate
-python docker/http_generator_stub.py
-# then set generation_backend=http and generation_http_url=http://127.0.0.1:7860/
-```
-
-GPU: see `docker/docker-compose.yml` (profile `gpu`) — swap in TRELLIS/Hunyuan image that speaks this API.
-
-## Paid upgrade path (later)
-
-If self-hosted likeness/topology is weak: set `generation_backend` to a future `meshy` / `tripo` adapter (keys via env). Keep parametric path for functional parts.
+---
 
 ## Tests
 
 ```bash
-cd tools/ai-3d-agent-mcp
-source .venv/bin/activate
-pytest -q
+cd tools/ai-3d-agent-mcp && source .venv/bin/activate && pytest -q
 ```
 
 ## Safety
 
-- `allow_auto_print` defaults **false** and is enforced in `handoff_to_bambu`.
-- Mesh failures are **warnings** (continue) unless you change policy later.
-- Every job writes history for audit / re-handoff.
+- Auto-print is **off** and blocked in handoff.
+- Mesh problems **warn and continue**.
+- Every job is logged under `workspace_root`.

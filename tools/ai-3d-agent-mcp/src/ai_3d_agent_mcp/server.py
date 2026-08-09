@@ -15,6 +15,12 @@ from ai_3d_agent_mcp.guardrails import CATEGORIES, MATERIALS, GuardrailError
 from ai_3d_agent_mcp.handoff import handoff
 from ai_3d_agent_mcp.history import JobHistory
 from ai_3d_agent_mcp.package_3mf import package_job
+from ai_3d_agent_mcp.simple_flow import (
+    dims_complete,
+    infer_category,
+    looks_like_print_request,
+    user_facing_dimension_question,
+)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("ai-3d-agent-mcp")
@@ -22,11 +28,13 @@ log = logging.getLogger("ai-3d-agent-mcp")
 mcp = FastMCP(
     "ai-3d-bambu-agent",
     instructions=(
-        "AI 3D agent for Bambu Lab X1 Carbon. ALWAYS ask for approximate dimensions "
-        "(width_mm, depth_mm, height_mm) before create_job. Prefer parametric CAD for "
-        "hooks/signs/brackets; AI mesh for figurines/photos. Warn on mesh issues but continue. "
-        "Package to 3MF and hand off to Bambu Studio (macOS) or iOS Bambu app. "
-        "NEVER auto-print — user confirms in Bambu UI. Save job history for every run."
+        "SIMPLE 3D PRINT FLOW for Bambu X1 Carbon. End users only do one of two things: "
+        "(1) describe what they want in plain text, or (2) upload a photo with optional caption. "
+        "When you detect a print request, call simple_print_request. "
+        "If it returns needs_dimensions, ask the user ONLY the ask_user question — nothing else. "
+        "When they give sizes, call simple_print_request again with width_mm/depth_mm/height_mm. "
+        "Then tell them the model is ready in Bambu Studio / iOS and they must confirm before printing. "
+        "NEVER auto-start a print. Defaults: PLA, 0.20mm Standard. Do not quiz them about AMS/supports."
     ),
 )
 
@@ -46,32 +54,183 @@ def agent_info() -> str:
     cfg = load_config()
     return _json(
         {
-            "version": "0.1.0",
+            "version": "0.2.0",
+            "simple_entry_tool": "simple_print_request",
+            "end_user_paths": [
+                "Plain text description → ask size only → build → open Bambu Studio",
+                "Upload photo (+ optional caption) → ask size only → build → open Bambu / iOS",
+            ],
             "generation_backend": cfg.generation_backend,
             "generation_http_url": cfg.generation_http_url,
+            "gpu_note": (
+                "No GPU assumed. Text hooks/signs/brackets use parametric CAD (accurate, no GPU). "
+                "Photo/figurine mesh uses stub until you add a GPU host or paid Meshy/Tripo."
+            ),
             "workspace": str(cfg.workspace_path),
             "default_printer": cfg.default_printer,
             "printers": cfg.printers,
             "materials": cfg.materials,
             "default_material": cfg.default_material,
             "process_default": "0.20mm Standard",
+            "macos_display_name": cfg.macos_display_name,
+            "macos_hostname": cfg.macos_hostname,
+            "macos_jobs_mount": cfg.macos_jobs_mount,
             "allow_auto_print": cfg.allow_auto_print,
             "warn_only_mesh_checks": cfg.warn_only_mesh_checks,
             "categories": list(CATEGORIES),
             "handoff_targets": ["macos_studio", "ios_bambu", "file_only"],
             "policy": [
-                "Require dimensions before generation",
+                "Ask ONLY for approximate dimensions",
                 "Warn and continue on mesh issues",
                 "Auto flat base for figurines",
-                "No auto-print without explicit future policy change",
+                "No auto-print — user confirms in Bambu UI",
             ],
         }
     )
 
 
 @mcp.tool()
+def detect_print_intent(text: str = "", has_images: bool = False) -> str:
+    """
+    Check whether a user message looks like a 3D-print request.
+    If is_print_request=true, immediately call simple_print_request.
+    """
+    matched = looks_like_print_request(text, has_images=has_images)
+    return _json(
+        {
+            "is_print_request": matched,
+            "next": "simple_print_request" if matched else None,
+            "agent_instruction": (
+                "Call simple_print_request now with the user description and any image paths."
+                if matched
+                else "Not a print request — continue the normal conversation."
+            ),
+        }
+    )
+
+
+@mcp.tool()
+def simple_print_request(
+    description: str = "",
+    image_paths: list[str] | None = None,
+    width_mm: float | None = None,
+    depth_mm: float | None = None,
+    height_mm: float | None = None,
+    material: str = "",
+    printer: str = "",
+    handoff_target: str = "",
+    open_now: bool = True,
+) -> str:
+    """
+    PRIMARY end-user tool. Two inputs only:
+      1) description (plain text), and/or
+      2) image_paths (photo upload) with optional description.
+
+    If sizes are missing → returns ask_user (dimension question ONLY).
+    If sizes are present → builds model, packages 3MF, hands off to Bambu Studio/iOS.
+    Never starts the printer.
+    """
+    cfg = load_config()
+    images = list(image_paths or [])
+    desc = (description or "").strip()
+    if not desc and not images:
+        return _json(
+            {
+                "status": "needs_input",
+                "ask_user": "What would you like to 3D print? Describe it, or drop a photo.",
+                "ask_user_only": True,
+            }
+        )
+
+    category = infer_category(desc, has_images=bool(images))
+    if not dims_complete(width_mm, depth_mm, height_mm):
+        return _json(user_facing_dimension_question(category, desc, bool(images)))
+
+    material = (material or cfg.default_material).upper()
+    if material not in MATERIALS:
+        material = cfg.default_material
+    printer = printer or cfg.default_printer
+    if printer not in cfg.printers:
+        printer = cfg.default_printer
+    target = (handoff_target or cfg.default_handoff_target or "macos_studio").lower()
+    if target not in {"macos_studio", "ios_bambu", "file_only"}:
+        target = "macos_studio"
+
+    # create → generate → package → handoff
+    created = json.loads(
+        create_job(
+            prompt=desc or "photo reference",
+            width_mm=float(width_mm),  # type: ignore[arg-type]
+            depth_mm=float(depth_mm),  # type: ignore[arg-type]
+            height_mm=float(height_mm),  # type: ignore[arg-type]
+            category=category,
+            material=material,
+            printer=printer,
+            image_paths=images,
+        )
+    )
+    if created.get("blocked"):
+        return _json(created)
+
+    job_id = created["job_id"]
+    built = json.loads(generate_and_package(job_id))
+    if built.get("blocked") or built.get("error"):
+        return _json({"job_id": job_id, **built})
+
+    # open_now → dry_run=false when SSH/local open is configured; else still stage files
+    dry_run = not open_now
+    hand = json.loads(
+        handoff_to_bambu(
+            job_id,
+            target=target,
+            dry_run=dry_run,
+            confirm_send_to_printer=False,
+        )
+    )
+
+    pkg = built.get("package") or {}
+    warnings = list(pkg.get("mesh_report", {}).get("warnings") or [])
+    three_mf = pkg.get("three_mf") or hand.get("three_mf")
+    user_summary = (
+        f"Ready for Bambu. Opened/staged: {three_mf}. "
+        f"Confirm slice & print yourself in Bambu Studio on {cfg.macos_display_name} "
+        f"(or iOS Bambu app). Nothing was sent to the printer automatically."
+    )
+    if target == "ios_bambu":
+        user_summary = (
+            f"Ready on iOS share. File: {hand.get('ios_path') or three_mf}. "
+            f"URL: {hand.get('ios_url') or '(set ios_share_base_url)'}. "
+            "Open in Bambu app and confirm before printing."
+        )
+
+    return _json(
+        {
+            "status": "ready_for_bambu",
+            "job_id": job_id,
+            "category": category,
+            "material": material,
+            "printer": printer,
+            "dimensions": {
+                "width_mm": width_mm,
+                "depth_mm": depth_mm,
+                "height_mm": height_mm,
+            },
+            "three_mf": three_mf,
+            "handoff": hand,
+            "warnings": warnings,
+            "tell_user": user_summary,
+            "agent_instruction": (
+                "Tell the user the model is ready using tell_user. "
+                "Mention they must confirm in Bambu before printing. "
+                "Only mention warnings if they affect fit/strength. Keep it short."
+            ),
+        }
+    )
+
+
+@mcp.tool()
 def dimension_prompt(category: str = "other") -> str:
-    """Return the dimension questionnaire the agent must ask before designing."""
+    """Low-level dimension questionnaire (prefer simple_print_request for normal chat)."""
     if category not in CATEGORIES:
         category = "other"
     return _json(missing_dimensions_prompt(category))

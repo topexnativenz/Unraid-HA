@@ -55,17 +55,21 @@ def handoff(
 
     # macos_studio
     app = cfg.macos_bambu_app or "BambuStudio"
-    open_cmd = cfg.open_studio_command.strip()
+    mac_path = cfg.path_for_macos(three_mf)
+    open_cmd = cfg.resolved_open_studio_command()
     if open_cmd:
         # Supports remote open via SSH to the Mac, e.g.:
-        # ssh user@mac 'open -a BambuStudio "{path}"'
+        # ssh user@Davids-MacBook-Air-2139.local open -a BambuStudio {path}
         # Placeholders: {path} {app}
-        formatted = open_cmd.format(path=str(three_mf), app=app)
+        formatted = open_cmd.format(path=mac_path, app=app)
         cmd = shlex.split(formatted)
     else:
         # Local macOS only — on Unraid this remains a planned command
-        cmd = ["open", "-a", app, str(three_mf)]
+        cmd = ["open", "-a", app, mac_path]
 
+    result["macos_path"] = mac_path
+    result["macos_host"] = cfg.macos_hostname
+    result["macos_display_name"] = cfg.macos_display_name
     result["open_command"] = cmd
     result["actions"].append("open 3MF in Bambu Studio (no slice/print started)")
 

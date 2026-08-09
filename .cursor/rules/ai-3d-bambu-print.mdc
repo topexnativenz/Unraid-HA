@@ -1,0 +1,37 @@
+---
+description: Auto-detect 3D print requests and run the simple Bambu X1C flow
+globs:
+alwaysApply: true
+---
+
+# AI 3D print → Bambu (simple flow)
+
+When the user wants something **designed and 3D printed** (Bambu, STL/3MF, figurine, hook, sign, “print this”, photo of an object to replicate, etc.), follow this exact path. Do **not** invent a long questionnaire.
+
+## End-user inputs (only two)
+
+1. **Plain text** — they describe what they want.
+2. **Photo** — they upload an image, optionally with a short caption.
+
+## Steps (mandatory)
+
+1. Call MCP tool `simple_print_request` with:
+   - `description` = their text (may be empty if photo-only)
+   - `image_paths` = saved photo paths when they uploaded images
+2. If the tool returns `status: needs_dimensions` / `ask_user_only: true`:
+   - Ask the user **only** the `ask_user` string (size in mm).
+   - Do **not** ask about filament, AMS, supports, layer height, or which printer unless they bring it up.
+   - Defaults are already PLA + 0.20mm Standard + X1C-A.
+3. When they reply with sizes, call `simple_print_request` again with the same description/images plus `width_mm`, `depth_mm`, `height_mm`.
+4. When `status: ready_for_bambu`, tell them briefly using `tell_user`.
+5. Remind them to **confirm in Bambu Studio / Bambu iOS** before printing. Never claim the printer has started.
+
+## Detection hints
+
+Treat as a print request if they mention printing / Bambu / STL / 3MF / figurine / wall hook / sign / “make me a …”, or upload a photo clearly meant as a print reference.
+
+If unsure, call `detect_print_intent`.
+
+## Out of scope
+
+Do not auto-start a print on the X1 Carbon. Handoff opens or stages the 3MF only.

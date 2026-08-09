@@ -27,9 +27,14 @@
   "warn_only_mesh_checks": true,
   "allow_auto_print": false,
   "macos_bambu_app": "BambuStudio",
+  "macos_display_name": "David's MacBook Air (2139)",
+  "macos_hostname": "Davids-MacBook-Air-2139.local",
+  "macos_ssh_user": "",
+  "macos_jobs_mount": "/Volumes/ai-3d-agent/jobs",
   "ios_share_base_url": "",
   "ios_share_dir": "tools/ai-3d-agent-mcp/jobs/ios-share",
   "open_studio_command": "",
+  "default_handoff_target": "macos_studio",
   "meshy_api_key_env": "MESHY_API_KEY",
   "tripo_api_key_env": "TRIPO_API_KEY"
 }

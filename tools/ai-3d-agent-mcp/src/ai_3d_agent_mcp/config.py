@@ -50,11 +50,40 @@ class AgentConfig:
     warn_only_mesh_checks: bool = True
     allow_auto_print: bool = False
     macos_bambu_app: str = "BambuStudio"
+    macos_hostname: str = "Davids-MacBook-Air-2139.local"
+    macos_ssh_user: str = ""
+    macos_display_name: str = "David's MacBook Air (2139)"
+    # Mac Finder path to the same jobs folder (SMB/NFS mount of Unraid share)
+    macos_jobs_mount: str = "/Volumes/ai-3d-agent/jobs"
     ios_share_base_url: str = ""
     ios_share_dir: str = "tools/ai-3d-agent-mcp/jobs/ios-share"
     open_studio_command: str = ""
+    default_handoff_target: str = "macos_studio"
     meshy_api_key_env: str = "MESHY_API_KEY"
     tripo_api_key_env: str = "TRIPO_API_KEY"
+
+    def path_for_macos(self, server_path: Path) -> str:
+        """Map Unraid/server job file path to the Mac mount path when possible."""
+        try:
+            rel = Path(server_path).resolve().relative_to(self.workspace_path.resolve())
+        except Exception:
+            return str(server_path)
+        mount = (self.macos_jobs_mount or "").rstrip("/")
+        if not mount:
+            return str(server_path)
+        return f"{mount}/{rel.as_posix()}"
+
+    def resolved_open_studio_command(self) -> str:
+        """SSH open on David's Mac when user/host configured; else empty (local open / manual)."""
+        if self.open_studio_command.strip():
+            return self.open_studio_command.strip()
+        user = (self.macos_ssh_user or "").strip()
+        host = (self.macos_hostname or "").strip()
+        if user and host:
+            app = self.macos_bambu_app or "BambuStudio"
+            # {path} is the Mac-visible path from path_for_macos()
+            return f"ssh {user}@{host} open -a {app} {{path}}"
+        return ""
 
     @property
     def workspace_path(self) -> Path:
