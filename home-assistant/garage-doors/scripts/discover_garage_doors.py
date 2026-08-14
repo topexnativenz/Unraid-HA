@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""Discover Tapo T110 door sensors in HA and map them to garage-doors/entities.yaml."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+import urllib.request
+from pathlib import Path
+
+import yaml
+
+REPO = Path(__file__).resolve().parents[1]
+ENTITIES = REPO / "entities.yaml"
+
+sys.path.insert(0, str(REPO))
+from garage_ui_helpers import is_open_state  # noqa: E402
+
+DOOR_MATCHERS: dict[str, list[re.Pattern[str]]] = {
+    "House Garage": [
+        re.compile(r"house.*garage|garage.*house", re.I),
+    ],
+    "Main Shed": [
+        re.compile(r"main.*shed|shed.*main", re.I),
+    ],
+    "Second Shed": [
+        re.compile(r"second.*shed|shed.*second|2nd.*shed", re.I),
+    ],
+}
+
+
+def get_token(explicit: str | None) -> str:
+    if explicit:
+        return explicit
+    import os
+
+    if os.environ.get("HA_TOKEN"):
+        return os.environ["HA_TOKEN"]
+    for path in (
+        Path.home() / ".cursor/mcp.json",
+        Path("/Users/topexnative/.cursor/mcp.json"),
+    ):
+        if path.exists():
+            data = json.loads(path.read_text())
+            auth = data["mcpServers"]["homeassistant"]["headers"]["Authorization"]
+            return auth.split(" ", 1)[1]
+    raise SystemExit("No HA token — set HA_TOKEN or pass --token")
+
+
+def fetch_states(token: str, ha_url: str) -> list[dict]:
+    req = urllib.request.Request(
+        f"{ha_url}/api/states",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    with urllib.request.urlopen(req) as resp:
+        return json.loads(resp.read())
+
+
+def is_door_candidate(state: dict) -> bool:
+    eid = state["entity_id"]
+    if not eid.startswith("binary_sensor."):
+        return False
+    attrs = state.get("attributes") or {}
+    dc = attrs.get("device_class") or ""
+    if dc in ("door", "garage_door", "opening", "window"):
+        return True
+    hay = eid.lower()
+    return any(k in hay for k in ("is_open", "door", "garage", "shed", "contact", "tapo", "t110"))
+
+
+def score_candidate(state: dict, door_name: str) -> int:
+    eid = state["entity_id"]
+    fn = (state.get("attributes") or {}).get("friendly_name") or ""
+    hay = f"{eid} {fn}"
+    score = 0
+    if eid.endswith("_is_open"):
+        score += 20
+    if (state.get("attributes") or {}).get("device_class") == "door":
+        score += 10
+    if "tapo" in hay.lower() or "t110" in hay.lower():
+        score += 5
+    for pattern in DOOR_MATCHERS.get(door_name, []):
+        if pattern.search(hay):
+            score += 40
+    return score
+
+
+def best_match(door_name: str, candidates: list[dict]) -> dict | None:
+    ranked = sorted(
+        ((score_candidate(c, door_name), c) for c in candidates),
+        key=lambda x: x[0],
+        reverse=True,
+    )
+    if not ranked or ranked[0][0] < 40:
+        return None
+    return ranked[0][1]
+
+
+def load_doors_config() -> dict:
+    return yaml.safe_load(ENTITIES.read_text()) or {}
+
+
+def discover(token: str, ha_url: str) -> tuple[list[dict], list[str]]:
+    states = fetch_states(token, ha_url)
+    candidates = [s for s in states if is_door_candidate(s)]
+    doors = load_doors_config().get("doors", [])
+    notes: list[str] = []
+    updated: list[dict] = []
+
+    print("Tapo / garage door candidates in HA:\n")
+    for s in sorted(candidates, key=lambda x: x["entity_id"]):
+        fn = (s.get("attributes") or {}).get("friendly_name", "")
+        print(f"  {s['entity_id']:<52} state={s['state']:<8} {fn}")
+
+    for door in doors:
+        name = door["name"]
+        current = door.get("sensor", "")
+        match = best_match(name, candidates)
+        out = dict(door)
+
+        if match:
+            new_id = match["entity_id"]
+            live_state = match["state"]
+            if new_id != current:
+                notes.append(f"{name}: {current} -> {new_id} (live state={live_state})")
+                out["sensor"] = new_id
+            elif live_state not in ("unknown", "unavailable"):
+                notes.append(f"{name}: keeping {current} (live state={live_state})")
+            else:
+                notes.append(f"{name}: {current} is {live_state} in HA")
+        else:
+            notes.append(f"{name}: no Tapo match found — update sensor in entities.yaml manually")
+
+        updated.append(out)
+
+    return updated, notes
+
+
+def write_entities(doors: list[dict]) -> None:
+    data = load_doors_config()
+    data["doors"] = doors
+    header = (
+        "# Tapo T110 contact sensors — source of truth for open/closed icons.\n"
+        "# TP-Link integration entity suffix is usually *_is_open (not *_door_contact).\n"
+        "# Run: python3 home-assistant/garage-doors/scripts/discover_garage_doors.py --apply\n"
+        "# Standard: on = open, off = closed. Set invert: true if reversed.\n\n"
+    )
+    ENTITIES.write_text(header + yaml.safe_dump(data, sort_keys=False, default_flow_style=False))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ha-url", default="http://192.168.1.239:8123")
+    parser.add_argument("--token", default=None)
+    parser.add_argument("--apply", action="store_true", help="Write matched sensors to entities.yaml")
+    args = parser.parse_args()
+
+    token = get_token(args.token)
+    doors, notes = discover(token, args.ha_url)
+
+    print("\nMapping:")
+    for line in notes:
+        print(f"  {line}")
+
+    if args.apply:
+        write_entities(doors)
+        print(f"\nUpdated {ENTITIES}")
+    else:
+        print("\nDry run — re-run with --apply to update entities.yaml")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

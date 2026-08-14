@@ -1,0 +1,43 @@
+# Entity map for Flux UI overview — mirrors home-assistant/mobile-dashboard Home tab.
+# Climate section is copied from live Mobile Home on deploy when SMB is available.
+
+weather: weather.forecast_home
+
+quick_actions:
+  gate:
+    - entity: lock.gate_intercom_gate_open
+      name: Gate Open
+    - entity: lock.gate_intercom_gate_latch
+      name: Gate Latch
+  garage: []
+  actions:
+    - name: All Off
+      subtitle: Turn off all lights
+      icon: mdi:lightbulb-off-outline
+      icon_color: grey
+      service: light.turn_off
+      target: light.all_lights
+    - name: Goodnight
+      subtitle: Night arrival on
+      icon: mdi:weather-night
+      icon_color: indigo
+      service: light.turn_on
+      target: light.night_arrival
+
+favourite_lights:
+  - entity: light.kitchen
+    name: Kitchen
+  - entity: light.dining_room
+    name: Kitchen dining
+  - entity: light.main_atrium
+    name: Main area
+  - entity: light.garage
+    name: Garage
+  - entity: light.entry_centre
+    name: Entry
+  - entity: light.main_footlights
+    name: Hall footlights
+  - entity: light.all_lights
+    name: All lights
+  - entity: light.living_center
+    name: Living

@@ -31,9 +31,6 @@ script:
       - action: switch.turn_on
         target:
           entity_id: switch.garage_door_3
-      - action: input_boolean.toggle
-        target:
-          entity_id: input_boolean.house_garage_door_open
 
   pulse_main_shed_door:
     alias: Pulse Main Shed door
@@ -52,9 +49,6 @@ script:
       - action: switch.turn_on
         target:
           entity_id: switch.garage_door_1
-      - action: input_boolean.toggle
-        target:
-          entity_id: input_boolean.main_shed_door_open
 
   pulse_second_shed_door:
     alias: Pulse Second Shed door
@@ -73,6 +67,66 @@ script:
       - action: switch.turn_on
         target:
           entity_id: switch.garage_door_2
-      - action: input_boolean.toggle
-        target:
-          entity_id: input_boolean.second_shed_door_open
+
+# Sync tracked booleans from Tapo contact sensors (source of truth for dashboard icons).
+# Sensor entity IDs: see ../entities.yaml — update to match your Tapo device names.
+automation:
+  - id: garage_sync_house_garage_from_tapo
+    alias: Garage — sync House Garage tracked state from Tapo
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.house_garage_door_is_open
+    action:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ is_state('binary_sensor.house_garage_door_is_open', ['on', 'open']) }}"
+            sequence:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.house_garage_door_open
+        default:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.house_garage_door_open
+
+  - id: garage_sync_main_shed_from_tapo
+    alias: Garage — sync Main Shed tracked state from Tapo
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.shed_main_door_is_open
+    action:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ is_state('binary_sensor.shed_main_door_is_open', ['on', 'open']) }}"
+            sequence:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.main_shed_door_open
+        default:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.main_shed_door_open
+
+  - id: garage_sync_second_shed_from_tapo
+    alias: Garage — sync Second Shed tracked state from Tapo
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.second_shed_door_is_open
+    action:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ is_state('binary_sensor.second_shed_door_is_open', ['on', 'open']) }}"
+            sequence:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean.second_shed_door_open
+        default:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.second_shed_door_open
