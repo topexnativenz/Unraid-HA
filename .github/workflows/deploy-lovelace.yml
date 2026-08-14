@@ -25,27 +25,6 @@ concurrency:
 
 permissions:
   contents: read
-  workflow_dispatch:
-    inputs:
-      dashboards:
-        description: Dashboards to push via Home Assistant API (Nabu Casa)
-        type: choice
-        options:
-          - flux-ui-both
-          - flux-ui
-          - flux-ui-tablet
-        default: flux-ui-both
-  push:
-    branches:
-      - cursor/flux-ui-md3-dashboard-bf3a
-      - cursor/nas-array-planning-docs
-    paths:
-      - home-assistant/flux-ui-dashboard/lovelace/**
-      - home-assistant/flux-ui-dashboard/*.yaml
-
-concurrency:
-  group: deploy-lovelace
-  cancel-in-progress: false
 
 jobs:
   deploy:
