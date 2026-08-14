@@ -1,0 +1,78 @@
+name: Deploy Lovelace
+
+on:
+  workflow_dispatch:
+    inputs:
+      dashboards:
+        description: Dashboards to push via Home Assistant API (Nabu Casa)
+        type: choice
+        options:
+          - flux-ui-both
+          - flux-ui
+          - flux-ui-tablet
+        default: flux-ui-both
+  push:
+    branches:
+      - cursor/flux-ui-md3-dashboard-bf3a
+      - cursor/nas-array-planning-docs
+    paths:
+      - home-assistant/flux-ui-dashboard/lovelace/**
+      - home-assistant/flux-ui-dashboard/*.yaml
+
+concurrency:
+  group: deploy-lovelace
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Push Lovelace to Home Assistant
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+
+      - name: Check secrets
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          if [ -z "$HA_URL" ] || [ -z "$HA_TOKEN" ]; then
+            echo "Missing GitHub secrets HA_URL and/or HA_TOKEN."
+            echo "HA_URL must be the Nabu Casa Remote UI origin (https://….ui.nabu.casa)."
+            echo "HA_TOKEN is a long-lived Home Assistant access token."
+            exit 1
+          fi
+          case "$HA_URL" in
+            *192.168.1.239*|*localhost*)
+              echo "HA_URL is a LAN address — GitHub Actions cannot reach it. Use the Nabu Casa URL."
+              exit 1
+              ;;
+          esac
+
+      - name: Deploy Flux UI (API only)
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          set -euo pipefail
+          TARGET="${{ github.event.inputs.dashboards || 'flux-ui-both' }}"
+          EXTRA=(--api-only)
+          case "$TARGET" in
+            flux-ui) EXTRA+=(--skip-tablet) ;;
+            flux-ui-tablet) EXTRA+=(--skip-phone) ;;
+            flux-ui-both) ;;
+            *) echo "Unknown dashboards input: $TARGET"; exit 1 ;;
+          esac
+          python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py "${EXTRA[@]}"
