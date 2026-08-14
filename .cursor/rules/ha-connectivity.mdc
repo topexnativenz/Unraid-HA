@@ -1,0 +1,25 @@
+---
+description: Home Assistant URL — LAN first, Nabu Casa when away; Lovelace CI
+alwaysApply: true
+---
+
+# Home Assistant connectivity
+
+HA OS stays at home (`http://192.168.1.239:8123`). Remote UI is **Nabu Casa**, not Tailscale.
+
+Before deploy, MCP, or live HA calls:
+
+```bash
+python3 /Users/topexnative/Projects/unraid-array-design/home-assistant/scripts/ha_resolve.py --json
+```
+
+1. **LAN** — use `192.168.1.239`; Samba OK for packages/`www`.
+2. **Away** — Nabu Casa from `/Users/topexnative/.cursor/ha-remote.json` or `HA_URL`. Lovelace = `--api-only` (no SMB).
+3. **Phone / no Mac** — GitHub Action **Deploy Lovelace** (`HA_URL` + `HA_TOKEN` secrets). Do not assume a Mac is on the LAN.
+4. Sync Cursor MCP after switching networks:
+
+```bash
+bash /Users/topexnative/Projects/unraid-array-design/home-assistant/scripts/sync-cursor-ha-mcp.sh
+```
+
+Do not hardcode the `*.ui.nabu.casa` host. Do not expose Samba to the internet.

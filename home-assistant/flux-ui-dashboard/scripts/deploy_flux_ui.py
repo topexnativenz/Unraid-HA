@@ -15,13 +15,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ha_common import (
-    DEFAULT_HA,
     DEFAULT_HOST,
     DEFAULT_MOUNT,
+    apply_resolved_ha,
     get_samba_creds,
     get_token,
     ha_reachable,
     mount_config,
+    refresh_nabu_cache,
     run_async,
     unmount,
     wait_for_ha,
@@ -1504,6 +1505,11 @@ async def deploy_async(args: argparse.Namespace) -> int:
     except Exception:
         pass
 
+    if getattr(args, "api_only", False):
+        args.skip_mount = True
+        args.skip_assets = True
+        print("API-only deploy: Lovelace websocket push (no SMB, no www assets, no discover)")
+
     token: str | None = None
     if not args.offline:
         try:
@@ -1611,7 +1617,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
             use_calendar_pro = True
             use_mediocre_media = True
 
-    if ha_up and token and not args.offline:
+    skip_discover = getattr(args, "api_only", False) or getattr(args, "skip_discover", False)
+    if ha_up and token and not args.offline and not skip_discover:
         print("Discovering Tapo garage/shed door sensors…")
         subprocess.run(
             [
@@ -1687,15 +1694,18 @@ async def deploy_async(args: argparse.Namespace) -> int:
             check=False,
         )
 
-    config = build_config(
-        mobile_storage,
-        use_navbar_card=use_navbar,
-        use_kiosk=use_kiosk,
-        use_auto_entities=use_auto_entities,
-        use_simple_tabs=use_simple_tabs,
-        use_calendar_pro=use_calendar_pro,
-        use_mediocre_media=use_mediocre_media,
-    )
+    skip_phone = getattr(args, "skip_phone", False)
+    config: dict | None = None
+    if not skip_phone:
+        config = build_config(
+            mobile_storage,
+            use_navbar_card=use_navbar,
+            use_kiosk=use_kiosk,
+            use_auto_entities=use_auto_entities,
+            use_simple_tabs=use_simple_tabs,
+            use_calendar_pro=use_calendar_pro,
+            use_mediocre_media=use_mediocre_media,
+        )
 
     tablet_config: dict | None = None
     if not args.skip_tablet:
@@ -1739,8 +1749,9 @@ async def deploy_async(args: argparse.Namespace) -> int:
     # Previous bug: SMB storage was written, then verify failed on weather entity
     # rename (forecast_home → homemetservice), so lovelace/config/save never ran
     # and Companion apps kept serving the old dashboards.
-    print("Verifying built phone config…")
-    subprocess.run(["python3", str(VERIFY)], check=True)
+    if config is not None:
+        print("Verifying built phone config…")
+        subprocess.run(["python3", str(VERIFY)], check=True)
     if tablet_config:
         print("Verifying built tablet config…")
         subprocess.run(
@@ -1765,7 +1776,8 @@ async def deploy_async(args: argparse.Namespace) -> int:
                 await ensure_media_package_helpers(token, args.ha_url)
                 await ensure_tablet_led_helpers(token, args.ha_url)
                 await _sync_sonos_input_select(token, args.ha_url)
-            write_storage(args.mount, config)
+            if config is not None:
+                write_storage(args.mount, config)
             if tablet_config:
                 write_tablet_storage(args.mount, tablet_config)
             # If a prior YAML-mode experiment registered flux-ui-tablet in
@@ -1792,8 +1804,9 @@ async def deploy_async(args: argparse.Namespace) -> int:
     print("Waiting for Home Assistant API before lovelace/config/save…")
     await wait_for_ha(token, args.ha_url, timeout_s=180, label="HA before dashboard push")
 
-    print("Pushing phone dashboard via lovelace/config/save…")
-    await save_dashboard(token, args.ha_url, config)
+    if config is not None:
+        print("Pushing phone dashboard via lovelace/config/save…")
+        await save_dashboard(token, args.ha_url, config)
 
     if tablet_config:
         await ensure_tablet_dashboard(token, args.ha_url)
@@ -1803,16 +1816,18 @@ async def deploy_async(args: argparse.Namespace) -> int:
     if token and ha_up and not args.offline:
         await _sync_sonos_input_select(token, args.ha_url)
 
-    print("Verifying live dashboards…")
-    subprocess.run(
-        ["python3", str(VERIFY), "--live", "--ha-url", args.ha_url, "--token", token],
-        check=True,
-    )
+    if config is not None:
+        print("Verifying live dashboards…")
+        subprocess.run(
+            ["python3", str(VERIFY), "--live", "--ha-url", args.ha_url, "--token", token],
+            check=True,
+        )
 
     if mounted:
         unmount(args.mount)
 
-    print(f"Flux UI deployed at {args.ha_url}/{URL_PATH}/overview")
+    if config is not None:
+        print(f"Flux UI deployed at {args.ha_url}/{URL_PATH}/overview")
     if tablet_config:
         print(f"Flux UI 16:9 deployed at {args.ha_url}/{TABLET_URL_PATH}/overview")
     print("Kiosk mode: mobile header hidden on Flux UI (swipe left for sidebar, More → Profile).")
@@ -1822,12 +1837,32 @@ async def deploy_async(args: argparse.Namespace) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--ha-url", default=DEFAULT_HA)
+    parser.add_argument("--ha-url", default=None, help="HA origin; default = LAN then Nabu Casa")
     parser.add_argument("--token", default=None)
     parser.add_argument("--mount", default=DEFAULT_MOUNT)
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--skip-mount", action="store_true")
+    parser.add_argument(
+        "--force-mount",
+        action="store_true",
+        help="Try Samba even when HA is reached via Nabu Casa (needs LAN/VPN)",
+    )
     parser.add_argument("--skip-assets", action="store_true")
+    parser.add_argument(
+        "--skip-phone",
+        action="store_true",
+        help="Do not build or push the phone flux-ui dashboard",
+    )
+    parser.add_argument(
+        "--api-only",
+        action="store_true",
+        help="Travel/CI: lovelace/config/save only (no SMB, assets, or discover)",
+    )
+    parser.add_argument(
+        "--skip-discover",
+        action="store_true",
+        help="Skip garage/room/weather/Sonos discover and camera prune",
+    )
     parser.add_argument("--offline", action="store_true", help="Never push to HA API")
     parser.add_argument(
         "--skip-tablet",
@@ -1890,6 +1925,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    if getattr(args, "skip_phone", False) and args.skip_tablet:
+        raise SystemExit("ERROR: nothing to deploy (--skip-phone and --skip-tablet)")
+
     if args.snapshot_tablet_yaml:
         snap = snapshot_tablet_yaml(label=args.label or "manual")
         return 0 if snap else 1
@@ -1910,6 +1948,13 @@ def main() -> int:
         write_generated_tablet_json(config)
         print(f"Relocked tablet baseline ({digest})")
         return 0
+
+    endpoint = apply_resolved_ha(args)
+    if endpoint.via == "lan" and not args.offline:
+        try:
+            refresh_nabu_cache(get_token(args.token), endpoint.url)
+        except Exception as exc:
+            print(f"  Nabu Casa URL cache refresh skipped ({exc})")
 
     if args.pull_tablet_yaml:
         require_tablet_baseline_unlock(args, action="--pull-tablet-yaml")

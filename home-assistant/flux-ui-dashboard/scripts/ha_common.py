@@ -8,18 +8,47 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
+from dataclasses import asdict, dataclass
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import websockets
 
-DEFAULT_HA = os.environ.get("HA_URL", "http://192.168.1.239:8123")
-DEFAULT_HOST = os.environ.get("HA_HOST", "192.168.1.239")
+LAN_HA = "http://192.168.1.239:8123"
+LAN_HOST = "192.168.1.239"
+DEFAULT_HA = os.environ.get("HA_URL", LAN_HA)
+DEFAULT_HOST = os.environ.get("HA_HOST", LAN_HOST)
 DEFAULT_MOUNT = os.environ.get("HA_CONFIG_MOUNT", "/tmp/ha-config-smb")
 
 MCP_PATHS = [
     Path.home() / ".cursor/mcp.json",
     Path("/Users/topexnative/.cursor/mcp.json"),
 ]
+REMOTE_CACHE_PATHS = [
+    Path.home() / ".cursor/ha-remote.json",
+    Path("/Users/topexnative/.cursor/ha-remote.json"),
+]
+
+
+@dataclass
+class HaEndpoint:
+    url: str
+    via: str  # env | lan | nabu_casa
+    lan_host: str = LAN_HOST
+    lan_url: str = LAN_HA
+    nabu_casa_url: str | None = None
+    smb_ok: bool = False
+
+    def to_json(self, *, redact: bool = False) -> dict[str, Any]:
+        data = asdict(self)
+        if redact and data.get("nabu_casa_url"):
+            data["nabu_casa_url"] = _redact_url(data["nabu_casa_url"])
+            if data["via"] != "lan":
+                data["url"] = _redact_url(data["url"])
+        return data
 
 
 def get_token(explicit: str | None = None) -> str:
@@ -40,6 +69,179 @@ def get_token(explicit: str | None = None) -> str:
     raise RuntimeError(
         "No HA token. Set HA_TOKEN, pass --token, or configure ~/.cursor/mcp.json homeassistant."
     )
+
+
+def _redact_url(url: str) -> str:
+    if "nabu.casa" not in url:
+        return url
+    prefix, _, rest = url.partition("://")
+    host, _, tail = rest.partition("/")
+    label, _, domain = host.partition(".")
+    hidden = (label[:2] + "…" + label[-2:]) if len(label) > 6 else "…"
+    return f"{prefix}://{hidden}.{domain}/{tail}".rstrip("/")
+
+
+def _normalize_url(url: str) -> str:
+    return url.strip().rstrip("/")
+
+
+def _is_lan_url(url: str) -> bool:
+    u = url.lower()
+    return "192.168.1.239" in u or u.endswith("homeassistant.local:8123")
+
+
+def _is_nabu_url(url: str) -> bool:
+    return "ui.nabu.casa" in url.lower()
+
+
+def _http_up(url: str, timeout: float = 1.5) -> bool:
+    try:
+        req = urllib.request.Request(_normalize_url(url) + "/api/", method="GET")
+        urllib.request.urlopen(req, timeout=timeout)
+        return True
+    except urllib.error.HTTPError as exc:
+        return exc.code in {200, 401, 403, 405}
+    except Exception:
+        return False
+
+
+def _cache_path() -> Path | None:
+    for path in REMOTE_CACHE_PATHS:
+        if path.exists():
+            return path
+    return REMOTE_CACHE_PATHS[0]
+
+
+def load_remote_cache() -> dict[str, Any]:
+    path = _cache_path()
+    if path is None or not path.exists():
+        return {}
+    try:
+        data = json.loads(path.read_text())
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def save_remote_cache(*, nabu_casa_url: str) -> Path:
+    path = _cache_path()
+    assert path is not None
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "lan_url": LAN_HA,
+        "lan_host": LAN_HOST,
+        "nabu_casa_url": _normalize_url(nabu_casa_url),
+        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+    path.chmod(0o600)
+    return path
+
+
+def cached_nabu_casa_url() -> str | None:
+    env = os.environ.get("HA_NABU_CASA_URL")
+    if env:
+        return _normalize_url(env)
+    cached = load_remote_cache().get("nabu_casa_url")
+    if isinstance(cached, str) and cached:
+        return _normalize_url(cached)
+    return None
+
+
+def nabu_url_from_cloud_status(status: dict[str, Any]) -> str | None:
+    domain = status.get("remote_domain")
+    if isinstance(domain, str) and domain.strip():
+        host = domain.strip()
+        if host.startswith("http"):
+            return _normalize_url(host)
+        return f"https://{host.rstrip('/')}"
+    return None
+
+
+def refresh_nabu_cache(token: str, ha_url: str) -> str | None:
+    """When LAN is up, persist the Nabu Casa Remote UI URL for travel."""
+    try:
+        results = run_async(ws_call(token, ha_url, [{"type": "cloud/status"}]))
+    except Exception:
+        return None
+    if not results or not results[0].get("success"):
+        return None
+    url = nabu_url_from_cloud_status(results[0].get("result") or {})
+    if not url:
+        return None
+    save_remote_cache(nabu_casa_url=url)
+    return url
+
+
+def resolve_ha(*, explicit: str | None = None, probe: bool = True) -> HaEndpoint:
+    """LAN first, then Nabu Casa. HA_URL env wins (GitHub Actions / travel override)."""
+    if explicit:
+        url = _normalize_url(explicit)
+        if _is_nabu_url(url):
+            via = "nabu_casa"
+        elif _is_lan_url(url):
+            via = "lan"
+        else:
+            via = "env"
+        return HaEndpoint(
+            url=url,
+            via=via,
+            nabu_casa_url=url if via == "nabu_casa" else cached_nabu_casa_url(),
+            smb_ok=via == "lan" and (not probe or _http_up(url)),
+        )
+
+    env_url = os.environ.get("HA_URL")
+    if env_url:
+        url = _normalize_url(env_url)
+        via = "nabu_casa" if _is_nabu_url(url) else ("lan" if _is_lan_url(url) else "env")
+        return HaEndpoint(
+            url=url,
+            via=via,
+            nabu_casa_url=url if _is_nabu_url(url) else cached_nabu_casa_url(),
+            smb_ok=via == "lan" and (not probe or _http_up(url)),
+        )
+
+    nabu = cached_nabu_casa_url()
+    if not probe or _http_up(LAN_HA):
+        return HaEndpoint(
+            url=LAN_HA,
+            via="lan",
+            nabu_casa_url=nabu,
+            smb_ok=True,
+        )
+
+    if nabu:
+        return HaEndpoint(
+            url=nabu,
+            via="nabu_casa",
+            nabu_casa_url=nabu,
+            smb_ok=False,
+        )
+
+    raise RuntimeError(
+        "Home Assistant LAN is unreachable and no Nabu Casa URL is cached. "
+        "On LAN once: python3 home-assistant/scripts/ha_resolve.py --cache. "
+        "Or set HA_URL to the Remote UI URL, or HA_NABU_CASA_URL."
+    )
+
+
+def resolved_ha_url(explicit: str | None = None) -> str:
+    return resolve_ha(explicit=explicit).url
+
+
+def apply_resolved_ha(args: Any) -> HaEndpoint:
+    """Bind argparse namespace ha_url/host/skip_mount for LAN vs Nabu Casa."""
+    endpoint = resolve_ha(explicit=getattr(args, "ha_url", None) or None)
+    args.ha_url = endpoint.url
+    host = getattr(args, "host", None)
+    if not host or host == DEFAULT_HOST:
+        args.host = endpoint.lan_host
+    print(f"HA endpoint: {endpoint.url} (via {endpoint.via}, smb_ok={endpoint.smb_ok})")
+    if not endpoint.smb_ok and not getattr(args, "force_mount", False):
+        if hasattr(args, "skip_mount"):
+            args.skip_mount = True
+            print("  off-LAN or remote URL: SMB skipped — Lovelace API push only")
+    return endpoint
 
 
 async def ws_call(token: str, ha_url: str, calls: list[dict]) -> list[dict]:

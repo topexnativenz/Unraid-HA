@@ -128,8 +128,10 @@ Deploy log must show:
 ```bash
 # Token: HA_TOKEN env, --token flag, or ~/.cursor/mcp.json (homeassistant MCP)
 export HA_TOKEN="your-long-lived-token"   # optional if mcp.json exists
-export HA_URL="http://192.168.1.239:8123" # optional
+export HA_URL="http://192.168.1.239:8123" # optional; omit to LAN-then-Nabu Casa
 ```
+
+Travel / phone (no Samba): `--api-only` or GitHub Action **Deploy Lovelace**. See [home-assistant/README.md](../README.md).
 
 One-shot script: downloads Mushroom + card-mod JS → builds overview → verifies entities → mounts Samba → copies theme/www/packages/storage → registers dashboard via WebSocket → live verify.
 
