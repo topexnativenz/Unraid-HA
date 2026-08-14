@@ -1,0 +1,27 @@
+# Optional Unraid GPU generator sidecar.
+# Deploy under /mnt/user/appdata/ai-3d-agent/ when you have an NVIDIA GPU.
+# The MCP talks to generation_http_url (default http://TOWER:7860/generate).
+#
+# Replace the image with your preferred self-hosted image-to-3D stack
+# (TRELLIS / Hunyuan3D / TripoSR wrapper) that implements the JSON contract
+# documented in README.md.
+
+services:
+  ai3d-generator:
+    image: ghcr.io/example/ai3d-http-stub:latest
+    container_name: ai3d-generator
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    environment:
+      - PORT=7860
+    # volumes:
+    #   - /mnt/user/appdata/ai-3d-agent/generator:/data
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    profiles: ["gpu"]

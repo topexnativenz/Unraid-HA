@@ -1,0 +1,40 @@
+{
+  "workspace_root": "tools/ai-3d-agent-mcp/jobs",
+  "history_db": "tools/ai-3d-agent-mcp/jobs/history.sqlite3",
+  "generation_backend": "stub",
+  "generation_http_url": "http://192.168.1.239:7860/generate",
+  "default_printer": "X1C-A",
+  "printers": {
+    "X1C-A": {
+      "model": "Bambu Lab X1 Carbon",
+      "bed_mm": [256, 256, 256],
+      "nozzle_mm": 0.4,
+      "process": "0.20mm Standard",
+      "ams": true
+    },
+    "X1C-B": {
+      "model": "Bambu Lab X1 Carbon",
+      "bed_mm": [256, 256, 256],
+      "nozzle_mm": 0.4,
+      "process": "0.20mm Standard",
+      "ams": true
+    }
+  },
+  "default_material": "PLA",
+  "materials": ["PLA", "PETG", "TPU"],
+  "auto_flat_base_categories": ["figurine"],
+  "flat_base_height_mm": 2.0,
+  "warn_only_mesh_checks": true,
+  "allow_auto_print": false,
+  "macos_bambu_app": "BambuStudio",
+  "macos_display_name": "David's MacBook Air (2139)",
+  "macos_hostname": "Davids-MacBook-Air-2139.local",
+  "macos_ssh_user": "",
+  "macos_jobs_mount": "/Volumes/ai-3d-agent/jobs",
+  "ios_share_base_url": "",
+  "ios_share_dir": "tools/ai-3d-agent-mcp/jobs/ios-share",
+  "open_studio_command": "",
+  "default_handoff_target": "macos_studio",
+  "meshy_api_key_env": "MESHY_API_KEY",
+  "tripo_api_key_env": "TRIPO_API_KEY"
+}
