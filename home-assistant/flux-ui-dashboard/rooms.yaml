@@ -1,0 +1,101 @@
+# Flux UI room groups — lights per area (mirrors Mobile Home Lights tab groups).
+#
+# Reference: ElementZoom Flux UI 02-rooms.yaml — Default / Others / Outdoor tabs
+#   https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
+#
+# category: default | others | outdoor  (filters Rooms index tabs)
+# card_name: shorter label on room index cards (avoids truncation)
+# keywords: used to auto-match Tapo temp/humidity/motion sensors at runtime
+# temperature_entity / humidity_entity: optional explicit overrides
+# indicators: up to 3 extra right-column slots after the auto lights pill
+#   - {entity: binary_sensor.xxx, icon: mdi:garage-open, icon_closed: mdi:garage,
+#      color_on: '#F2B8B5', color_off: '#81C784'}
+#
+# light_groups: quick shortcuts on room detail (reference FAB menu)
+# features: optional quick actions row (defaults to Presence / Movie / Adaptive stubs)
+# cameras: optional per-room camera feeds on room Camera subview
+# occupancy_entity / temperature_entity / humidity_entity: live status chips on room detail
+# photo: optional room image for tablet landscape detail (/local/flux-ui/rooms/living.webp)
+# climate_entity: optional thermostat on tablet room climate column
+
+rooms:
+  - name: Kitchen & dining
+    card_name: Kitchen
+    path: kitchen
+    category: default
+    icon: mdi:stove
+    subtitle: Kitchen, dining, bar
+    keywords: [kitchen, dining, bar, breakfast, stove]
+    lights:
+      - {entity: light.kitchen, name: Kitchen}
+      - {entity: light.dining_room, name: Kitchen dining}
+      - {entity: light.dining_centre, name: Dining centre}
+      - {entity: light.bar, name: Bar}
+      - {entity: light.breakfast_high, name: Breakfast}
+
+  - name: Living & media
+    card_name: Living
+    path: living
+    category: default
+    icon: mdi:sofa
+    subtitle: Lounges and media room
+    keywords: [living, lounge, media, atrium, sofa]
+    light_groups:
+      - {name: Main Lights, icon: mdi:lightbulb-group, entity: light.main_atrium}
+      - {name: Other Lights, icon: mdi:lightbulb-multiple-outline, entity: light.white_lounge}
+      - {name: Kitchen, icon: mdi:stove, entity: light.dining_room}
+      - {name: Media, icon: mdi:television, entity: light.media_room}
+    lights:
+      - {entity: light.dining_room, name: Dining}
+      - {entity: light.bar, name: Bar}
+      - {entity: light.kitchen, name: Kitchen}
+      - {entity: light.scullery, name: Pantry}
+      - {entity: light.main_atrium, name: Main area}
+      - {entity: light.walkway, name: Walkway}
+      - {entity: light.white_lounge, name: White lounge}
+      - {entity: light.black_lounge, name: Black lounge}
+
+  - name: Master bedroom
+    card_name: Master
+    path: master-bedroom
+    category: default
+    icon: mdi:bed-king-outline
+    subtitle: Bedroom lights
+    keywords: [master, bedroom, bed]
+    lights:
+      - {entity: light.master_bedroom, name: Master bedroom}
+
+  - name: Garage & exterior
+    card_name: Garage
+    path: garage
+    category: default
+    icon: mdi:garage
+    subtitle: Garage and outside
+    keywords: [garage, shed, exterior, outside garage]
+    # Door indicators synced from garage-doors/entities.yaml at build (enabled doors only)
+    lights:
+      - {entity: light.garage, name: Garage}
+      - {entity: light.outside_garage, name: Outside garage}
+
+  - name: Entry & arrival
+    card_name: Entry
+    path: entry
+    category: others
+    icon: mdi:door-open
+    subtitle: Front door and path
+    keywords: [entry, arrival, front door, outside entry]
+    lights:
+      - {entity: light.entry_centre, name: Entry}
+      - {entity: light.night_arrival, name: Night arrival}
+      - {entity: light.outside_entry, name: Outside entry}
+
+  - name: Hall & stairs
+    card_name: Hall
+    path: hall
+    category: others
+    icon: mdi:stairs
+    subtitle: Footlights and passages
+    keywords: [hall, stair, footlight, passage]
+    lights:
+      - {entity: light.main_footlights, name: Hall footlights}
+      - {entity: light.stair_footlights, name: Stair footlights}

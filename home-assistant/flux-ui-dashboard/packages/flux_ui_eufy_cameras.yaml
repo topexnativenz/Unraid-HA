@@ -1,0 +1,67 @@
+# Flux UI — outdoor cameras (Reolink + Eufy Three Mile Bush).
+#
+# Overview tiles use branded animated WebP stills from:
+#   /config/www/flux-ui/camera-stills/<entity_suffix>.webp
+#   → /local/flux-ui/camera-stills/<entity_suffix>.webp
+#
+# These assets are committed in the repo and copied on deploy. Live
+# camera.snapshot automations are disabled so they do not overwrite them.
+#
+# Eufy live still needs RTSP + camera.turn_on (battery cams reject DESCRIBE
+# until awake).
+
+script:
+  flux_ui_eufy_start_stream:
+    alias: Flux UI — start Eufy outdoor stream
+    icon: mdi:cctv
+    mode: parallel
+    max: 3
+    fields:
+      camera_entity:
+        description: Camera entity_id (e.g. camera.side_door)
+        example: camera.side_door
+      rtsp_switch:
+        description: RTSP switch entity_id
+        example: switch.side_door_rtsp_stream
+    sequence:
+      - condition: template
+        value_template: >
+          {{ camera_entity is defined and camera_entity[:7] == 'camera.' }}
+      - action: switch.turn_on
+        continue_on_error: true
+        target:
+          entity_id: "{{ rtsp_switch }}"
+      - action: camera.turn_on
+        continue_on_error: true
+        target:
+          entity_id: "{{ camera_entity }}"
+      - wait_template: >
+          {{ is_state(camera_entity, 'streaming')
+             or is_state('sensor.' ~ camera_entity.split('.')[1] ~ '_stream_status',
+                         'StreamStatus.STREAMING') }}
+        timeout: "00:00:45"
+        continue_on_timeout: true
+
+automation:
+  - id: flux_ui_eufy_rtsp_keep_on
+    alias: Flux UI — keep Eufy outdoor RTSP enabled
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+      - platform: state
+        entity_id:
+          - switch.side_door_rtsp_stream
+          - switch.garage_door_rtsp_stream
+          - switch.side_of_house_rtsp_stream
+        to: "off"
+        for:
+          minutes: 2
+    action:
+      - action: switch.turn_on
+        continue_on_error: true
+        target:
+          entity_id:
+            - switch.side_door_rtsp_stream
+            - switch.garage_door_rtsp_stream
+            - switch.side_of_house_rtsp_stream

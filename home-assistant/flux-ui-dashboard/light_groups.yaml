@@ -1,0 +1,23 @@
+# Extra light groups for the Lights tab (beyond per-room sections from rooms.yaml).
+# Mirrors Mobile Home Lights tab groups not covered by room cards.
+
+groups:
+  - name: Whole home
+    subtitle: Master switches
+    lights:
+      - {entity: light.all_lights, name: All lights}
+      - {entity: light.ground_floor_lights, name: Ground floor}
+
+  - name: Upstairs
+    subtitle: Office, landing, ensuite
+    lights:
+      - {entity: light.office, name: Office}
+      - {entity: light.c_bus_light_062_c_bus_light_062, name: Landing}
+      - {entity: light.c_bus_light_063_c_bus_light_063, name: Ensuite}
+
+  - name: Outside
+    subtitle: Garden, pool, garage exterior
+    lights:
+      - {entity: light.outside_area, name: Outside area}
+      - {entity: light.outside_garage, name: Outside garage}
+      - {entity: light.pool_uplights, name: Pool uplights}

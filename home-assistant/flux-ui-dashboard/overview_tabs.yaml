@@ -1,0 +1,53 @@
+# Overview Home / Events / Active tabs
+# Reference: https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
+#   dashboard/mobile/views/01-overview.yaml (custom:simple-tabs)
+
+enabled: true
+# simple-tabs = ElementZoom reference (HACS, full-width tab bar, no input_select needed)
+# native = fallback only when simple-tabs HACS is not installed
+engine: simple-tabs
+
+events:
+  # calendar-card-pro timeline (ElementZoom Events tab)
+  # Phone (iOS) + tablet share these display options. Event times follow the
+  # browser TZ — tablet loads /local/flux-ui/nz-timezone.js so Fully matches NZ.
+  days_to_show: 10
+  compact_events_to_show: 10
+  time_24h: false
+  language: en
+  # NZ MetService — discover_weather.py --apply keeps this in sync
+  weather_entity: weather.homemetservice
+  first_day_of_week: monday
+  # Mostly static: no per-second countdown/progress; refresh only every 6h
+  # (calendar-card-pro has no pure change-only mode — this is the longest practical poll).
+  # HA still updates the card when subscribed calendar entities change.
+  show_countdown: false
+  show_progress_bar: false
+  today_indicator: dot
+  refresh_interval: 360
+  refresh_on_navigate: false
+  # Compact date column — day / date / month stacked at top (ElementZoom reference)
+  date_vertical_alignment: top
+  weekday_font_size: 12px
+  day_font_size: 26px
+  month_font_size: 10px
+  day_spacing: 4px
+  event_spacing: 6px
+  calendars:
+    # Whanau calendar — the.gillespie.tribe@gmail.com (auto-discovered on deploy)
+    - entity: calendar.whanau_calendar
+      name: Whanau calendar
+      accent_color: "#81C784"
+      account: the.gillespie.tribe@gmail.com
+    - entity: calendar.home
+      accent_color: "#B388FF"
+
+active:
+  # Optional group entities — Active tab also shows when any light is on or garage door open
+  groups: []
+  # Example (ElementZoom pattern):
+  # - entity: group.all_fans
+  #   title: Fans
+  #   icon: mdi:fan
+  #   state: "on"
+  #   color: "#ADD8E6"

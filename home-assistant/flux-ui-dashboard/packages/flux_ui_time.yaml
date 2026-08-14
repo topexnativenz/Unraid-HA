@@ -1,0 +1,11 @@
+# NZ local clock helpers for Flux UI tablet overview.
+#
+# Prefer the Time & Date integration + template helpers already on HA:
+#   sensor.time / sensor.date
+#   sensor.flux_ui_nz_clock / sensor.flux_ui_nz_date
+#
+# This package intentionally does NOT redefine those entities — duplicate
+# unique_ids during homeassistant.reload_core_config can stall deploy mid-run.
+# HA General → time zone must remain Pacific/Auckland (NZST/NZDT).
+
+homeassistant: {}

@@ -1,0 +1,51 @@
+flux-ui-md3:
+  # Material Design 3 dark theme for Flux UI (matches ElementZoom Flux reference).
+  mode: dark
+
+  primary-color: "#D0BCFF"
+  accent-color: "#CCC2DC"
+  primary-background-color: "#141218"
+  secondary-background-color: "#1D1B20"
+  primary-text-color: "#E6E0E9"
+  secondary-text-color: "#CAC4D0"
+  divider-color: "rgba(208, 188, 255, 0.12)"
+  disabled-text-color: "rgba(230, 224, 233, 0.38)"
+
+  card-background-color: "rgba(33, 31, 38, 0.72)"
+  ha-card-background: "rgba(33, 31, 38, 0.72)"
+  ha-card-border-radius: "28px"
+  ha-card-box-shadow: "0 2px 8px rgba(0, 0, 0, 0.28)"
+  paper-card-background-color: "rgba(33, 31, 38, 0.72)"
+
+  app-header-background-color: "rgba(20, 18, 24, 0.55)"
+  app-header-text-color: "#E6E0E9"
+  sidebar-background-color: "rgba(20, 18, 24, 0.92)"
+  sidebar-text-color: "#E6E0E9"
+  sidebar-icon-color: "#D0BCFF"
+
+  md-sys-color-primary: "#D0BCFF"
+  md-sys-color-on-primary: "#381E72"
+  md-sys-color-primary-container: "#4F378B"
+  md-sys-color-on-primary-container: "#EADDFF"
+  md-sys-color-secondary: "#CCC2DC"
+  md-sys-color-on-secondary: "#332D41"
+  md-sys-color-surface: "#141218"
+  md-sys-color-surface-container: "#211F26"
+  md-sys-color-surface-container-high: "#2B2930"
+  md-sys-color-surface-container-highest: "#36343B"
+  md-sys-color-on-surface: "#E6E0E9"
+  md-sys-color-on-surface-variant: "#CAC4D0"
+  md-sys-color-outline: "#938F99"
+  md-sys-color-outline-variant: "#49454F"
+
+  contrast1: "rgba(208, 188, 255, 0.16)"
+  contrast14: "#CAC4D0"
+
+  background-image: "center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp')"
+  lovelace-background: var(--background-image)
+
+  # 16:9 tablet sections — HA defaults (~500px) squash landscape content.
+  # 4 × 480px ≈ 1920px wall-tablet width.
+  ha-view-sections-column-min-width: 220px
+  ha-view-sections-column-max-width: 480px
+  ha-view-sections-column-gap: 12px

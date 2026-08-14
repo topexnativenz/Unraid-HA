@@ -1,0 +1,36 @@
+# Weather panel — ElementZoom layout, data from MetService NZ (no local weather station).
+# Run: python3 scripts/discover_weather.py --apply  (during deploy) to wire live HA entities.
+
+enabled: true
+weather_entity: weather.homemetservice
+
+source_label: MetService
+source_url: https://www.metservice.com/warnings/home
+
+# Radar + Lunar tabs — updated from HA home coordinates by discover_weather.py --apply
+location:
+  latitude: -35.6933251
+  longitude: 174.2669872
+  city: ""
+  country: New Zealand
+
+# MetService integration sensors — auto-filled by discover_weather.py --apply
+metservice:
+  weather_entity: weather.homemetservice
+  sensors: {}
+
+# MetService warnings sensor (enables Warning tab when active)
+# warnings_entity: sensor.home_metservice_weather_warnings
+
+# Optional WAQI air-quality sensor for Forecast tab second card
+# aqi_entity: sensor.your_town_air_quality_index
+
+# Template sensors from packages/flux_ui_weather.yaml (weather.get_forecasts).
+# Subtitles and charts read these; deploy runs template.reload after package copy.
+entities:
+  hourly_forecast: sensor.flux_ui_hourly_forecast_full
+  daily_forecast: sensor.flux_ui_daily_forecast_data
+  next_rain_summary: sensor.flux_ui_next_rain_summary
+  rainfall_summary: sensor.flux_ui_24h_rainfall_summary
+  uv_cloud_summary: sensor.flux_ui_uv_and_cloud_summary
+  wind_summary: sensor.flux_ui_wind_summary

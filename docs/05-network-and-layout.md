@@ -155,10 +155,13 @@ sequenceDiagram
 
 | Method | Use |
 |--------|-----|
+| **Nabu Casa Remote UI** | HA Companion + Lovelace API (travel, GitHub Actions) |
 | WireGuard on router | Remote admin + SMB over VPN |
-| Tailscale on NAS | Easy homelab; mind ACLs |
+| Tailscale on NAS | Tower SSH / Unraid MCP — not HA Companion |
 | Cloudflare Tunnel | Web apps only (Notifiarr, etc.) |
 | Port-forward SMB | **Avoid** |
+
+HA admin from a phone: commit Lovelace YAML and run **Deploy Lovelace** (see [home-assistant/README.md](../home-assistant/README.md)). Samba stays LAN-only.
 
 ---
 

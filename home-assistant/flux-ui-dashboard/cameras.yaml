@@ -1,0 +1,30 @@
+# Flux UI Cameras — global feeds and optional room assignment.
+# room: matches rooms.yaml path slug (e.g. entry, garage, living)
+#
+# Eufy outdoor (Three Mile Bush): Driveway, Garage Door, Side of House.
+# Front door Doorbell stays enabled in HA but is not on the tablet overview row.
+# Unused Eufy cams (Front Yard / Clubrooms / Showroom) are disabled on deploy.
+# Reolink Duo 3 PoE → camera.back_courtyard_fluent.
+
+cameras:
+  - entity: camera.back_courtyard_fluent
+    name: Back Courtyard
+    room: outdoor
+  - entity: camera.side_door
+    name: Driveway
+    room: outdoor
+    stream: sensor.side_door_rtsp_stream_url
+  - entity: camera.side_of_house
+    name: Side of House
+    room: outdoor
+    stream: sensor.side_of_house_rtsp_stream_url
+  - entity: camera.garage_door
+    name: Garage Door
+    room: garage
+    stream: sensor.garage_door_rtsp_stream_url
+  - entity: camera.front_door_doorbell
+    name: Front door Doorbell
+    room: entry
+
+# When true and auto-entities is installed, append all camera.* entities not listed above.
+auto_discover: false

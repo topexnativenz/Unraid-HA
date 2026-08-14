@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 130" role="img" aria-label="Tesla Model X">
+  <defs>
+    <linearGradient id="xGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3d8bfd"/>
+      <stop offset="55%" stop-color="#1e5bb8"/>
+      <stop offset="100%" stop-color="#0f3d82"/>
+    </linearGradient>
+    <filter id="xShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <ellipse cx="160" cy="104" rx="122" ry="10" fill="#000" opacity="0.22"/>
+  <g filter="url(#xShadow)">
+    <path fill="url(#xGlow)" d="M24 78c6-22 30-36 58-40 20-3 40-2 58 1 24 4 48 14 62 28 8 8 12 18 12 28 0 5-3 8-8 8H32c-5 0-8-3-8-8 0-10 4-20 0-17z"/>
+    <path fill="#5da8ff" opacity="0.35" d="M88 36c20-10 42-16 72-14 26 2 48 12 64 26-16-8-36-14-58-16-30-2-56 4-78 16z"/>
+    <path fill="#7ec0ff" opacity="0.25" d="M102 34c12-6 28-10 46-10 16 0 30 4 42 10-10-4-24-6-38-6-16 0-32 2-50 6z"/>
+    <circle cx="74" cy="84" r="17" fill="#101820"/>
+    <circle cx="74" cy="84" r="10" fill="#2a3540"/>
+    <circle cx="246" cy="84" r="17" fill="#101820"/>
+    <circle cx="246" cy="84" r="10" fill="#2a3540"/>
+    <path fill="#ffffff" opacity="0.18" d="M112 48h96c7 0 12 5 12 12v8c0 5-4 9-9 9h-102c-5 0-9-4-9-9v-8c0-7 5-12 12-12z"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+# Flux UI overview tab state (Home / Events / Active)
+# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
+
+input_select:
+  flux_ui_overview_tab:
+    name: Flux UI Overview Tab
+    options:
+      - Home
+      - Events
+      - Active
+    initial: Home
+    icon: mdi:view-dashboard

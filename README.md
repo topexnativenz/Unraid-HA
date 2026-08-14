@@ -37,6 +37,8 @@ Planning repository for a **homelab / small-business** storage array: hardware, 
 | [docs/09-media-centre.md](docs/09-media-centre.md) | Plex, *arr*, Sonos, Apple TV, rollout |
 | [docs/10-plex-arr-workstream.md](docs/10-plex-arr-workstream.md) | Tower audit, unified tasks, Plex & *arr session |
 | [docs/11-ios-media-ops.md](docs/11-ios-media-ops.md) | iOS Helmarr, Tautulli/Overseerr, push notifications |
+| [home-assistant/README.md](home-assistant/README.md) | HA remote admin (Nabu Casa) + phone Lovelace ship |
+| [home-assistant/flux-ui-dashboard/README.md](home-assistant/flux-ui-dashboard/README.md) | Flux UI MD3 dashboard (parallel to Mobile Home) |
 
 ## Assumptions (refine as needed)
 
