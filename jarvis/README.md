@@ -1,6 +1,23 @@
-# Jarvis Antigravity Globe
+# Jarvis Globe
 
-Holographic **orange/gold** Jarvis HUD orb — bright core, wireframe geodesic sphere, radial spikes, thick orbital ribbons, particle ring swarms, and bloom glow. Matches the classic Iron Man interface look.
+Two parts:
+
+| Part | Purpose |
+|------|---------|
+| **[Physical levitation globe](docs/physical-levitation-globe.md)** | Real magnetic floating sphere + LED base (Iron Man desk) |
+| **Web orb** (`jarvis-antigravity-globe.js`) | On-screen HUD only — optional companion UI |
+
+---
+
+## Physical globe (what you asked for)
+
+See **[docs/physical-levitation-globe.md](docs/physical-levitation-globe.md)** — buy vs DIY, BOM, ESPHome + Home Assistant so Jarvis voice states drive the base LED ring.
+
+---
+
+## On-screen orb (software only)
+
+Holographic **orange/gold** Three.js orb for phone/desktop UI — not a substitute for a levitating globe.
 
 Inspired by voice-assistant demos like [this Short](https://youtube.com/shorts/V6kvapGV9qk).
 

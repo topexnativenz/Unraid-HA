@@ -1,0 +1,93 @@
+# Jarvis levitation base — ESPHome
+# Flash to ESP32; LED ring on desk base (NOT on floating ball).
+# Jarvis publishes: jarvis/globe/state and jarvis/globe/level
+
+esphome:
+  name: jarvis-levitation-base
+  friendly_name: Jarvis Levitation Base
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+api:
+  encryption:
+    key: !secret esphome_api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+logger:
+
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_username
+  password: !secret mqtt_password
+  discovery: false
+  on_message:
+    - topic: jarvis/globe/state
+      qos: 0
+      then:
+        - lambda: |-
+            id(jarvis_state) = x;
+            auto call = id(jarvis_ring).turn_on();
+            if (x == "idle") {
+              call.set_rgb(1.0, 0.55, 0.0).set_brightness(0.35);
+            } else if (x == "listening") {
+              call.set_rgb(1.0, 0.75, 0.0).set_brightness(0.7);
+            } else if (x == "thinking") {
+              call.set_rgb(1.0, 0.65, 0.1).set_brightness(0.55);
+            } else if (x == "speaking") {
+              call.set_effect("Speaking Pulse").set_rgb(1.0, 0.85, 0.0).set_brightness(0.85);
+            } else if (x == "error") {
+              call.set_rgb(1.0, 0.15, 0.0).set_brightness(0.6);
+            }
+            call.perform();
+    - topic: jarvis/globe/level
+      qos: 0
+      then:
+        - lambda: |-
+            id(jarvis_level) = atof(x.c_str());
+            if (id(jarvis_state) == "speaking") {
+              float b = 0.4f + id(jarvis_level) * 0.55f;
+              auto call = id(jarvis_ring).turn_on();
+              call.set_brightness(b).perform();
+            }
+
+globals:
+  - id: jarvis_state
+    type: std::string
+    initial_value: '"idle"'
+  - id: jarvis_level
+    type: float
+    initial_value: '0.0'
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: jarvis_ring
+    pin: GPIO5
+    num_leds: 24
+    rgb_order: GRB
+    chipset: WS2812
+    name: "Jarvis Globe Ring"
+    effects:
+      - pulse:
+          name: "Speaking Pulse"
+          transition_length: 300ms
+          update_interval: 300ms
+          min_brightness: 30%
+          max_brightness: 100%
+
+button:
+  - platform: template
+    name: "Jarvis Globe Test Listening"
+    on_press:
+      - mqtt.publish:
+          topic: jarvis/globe/state
+          payload: listening
