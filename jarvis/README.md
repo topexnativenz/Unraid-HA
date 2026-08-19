@@ -4,13 +4,24 @@ Holographic cyan orb for a Jarvis-style AI assistant — floating particle shell
 
 Inspired by voice-assistant demos like [this Short](https://youtube.com/shorts/V6kvapGV9qk).
 
-## Live demo
+## Live demo (open on your phone)
 
-**https://topexnativenz.github.io/Unraid-HA/demo/**
+**https://cdn.jsdelivr.net/gh/topexnativenz/Unraid-HA@cursor/jarvis-antigravity-globe-2736/jarvis/demo/live.html**
 
-Works on phone and desktop — open the link in Safari or Chrome. Tap the state buttons to preview orb reactions.
+No install, no local server — just open that link in Safari or Chrome and tap the state buttons.
 
-> If the link 404s right after merge, wait ~1 minute for GitHub Pages to finish deploying (Actions tab → **Deploy Jarvis Demo**).
+### GitHub Pages (after one-time setup)
+
+Permanent URL: **https://topexnativenz.github.io/Unraid-HA/demo/**
+
+Enable once in your repo:
+
+1. Open [GitHub → Settings → Pages](https://github.com/topexnativenz/Unraid-HA/settings/pages)
+2. **Build and deployment → Source:** choose **GitHub Actions**
+3. Merge PR #12 (or push to the default branch)
+4. Re-run the **Deploy Jarvis Demo** workflow if needed (Actions tab)
+
+After that, future pushes to `jarvis/**` auto-deploy.
 
 ## Local demo (optional)
 

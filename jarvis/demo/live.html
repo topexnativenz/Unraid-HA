@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jarvis Antigravity Globe</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/topexnativenz/Unraid-HA@cursor/jarvis-antigravity-globe-2736/jarvis/jarvis-antigravity-globe.css"
+    />
+    <style>
+      html, body { margin: 0; padding: 0; }
+    </style>
+  </head>
+  <body class="jarvis-demo">
+    <div class="jarvis-demo__layout">
+      <header class="jarvis-demo__header">
+        <h1 class="jarvis-demo__title">J.A.R.V.I.S.</h1>
+        <span class="jarvis-demo__status" id="status">Idle</span>
+      </header>
+
+      <main class="jarvis-demo__stage">
+        <div class="jarvis-demo__globe" id="globe"></div>
+      </main>
+
+      <section>
+        <div class="jarvis-demo__controls" id="controls">
+          <button class="jarvis-demo__btn is-active" data-state="idle">Idle</button>
+          <button class="jarvis-demo__btn" data-state="listening">Listening</button>
+          <button class="jarvis-demo__btn" data-state="thinking">Thinking</button>
+          <button class="jarvis-demo__btn" data-state="speaking">Speaking</button>
+          <button class="jarvis-demo__btn" data-state="error">Error</button>
+        </div>
+        <p class="jarvis-demo__hint">Tap a state to preview orb reactions. Works on phone and desktop.</p>
+      </section>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      window.THREE = THREE;
+
+      import JarvisAntigravityGlobe from 'https://cdn.jsdelivr.net/gh/topexnativenz/Unraid-HA@cursor/jarvis-antigravity-globe-2736/jarvis/jarvis-antigravity-globe.js';
+
+      const globeEl = document.getElementById('globe');
+      const statusEl = document.getElementById('status');
+      const controls = document.getElementById('controls');
+
+      const globe = new JarvisAntigravityGlobe(globeEl, {
+        particleCount: 2200,
+        color: 0x00e5ff,
+        accentColor: 0x4df3ff,
+      });
+
+      let demoAudio = 0;
+      let speaking = false;
+
+      controls.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-state]');
+        if (!btn) return;
+        const state = btn.dataset.state;
+        globe.setState(state);
+        statusEl.textContent = state;
+        speaking = state === 'speaking';
+        controls.querySelectorAll('.jarvis-demo__btn').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+      });
+
+      function animateAudio() {
+        if (speaking) {
+          demoAudio = 0.25 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.55;
+        } else {
+          demoAudio *= 0.92;
+        }
+        globe.setAudioLevel(demoAudio);
+        requestAnimationFrame(animateAudio);
+      }
+      animateAudio();
+    </script>
+  </body>
+</html>
