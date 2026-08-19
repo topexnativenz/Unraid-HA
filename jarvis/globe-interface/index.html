@@ -55,7 +55,7 @@
     <div id="canvas-container"></div>
 
     <script>
-        const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + (location.hostname || 'localhost') + ':8765';
+        const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`;
 
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
