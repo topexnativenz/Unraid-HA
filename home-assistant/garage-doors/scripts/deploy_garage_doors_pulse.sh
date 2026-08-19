@@ -1,8 +1,9 @@
 #!/bin/bash
-# Copy garage_doors_pulse.yaml to HA and sync tracked open state from Shelly switches.
+# Copy garage_doors_pulse.yaml to HA and sync tracked open state from Tapo sensors.
 set -euo pipefail
 
-REPO="/Users/topexnative/Projects/unraid-array-design"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 PKG_SRC="${REPO}/home-assistant/garage-doors/packages/garage_doors_pulse.yaml"
 HA_HOST="${HA_HOST:-192.168.1.239}"
 MOUNT="${HA_CONFIG_MOUNT:-/tmp/ha-config-smb}"
@@ -52,33 +53,23 @@ echo "Copied package to ${PKG_DEST}"
 
 diskutil umount "${MOUNT}" 2>/dev/null || true
 
-echo "Reloading scripts and input_boolean..."
+echo "Reloading scripts, automations, and input_boolean..."
 curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   "http://${HA_HOST}:8123/api/services/script/reload" >/dev/null
+curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  "http://${HA_HOST}:8123/api/services/automation/reload" >/dev/null
 curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   "http://${HA_HOST}:8123/api/services/input_boolean/reload" >/dev/null
 
 sleep 2
 
-sync_bool() {
-  local bool_entity="$1"
-  local switch_entity="$2"
-  local want
-  want=$(curl -sS -H "Authorization: Bearer ${TOKEN}" "http://${HA_HOST}:8123/api/states/${switch_entity}" \
-    | python3 -c "import json,sys; print('on' if json.load(sys.stdin)['state']=='on' else 'off')")
-  svc="input_boolean.turn_${want}"
-  curl -sS -X POST -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    "http://${HA_HOST}:8123/api/services/${svc}" \
-    -d "{\"entity_id\":\"${bool_entity}\"}" >/dev/null
-  echo "  ${bool_entity} -> ${want} (from ${switch_entity})"
-}
+echo "Syncing tracked state from Tapo sensors:"
+python3 "${SCRIPT_DIR}/sync_garage_state_from_sensors.py" \
+  --ha-url "http://${HA_HOST}:8123" \
+  --token "${TOKEN}"
 
-echo "Syncing tracked state from Shelly switches (one-time alignment):"
-sync_bool input_boolean.house_garage_door_open switch.garage_door_3
-sync_bool input_boolean.main_shed_door_open switch.garage_door_1
-sync_bool input_boolean.second_shed_door_open switch.garage_door_2
-
-echo "Done. If helpers are new, restart HA or reload all YAML once."
+echo "Done. Redeploy Mobile Home dashboard to refresh garage button cards:"
+echo "  python3 ${REPO}/home-assistant/mobile-dashboard/scripts/deploy_mobile_home.py"

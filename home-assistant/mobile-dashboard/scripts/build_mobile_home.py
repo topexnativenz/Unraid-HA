@@ -5,7 +5,13 @@ from __future__ import annotations
 
 import copy
 import json
+import sys
 from pathlib import Path
+
+GARAGE_DIR = Path(__file__).resolve().parents[2] / "garage-doors"
+sys.path.insert(0, str(GARAGE_DIR))
+
+from garage_ui_helpers import load_garage_doors, open_color_jinja, open_icon_jinja  # noqa: E402
 
 STORAGE_KEY = "lovelace.mobile_home"
 STORAGE = Path("/tmp/ha-config-smb/.storage") / STORAGE_KEY
@@ -65,25 +71,24 @@ def mushroom_lock_style(
 
 
 def mushroom_garage_pulse(
-    state_entity: str,
-    label: str,
-    script_id: str,
+    door: dict,
     *,
     columns: int = 6,
 ) -> dict:
-    """Pulse momentary relay via script; red/grey from tracked open boolean."""
+    """Pulse momentary relay via script; icon/colour from Tapo contact sensor."""
+    sensor = door["sensor"]
+    invert = door.get("invert", False)
     return {
         "type": "custom:mushroom-template-card",
-        "entity": state_entity,
-        "primary": label,
+        "entity": sensor,
+        "primary": door["name"],
         "fill_container": True,
-        "icon": "{{ 'mdi:garage-open' if is_state(entity, 'on') else 'mdi:garage' }}",
-        "icon_color": "{{ 'red' if is_state(entity, 'on') else 'grey' }}",
-        # call-service works reliably on Companion + mushroom-template-card
+        "icon": open_icon_jinja(sensor, invert=invert, name=door["name"]),
+        "icon_color": open_color_jinja(sensor, invert=invert),
         "tap_action": {
             "action": "call-service",
             "service": "script.turn_on",
-            "target": {"entity_id": script_id},
+            "target": {"entity_id": door["script"]},
         },
         "grid_options": {"columns": columns},
     }
@@ -304,26 +309,7 @@ def build_quick_actions() -> dict:
         mushroom_lock("lock.gate_intercom_gate_latch", "Gate Latch", columns=col),
     ]
     cards.extend(
-        [
-            mushroom_garage_pulse(
-                "input_boolean.house_garage_door_open",
-                "House Garage",
-                "script.pulse_house_garage_door",
-                columns=col,
-            ),
-            mushroom_garage_pulse(
-                "input_boolean.main_shed_door_open",
-                "Main Shed",
-                "script.pulse_main_shed_door",
-                columns=col,
-            ),
-            mushroom_garage_pulse(
-                "input_boolean.second_shed_door_open",
-                "Second Shed",
-                "script.pulse_second_shed_door",
-                columns=col,
-            ),
-        ]
+        [mushroom_garage_pulse(door, columns=col) for door in load_garage_doors()]
     )
     cards.extend(
         [
