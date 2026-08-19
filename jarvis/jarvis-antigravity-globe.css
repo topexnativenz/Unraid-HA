@@ -1,0 +1,148 @@
+.jarvis-globe-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #000;
+}
+
+.jarvis-globe-root canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* HUD shell */
+.jarvis-demo {
+  --jarvis-orange: #ff8c00;
+  --jarvis-gold: #ffaa00;
+  --jarvis-yellow: #ffff00;
+  --jarvis-orange-dim: rgba(255, 140, 0, 0.35);
+  --jarvis-bg: #000000;
+  --jarvis-panel: rgba(20, 10, 0, 0.65);
+
+  min-height: 100vh;
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #ffe8c8;
+  background: var(--jarvis-bg);
+}
+
+.jarvis-demo__layout {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0;
+  gap: 0;
+}
+
+.jarvis-demo__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.jarvis-demo__nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: rgba(255, 200, 120, 0.55);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
+}
+
+.jarvis-demo__nav-item svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  opacity: 0.7;
+}
+
+.jarvis-demo__nav-item:hover,
+.jarvis-demo__nav-item.is-active {
+  color: var(--jarvis-gold);
+}
+
+.jarvis-demo__nav-item.is-active svg {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 170, 0, 0.6));
+}
+
+.jarvis-demo__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.25rem 1.25rem 0.5rem;
+}
+
+.jarvis-demo__status {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--jarvis-orange-dim);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jarvis-gold);
+  background: var(--jarvis-panel);
+}
+
+.jarvis-demo__stage {
+  position: relative;
+  min-height: min(68vh, 480px);
+  background: #000;
+}
+
+.jarvis-demo__globe {
+  position: absolute;
+  inset: 0;
+}
+
+.jarvis-demo__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.jarvis-demo__btn {
+  appearance: none;
+  border: 1px solid var(--jarvis-orange-dim);
+  background: var(--jarvis-panel);
+  color: #ffe8c8;
+  padding: 0.65rem 1rem;
+  min-height: 44px;
+  border-radius: 0.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+.jarvis-demo__btn:hover,
+.jarvis-demo__btn.is-active {
+  border-color: var(--jarvis-orange);
+  color: var(--jarvis-gold);
+  box-shadow: 0 0 18px rgba(255, 140, 0, 0.25);
+}
+
+.jarvis-demo__hint {
+  margin: 0;
+  padding: 0 1.25rem 1.25rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: rgba(255, 200, 120, 0.45);
+}

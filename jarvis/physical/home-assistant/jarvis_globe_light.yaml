@@ -1,0 +1,81 @@
+# Publish Jarvis voice state to the physical levitation base LED ring.
+# Requires MQTT broker (same as ESPHome package in ../esphome/).
+
+input_select:
+  jarvis_globe_state:
+    name: Jarvis Globe State
+    options:
+      - idle
+      - listening
+      - thinking
+      - speaking
+      - error
+    initial: idle
+
+input_number:
+  jarvis_globe_level:
+    name: Jarvis Globe Audio Level
+    min: 0
+    max: 1
+    step: 0.05
+    initial: 0
+
+mqtt:
+  publish:
+    - topic: jarvis/globe/state
+      payload_template: "{{ states('input_select.jarvis_globe_state') }}"
+    - topic: jarvis/globe/level
+      payload_template: "{{ states('input_number.jarvis_globe_level') | float }}"
+
+automation:
+  - id: jarvis_globe_state_publish
+    alias: Jarvis globe — publish state to MQTT
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_select.jarvis_globe_state
+    action:
+      - service: mqtt.publish
+        data:
+          topic: jarvis/globe/state
+          payload: "{{ states('input_select.jarvis_globe_state') }}"
+
+  - id: jarvis_globe_level_publish
+    alias: Jarvis globe — publish audio level to MQTT
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id: input_number.jarvis_globe_level
+    action:
+      - service: mqtt.publish
+        data:
+          topic: jarvis/globe/level
+          payload: "{{ states('input_number.jarvis_globe_level') | float }}"
+
+script:
+  jarvis_globe_set_listening:
+    alias: Jarvis globe listening
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.jarvis_globe_state
+        data:
+          option: listening
+
+  jarvis_globe_set_speaking:
+    alias: Jarvis globe speaking
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.jarvis_globe_state
+        data:
+          option: speaking
+
+  jarvis_globe_set_idle:
+    alias: Jarvis globe idle
+    sequence:
+      - service: input_select.select_option
+        target:
+          entity_id: input_select.jarvis_globe_state
+        data:
+          option: idle

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS System - Globe Interface</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050b14;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ffcc;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+        .status-box {
+            border: 1px solid #00ffcc;
+            background: rgba(0, 255, 204, 0.05);
+            padding: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+        h1 { margin: 0 0 10px 0; font-size: 1.5rem; letter-spacing: 2px; }
+        .metric { margin: 5px 0; font-size: 0.9rem; }
+        #status-text { color: #ff3366; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+</head>
+<body>
+
+    <div id="hud">
+        <div class="status-box">
+            <h1>J.A.R.V.I.S. Globe v2.6</h1>
+            <div class="metric">System State: <span id="status-text">CONNECTING…</span></div>
+            <div class="metric">Target Lat: <span id="lat-val">0.00</span></div>
+            <div class="metric">Target Lon: <span id="lon-val">0.00</span></div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script>
+        const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws`;
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const geometry = new THREE.SphereGeometry(5, 32, 32);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0x00ffcc,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.4
+        });
+        const globe = new THREE.Mesh(geometry, material);
+        scene.add(globe);
+
+        const coreGeo = new THREE.SphereGeometry(1.2, 16, 16);
+        const coreMat = new THREE.MeshBasicMaterial({
+            color: 0x00ffcc,
+            transparent: true,
+            opacity: 0.15,
+            wireframe: true
+        });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        globe.add(core);
+
+        const ringGeo = new THREE.RingGeometry(6.5, 6.6, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+            color: 0x00aaff,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.6
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        scene.add(ring);
+
+        const ring2 = ring.clone();
+        ring2.scale.set(1.15, 1.15, 1.15);
+        ring2.rotation.x = Math.PI / 3;
+        ring2.rotation.y = Math.PI / 5;
+        scene.add(ring2);
+
+        camera.position.z = 12;
+
+        let targetRotX = 0;
+        let targetRotY = 0;
+        let pulseUntil = 0;
+        let spinSpeed = 0.002;
+        let speaking = false;
+
+        function pulseGlobe(durationMs = 800, peakOpacity = 1.0) {
+            pulseUntil = performance.now() + durationMs;
+            material.opacity = peakOpacity;
+            coreMat.opacity = 0.45;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            globe.rotation.y += spinSpeed;
+            globe.rotation.x += (targetRotX - globe.rotation.x) * 0.04;
+            globe.rotation.y += (targetRotY - globe.rotation.y) * 0.04;
+            ring.rotation.z -= 0.001;
+            ring2.rotation.z += 0.0015;
+
+            if (speaking) {
+                const pulse = 0.35 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.45;
+                material.opacity = 0.4 + pulse;
+                coreMat.opacity = 0.15 + pulse * 0.5;
+            } else if (performance.now() > pulseUntil) {
+                material.opacity += (0.4 - material.opacity) * 0.08;
+                coreMat.opacity += (0.15 - coreMat.opacity) * 0.08;
+            }
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        const statusEl = document.getElementById('status-text');
+
+        function setStatus(text, color) {
+            statusEl.innerText = text;
+            statusEl.style.color = color;
+            statusEl.style.animation = color === '#ff3366' ? 'blink 1.5s infinite' : 'none';
+        }
+
+        function connectWebSocket() {
+            const ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                setStatus('CONNECTED / LISTENING', '#00ffcc');
+            };
+
+            ws.onclose = () => {
+                setStatus('DISCONNECTED', '#ff3366');
+                setTimeout(connectWebSocket, 2500);
+            };
+
+            ws.onerror = () => {
+                setStatus('CONNECTION ERROR', '#ff3366');
+            };
+
+            ws.onmessage = (event) => {
+                let data;
+                try {
+                    data = JSON.parse(event.data);
+                } catch {
+                    return;
+                }
+
+                if (data.action === 'scan_location') {
+                    document.getElementById('lat-val').innerText = Number(data.lat).toFixed(2);
+                    document.getElementById('lon-val').innerText = Number(data.lon).toFixed(2);
+                    targetRotY = Number(data.lon) * (Math.PI / 180);
+                    targetRotX = Number(data.lat) * (Math.PI / 180);
+                    pulseGlobe(800, 1.0);
+                }
+
+                if (data.action === 'pulse') {
+                    pulseGlobe(data.duration_ms || 600, data.opacity || 0.95);
+                }
+
+                if (data.action === 'speaking') {
+                    speaking = Boolean(data.active);
+                    setStatus(speaking ? 'SPEAKING' : 'CONNECTED / LISTENING', speaking ? '#00aaff' : '#00ffcc');
+                    if (speaking) pulseGlobe(200, 0.85);
+                }
+
+                if (data.action === 'set_state') {
+                    const state = (data.state || 'idle').toUpperCase();
+                    setStatus(state, '#00ffcc');
+                    if (state === 'LISTENING') pulseGlobe(400, 0.75);
+                    if (state === 'THINKING') spinSpeed = 0.006;
+                    if (state === 'IDLE') spinSpeed = 0.002;
+                }
+            };
+
+            return ws;
+        }
+
+        connectWebSocket();
+    </script>
+</body>
+</html>
