@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>J.A.R.V.I.S.</title>
+    <link rel="stylesheet" href="../jarvis-antigravity-globe.css" />
+    <link rel="stylesheet" href="../jarvis-assistant.css" />
+    <style>html, body { margin: 0; padding: 0; }</style>
+  </head>
+  <body class="jarvis-assistant" id="app">
+    <div class="jarvis-assistant__layout">
+      <nav class="jarvis-assistant__nav" id="nav">
+        <button class="jarvis-assistant__nav-item is-active" data-view="home" type="button">
+          <svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>
+          Home
+        </button>
+        <button class="jarvis-assistant__nav-item" data-view="chat" type="button">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          Chat
+        </button>
+        <button class="jarvis-assistant__nav-item" data-view="dashboard" type="button">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          Dashboard
+        </button>
+      </nav>
+
+      <header class="jarvis-assistant__header">
+        <span class="jarvis-assistant__status" id="status">Standby</span>
+        <p class="jarvis-assistant__hint" id="hint">Say “Jarvis” to activate</p>
+      </header>
+
+      <main class="jarvis-assistant__stage">
+        <div class="jarvis-assistant__dormant" id="dormant">
+          <span class="jarvis-assistant__pulse" aria-hidden="true"></span>
+          <p class="jarvis-assistant__hint">Listening for wake word…</p>
+        </div>
+        <div class="jarvis-assistant__globe-wrap" id="globe-wrap">
+          <div class="jarvis-assistant__globe" id="globe"></div>
+        </div>
+      </main>
+
+      <footer class="jarvis-assistant__footer">
+        <p class="jarvis-assistant__transcript" id="transcript"></p>
+        <p class="jarvis-assistant__error" id="error" hidden></p>
+        <button class="jarvis-assistant__btn" id="start-btn" type="button">Enable microphone</button>
+        <button class="jarvis-assistant__btn" id="test-wake" type="button" hidden>Test wake (no mic)</button>
+      </footer>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      window.THREE = THREE;
+      import JarvisAntigravityGlobe from '../jarvis-antigravity-globe.js';
+      import JarvisWakeAssistant from '../jarvis-wake-assistant.js';
+
+      const app = document.getElementById('app');
+      const statusEl = document.getElementById('status');
+      const hintEl = document.getElementById('hint');
+      const transcriptEl = document.getElementById('transcript');
+      const errorEl = document.getElementById('error');
+      const startBtn = document.getElementById('start-btn');
+      const testWakeBtn = document.getElementById('test-wake');
+      const nav = document.getElementById('nav');
+
+      let globe = null;
+      let assistant = null;
+      let speakingAnim = 0;
+
+      function ensureGlobe() {
+        if (globe) return globe;
+        globe = new JarvisAntigravityGlobe(document.getElementById('globe'), {
+          color: 0xff8c00,
+          coreColor: 0xffff00,
+          accentColor: 0xffaa00,
+          bloom: true,
+          autoStart: true,
+        });
+        globe.stop();
+        return globe;
+      }
+
+      function setUiPhase(phase) {
+        const labels = {
+          dormant: ['Standby', 'Say “Jarvis” to activate'],
+          activating: ['Activating', 'J.A.R.V.I.S. online'],
+          listening: ['Listening', 'How can I help?'],
+          thinking: ['Processing', 'One moment…'],
+          speaking: ['Speaking', ''],
+          idle: ['Online', 'Say “Jarvis” again anytime'],
+        };
+        const [status, hint] = labels[phase] ?? labels.dormant;
+        statusEl.textContent = status;
+        hintEl.textContent = hint;
+
+        app.classList.toggle('is-active', phase !== 'dormant');
+        app.classList.toggle('is-listening', phase === 'listening' || phase === 'activating');
+
+        if (globe) {
+          if (phase === 'dormant') {
+            globe.stop();
+          } else {
+            globe.start();
+            if (['listening', 'activating', 'idle'].includes(phase)) globe.setState(phase === 'activating' ? 'listening' : phase);
+            if (phase === 'thinking') globe.setState('thinking');
+            if (phase === 'speaking') globe.setState('speaking');
+          }
+        }
+      }
+
+      function speak(text) {
+        if (!window.speechSynthesis) return Promise.resolve();
+        return new Promise((resolve) => {
+          const utter = new SpeechSynthesisUtterance(text);
+          utter.rate = 1;
+          utter.pitch = 0.95;
+          utter.onstart = () => setUiPhase('speaking');
+          utter.onend = () => {
+            speakingAnim = 0;
+            if (globe) globe.setAudioLevel(0);
+            assistant?.finishSpeaking();
+            resolve();
+          };
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(utter);
+        });
+      }
+
+      async function handleCommand(command) {
+        transcriptEl.textContent = command ? `You: ${command}` : '';
+        setUiPhase('thinking');
+
+        const reply = command
+          ? `Acknowledged. You said: ${command}.`
+          : 'Yes sir. How can I assist you?';
+
+        await new Promise((r) => setTimeout(r, 700));
+        transcriptEl.textContent = `Jarvis: ${reply}`;
+        await speak(reply);
+      }
+
+      function bootAssistant() {
+        ensureGlobe();
+        assistant = new JarvisWakeAssistant({
+          wakeWord: 'jarvis',
+          onWake: () => {
+            ensureGlobe().start();
+          },
+          onStateChange: setUiPhase,
+          onTranscript: (text, isFinal) => {
+            if (assistant.active && isFinal) {
+              transcriptEl.textContent = `Heard: ${text}`;
+            }
+          },
+          onCommand: handleCommand,
+          onError: (err) => {
+            errorEl.hidden = false;
+            errorEl.textContent = err.message;
+          },
+        });
+
+        if (!assistant.supported) {
+          errorEl.hidden = false;
+          errorEl.textContent = 'Speech recognition requires Chrome or Edge on desktop.';
+          testWakeBtn.hidden = false;
+          return;
+        }
+
+        assistant.start();
+        startBtn.textContent = 'Microphone active';
+        startBtn.disabled = true;
+        testWakeBtn.hidden = false;
+        setUiPhase('dormant');
+      }
+
+      startBtn.addEventListener('click', () => {
+        errorEl.hidden = true;
+        bootAssistant();
+      });
+
+      testWakeBtn.addEventListener('click', () => {
+        ensureGlobe();
+        if (!assistant) {
+          assistant = new JarvisWakeAssistant({
+            onStateChange: setUiPhase,
+            onCommand: handleCommand,
+          });
+        }
+        assistant.activate(true);
+        setUiPhase('listening');
+        globe.setState('listening');
+      });
+
+      nav.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-view]');
+        if (!btn) return;
+        nav.querySelectorAll('.jarvis-assistant__nav-item').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+      });
+
+      function audioLoop() {
+        if (globe && app.classList.contains('is-active')) {
+          const phase = statusEl.textContent.toLowerCase();
+          if (phase === 'speaking') {
+            speakingAnim = 0.25 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.55;
+          } else {
+            speakingAnim *= 0.9;
+          }
+          globe.setAudioLevel(speakingAnim);
+        }
+        requestAnimationFrame(audioLoop);
+      }
+      audioLoop();
+    </script>
+  </body>
+</html>

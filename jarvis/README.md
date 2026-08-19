@@ -1,125 +1,102 @@
-# Jarvis Globe
+# Jarvis — wake-word activated holographic globe
 
-Two parts:
+Software-rendered **Iron Man Jarvis globe** that **activates when you say “Jarvis”** — 3D orange wireframe orb, wake-word listener, voice command capture, and TTS reply (demo).
 
-| Part | Purpose |
-|------|---------|
-| **[Physical levitation globe](docs/physical-levitation-globe.md)** | Real magnetic floating sphere + LED base (Iron Man desk) |
-| **Web orb** (`jarvis-antigravity-globe.js`) | On-screen HUD only — optional companion UI |
+## Live demo
 
----
+**https://raw.githack.com/topexnativenz/Unraid-HA/cursor/jarvis-antigravity-globe-2736/jarvis/assistant/index.html**
 
-## Physical globe (what you asked for)
+1. Open in **Chrome or Edge** (Web Speech API required).
+2. Click **Enable microphone**.
+3. Say **“Jarvis”** — the globe animates in.
+4. Say a command — e.g. *“Jarvis, what time is it?”*
 
-See **[docs/physical-levitation-globe.md](docs/physical-levitation-globe.md)** — buy vs DIY, BOM, ESPHome + Home Assistant so Jarvis voice states drive the base LED ring.
+> Use the **githack** link above (not jsDelivr `.html` links — those show raw source).
 
----
+## How it works
 
-## On-screen orb (software only)
+| Piece | File |
+|-------|------|
+| 3D globe render | `jarvis-antigravity-globe.js` |
+| Wake word + voice flow | `jarvis-wake-assistant.js` |
+| Full-screen assistant UI | `assistant/index.html` |
 
-Holographic **orange/gold** Three.js orb for phone/desktop UI — not a substitute for a levitating globe.
+**Flow:** dormant (black + “Say Jarvis”) → wake word detected → globe fades/scales in → listening → command → thinking → speaking → standby.
 
-Inspired by voice-assistant demos like [this Short](https://youtube.com/shorts/V6kvapGV9qk).
-
-## Live demo (open on your phone)
-
-**https://raw.githack.com/topexnativenz/Unraid-HA/cursor/jarvis-antigravity-globe-2736/jarvis/demo/live.html**
-
-No install, no local server — open in Safari or Chrome and tap the state buttons.
-
-> Do **not** use the `cdn.jsdelivr.net/.../live.html` link — jsDelivr serves HTML as plain text. Use the githack link above (or GitHub Pages below).
-
-### GitHub Pages (after one-time setup)
-
-Permanent URL: **https://topexnativenz.github.io/Unraid-HA/demo/live.html**
-
-Enable once in your repo:
-
-1. Open [GitHub → Settings → Pages](https://github.com/topexnativenz/Unraid-HA/settings/pages)
-2. **Build and deployment → Source:** choose **GitHub Actions**
-3. Merge PR #12 (or push to the default branch)
-4. Re-run the **Deploy Jarvis Demo** workflow if needed (Actions tab)
-
-After that, future pushes to `jarvis/**` auto-deploy.
-
-## Local demo (optional)
-
-```bash
-cd jarvis
-python3 -m http.server 8080
-```
-
-Open [http://localhost:8080/demo/](http://localhost:8080/demo/).
-
-## Install in your app
-
-1. Copy `jarvis-antigravity-globe.js` and `jarvis-antigravity-globe.css`.
-2. Load Three.js (r160+).
-3. Mount the globe on a container element.
+## Embed in your Jarvis app
 
 ```html
-<link rel="stylesheet" href="/jarvis/jarvis-antigravity-globe.css" />
-<div id="jarvis-orb" style="width:320px;height:320px"></div>
-
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+</script>
 <script type="module">
   import * as THREE from 'three';
   window.THREE = THREE;
-  import JarvisAntigravityGlobe from '/jarvis/jarvis-antigravity-globe.js';
+  import JarvisAntigravityGlobe from './jarvis-antigravity-globe.js';
+  import JarvisWakeAssistant from './jarvis-wake-assistant.js';
 
-  const globe = new JarvisAntigravityGlobe(document.getElementById('jarvis-orb'), {
+  const globe = new JarvisAntigravityGlobe(document.getElementById('globe'), {
     color: 0xff8c00,
     coreColor: 0xffff00,
     accentColor: 0xffaa00,
     bloom: true,
   });
 
-  // Hook into your assistant lifecycle
-  globe.setState('listening');
-  globe.setAudioLevel(0.6); // 0–1 mic / TTS level
-  globe.setState('thinking');
-  globe.setState('speaking');
-  globe.setState('idle');
+  const assistant = new JarvisWakeAssistant({
+    wakeWord: 'jarvis',
+    onWake: () => document.body.classList.add('is-active'),
+    onStateChange: (phase) => globe.setState(phase === 'dormant' ? 'idle' : phase),
+    onCommand: async (cmd) => {
+      globe.setState('thinking');
+      // your LLM / home automation here
+      globe.setState('speaking');
+    },
+  });
+
+  document.getElementById('start').onclick = () => assistant.start();
 </script>
 ```
 
 ## API
 
+### `JarvisWakeAssistant`
+
+| Method / option | Description |
+|-----------------|-------------|
+| `wakeWord` | Default `'jarvis'` |
+| `start()` | Begin always-on mic + wake-word detection |
+| `stop()` | Stop listening |
+| `onWake()` | Globe should appear |
+| `onCommand(text)` | User command after wake word |
+| `onStateChange(phase)` | `dormant`, `activating`, `listening`, `thinking`, `speaking`, `idle` |
+
+### `JarvisAntigravityGlobe`
+
 | Method | Description |
 |--------|-------------|
-| `new JarvisAntigravityGlobe(container, options?)` | Create orb in a DOM element |
-| `setState(state)` | `'idle' \| 'listening' \| 'thinking' \| 'speaking' \| 'error'` |
-| `setAudioLevel(0–1)` | Drive pulse size from mic or playback level |
-| `start()` / `stop()` | Pause/resume render loop |
-| `resize()` | Call after container size changes |
-| `destroy()` | Cleanup WebGL + listeners |
+| `setState(state)` | Visual: `idle`, `listening`, `thinking`, `speaking`, `error` |
+| `setAudioLevel(0–1)` | Pulse size during TTS / mic |
 
-### Options
+## Local dev
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `radius` | `1` | Base sphere radius |
-| `color` | `0xff8c00` | Primary orange (wireframe, spikes) |
-| `coreColor` | `0xffff00` | Bright core yellow |
-| `accentColor` | `0xffaa00` | Ribbon / particle gold |
-| `bloom` | `true` | UnrealBloom post-processing |
-| `spikeCount` | `18` | Radial spike lines |
-| `background` | `'transparent'` | Renderer clear color |
-| `autoStart` | `true` | Begin animation immediately |
-
-## Integration tips
-
-- **Voice wake:** `setState('listening')` when the wake word fires.
-- **LLM request:** `setState('thinking')` while waiting for a response.
-- **TTS playback:** `setState('speaking')` and feed `setAudioLevel()` from analyser node.
-- **Desktop overlay:** use a small fixed-size div (e.g. 64×64) in a corner — same API.
-- **React / Vue:** instantiate in `useEffect` / `onMounted`, call `destroy()` on unmount.
-
-## Files
-
+```bash
+cd jarvis && python3 -m http.server 8080
+# http://localhost:8080/assistant/
 ```
-jarvis/
-├── jarvis-antigravity-globe.js   # Main class (ES module)
-├── jarvis-antigravity-globe.css  # Container + optional demo HUD styles
-├── demo/index.html               # Interactive preview
-└── README.md
-```
+
+## Notes
+
+- **Browser:** Chrome / Edge desktop recommended. Safari/iOS has limited speech recognition.
+- **HTTPS:** Mic access needs a secure context (localhost or HTTPS).
+- **Wake word:** Uses Web Speech API (cloud in Chrome), not on-device Porcupine. For offline wake word, swap in OpenWakeWord and call `assistant.activate()` from your detector.
+- **Manual test:** “Test wake (no mic)” button on the demo page.
+
+## Other files
+
+- `demo/` — manual state buttons (no wake word)
+- `docs/physical-levitation-globe.md` — unrelated hardware notes (ignore unless you want a desk toy)
