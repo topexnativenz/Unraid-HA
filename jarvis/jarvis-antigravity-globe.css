@@ -67,7 +67,7 @@
 
 .jarvis-demo__stage {
   position: relative;
-  min-height: 420px;
+  min-height: min(62vh, 420px);
   border: 1px solid rgba(0, 229, 255, 0.12);
   border-radius: 1rem;
   background:
@@ -95,7 +95,8 @@
   border: 1px solid var(--jarvis-cyan-dim);
   background: var(--jarvis-panel);
   color: #d9f7ff;
-  padding: 0.55rem 0.9rem;
+  padding: 0.65rem 1rem;
+  min-height: 44px;
   border-radius: 0.5rem;
   font-size: 0.78rem;
   letter-spacing: 0.08em;

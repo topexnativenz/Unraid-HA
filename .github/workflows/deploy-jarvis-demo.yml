@@ -1,0 +1,44 @@
+name: Deploy Jarvis Demo
+
+on:
+  push:
+    branches:
+      - cursor/jarvis-antigravity-globe-2736
+      - cursor/nas-array-planning-docs
+    paths:
+      - jarvis/**
+      - .github/workflows/deploy-jarvis-demo.yml
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-jarvis-demo
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    name: Publish Jarvis globe demo to GitHub Pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: jarvis
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -4,9 +4,15 @@ Holographic cyan orb for a Jarvis-style AI assistant — floating particle shell
 
 Inspired by voice-assistant demos like [this Short](https://youtube.com/shorts/V6kvapGV9qk).
 
-## Quick demo
+## Live demo
 
-Serve the folder locally (any static server):
+**https://topexnativenz.github.io/Unraid-HA/demo/**
+
+Works on phone and desktop — open the link in Safari or Chrome. Tap the state buttons to preview orb reactions.
+
+> If the link 404s right after merge, wait ~1 minute for GitHub Pages to finish deploying (Actions tab → **Deploy Jarvis Demo**).
+
+## Local demo (optional)
 
 ```bash
 cd jarvis
