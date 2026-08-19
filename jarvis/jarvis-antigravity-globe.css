@@ -1,0 +1,119 @@
+.jarvis-globe-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.jarvis-globe-root canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Demo shell — optional HUD chrome */
+.jarvis-demo {
+  --jarvis-cyan: #00e5ff;
+  --jarvis-cyan-dim: rgba(0, 229, 255, 0.35);
+  --jarvis-bg: #02060f;
+  --jarvis-panel: rgba(4, 18, 32, 0.72);
+
+  min-height: 100vh;
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #d9f7ff;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(0, 120, 160, 0.18), transparent 45%),
+    radial-gradient(circle at 20% 80%, rgba(0, 229, 255, 0.06), transparent 35%),
+    var(--jarvis-bg);
+}
+
+.jarvis-demo__layout {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: 100vh;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.25rem;
+  gap: 1rem;
+}
+
+.jarvis-demo__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.jarvis-demo__title {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--jarvis-cyan);
+  font-weight: 600;
+}
+
+.jarvis-demo__status {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--jarvis-cyan-dim);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--jarvis-panel);
+}
+
+.jarvis-demo__stage {
+  position: relative;
+  min-height: 420px;
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, rgba(0, 229, 255, 0.03), transparent 40%),
+    rgba(0, 0, 0, 0.25);
+  box-shadow:
+    inset 0 0 60px rgba(0, 229, 255, 0.04),
+    0 0 40px rgba(0, 229, 255, 0.06);
+}
+
+.jarvis-demo__globe {
+  position: absolute;
+  inset: 0;
+}
+
+.jarvis-demo__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.jarvis-demo__btn {
+  appearance: none;
+  border: 1px solid var(--jarvis-cyan-dim);
+  background: var(--jarvis-panel);
+  color: #d9f7ff;
+  padding: 0.55rem 0.9rem;
+  border-radius: 0.5rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+.jarvis-demo__btn:hover,
+.jarvis-demo__btn.is-active {
+  border-color: var(--jarvis-cyan);
+  color: var(--jarvis-cyan);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.18);
+}
+
+.jarvis-demo__hint {
+  margin: 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(217, 247, 255, 0.55);
+}
