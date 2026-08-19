@@ -5,11 +5,19 @@ from __future__ import annotations
 
 import copy
 import json
+import os
+import sys
 from pathlib import Path
 
+GARAGE_DIR = Path(__file__).resolve().parents[2] / "garage-doors"
+sys.path.insert(0, str(GARAGE_DIR))
+
+from garage_ui_helpers import load_garage_doors, open_color_jinja, open_icon_jinja  # noqa: E402
+
 STORAGE_KEY = "lovelace.mobile_home"
-STORAGE = Path("/tmp/ha-config-smb/.storage") / STORAGE_KEY
-DASHBOARDS = Path("/tmp/ha-config-smb/.storage/lovelace_dashboards")
+_STORAGE_ROOT = Path(os.environ.get("HA_STORAGE_ROOT", "/tmp/ha-config-smb/.storage"))
+STORAGE = _STORAGE_ROOT / STORAGE_KEY
+DASHBOARDS = _STORAGE_ROOT / "lovelace_dashboards"
 
 
 def mushroom_light(
@@ -65,25 +73,24 @@ def mushroom_lock_style(
 
 
 def mushroom_garage_pulse(
-    state_entity: str,
-    label: str,
-    script_id: str,
+    door: dict,
     *,
     columns: int = 6,
 ) -> dict:
-    """Pulse momentary relay via script; red/grey from tracked open boolean."""
+    """Pulse momentary relay via script; icon/colour from Tapo contact sensor."""
+    sensor = door["sensor"]
+    invert = door.get("invert", False)
     return {
         "type": "custom:mushroom-template-card",
-        "entity": state_entity,
-        "primary": label,
+        "entity": sensor,
+        "primary": door["name"],
         "fill_container": True,
-        "icon": "{{ 'mdi:garage-open' if is_state(entity, 'on') else 'mdi:garage' }}",
-        "icon_color": "{{ 'red' if is_state(entity, 'on') else 'grey' }}",
-        # call-service works reliably on Companion + mushroom-template-card
+        "icon": open_icon_jinja(sensor, invert=invert, name=door["name"]),
+        "icon_color": open_color_jinja(sensor, invert=invert),
         "tap_action": {
             "action": "call-service",
             "service": "script.turn_on",
-            "target": {"entity_id": script_id},
+            "target": {"entity_id": door["script"]},
         },
         "grid_options": {"columns": columns},
     }
@@ -304,26 +311,7 @@ def build_quick_actions() -> dict:
         mushroom_lock("lock.gate_intercom_gate_latch", "Gate Latch", columns=col),
     ]
     cards.extend(
-        [
-            mushroom_garage_pulse(
-                "input_boolean.house_garage_door_open",
-                "House Garage",
-                "script.pulse_house_garage_door",
-                columns=col,
-            ),
-            mushroom_garage_pulse(
-                "input_boolean.main_shed_door_open",
-                "Main Shed",
-                "script.pulse_main_shed_door",
-                columns=col,
-            ),
-            mushroom_garage_pulse(
-                "input_boolean.second_shed_door_open",
-                "Second Shed",
-                "script.pulse_second_shed_door",
-                columns=col,
-            ),
-        ]
+        [mushroom_garage_pulse(door, columns=col) for door in load_garage_doors()]
     )
     cards.extend(
         [
@@ -370,9 +358,20 @@ def build_top_lights() -> dict:
     return {"type": "grid", "cards": cards}
 
 
+def _default_on_filter() -> dict:
+    return {
+        "type": "custom:auto-entities",
+        "filter": {"include": [{"domain": "light", "state": "on"}]},
+        "card": {"type": "entities", "title": "Currently on"},
+    }
+
+
 def build_lights_view(sections: list[dict]) -> dict:
-    old = section_by_title(sections, "Lights")
-    on_filter = old["cards"][-1]
+    try:
+        old = section_by_title(sections, "Lights")
+        on_filter = old["cards"][-1]
+    except KeyError:
+        on_filter = _default_on_filter()
     return {
         "title": "Lights",
         "path": "lights",
@@ -398,12 +397,23 @@ def load_raw() -> dict:
 
 
 def load_legacy_sections() -> list[dict]:
-    """Original home sections (12+) from backup."""
+    """Original home sections (12+) from backup, or synthesize from current config."""
     bak = STORAGE.parent / f"{STORAGE_KEY}.bak-20260525"
-    if not bak.exists():
-        raise SystemExit(f"Missing {bak}")
-    raw = json.loads(bak.read_text())
-    return raw["data"]["config"]["views"][0]["sections"]
+    if bak.exists():
+        raw = json.loads(bak.read_text())
+        views = raw["data"]["config"]["views"]
+        if len(views) == 1 and len(views[0].get("sections", [])) > 4:
+            return views[0]["sections"]
+
+    raw = json.loads(STORAGE.read_text())
+    views = raw["data"]["config"]["views"]
+    sections: list[dict] = []
+    for view in views:
+        for sec in view.get("sections", []):
+            sections.append(sec)
+    if not sections:
+        raise SystemExit(f"No sections found in {STORAGE}")
+    return sections
 
 
 def load_tab_section(path: str, title: str) -> dict:
@@ -413,6 +423,25 @@ def load_tab_section(path: str, title: str) -> dict:
         if view.get("path") == path and view.get("sections"):
             return view["sections"][0]
     return section_by_title(load_legacy_sections(), title)
+
+
+def _view_sections(raw: dict, path: str) -> list[dict]:
+    """Get sections from an existing view by path."""
+    for view in raw.get("data", {}).get("config", {}).get("views", []):
+        if view.get("path") == path and view.get("sections"):
+            return view["sections"]
+    return []
+
+
+def _get_section(legacy: list[dict], raw: dict, title: str, path: str) -> dict:
+    """Try legacy sections first, fall back to first section of existing view."""
+    try:
+        return section_by_title(legacy, title)
+    except KeyError:
+        existing = _view_sections(raw, path)
+        if existing:
+            return existing[0]
+        return {"cards": [{"type": "custom:mushroom-title-card", "title": title}]}
 
 
 def main() -> None:
@@ -441,7 +470,7 @@ def main() -> None:
                 "icon": "mdi:car-electric",
                 "type": "sections",
                 "max_columns": 2,
-                "sections": [section_by_title(legacy, "Tesla")],
+                "sections": [_get_section(legacy, raw, "Tesla", "tesla")],
             },
             {
                 "title": "Cameras",
@@ -449,19 +478,22 @@ def main() -> None:
                 "icon": "mdi:cctv",
                 "type": "sections",
                 "max_columns": 2,
-                "sections": [section_by_title(legacy, "Cameras")],
+                "sections": [_get_section(legacy, raw, "Cameras", "cameras")],
             },
             build_lights_view(legacy),
         ],
     }
     STORAGE.write_text(json.dumps(raw, indent=2))
 
-    dash = json.loads(DASHBOARDS.read_text())
-    for item in dash["data"]["items"]:
-        if item.get("id") == "dashboard_music":
-            item["show_in_sidebar"] = False
-    DASHBOARDS.write_text(json.dumps(dash, indent=2))
-    print("Updated mobile_home (4 views) and hid Music sidebar dashboard")
+    if DASHBOARDS.exists():
+        dash = json.loads(DASHBOARDS.read_text())
+        for item in dash["data"]["items"]:
+            if item.get("id") == "dashboard_music":
+                item["show_in_sidebar"] = False
+        DASHBOARDS.write_text(json.dumps(dash, indent=2))
+        print("Updated mobile_home (4 views) and hid Music sidebar dashboard")
+    else:
+        print("Updated mobile_home (4 views)")
 
 
 if __name__ == "__main__":

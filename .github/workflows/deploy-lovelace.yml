@@ -7,17 +7,24 @@ on:
         description: Dashboards to push via Home Assistant API (Nabu Casa)
         type: choice
         options:
+          - all
           - flux-ui-both
           - flux-ui
           - flux-ui-tablet
-        default: flux-ui-both
+          - mobile-home
+        default: all
   push:
     branches:
       - cursor/flux-ui-md3-dashboard-bf3a
       - cursor/nas-array-planning-docs
+      - cursor/main-shed-button-status-6a19
     paths:
+      - .github/workflows/deploy-lovelace.yml
       - home-assistant/flux-ui-dashboard/lovelace/**
       - home-assistant/flux-ui-dashboard/*.yaml
+      - home-assistant/mobile-dashboard/scripts/**
+      - home-assistant/garage-doors/entities.yaml
+      - home-assistant/garage-doors/garage_ui_helpers.py
 
 concurrency:
   group: deploy-lovelace
@@ -41,7 +48,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps
-        run: pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+        run: |
+          if [ -f home-assistant/flux-ui-dashboard/requirements.txt ]; then
+            pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+          fi
+          pip install websockets pyyaml
 
       - name: Check secrets
         env:
@@ -62,17 +73,30 @@ jobs:
           esac
 
       - name: Deploy Flux UI (API only)
+        if: ${{ !contains(fromJSON('["mobile-home"]'), github.event.inputs.dashboards || 'all') }}
         env:
           HA_URL: ${{ secrets.HA_URL }}
           HA_TOKEN: ${{ secrets.HA_TOKEN }}
         run: |
           set -euo pipefail
-          TARGET="${{ github.event.inputs.dashboards || 'flux-ui-both' }}"
+          TARGET="${{ github.event.inputs.dashboards || 'all' }}"
+          if [ ! -f home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py ]; then
+            echo "Flux UI deploy script not on this branch — skipping."
+            exit 0
+          fi
           EXTRA=(--api-only)
           case "$TARGET" in
             flux-ui) EXTRA+=(--skip-tablet) ;;
             flux-ui-tablet) EXTRA+=(--skip-phone) ;;
-            flux-ui-both) ;;
+            flux-ui-both|all) ;;
             *) echo "Unknown dashboards input: $TARGET"; exit 1 ;;
           esac
           python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py "${EXTRA[@]}"
+
+      - name: Deploy Mobile Home (API only)
+        if: ${{ contains(fromJSON('["all", "mobile-home"]'), github.event.inputs.dashboards || 'all') }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          python3 home-assistant/mobile-dashboard/scripts/deploy_mobile_home.py --api-only --ha-url "$HA_URL"
