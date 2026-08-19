@@ -48,7 +48,9 @@ jobs:
 
       - name: Install deps
         run: |
-          pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+          if [ -f home-assistant/flux-ui-dashboard/requirements.txt ]; then
+            pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+          fi
           pip install websockets pyyaml
 
       - name: Check secrets
@@ -77,6 +79,10 @@ jobs:
         run: |
           set -euo pipefail
           TARGET="${{ github.event.inputs.dashboards || 'all' }}"
+          if [ ! -f home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py ]; then
+            echo "Flux UI deploy script not on this branch — skipping."
+            exit 0
+          fi
           EXTRA=(--api-only)
           case "$TARGET" in
             flux-ui) EXTRA+=(--skip-tablet) ;;
