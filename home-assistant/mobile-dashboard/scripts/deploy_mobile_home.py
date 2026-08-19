@@ -180,13 +180,16 @@ def build_config_in_memory(existing_config: dict) -> dict:
         env["HA_STORAGE_ROOT"] = str(storage_dir)
         result = subprocess.run(
             [sys.executable, str(BUILD)],
-            check=True,
             capture_output=True,
             text=True,
             env=env,
         )
         if result.stdout:
             print(result.stdout, end="")
+        if result.returncode != 0:
+            print(f"build_mobile_home.py failed (exit {result.returncode}):", file=sys.stderr)
+            print(result.stderr, file=sys.stderr)
+            raise subprocess.CalledProcessError(result.returncode, result.args)
 
         updated_raw = json.loads(storage_file.read_text())
         return updated_raw["data"]["config"]

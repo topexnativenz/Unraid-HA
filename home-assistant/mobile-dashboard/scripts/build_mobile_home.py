@@ -358,9 +358,20 @@ def build_top_lights() -> dict:
     return {"type": "grid", "cards": cards}
 
 
+def _default_on_filter() -> dict:
+    return {
+        "type": "custom:auto-entities",
+        "filter": {"include": [{"domain": "light", "state": "on"}]},
+        "card": {"type": "entities", "title": "Currently on"},
+    }
+
+
 def build_lights_view(sections: list[dict]) -> dict:
-    old = section_by_title(sections, "Lights")
-    on_filter = old["cards"][-1]
+    try:
+        old = section_by_title(sections, "Lights")
+        on_filter = old["cards"][-1]
+    except KeyError:
+        on_filter = _default_on_filter()
     return {
         "title": "Lights",
         "path": "lights",
@@ -386,12 +397,23 @@ def load_raw() -> dict:
 
 
 def load_legacy_sections() -> list[dict]:
-    """Original home sections (12+) from backup."""
+    """Original home sections (12+) from backup, or synthesize from current config."""
     bak = STORAGE.parent / f"{STORAGE_KEY}.bak-20260525"
-    if not bak.exists():
-        raise SystemExit(f"Missing {bak}")
-    raw = json.loads(bak.read_text())
-    return raw["data"]["config"]["views"][0]["sections"]
+    if bak.exists():
+        raw = json.loads(bak.read_text())
+        views = raw["data"]["config"]["views"]
+        if len(views) == 1 and len(views[0].get("sections", [])) > 4:
+            return views[0]["sections"]
+
+    raw = json.loads(STORAGE.read_text())
+    views = raw["data"]["config"]["views"]
+    sections: list[dict] = []
+    for view in views:
+        for sec in view.get("sections", []):
+            sections.append(sec)
+    if not sections:
+        raise SystemExit(f"No sections found in {STORAGE}")
+    return sections
 
 
 def load_tab_section(path: str, title: str) -> dict:
@@ -401,6 +423,25 @@ def load_tab_section(path: str, title: str) -> dict:
         if view.get("path") == path and view.get("sections"):
             return view["sections"][0]
     return section_by_title(load_legacy_sections(), title)
+
+
+def _view_sections(raw: dict, path: str) -> list[dict]:
+    """Get sections from an existing view by path."""
+    for view in raw.get("data", {}).get("config", {}).get("views", []):
+        if view.get("path") == path and view.get("sections"):
+            return view["sections"]
+    return []
+
+
+def _get_section(legacy: list[dict], raw: dict, title: str, path: str) -> dict:
+    """Try legacy sections first, fall back to first section of existing view."""
+    try:
+        return section_by_title(legacy, title)
+    except KeyError:
+        existing = _view_sections(raw, path)
+        if existing:
+            return existing[0]
+        return {"cards": [{"type": "custom:mushroom-title-card", "title": title}]}
 
 
 def main() -> None:
@@ -429,7 +470,7 @@ def main() -> None:
                 "icon": "mdi:car-electric",
                 "type": "sections",
                 "max_columns": 2,
-                "sections": [section_by_title(legacy, "Tesla")],
+                "sections": [_get_section(legacy, raw, "Tesla", "tesla")],
             },
             {
                 "title": "Cameras",
@@ -437,7 +478,7 @@ def main() -> None:
                 "icon": "mdi:cctv",
                 "type": "sections",
                 "max_columns": 2,
-                "sections": [section_by_title(legacy, "Cameras")],
+                "sections": [_get_section(legacy, raw, "Cameras", "cameras")],
             },
             build_lights_view(legacy),
         ],
