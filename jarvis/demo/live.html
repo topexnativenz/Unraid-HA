@@ -14,8 +14,22 @@
   </head>
   <body class="jarvis-demo">
     <div class="jarvis-demo__layout">
+      <nav class="jarvis-demo__nav" id="nav">
+        <button class="jarvis-demo__nav-item is-active" data-view="home" aria-label="Home">
+          <svg viewBox="0 0 24 24"><path d="M12 3L2 12h3v8h6v-6h2v6h6v-8h3L12 3z"/></svg>
+          Home
+        </button>
+        <button class="jarvis-demo__nav-item" data-view="chat" aria-label="Chat">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          Chat
+        </button>
+        <button class="jarvis-demo__nav-item" data-view="dashboard" aria-label="Dashboard">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+          Dashboard
+        </button>
+      </nav>
+
       <header class="jarvis-demo__header">
-        <h1 class="jarvis-demo__title">J.A.R.V.I.S.</h1>
         <span class="jarvis-demo__status" id="status">Idle</span>
       </header>
 
@@ -31,14 +45,15 @@
           <button class="jarvis-demo__btn" data-state="speaking">Speaking</button>
           <button class="jarvis-demo__btn" data-state="error">Error</button>
         </div>
-        <p class="jarvis-demo__hint">Tap a state to preview orb reactions. Works on phone and desktop.</p>
+        <p class="jarvis-demo__hint">Tap a state to preview orb reactions.</p>
       </section>
     </div>
 
     <script type="importmap">
       {
         "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
         }
       }
     </script>
@@ -51,11 +66,13 @@
       const globeEl = document.getElementById('globe');
       const statusEl = document.getElementById('status');
       const controls = document.getElementById('controls');
+      const nav = document.getElementById('nav');
 
       const globe = new JarvisAntigravityGlobe(globeEl, {
-        particleCount: 2200,
-        color: 0x00e5ff,
-        accentColor: 0x4df3ff,
+        color: 0xff8c00,
+        coreColor: 0xffff00,
+        accentColor: 0xffaa00,
+        bloom: true,
       });
 
       let demoAudio = 0;
@@ -69,6 +86,13 @@
         statusEl.textContent = state;
         speaking = state === 'speaking';
         controls.querySelectorAll('.jarvis-demo__btn').forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+      });
+
+      nav.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-view]');
+        if (!btn) return;
+        nav.querySelectorAll('.jarvis-demo__nav-item').forEach((b) => b.classList.remove('is-active'));
         btn.classList.add('is-active');
       });
 

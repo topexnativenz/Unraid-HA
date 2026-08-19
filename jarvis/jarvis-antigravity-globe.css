@@ -4,6 +4,7 @@
   height: 100%;
   overflow: hidden;
   border-radius: inherit;
+  background: #000;
 }
 
 .jarvis-globe-root canvas {
@@ -12,21 +13,20 @@
   height: 100% !important;
 }
 
-/* Demo shell — optional HUD chrome */
+/* HUD shell */
 .jarvis-demo {
-  --jarvis-cyan: #00e5ff;
-  --jarvis-cyan-dim: rgba(0, 229, 255, 0.35);
-  --jarvis-bg: #02060f;
-  --jarvis-panel: rgba(4, 18, 32, 0.72);
+  --jarvis-orange: #ff8c00;
+  --jarvis-gold: #ffaa00;
+  --jarvis-yellow: #ffff00;
+  --jarvis-orange-dim: rgba(255, 140, 0, 0.35);
+  --jarvis-bg: #000000;
+  --jarvis-panel: rgba(20, 10, 0, 0.65);
 
   min-height: 100vh;
   margin: 0;
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  color: #d9f7ff;
-  background:
-    radial-gradient(circle at 50% 35%, rgba(0, 120, 160, 0.18), transparent 45%),
-    radial-gradient(circle at 20% 80%, rgba(0, 229, 255, 0.06), transparent 35%),
-    var(--jarvis-bg);
+  color: #ffe8c8;
+  background: var(--jarvis-bg);
 }
 
 .jarvis-demo__layout {
@@ -35,47 +35,73 @@
   min-height: 100vh;
   max-width: 960px;
   margin: 0 auto;
-  padding: 1.25rem;
-  gap: 1rem;
+  padding: 0;
+  gap: 0;
+}
+
+.jarvis-demo__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.jarvis-demo__nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: none;
+  color: rgba(255, 200, 120, 0.55);
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  padding: 0.25rem;
+  transition: color 0.2s;
+}
+
+.jarvis-demo__nav-item svg {
+  width: 22px;
+  height: 22px;
+  fill: currentColor;
+  opacity: 0.7;
+}
+
+.jarvis-demo__nav-item:hover,
+.jarvis-demo__nav-item.is-active {
+  color: var(--jarvis-gold);
+}
+
+.jarvis-demo__nav-item.is-active svg {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(255, 170, 0, 0.6));
 }
 
 .jarvis-demo__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
-}
-
-.jarvis-demo__title {
-  margin: 0;
-  font-size: 0.95rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--jarvis-cyan);
-  font-weight: 600;
+  padding: 0.25rem 1.25rem 0.5rem;
 }
 
 .jarvis-demo__status {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--jarvis-cyan-dim);
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--jarvis-orange-dim);
   border-radius: 999px;
-  font-size: 0.75rem;
-  letter-spacing: 0.12em;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--jarvis-gold);
   background: var(--jarvis-panel);
 }
 
 .jarvis-demo__stage {
   position: relative;
-  min-height: min(62vh, 420px);
-  border: 1px solid rgba(0, 229, 255, 0.12);
-  border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(0, 229, 255, 0.03), transparent 40%),
-    rgba(0, 0, 0, 0.25);
-  box-shadow:
-    inset 0 0 60px rgba(0, 229, 255, 0.04),
-    0 0 40px rgba(0, 229, 255, 0.06);
+  min-height: min(68vh, 480px);
+  background: #000;
 }
 
 .jarvis-demo__globe {
@@ -88,13 +114,14 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
+  padding: 1rem 1.25rem 0.5rem;
 }
 
 .jarvis-demo__btn {
   appearance: none;
-  border: 1px solid var(--jarvis-cyan-dim);
+  border: 1px solid var(--jarvis-orange-dim);
   background: var(--jarvis-panel);
-  color: #d9f7ff;
+  color: #ffe8c8;
   padding: 0.65rem 1rem;
   min-height: 44px;
   border-radius: 0.5rem;
@@ -107,14 +134,15 @@
 
 .jarvis-demo__btn:hover,
 .jarvis-demo__btn.is-active {
-  border-color: var(--jarvis-cyan);
-  color: var(--jarvis-cyan);
-  box-shadow: 0 0 18px rgba(0, 229, 255, 0.18);
+  border-color: var(--jarvis-orange);
+  color: var(--jarvis-gold);
+  box-shadow: 0 0 18px rgba(255, 140, 0, 0.25);
 }
 
 .jarvis-demo__hint {
   margin: 0;
+  padding: 0 1.25rem 1.25rem;
   text-align: center;
-  font-size: 0.8rem;
-  color: rgba(217, 247, 255, 0.55);
+  font-size: 0.78rem;
+  color: rgba(255, 200, 120, 0.45);
 }

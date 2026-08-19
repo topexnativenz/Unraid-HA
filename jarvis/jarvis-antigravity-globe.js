@@ -1,19 +1,14 @@
 /**
- * JarvisAntigravityGlobe — holographic cyan orb with antigravity particles.
- * Drop into any Jarvis / voice-assistant UI. Requires Three.js (r160+).
- *
- * Usage:
- *   const globe = new JarvisAntigravityGlobe(document.getElementById('globe'));
- *   globe.setState('listening');
- *   globe.destroy();
+ * JarvisAntigravityGlobe — Iron Man HUD holographic orb.
+ * Orange wireframe core, radial spikes, thick orbital ribbons, particle rings, bloom.
  */
 
 const STATES = {
-  idle: { pulse: 0.35, speed: 0.45, spread: 1.0, brightness: 0.85, hue: 0.52 },
-  listening: { pulse: 0.9, speed: 0.85, spread: 1.12, brightness: 1.25, hue: 0.54 },
-  thinking: { pulse: 0.65, speed: 1.35, spread: 1.06, brightness: 1.1, hue: 0.5 },
-  speaking: { pulse: 1.1, speed: 0.7, spread: 1.08, brightness: 1.35, hue: 0.56 },
-  error: { pulse: 0.55, speed: 0.5, spread: 1.0, brightness: 1.0, hue: 0.0 },
+  idle: { pulse: 0.4, speed: 0.5, spread: 1.0, brightness: 1.0, bloom: 1.2, hue: 0.08 },
+  listening: { pulse: 0.95, speed: 0.85, spread: 1.08, brightness: 1.35, bloom: 1.6, hue: 0.1 },
+  thinking: { pulse: 0.7, speed: 1.4, spread: 1.04, brightness: 1.15, bloom: 1.4, hue: 0.06 },
+  speaking: { pulse: 1.15, speed: 0.75, spread: 1.06, brightness: 1.5, bloom: 1.75, hue: 0.12 },
+  error: { pulse: 0.55, speed: 0.45, spread: 1.0, brightness: 1.0, bloom: 1.1, hue: 0.0 },
 };
 
 function clamp(v, min, max) {
@@ -22,22 +17,6 @@ function clamp(v, min, max) {
 
 function lerp(a, b, t) {
   return a + (b - a) * t;
-}
-
-function fibonacciSphere(count, radius) {
-  const points = [];
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < count; i += 1) {
-    const y = 1 - (i / (count - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const theta = golden * i;
-    points.push(
-      Math.cos(theta) * r * radius,
-      y * radius,
-      Math.sin(theta) * r * radius,
-    );
-  }
-  return points;
 }
 
 export class JarvisAntigravityGlobe {
@@ -49,13 +28,15 @@ export class JarvisAntigravityGlobe {
 
     this.container = container;
     this.options = {
-      particleCount: options.particleCount ?? 2400,
       radius: options.radius ?? 1,
-      color: options.color ?? 0x00e5ff,
-      accentColor: options.accentColor ?? 0x4df3ff,
+      color: options.color ?? 0xff8c00,
+      coreColor: options.coreColor ?? 0xffff00,
+      accentColor: options.accentColor ?? 0xffaa00,
       background: options.background ?? 'transparent',
       autoStart: options.autoStart ?? true,
       dprCap: options.dprCap ?? 2,
+      bloom: options.bloom ?? true,
+      spikeCount: options.spikeCount ?? 18,
     };
 
     this.state = 'idle';
@@ -66,11 +47,29 @@ export class JarvisAntigravityGlobe {
     this._raf = 0;
     this._clock = new THREE.Clock();
     this._resizeObserver = null;
+    this._composer = null;
 
     this._buildScene();
     this._bindEvents();
-
     if (this.options.autoStart) this.start();
+  }
+
+  async _initBloom() {
+    if (!this.options.bloom || this._composer) return;
+    try {
+      const { EffectComposer } = await import('three/addons/postprocessing/EffectComposer.js');
+      const { RenderPass } = await import('three/addons/postprocessing/RenderPass.js');
+      const { UnrealBloomPass } = await import('three/addons/postprocessing/UnrealBloomPass.js');
+
+      const w = Math.max(this.container.clientWidth, 1);
+      const h = Math.max(this.container.clientHeight, 1);
+      this._composer = new EffectComposer(this.renderer);
+      this._composer.addPass(new RenderPass(this.scene, this.camera));
+      this._bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 1.2, 0.45, 0.15);
+      this._composer.addPass(this._bloomPass);
+    } catch {
+      this._composer = null;
+    }
   }
 
   _buildScene() {
@@ -85,183 +84,210 @@ export class JarvisAntigravityGlobe {
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(Math.max(w, 1), Math.max(h, 1));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.1;
     this.container.appendChild(this.renderer.domElement);
     this.container.classList.add('jarvis-globe-root');
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(42, Math.max(w, 1) / Math.max(h, 1), 0.1, 100);
-    this.camera.position.set(0, 0, 4.2);
+    this.camera = new THREE.PerspectiveCamera(38, Math.max(w, 1) / Math.max(h, 1), 0.1, 100);
+    this.camera.position.set(0, 0, 4.8);
 
     this.root = new THREE.Group();
     this.scene.add(this.root);
 
-    this._buildParticles();
     this._buildCore();
-    this._buildRings();
-    this._buildDust();
+    this._buildWireframe();
+    this._buildSpikes();
+    this._buildRibbons();
+    this._buildParticleRings();
+    this._buildOuterDust();
     this._buildLights();
-  }
 
-  _buildParticles() {
-    const count = this.options.particleCount;
-    const positions = fibonacciSphere(count, this.options.radius);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-
-    const seeds = new Float32Array(count);
-    const offsets = new Float32Array(count * 3);
-    for (let i = 0; i < count; i += 1) {
-      seeds[i] = Math.random();
-      offsets[i * 3] = (Math.random() - 0.5) * 0.35;
-      offsets[i * 3 + 1] = Math.random() * 0.5;
-      offsets[i * 3 + 2] = (Math.random() - 0.5) * 0.35;
-    }
-    geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
-    geometry.setAttribute('aOffset', new THREE.BufferAttribute(offsets, 3));
-
-    this.particleMaterial = new THREE.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      uniforms: {
-        uTime: { value: 0 },
-        uPulse: { value: 0.35 },
-        uSpread: { value: 1 },
-        uBrightness: { value: 0.85 },
-        uHue: { value: 0.52 },
-        uAudio: { value: 0 },
-        uColor: { value: new THREE.Color(this.options.color) },
-        uAccent: { value: new THREE.Color(this.options.accentColor) },
-      },
-      vertexShader: `
-        attribute float aSeed;
-        attribute vec3 aOffset;
-        uniform float uTime;
-        uniform float uPulse;
-        uniform float uSpread;
-        uniform float uAudio;
-        varying float vGlow;
-        varying float vDepth;
-
-        void main() {
-          vec3 p = position * uSpread;
-          float t = uTime * (0.6 + aSeed * 0.9);
-          float lift = sin(t + aSeed * 6.28318) * 0.08;
-          float drift = cos(t * 0.7 + aSeed * 12.0) * 0.05;
-          p += aOffset;
-          p.y += lift + uAudio * 0.12 * aSeed;
-          p.x += drift;
-          p.z += sin(t * 0.55 + aSeed * 9.0) * 0.04;
-          p += normalize(position + vec3(0.0001)) * uPulse * 0.06 * sin(t * 2.0 + aSeed * 20.0);
-
-          vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          gl_Position = projectionMatrix * mv;
-          float size = 1.6 + aSeed * 2.4 + uAudio * 2.5 + uPulse * 1.5;
-          gl_PointSize = size * (220.0 / -mv.z);
-          vGlow = 0.35 + aSeed * 0.65 + uPulse * 0.25;
-          vDepth = clamp(1.0 - (-mv.z - 2.5) / 3.0, 0.0, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float uBrightness;
-        uniform float uHue;
-        uniform vec3 uColor;
-        uniform vec3 uAccent;
-        varying float vGlow;
-        varying float vDepth;
-
-        vec3 hueShift(vec3 color, float hue) {
-          const vec3 k = vec3(0.57735, 0.57735, 0.57735);
-          float cosA = cos(hue * 6.28318);
-          return color * cosA + cross(k, color) * sin(hue * 6.28318) + k * dot(k, color) * (1.0 - cosA);
-        }
-
-        void main() {
-          vec2 uv = gl_PointCoord - 0.5;
-          float d = length(uv);
-          if (d > 0.5) discard;
-          float core = smoothstep(0.5, 0.0, d);
-          float halo = smoothstep(0.5, 0.08, d);
-          vec3 base = mix(uColor, uAccent, vGlow);
-          base = hueShift(base, uHue - 0.52);
-          vec3 col = base * halo * vGlow * uBrightness * (0.65 + vDepth * 0.35);
-          col += base * core * 0.8;
-          gl_FragColor = vec4(col, halo * 0.85);
-        }
-      `,
-    });
-
-    this.particles = new THREE.Points(geometry, this.particleMaterial);
-    this.root.add(this.particles);
+    this._initBloom();
   }
 
   _buildCore() {
-    const geo = new THREE.IcosahedronGeometry(this.options.radius * 0.42, 2);
-    this.coreMaterial = new THREE.MeshBasicMaterial({
-      color: this.options.color,
+    const r = this.options.radius * 0.18;
+    const geo = new THREE.SphereGeometry(r, 24, 24);
+    this.coreMat = new THREE.MeshBasicMaterial({
+      color: this.options.coreColor,
       transparent: true,
-      opacity: 0.08,
-      wireframe: true,
+      opacity: 0.95,
     });
-    this.core = new THREE.Mesh(geo, this.coreMaterial);
+    this.core = new THREE.Mesh(geo, this.coreMat);
     this.root.add(this.core);
 
-    const glowGeo = new THREE.SphereGeometry(this.options.radius * 0.55, 32, 32);
-    this.glowMaterial = new THREE.MeshBasicMaterial({
+    const haloGeo = new THREE.SphereGeometry(r * 2.2, 24, 24);
+    this.haloMat = new THREE.MeshBasicMaterial({
       color: this.options.accentColor,
       transparent: true,
-      opacity: 0.06,
+      opacity: 0.25,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    this.glow = new THREE.Mesh(glowGeo, this.glowMaterial);
-    this.root.add(this.glow);
+    this.halo = new THREE.Mesh(haloGeo, this.haloMat);
+    this.root.add(this.halo);
   }
 
-  _buildRings() {
-    this.rings = new THREE.Group();
-    const ringConfigs = [
-      { radius: 1.35, tilt: [0.9, 0.2, 0.1], speed: 0.22 },
-      { radius: 1.55, tilt: [-0.5, 0.8, 0.3], speed: -0.16 },
-      { radius: 1.75, tilt: [0.2, -0.6, 0.9], speed: 0.12 },
+  _buildWireframe() {
+    const geo = new THREE.IcosahedronGeometry(this.options.radius * 0.72, 2);
+    this.wireMat = new THREE.MeshBasicMaterial({
+      color: this.options.color,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.85,
+    });
+    this.wireframe = new THREE.Mesh(geo, this.wireMat);
+    this.root.add(this.wireframe);
+  }
+
+  _buildSpikes() {
+    const count = this.options.spikeCount;
+    const inner = this.options.radius * 0.15;
+    const outer = this.options.radius * 2.35;
+    const positions = [];
+    const golden = Math.PI * (3 - Math.sqrt(5));
+
+    for (let i = 0; i < count; i += 1) {
+      const y = 1 - (i / (count - 1)) * 2;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = golden * i;
+      const dx = Math.cos(theta) * r;
+      const dy = y;
+      const dz = Math.sin(theta) * r;
+      positions.push(0, 0, 0, dx * outer, dy * outer, dz * outer);
+      positions.push(dx * inner, dy * inner, dz * inner, dx * outer, dy * outer, dz * outer);
+    }
+
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    this.spikeMat = new THREE.LineBasicMaterial({
+      color: this.options.color,
+      transparent: true,
+      opacity: 0.75,
+      blending: THREE.AdditiveBlending,
+    });
+    this.spikes = new THREE.LineSegments(geo, this.spikeMat);
+    this.root.add(this.spikes);
+  }
+
+  _buildRibbons() {
+    this.ribbons = new THREE.Group();
+    const configs = [
+      { radius: 1.55, tube: 0.055, tilt: [1.1, 0.3, 0.2], speed: 0.18, arc: Math.PI * 1.35 },
+      { radius: 1.72, tube: 0.048, tilt: [-0.6, 0.9, 0.5], speed: -0.14, arc: Math.PI * 1.2 },
     ];
 
-    ringConfigs.forEach((cfg, index) => {
-      const curve = new THREE.EllipseCurve(0, 0, cfg.radius, cfg.radius, 0, Math.PI * 2);
-      const points = curve.getPoints(180).map((p) => new THREE.Vector3(p.x, 0, p.y));
-      const geo = new THREE.BufferGeometry().setFromPoints(points);
-      const mat = new THREE.LineBasicMaterial({
-        color: index === 0 ? this.options.accentColor : this.options.color,
+    configs.forEach((cfg, idx) => {
+      const points = [];
+      const segments = 80;
+      for (let i = 0; i <= segments; i += 1) {
+        const t = (i / segments) * cfg.arc - cfg.arc * 0.5;
+        points.push(new THREE.Vector3(Math.cos(t) * cfg.radius, Math.sin(t) * cfg.radius * 0.35, Math.sin(t) * cfg.radius * 0.65));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geo = new THREE.TubeGeometry(curve, 64, cfg.tube, 8, false);
+      const mat = new THREE.MeshBasicMaterial({
+        color: idx === 0 ? this.options.accentColor : this.options.color,
         transparent: true,
-        opacity: 0.22 + index * 0.06,
+        opacity: 0.55,
         blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide,
       });
-      const ring = new THREE.LineLoop(geo, mat);
-      ring.rotation.set(cfg.tilt[0], cfg.tilt[1], cfg.tilt[2]);
-      ring.userData.speed = cfg.speed;
-      this.rings.add(ring);
-
-      const trackerGeo = new THREE.SphereGeometry(0.035, 8, 8);
-      const trackerMat = new THREE.MeshBasicMaterial({
-        color: this.options.accentColor,
-        transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
-      });
-      const tracker = new THREE.Mesh(trackerGeo, trackerMat);
-      tracker.position.set(cfg.radius, 0, 0);
-      ring.add(tracker);
-      ring.userData.tracker = tracker;
+      const ribbon = new THREE.Mesh(geo, mat);
+      ribbon.rotation.set(cfg.tilt[0], cfg.tilt[1], cfg.tilt[2]);
+      ribbon.userData.speed = cfg.speed;
+      this.ribbons.add(ribbon);
     });
 
-    this.root.add(this.rings);
+    this.root.add(this.ribbons);
   }
 
-  _buildDust() {
-    const count = 120;
+  _buildParticleRings() {
+    this.particleRings = new THREE.Group();
+    const ringConfigs = [
+      { radius: 1.15, count: 220, tilt: [0.4, 0.1, 0.2], speed: 0.25 },
+      { radius: 1.35, count: 180, tilt: [1.0, 0.5, 0.0], speed: -0.2 },
+      { radius: 1.55, count: 140, tilt: [-0.3, 0.8, 0.6], speed: 0.15 },
+      { radius: 1.85, count: 100, tilt: [0.2, -0.5, 1.0], speed: -0.12 },
+    ];
+
+    ringConfigs.forEach((cfg) => {
+      const positions = new Float32Array(cfg.count * 3);
+      const seeds = new Float32Array(cfg.count);
+      for (let i = 0; i < cfg.count; i += 1) {
+        const angle = (i / cfg.count) * Math.PI * 2;
+        const wobble = (Math.random() - 0.5) * 0.08;
+        positions[i * 3] = Math.cos(angle) * (cfg.radius + wobble);
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 0.06;
+        positions[i * 3 + 2] = Math.sin(angle) * (cfg.radius + wobble);
+        seeds[i] = Math.random();
+      }
+
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 1));
+
+      const mat = new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: {
+          uTime: { value: 0 },
+          uPulse: { value: 0.4 },
+          uAudio: { value: 0 },
+          uColor: { value: new THREE.Color(this.options.accentColor) },
+          uCore: { value: new THREE.Color(this.options.coreColor) },
+        },
+        vertexShader: `
+          attribute float aSeed;
+          uniform float uTime;
+          uniform float uPulse;
+          uniform float uAudio;
+          varying float vGlow;
+          void main() {
+            vec3 p = position;
+            float t = uTime * (0.5 + aSeed);
+            p.y += sin(t + aSeed * 6.28) * 0.04 + uAudio * 0.08;
+            p += normalize(p + 0.001) * uPulse * 0.03 * sin(t * 2.0);
+            vec4 mv = modelViewMatrix * vec4(p, 1.0);
+            gl_Position = projectionMatrix * mv;
+            gl_PointSize = (1.5 + aSeed * 2.5 + uPulse * 1.2 + uAudio * 2.0) * (180.0 / -mv.z);
+            vGlow = 0.4 + aSeed * 0.6;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 uColor;
+          uniform vec3 uCore;
+          varying float vGlow;
+          void main() {
+            vec2 uv = gl_PointCoord - 0.5;
+            float d = length(uv);
+            if (d > 0.5) discard;
+            float glow = smoothstep(0.5, 0.0, d);
+            vec3 col = mix(uColor, uCore, glow * vGlow);
+            gl_FragColor = vec4(col * glow * vGlow * 1.4, glow * 0.9);
+          }
+        `,
+      });
+
+      const ring = new THREE.Points(geo, mat);
+      ring.rotation.set(cfg.tilt[0], cfg.tilt[1], cfg.tilt[2]);
+      ring.userData.speed = cfg.speed;
+      ring.userData.material = mat;
+      this.particleRings.add(ring);
+    });
+
+    this.root.add(this.particleRings);
+  }
+
+  _buildOuterDust() {
+    const count = 90;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i += 1) {
-      const r = 1.8 + Math.random() * 1.4;
+      const r = 2.0 + Math.random() * 0.8;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
@@ -270,25 +296,25 @@ export class JarvisAntigravityGlobe {
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const mat = new THREE.PointsMaterial({
+    this.dustMat = new THREE.PointsMaterial({
       color: this.options.accentColor,
-      size: 0.03,
+      size: 0.025,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.4,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
-    this.dust = new THREE.Points(geo, mat);
+    this.dust = new THREE.Points(geo, this.dustMat);
     this.root.add(this.dust);
   }
 
   _buildLights() {
-    this.scene.add(new THREE.AmbientLight(0x0a1628, 0.8));
-    const key = new THREE.PointLight(this.options.color, 1.4, 20);
-    key.position.set(2, 2, 3);
-    this.scene.add(key);
-    const rim = new THREE.PointLight(this.options.accentColor, 0.8, 20);
-    rim.position.set(-3, -1, 2);
+    this.scene.add(new THREE.AmbientLight(0x1a0a00, 0.6));
+    const core = new THREE.PointLight(this.options.coreColor, 2.5, 12);
+    core.position.set(0, 0, 0);
+    this.root.add(core);
+    const rim = new THREE.PointLight(this.options.color, 1.2, 20);
+    rim.position.set(3, 2, 4);
     this.scene.add(rim);
   }
 
@@ -307,6 +333,10 @@ export class JarvisAntigravityGlobe {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+    if (this._composer) {
+      this._composer.setSize(w, h);
+      if (this._bloomPass) this._bloomPass.resolution.set(w, h);
+    }
   }
 
   setState(state) {
@@ -342,45 +372,53 @@ export class JarvisAntigravityGlobe {
     const elapsed = this._clock.elapsedTime;
 
     const lerpSpeed = 1 - Math.pow(0.001, dt);
-    this.currentState.pulse = lerp(this.currentState.pulse, this.targetState.pulse, lerpSpeed);
-    this.currentState.speed = lerp(this.currentState.speed, this.targetState.speed, lerpSpeed);
-    this.currentState.spread = lerp(this.currentState.spread, this.targetState.spread, lerpSpeed);
-    this.currentState.brightness = lerp(this.currentState.brightness, this.targetState.brightness, lerpSpeed);
-    this.currentState.hue = lerp(this.currentState.hue, this.targetState.hue, lerpSpeed);
+    for (const key of Object.keys(this.currentState)) {
+      this.currentState[key] = lerp(this.currentState[key], this.targetState[key], lerpSpeed);
+    }
 
     const audio = this.audioLevel;
-    const pulse = this.currentState.pulse + audio * 0.35;
+    const pulse = this.currentState.pulse + audio * 0.4;
     const speed = this.currentState.speed;
+    const spread = this.currentState.spread;
 
-    this.particleMaterial.uniforms.uTime.value = elapsed;
-    this.particleMaterial.uniforms.uPulse.value = pulse;
-    this.particleMaterial.uniforms.uSpread.value = this.currentState.spread;
-    this.particleMaterial.uniforms.uBrightness.value = this.currentState.brightness;
-    this.particleMaterial.uniforms.uHue.value = this.currentState.hue;
-    this.particleMaterial.uniforms.uAudio.value = audio;
+    this.root.position.y = Math.sin(elapsed * 0.5) * 0.03;
+    this.root.rotation.y += dt * 0.2 * speed;
+    this.root.rotation.x = Math.sin(elapsed * 0.3) * 0.06;
+    this.root.scale.setScalar(spread);
 
-    const floatY = Math.sin(elapsed * 0.55) * 0.04;
-    this.root.position.y = floatY;
-    this.root.rotation.y += dt * 0.25 * speed;
-    this.root.rotation.x = Math.sin(elapsed * 0.35) * 0.08;
+    this.coreMat.opacity = 0.85 + pulse * 0.1;
+    this.haloMat.opacity = 0.18 + pulse * 0.12 + audio * 0.1;
+    this.halo.scale.setScalar(1 + pulse * 0.15 + audio * 0.2);
+    this.wireMat.opacity = 0.65 + pulse * 0.2;
+    this.wireframe.rotation.y += dt * 0.35 * speed;
+    this.wireframe.rotation.x += dt * 0.15;
+    this.spikeMat.opacity = 0.55 + pulse * 0.25;
 
-    this.core.rotation.y -= dt * 0.4 * speed;
-    this.core.rotation.x += dt * 0.2;
-    this.coreMaterial.opacity = 0.05 + pulse * 0.05;
-    this.glowMaterial.opacity = 0.04 + pulse * 0.05 + audio * 0.04;
-    this.glow.scale.setScalar(1 + pulse * 0.08 + audio * 0.12);
-
-    this.rings.children.forEach((ring, i) => {
-      ring.rotation.z += dt * ring.userData.speed * speed;
-      if (ring.userData.tracker) {
-        ring.userData.tracker.material.opacity = 0.55 + pulse * 0.35 + Math.sin(elapsed * 3 + i) * 0.1;
-      }
+    this.ribbons.children.forEach((ribbon) => {
+      ribbon.rotation.z += dt * ribbon.userData.speed * speed;
+      ribbon.material.opacity = 0.4 + pulse * 0.2;
     });
 
-    this.dust.rotation.y += dt * 0.05;
-    this.dust.rotation.x += dt * 0.03;
+    this.particleRings.children.forEach((ring) => {
+      ring.rotation.z += dt * ring.userData.speed * speed;
+      const mat = ring.userData.material;
+      mat.uniforms.uTime.value = elapsed;
+      mat.uniforms.uPulse.value = pulse;
+      mat.uniforms.uAudio.value = audio;
+    });
 
-    this.renderer.render(this.scene, this.camera);
+    this.dust.rotation.y += dt * 0.04;
+    this.dust.rotation.x += dt * 0.025;
+
+    if (this._bloomPass) {
+      this._bloomPass.strength = this.currentState.bloom + audio * 0.35;
+    }
+
+    if (this._composer) {
+      this._composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   };
 
   destroy() {
@@ -396,6 +434,7 @@ export class JarvisAntigravityGlobe {
       }
     });
 
+    if (this._composer) this._composer.dispose();
     this.renderer.dispose();
     if (this.renderer.domElement.parentNode === this.container) {
       this.container.removeChild(this.renderer.domElement);

@@ -1,6 +1,6 @@
 # Jarvis Antigravity Globe
 
-Holographic cyan orb for a Jarvis-style AI assistant — floating particle shell, orbital rings, and state-driven pulse (idle, listening, thinking, speaking, error).
+Holographic **orange/gold** Jarvis HUD orb — bright core, wireframe geodesic sphere, radial spikes, thick orbital ribbons, particle ring swarms, and bloom glow. Matches the classic Iron Man interface look.
 
 Inspired by voice-assistant demos like [this Short](https://youtube.com/shorts/V6kvapGV9qk).
 
@@ -49,7 +49,12 @@ Open [http://localhost:8080/demo/](http://localhost:8080/demo/).
   window.THREE = THREE;
   import JarvisAntigravityGlobe from '/jarvis/jarvis-antigravity-globe.js';
 
-  const globe = new JarvisAntigravityGlobe(document.getElementById('jarvis-orb'));
+  const globe = new JarvisAntigravityGlobe(document.getElementById('jarvis-orb'), {
+    color: 0xff8c00,
+    coreColor: 0xffff00,
+    accentColor: 0xffaa00,
+    bloom: true,
+  });
 
   // Hook into your assistant lifecycle
   globe.setState('listening');
@@ -75,10 +80,12 @@ Open [http://localhost:8080/demo/](http://localhost:8080/demo/).
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `particleCount` | `2400` | Shell particle density |
 | `radius` | `1` | Base sphere radius |
-| `color` | `0x00e5ff` | Primary cyan |
-| `accentColor` | `0x4df3ff` | Highlight cyan |
+| `color` | `0xff8c00` | Primary orange (wireframe, spikes) |
+| `coreColor` | `0xffff00` | Bright core yellow |
+| `accentColor` | `0xffaa00` | Ribbon / particle gold |
+| `bloom` | `true` | UnrealBloom post-processing |
+| `spikeCount` | `18` | Radial spike lines |
 | `background` | `'transparent'` | Renderer clear color |
 | `autoStart` | `true` | Begin animation immediately |
 
