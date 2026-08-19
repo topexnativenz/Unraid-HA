@@ -6,13 +6,15 @@ Inspired by voice-assistant demos like [this Short](https://youtube.com/shorts/V
 
 ## Live demo (open on your phone)
 
-**https://cdn.jsdelivr.net/gh/topexnativenz/Unraid-HA@cursor/jarvis-antigravity-globe-2736/jarvis/demo/live.html**
+**https://raw.githack.com/topexnativenz/Unraid-HA/cursor/jarvis-antigravity-globe-2736/jarvis/demo/live.html**
 
-No install, no local server — just open that link in Safari or Chrome and tap the state buttons.
+No install, no local server — open in Safari or Chrome and tap the state buttons.
+
+> Do **not** use the `cdn.jsdelivr.net/.../live.html` link — jsDelivr serves HTML as plain text. Use the githack link above (or GitHub Pages below).
 
 ### GitHub Pages (after one-time setup)
 
-Permanent URL: **https://topexnativenz.github.io/Unraid-HA/demo/**
+Permanent URL: **https://topexnativenz.github.io/Unraid-HA/demo/live.html**
 
 Enable once in your repo:
 
