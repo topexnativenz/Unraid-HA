@@ -1,102 +1,89 @@
 # Jarvis — wake-word activated holographic globe
 
-Software-rendered **Iron Man Jarvis globe** that **activates when you say “Jarvis”** — 3D orange wireframe orb, wake-word listener, voice command capture, and TTS reply (demo).
+Software-rendered **Jarvis globe** with two integration modes:
 
-## Live demo
+| Mode | Entry | Use case |
+|------|-------|----------|
+| **Wake-word UI** | `assistant/index.html` | Say “Jarvis” → globe appears (browser mic) |
+| **WebSocket globe** | `globe-interface/index.html` | Python backend drives spin / pulse / speak |
+
+---
+
+## WebSocket globe (Python backend)
+
+Cyber neon wireframe globe — spins to coordinates, pulses when talking. Connects to `ws://localhost:8765`.
+
+### Quick start
+
+```bash
+cd jarvis
+chmod +x run-globe-stack.sh
+./run-globe-stack.sh
+```
+
+Open **http://localhost:8080/globe-interface/**
+
+In the Python terminal, type:
+
+- `scan` — spin to London (51.50, -0.12)
+- `goto 40.71 -74.01` — spin to custom lat/lon
+- `speak` — pulse while “speaking”
+- `listen` — HUD state → listening
+
+### Manual start
+
+```bash
+pip install -r jarvis/backend/requirements.txt
+python3 jarvis/backend/jarvis_globe_server.py
+# separate terminal:
+cd jarvis && python3 -m http.server 8080
+```
+
+### WebSocket payload examples
+
+```json
+{"action": "scan_location", "lat": 51.5, "lon": -0.12}
+{"action": "speaking", "active": true}
+{"action": "pulse", "duration_ms": 800, "opacity": 1.0}
+{"action": "set_state", "state": "listening"}
+```
+
+Pipe these from your speech loop, FastAPI app, or Home Assistant automation.
+
+---
+
+## Wake-word assistant (browser only)
 
 **https://raw.githack.com/topexnativenz/Unraid-HA/cursor/jarvis-antigravity-globe-2736/jarvis/assistant/index.html**
 
-1. Open in **Chrome or Edge** (Web Speech API required).
-2. Click **Enable microphone**.
-3. Say **“Jarvis”** — the globe animates in.
-4. Say a command — e.g. *“Jarvis, what time is it?”*
+1. Chrome/Edge → **Enable microphone**
+2. Say **“Jarvis”** → orange 3D orb animates in
+3. Say a command
 
-> Use the **githack** link above (not jsDelivr `.html` links — those show raw source).
+Files: `jarvis-antigravity-globe.js`, `jarvis-wake-assistant.js`, `assistant/index.html`
 
-## How it works
+---
 
-| Piece | File |
-|-------|------|
-| 3D globe render | `jarvis-antigravity-globe.js` |
-| Wake word + voice flow | `jarvis-wake-assistant.js` |
-| Full-screen assistant UI | `assistant/index.html` |
+## Embed WebSocket globe in your assistant
 
-**Flow:** dormant (black + “Say Jarvis”) → wake word detected → globe fades/scales in → listening → command → thinking → speaking → standby.
+```python
+import asyncio, json, websockets
 
-## Embed in your Jarvis app
+async def notify_globe(action, **kwargs):
+    async with websockets.connect("ws://localhost:8765") as ws:
+        await ws.send(json.dumps({"action": action, **kwargs}))
 
-```html
-<script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-    }
-  }
-</script>
-<script type="module">
-  import * as THREE from 'three';
-  window.THREE = THREE;
-  import JarvisAntigravityGlobe from './jarvis-antigravity-globe.js';
-  import JarvisWakeAssistant from './jarvis-wake-assistant.js';
-
-  const globe = new JarvisAntigravityGlobe(document.getElementById('globe'), {
-    color: 0xff8c00,
-    coreColor: 0xffff00,
-    accentColor: 0xffaa00,
-    bloom: true,
-  });
-
-  const assistant = new JarvisWakeAssistant({
-    wakeWord: 'jarvis',
-    onWake: () => document.body.classList.add('is-active'),
-    onStateChange: (phase) => globe.setState(phase === 'dormant' ? 'idle' : phase),
-    onCommand: async (cmd) => {
-      globe.setState('thinking');
-      // your LLM / home automation here
-      globe.setState('speaking');
-    },
-  });
-
-  document.getElementById('start').onclick = () => assistant.start();
-</script>
+# on wake word:
+asyncio.run(notify_globe("set_state", state="listening"))
+# on TTS start:
+asyncio.run(notify_globe("speaking", active=True))
 ```
 
-## API
+---
 
-### `JarvisWakeAssistant`
-
-| Method / option | Description |
-|-----------------|-------------|
-| `wakeWord` | Default `'jarvis'` |
-| `start()` | Begin always-on mic + wake-word detection |
-| `stop()` | Stop listening |
-| `onWake()` | Globe should appear |
-| `onCommand(text)` | User command after wake word |
-| `onStateChange(phase)` | `dormant`, `activating`, `listening`, `thinking`, `speaking`, `idle` |
-
-### `JarvisAntigravityGlobe`
-
-| Method | Description |
-|--------|-------------|
-| `setState(state)` | Visual: `idle`, `listening`, `thinking`, `speaking`, `error` |
-| `setAudioLevel(0–1)` | Pulse size during TTS / mic |
-
-## Local dev
+## Local dev (wake-word orb)
 
 ```bash
 cd jarvis && python3 -m http.server 8080
 # http://localhost:8080/assistant/
 ```
-
-## Notes
-
-- **Browser:** Chrome / Edge desktop recommended. Safari/iOS has limited speech recognition.
-- **HTTPS:** Mic access needs a secure context (localhost or HTTPS).
-- **Wake word:** Uses Web Speech API (cloud in Chrome), not on-device Porcupine. For offline wake word, swap in OpenWakeWord and call `assistant.activate()` from your detector.
-- **Manual test:** “Test wake (no mic)” button on the demo page.
-
-## Other files
-
-- `demo/` — manual state buttons (no wake word)
-- `docs/physical-levitation-globe.md` — unrelated hardware notes (ignore unless you want a desk toy)
