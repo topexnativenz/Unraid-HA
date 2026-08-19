@@ -19,6 +19,7 @@ on:
       - cursor/nas-array-planning-docs
       - cursor/main-shed-button-status-6a19
     paths:
+      - .github/workflows/deploy-lovelace.yml
       - home-assistant/flux-ui-dashboard/lovelace/**
       - home-assistant/flux-ui-dashboard/*.yaml
       - home-assistant/mobile-dashboard/scripts/**
