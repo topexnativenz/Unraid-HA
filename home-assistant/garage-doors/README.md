@@ -16,9 +16,27 @@ Package: `packages/garage_doors_pulse.yaml` — deploy:
 bash /Users/topexnative/Projects/unraid-array-design/home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
 ```
 
-Red = open (Tapo sensor `on`), green = closed. Icons read **Tapo contact sensors** directly; `input_boolean.*_open` is kept in sync via automations in the package.
+## Automations (repo-managed)
 
-## Tapo sensor entity map
+| ID | Alias | Behaviour |
+|----|-------|-----------|
+| `house_garage_open_on_tessie_arrival` | House Garage — open with gate on Tessie arrival | Fires when `gate_arrival_session` starts **or** Tessie road/gate/distance-to-gate triggers (same as gate). Opens House Garage if Tapo sensor closed. |
+| `garage_outside_lights_on_tessie_arrival_after_dark` | Garage outside lights — on Tessie arrival after dark | After sunset; same triggers as above |
+| `garage_outside_lights_off_house_garage_closed` | Garage outside lights — off when House Garage closes | When `binary_sensor.house_garage_door_is_open` closes after arrival session |
+
+**Root cause (2026-09):** Gate opened on Tessie **road approach** (450 m) or **distance to gate** (<180 m), but House Garage only opened on **gate approach** or **<90 m from home** — so the garage stayed closed until the car reached the building. Triggers are now aligned with the gate automations.
+
+Package: `packages/garage_doors_pulse.yaml` + `automations/garage.yaml` — deploy:
+
+```bash
+bash home-assistant/garage-doors/scripts/deploy_garage_doors.sh
+```
+
+Or pulse-only (no automations merge):
+
+```bash
+bash home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
+```
 
 Edit **`entities.yaml`** in this folder with your real Tapo contact sensor IDs (Developer Tools → States → filter `tapo` or `is_open`):
 

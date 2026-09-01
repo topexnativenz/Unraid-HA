@@ -13,8 +13,23 @@ input_boolean:
   second_shed_door_open:
     name: Second Shed open (tracked)
     icon: mdi:garage
+  garage_outside_lights_arrival_active:
+    name: Garage outside lights (arrival session)
+    icon: mdi:coach-lamp
 
 script:
+  house_garage_open_if_closed:
+    alias: House Garage — open if Tapo reports closed
+    description: Pulses the Shelly relay only when the contact sensor is off (closed).
+    mode: single
+    sequence:
+      - condition: state
+        entity_id: binary_sensor.house_garage_door_is_open
+        state: "off"
+      - action: script.turn_on
+        target:
+          entity_id: script.pulse_house_garage_door
+
   pulse_house_garage_door:
     alias: Pulse House Garage door
     mode: single

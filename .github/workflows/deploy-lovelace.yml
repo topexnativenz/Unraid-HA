@@ -18,6 +18,7 @@ on:
       - cursor/flux-ui-md3-dashboard-bf3a
       - cursor/nas-array-planning-docs
       - cursor/main-shed-button-status-6a19
+      - cursor/garage-gate-arrival-6a19
     paths:
       - .github/workflows/deploy-lovelace.yml
       - home-assistant/flux-ui-dashboard/lovelace/**
@@ -25,6 +26,8 @@ on:
       - home-assistant/mobile-dashboard/scripts/**
       - home-assistant/garage-doors/entities.yaml
       - home-assistant/garage-doors/garage_ui_helpers.py
+      - home-assistant/garage-doors/automations/**
+      - home-assistant/garage-doors/packages/**
 
 concurrency:
   group: deploy-lovelace
