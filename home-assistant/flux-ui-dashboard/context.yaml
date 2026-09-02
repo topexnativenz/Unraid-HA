@@ -1,0 +1,24 @@
+# Phase 3 — context-aware overview (Flux home intelligence).
+# Overview tabs: overview_tabs.yaml (ElementZoom reference)
+# https://github.com/ElementZoom/Flux-UI-Home-Assistant-Dashboard
+
+home_status:
+  # Shown in status chips when state != off/closed/0
+  lights_on: light.all_lights
+  # Optional: add binary_sensor groups when you have them
+  # doors_open: binary_sensor.any_door_open
+  # windows_open: binary_sensor.any_window_open
+
+active_lights:
+  # auto-entities: lights currently on (hidden when none)
+  domain: light
+  state: "on"
+  exclude:
+    - light.all_lights
+    - light.ground_floor_lights
+
+# Garage open alerts use garage-doors/entities.yaml Tapo sensors automatically.
+
+bubble_popups:
+  enabled: false
+  # Legacy bubble-card popups — replaced by inline dimmer on light buttons.

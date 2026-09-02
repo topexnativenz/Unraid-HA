@@ -1,0 +1,13 @@
+# Flux UI Rooms category tabs (Default / Others / Outdoor)
+# Reference: ElementZoom Flux UI 02-rooms.yaml (room_toggles_chip_card)
+# Included from configuration.yaml: homeassistant: packages: !include_dir_named packages
+
+input_select:
+  flux_ui_rooms_tab:
+    name: Flux UI Rooms Tab
+    options:
+      - Default
+      - Others
+      - Outdoor
+    initial: Default
+    icon: mdi:sofa

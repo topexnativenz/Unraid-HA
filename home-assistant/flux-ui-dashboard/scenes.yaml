@@ -1,0 +1,14 @@
+# Flux UI Scenes tab — HA scene entities + quick lighting scripts.
+# Add your scene.* entities here; quick actions from entities.yaml are always shown.
+
+scenes: []
+# Example:
+#   - entity: scene.movie_night
+#     name: Movie night
+#     icon: mdi:movie
+#   - entity: scene.dinner
+#     name: Dinner
+#     icon: mdi:silverware-fork-knife
+
+# When true and auto-entities is installed, also list all scene.* entities not listed above.
+auto_discover: true
