@@ -16,16 +16,36 @@ input_boolean:
   garage_outside_lights_arrival_active:
     name: Garage outside lights (arrival session)
     icon: mdi:coach-lamp
+  model_x_was_away:
+    name: Model X was away (Tessie arrival)
+    icon: mdi:car-arrow-right
 
 script:
   house_garage_open_if_closed:
     alias: House Garage — open if Tapo reports closed
-    description: Pulses the Shelly relay only when the contact sensor is off (closed).
+    description: >-
+      Pulses the Shelly relay when any known House Garage contact sensor reports
+      closed. Falls back to pulse if all sensors are unavailable (fail-open on arrival).
     mode: single
     sequence:
-      - condition: state
-        entity_id: binary_sensor.house_garage_door_is_open
-        state: "off"
+      - condition: template
+        value_template: >-
+          {% set sensors = [
+            'binary_sensor.house_garage_door_is_open',
+            'binary_sensor.house_garage_door_sensor_door',
+            'binary_sensor.house_garage_door_contact'
+          ] %}
+          {% set ns = namespace(seen=false, closed=false) %}
+          {% for s in sensors %}
+            {% set st = states(s) | lower %}
+            {% if st not in ['unknown', 'unavailable', 'none', ''] %}
+              {% set ns.seen = true %}
+              {% if st in ['off', 'closed', 'false'] %}
+                {% set ns.closed = true %}
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+          {{ ns.closed or not ns.seen }}
       - action: script.turn_on
         target:
           entity_id: script.pulse_house_garage_door

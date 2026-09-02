@@ -26,6 +26,14 @@ bash /Users/topexnative/Projects/unraid-array-design/home-assistant/garage-doors
 
 **Root cause (2026-09):** Gate opened on Tessie **road approach** (450 m) or **distance to gate** (<180 m), but House Garage only opened on **gate approach** or **<90 m from home** — so the garage stayed closed until the car reached the building. Triggers are now aligned with the gate automations.
 
+**Model X fix (2026-09-02):** `gate_tessie_location.yaml` on HA was **Model S only** — Model X approach sensors (`binary_sensor.model_x_tessie_in_*`) never updated. Gate uses `distance_to_home` for Model X; garage now matches. Deploy also copies Model X Tessie package and patches gate automations to call `house_garage_open_if_closed` directly.
+
+Diagnose last arrival on LAN:
+
+```bash
+python3 home-assistant/garage-doors/scripts/diagnose_arrival.py
+```
+
 Package: `packages/garage_doors_pulse.yaml` + `automations/garage.yaml` — deploy:
 
 ```bash

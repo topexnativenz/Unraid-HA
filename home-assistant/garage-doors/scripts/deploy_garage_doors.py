@@ -17,12 +17,23 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+GATE_ROOT = ROOT.parent / "gate"
 DEFAULT_HA = "http://192.168.1.239:8123"
 DEFAULT_MOUNT = "/private/tmp/ha-config-smb-garage"
 PACKAGE_FILES = (
     "garage_doors_pulse.yaml",
     "main_garage_cover.yaml",
 )
+GATE_PACKAGE_FILES = (
+    "gate_tessie.yaml",
+    "gate_tessie_location.yaml",
+)
+
+GARAGE_SCRIPT_INJECT = """
+    - action: script.turn_on
+      target:
+        entity_id: script.house_garage_open_if_closed
+      continue_on_error: true"""
 
 MARKER_START = "# --- Garage automations (repo: home-assistant/garage-doors) ---"
 MARKER_END = "# --- End garage automations ---"
@@ -111,6 +122,7 @@ def merge_garage_automations(text: str, auto_src: str) -> str:
 
     garage_id_markers = (
         "- id: garage_outside_lights_on_tessie_arrival_after_dark",
+        "- id: house_garage_open_on_gate_session",
         "- id: house_garage_open_on_tessie_arrival",
         "- id: garage_open_on_model_s_arrival",
         "- id: garage_close_at_9pm",
@@ -145,6 +157,35 @@ def merge_garage_automations(text: str, auto_src: str) -> str:
     return text.rstrip() + "\n\n" + block
 
 
+def patch_gate_automations_for_garage(text: str) -> str:
+    """Ensure gate Tessie arrival automations also open House Garage."""
+    if "script.house_garage_open_if_closed" in text:
+        return text
+
+    lines = text.splitlines(keepends=True)
+    out: list[str] = []
+    in_arrival = False
+    patched = 0
+    for line in lines:
+        out.append(line)
+        if line.startswith("- id: gate_open_on_arrival"):
+            in_arrival = True
+        elif line.startswith("- id: ") and "gate_open_on_arrival" not in line:
+            in_arrival = False
+        if (
+            in_arrival
+            and "shell_command.akuvox_gate_open_relay_1" in line
+            and GARAGE_SCRIPT_INJECT.strip() not in "".join(out)
+        ):
+            out.append(GARAGE_SCRIPT_INJECT + "\n")
+            patched += 1
+
+    if patched:
+        print(f"patched {patched} gate arrival automation(s) → house_garage_open_if_closed")
+        return "".join(out)
+    return text
+
+
 def strip_configuration_cover_block(text: str) -> str:
     """Move inline template cover into packages/main_garage_cover.yaml."""
     pattern = re.compile(
@@ -168,6 +209,12 @@ def deploy_files(mount: str) -> None:
             shutil.copy2(src, cfg / "packages" / name)
             print(f"copied {name}")
 
+    for name in GATE_PACKAGE_FILES:
+        src = GATE_ROOT / "packages" / name
+        if src.exists():
+            shutil.copy2(src, cfg / "packages" / name)
+            print(f"copied gate package {name}")
+
     config_path = cfg / "configuration.yaml"
     if config_path.exists():
         merged_cfg = strip_configuration_cover_block(config_path.read_text())
@@ -178,6 +225,7 @@ def deploy_files(mount: str) -> None:
     auto_path = cfg / "automations.yaml"
     auto_src = (ROOT / "automations/garage.yaml").read_text()
     merged = merge_garage_automations(auto_path.read_text(), auto_src)
+    merged = patch_gate_automations_for_garage(merged)
     auto_path.write_text(merged)
     print("merged automations.yaml")
 
