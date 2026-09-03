@@ -16,7 +16,61 @@ Package: `packages/garage_doors_pulse.yaml` — deploy:
 bash /Users/topexnative/Projects/unraid-array-design/home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
 ```
 
-Red = open (boolean on), grey = closed. Each tap runs the pulse script: if the Shelly switch is already `on`, `turn_off` then `turn_on` so the relay always fires; then toggles the boolean.
+## Automations (repo-managed)
+
+| ID | Alias | Behaviour |
+|----|-------|-----------|
+| `house_garage_open_on_tessie_arrival` | House Garage — open with gate on Tessie arrival | Fires when `gate_arrival_session` starts **or** Tessie road/gate/distance-to-gate triggers (same as gate). Opens House Garage if Tapo sensor closed. |
+| `garage_outside_lights_on_tessie_arrival_after_dark` | Garage outside lights — on Tessie arrival after dark | After sunset; same triggers as above |
+| `garage_outside_lights_off_house_garage_closed` | Garage outside lights — off when House Garage closes | When `binary_sensor.house_garage_door_is_open` closes after arrival session |
+
+**Root cause (2026-09):** Gate opened on Tessie **road approach** (450 m) or **distance to gate** (<180 m), but House Garage only opened on **gate approach** or **<90 m from home** — so the garage stayed closed until the car reached the building. Triggers are now aligned with the gate automations.
+
+**Model X fix (2026-09-02):** `gate_tessie_location.yaml` on HA was **Model S only** — Model X approach sensors (`binary_sensor.model_x_tessie_in_*`) never updated. Gate uses `distance_to_home` for Model X; garage now matches. Deploy also copies Model X Tessie package and patches gate automations to call `house_garage_open_if_closed` directly.
+
+Diagnose last arrival on LAN:
+
+```bash
+python3 home-assistant/garage-doors/scripts/diagnose_arrival.py
+```
+
+Package: `packages/garage_doors_pulse.yaml` + `automations/garage.yaml` — deploy:
+
+```bash
+bash home-assistant/garage-doors/scripts/deploy_garage_doors.sh
+```
+
+Or pulse-only (no automations merge):
+
+```bash
+bash home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
+```
+
+Edit **`entities.yaml`** in this folder with your real Tapo contact sensor IDs (Developer Tools → States → filter `tapo` or `is_open`):
+
+| Door | Tapo sensor (TP-Link default) | Tracked boolean | Pulse script |
+|------|--------------------------------|-----------------|--------------|
+| House Garage | `binary_sensor.house_garage_door_is_open` | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
+| Main Shed | `binary_sensor.shed_main_door_is_open` | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
+| Second Shed | `binary_sensor.second_shed_door_is_open` | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
+
+Auto-map from live HA (on your LAN):
+
+```bash
+python3 home-assistant/garage-doors/scripts/discover_garage_doors.py --apply
+```
+
+Legacy `*_door_contact` entity IDs are placeholders — Tapo T110 via TP-Link uses `*_is_open`.
+
+Standard door sensor: **`on` = open**, **`off` = closed. If yours is reversed, set `invert: true` for that door in `entities.yaml`.
+
+After updating sensor IDs:
+
+```bash
+bash home-assistant/garage-doors/scripts/deploy_garage_doors_pulse.sh
+python3 home-assistant/garage-doors/scripts/sync_garage_state_from_sensors.py
+python3 home-assistant/mobile-dashboard/scripts/deploy_mobile_home.py
+```
 
 ## Entity map (Mobile Home → Garage & Doors)
 

@@ -25,7 +25,7 @@ This rebuilds the config, writes storage on disk, then calls `lovelace/config/sa
 
 After deploy: **force-quit** the Home Assistant app and reopen (or open `http://192.168.1.239:8123/mobile-home/home` in a browser).
 
-Garage buttons require `home-assistant/garage-doors/packages/garage_doors_pulse.yaml` on HA (pulse + tracked open state). Deploy with `garage-doors/scripts/deploy_garage_doors_pulse.sh` before first use.
+Garage buttons require `home-assistant/garage-doors/packages/garage_doors_pulse.yaml` on HA (pulse scripts + Tapo sync automations). Deploy with `garage-doors/scripts/deploy_garage_doors_pulse.sh` before first use. Button icons read Tapo contact sensors from `garage-doors/entities.yaml` (not the Shelly relay or toggled boolean).
 
 ## Default dashboard (iOS Companion → Mobile Home)
 
