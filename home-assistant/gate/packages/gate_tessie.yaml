@@ -1,8 +1,14 @@
-# Tessie REST helpers for gate automations (API key in secrets.yaml)
+# Tessie REST helpers for gate/garage automations (API key in secrets.yaml)
 
 rest_command:
   tessie_wake_model_s:
     url: !secret tessie_wake_model_s_url
+    method: POST
+    headers:
+      Authorization: !secret tessie_api_key_header
+      Content-Type: application/json
+  tessie_wake_model_x:
+    url: !secret tessie_wake_model_x_url
     method: POST
     headers:
       Authorization: !secret tessie_api_key_header

@@ -1,0 +1,72 @@
+name: HA Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: Hours of logbook/history to fetch
+        type: string
+        default: "12"
+      topic:
+        description: Diagnostic topic preset
+        type: choice
+        options:
+          - arrival
+        default: arrival
+      verify_only:
+        description: Only verify HA connectivity (skip full report)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    name: Fetch Home Assistant diagnostics
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install -r home-assistant/scripts/requirements.txt
+
+      - name: Check secrets
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          if [ -z "$HA_URL" ] || [ -z "$HA_TOKEN" ]; then
+            echo "Missing GitHub secrets HA_URL and/or HA_TOKEN."
+            exit 1
+          fi
+          case "$HA_URL" in
+            *192.168.1.239*|*localhost*)
+              echo "HA_URL is a LAN address — use the Nabu Casa URL."
+              exit 1
+              ;;
+          esac
+
+      - name: Verify HA connectivity
+        if: ${{ inputs.verify_only }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: python3 home-assistant/scripts/fetch_ha_diagnostics.py --verify
+
+      - name: Fetch diagnostics
+        if: ${{ !inputs.verify_only }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          python3 home-assistant/scripts/fetch_ha_diagnostics.py \
+            --hours "${{ inputs.hours }}" \
+            --topic "${{ inputs.topic }}"

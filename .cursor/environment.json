@@ -1,0 +1,5 @@
+{
+  "name": "Unraid-HA",
+  "install": "pip install -r home-assistant/scripts/requirements.txt",
+  "terminals": []
+}
