@@ -260,12 +260,12 @@ def fetch_logbook_and_history(
     return payload
 
 
-def fetch_logs(cfg: HaConfig, *, json_mode: bool = False) -> dict[str, Any]:
+async def fetch_logs(cfg: HaConfig, *, json_mode: bool = False) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     if not json_mode:
         print_section("System log (errors/warnings)")
     try:
-        rows = run_async(list_system_log(cfg))
+        rows = await list_system_log(cfg)
         payload["system_log"] = rows[-30:]
         if json_mode:
             pass
@@ -277,6 +277,8 @@ def fetch_logs(cfg: HaConfig, *, json_mode: bool = False) -> dict[str, Any]:
                 level = row.get("level", row.get("levelname", ""))
                 src = row.get("source", row.get("name", ""))
                 msg = row.get("message", row.get("msg", ""))
+                if isinstance(msg, list):
+                    msg = " | ".join(str(m) for m in msg)
                 print(f"  {when}  {level:<8}  {src}  {msg}")
     except Exception as exc:  # noqa: BLE001
         payload["system_log_error"] = str(exc)
@@ -291,9 +293,10 @@ def fetch_logs(cfg: HaConfig, *, json_mode: bool = False) -> dict[str, Any]:
         if not json_mode:
             print(text or "  (empty)")
     except Exception as exc:  # noqa: BLE001
+        # HA 2026+ may return 404 for /api/error_log; system_log/list covers warnings.
         payload["error_log_error"] = str(exc)
         if not json_mode:
-            print(f"  error_log failed: {exc}")
+            print(f"  error_log unavailable (optional): {exc}")
     return payload
 
 
@@ -316,6 +319,7 @@ async def main_async(args: argparse.Namespace) -> int:
             and summary["websocket_ok"]
             and summary["traces_ok"]
             and summary["logbook_ok"]
+            and summary["system_log_ok"]
             and not summary["errors"]
         )
         return 0 if ok else 1
@@ -404,7 +408,7 @@ async def main_async(args: argparse.Namespace) -> int:
     report["events"] = fetch_logbook_and_history(
         cfg, hours=args.hours, entities=entities, json_mode=args.json
     )
-    report["logs"] = fetch_logs(cfg, json_mode=args.json)
+    report["logs"] = await fetch_logs(cfg, json_mode=args.json)
 
     if args.json:
         print(json.dumps(report, indent=2, default=str))
