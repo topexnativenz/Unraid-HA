@@ -7,7 +7,7 @@ Cloud Agents and CI cannot reach `192.168.1.239` on your LAN. Configure **enviro
 | `HA_URL` | Nabu Casa Remote UI URL, e.g. `https://xxxx.ui.nabu.casa` |
 | `HA_TOKEN` | Long-lived access token from HA → Profile → Security |
 
-On your Mac, scripts also read `~/.cursor/mcp.json` (homeassistant MCP Authorization header). For LAN-only URLs, use the Mac terminal; cloud agents need Nabu Casa.
+On your Mac, scripts also read `~/.cursor/mcp.json` (homeassistant MCP Authorization header). The MCP `url` is often `…/mcp_server/sse` — the client automatically strips that to the HA origin (`http://192.168.1.239:8123` or your Nabu Casa host). For LAN-only URLs, use the Mac terminal; cloud agents need Nabu Casa.
 
 ## Verify connectivity
 

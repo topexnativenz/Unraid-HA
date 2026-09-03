@@ -46,16 +46,30 @@ def is_lan_url(url: str) -> bool:
     return bool(LAN_HOST_RE.match(url.rstrip("/")))
 
 
+# MCP server URLs are often .../mcp_server/sse — that is not the HA REST/WebSocket origin.
+_MCP_PATH_RE = re.compile(
+    r"/(?:mcp_server(?:/sse)?|api/mcp(?:/sse)?|sse)/*$",
+    re.I,
+)
+
+
+def normalize_ha_url(url: str) -> str:
+    """Strip MCP/SSE paths so REST (/api/...) and WebSocket (/api/websocket) work."""
+    cleaned = url.strip().rstrip("/")
+    cleaned = _MCP_PATH_RE.sub("", cleaned)
+    return cleaned.rstrip("/")
+
+
 def resolve_ha_config(*, url: str | None = None, token: str | None = None) -> HaConfig:
     """Resolve HA URL and long-lived token from args, env, or ~/.cursor/mcp.json."""
     if token and url:
-        return HaConfig(url=url.rstrip("/"), token=token, source="explicit")
+        return HaConfig(url=normalize_ha_url(url), token=token, source="explicit")
 
     env_token = os.environ.get("HA_TOKEN")
     env_url = os.environ.get("HA_URL")
     if env_token:
         return HaConfig(
-            url=(url or env_url or DEFAULT_HA_URL).rstrip("/"),
+            url=normalize_ha_url(url or env_url or DEFAULT_HA_URL),
             token=env_token,
             source="env",
         )
@@ -73,8 +87,9 @@ def resolve_ha_config(*, url: str | None = None, token: str | None = None) -> Ha
         if not auth.startswith("Bearer "):
             continue
         resolved_token = auth.split(" ", 1)[1]
+        # Prefer explicit/env URL. MCP "url" is usually the SSE endpoint — strip to origin.
         resolved_url = url or env_url or _url_from_mcp_server(ha) or DEFAULT_HA_URL
-        return HaConfig(url=resolved_url.rstrip("/"), token=resolved_token, source="mcp")
+        return HaConfig(url=normalize_ha_url(resolved_url), token=resolved_token, source="mcp")
 
     raise HaAuthError(
         "No Home Assistant credentials found.\n"
@@ -89,12 +104,13 @@ def _url_from_mcp_server(server: dict) -> str | None:
     for key in ("url", "serverUrl", "baseUrl"):
         val = server.get(key)
         if isinstance(val, str) and val.startswith("http"):
-            return val.rstrip("/")
+            return normalize_ha_url(val)
     return None
 
 
 def ws_url(http_url: str) -> str:
-    return http_url.replace("https://", "wss://").replace("http://", "ws://") + "/api/websocket"
+    base = normalize_ha_url(http_url)
+    return base.replace("https://", "wss://").replace("http://", "ws://") + "/api/websocket"
 
 
 def _request(
