@@ -377,7 +377,8 @@ async def verify_connection(cfg: HaConfig) -> dict[str, Any]:
             log = get_error_log(cfg, lines=5)
             summary["error_log_ok"] = bool(log.strip())
         except Exception as exc:  # noqa: BLE001
-            summary["errors"].append(f"Error log: {exc}")
+            # Optional on HA 2026+ (endpoint may 404); system_log is the primary source.
+            summary["warnings"].append(f"Error log: {exc}")
 
     if summary["websocket_ok"]:
         try:
