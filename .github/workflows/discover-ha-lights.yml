@@ -1,0 +1,69 @@
+name: Discover HA lights
+
+on:
+  workflow_dispatch:
+    inputs:
+      query:
+        description: Substring filter (case-insensitive) for entity_id or friendly_name
+        type: string
+        default: shed
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: List matching light entities
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          QUERY: ${{ inputs.query }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HA_URL:-}" ] || [ -z "${HA_TOKEN:-}" ]; then
+            echo "Missing HA_URL/HA_TOKEN secrets"
+            exit 1
+          fi
+          HA_URL="${HA_URL%/}"
+          case "$HA_URL" in
+            */mcp_server/sse) HA_URL="${HA_URL%/mcp_server/sse}" ;;
+          esac
+          python3 - <<'PY'
+          import json, os, urllib.request
+          url = os.environ["HA_URL"].rstrip("/")
+          token = os.environ["HA_TOKEN"]
+          q = os.environ.get("QUERY", "shed").lower()
+          req = urllib.request.Request(
+              f"{url}/api/states",
+              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+          )
+          with urllib.request.urlopen(req, timeout=60) as resp:
+              states = json.load(resp)
+          lights = []
+          for st in states:
+              eid = st.get("entity_id", "")
+              if not eid.startswith("light."):
+                  continue
+              fn = (st.get("attributes") or {}).get("friendly_name", "")
+              hay = f"{eid} {fn}".lower()
+              if q in hay or q == "*":
+                  lights.append((eid, fn, st.get("state")))
+          lights.sort()
+          print(f"HA={url} query={q!r} matches={len(lights)}")
+          for eid, fn, state in lights:
+              print(f"{eid}\t{state}\t{fn}")
+          # Also print outside/garage-ish lights when query is shed
+          if q == "shed":
+              print("--- related outside/garage lights ---")
+              for st in states:
+                  eid = st.get("entity_id", "")
+                  if not eid.startswith("light."):
+                      continue
+                  fn = (st.get("attributes") or {}).get("friendly_name", "")
+                  hay = f"{eid} {fn}".lower()
+                  if any(k in hay for k in ("outside", "garage", "shed", "yard", "garden", "pool")):
+                      print(f"{eid}\t{st.get('state')}\t{fn}")
+          PY
