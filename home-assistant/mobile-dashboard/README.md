@@ -2,7 +2,7 @@
 
 Lovelace dashboard `mobile-home` (storage: `.storage/lovelace.mobile_home`).
 
-**Flux UI (MD3):** A parallel dashboard with the same Home-tab entities lives in [`../flux-ui-dashboard/`](../flux-ui-dashboard/). Deploy does not change Mobile Home.
+**Flux UI (MD3):** Preferred phone dashboard with music widget, bitmoji, and dimmer light rows — see [`../flux-ui-dashboard/`](../flux-ui-dashboard/). Open `/flux-ui/overview` or set it as default. This Mobile Home dashboard remains available as the classic mushroom layout.
 
 ## Layout (2026-05-25)
 
