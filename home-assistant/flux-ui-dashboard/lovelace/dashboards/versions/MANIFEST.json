@@ -40,17 +40,18 @@
     "room-hall-climate",
     "room-hall-camera"
   ],
-  "updated_at": "2026-09-08T22:02:58.364896+00:00",
+  "updated_at": "2026-09-08T22:28:01.743390+00:00",
   "snapshots": [
     "2026-08-01_baseline.yaml",
     "20260801T102610Z_pre-baseline-export.yaml",
     "20260801T104103Z_pre-ios-calendar-sync.yaml",
     "20260801T105250Z_pre-layout-lock.yaml",
-    "20260803T211802Z_pre-branded-animated-stills.yaml"
+    "20260803T211802Z_pre-branded-animated-stills.yaml",
+    "20260908T222736Z_pre-curated-cameras-tab.yaml"
   ],
-  "last_snapshot": "20260803T211802Z_pre-branded-animated-stills.yaml",
+  "last_snapshot": "20260908T222736Z_pre-curated-cameras-tab.yaml",
   "layout_locked": true,
-  "layout_lock_sha256": "cd947cdeacd85737df2eb391ce956f942135c3b877d65e6f7be727e1cbf20b5e",
-  "layout_lock_updated_at": "2026-09-08T22:02:58.364771+00:00",
-  "layout_lock_reason": "remove-missing-shed-light-button"
+  "layout_lock_sha256": "e2f7ff6b6c4ca811177e0f50959687fa1d82130982a3be0bba6c8f2b1e72d315",
+  "layout_lock_updated_at": "2026-09-08T22:28:01.743250+00:00",
+  "layout_lock_reason": "intentional-edit"
 }

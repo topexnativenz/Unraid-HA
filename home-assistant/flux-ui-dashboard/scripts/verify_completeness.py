@@ -32,8 +32,10 @@ def main() -> int:
         if f"room-{slug}-camera" not in paths:
             issues.append(f"Missing room camera subview: room-{slug}-camera")
 
-    if len(config.get("views", [])) < 23:
-        issues.append(f"Expected >= 23 views (5 core + 18 room subviews), got {len(config['views'])}")
+    if len(config.get("views", [])) < 26:
+        issues.append(
+            f"Expected >= 26 views (5 core + room subviews + 3 eufy), got {len(config['views'])}"
+        )
 
     scenes = next(v for v in config["views"] if v["path"] == "scenes")
     scenes_text = json.dumps(scenes)
@@ -51,8 +53,21 @@ def main() -> int:
 
     cameras = next(v for v in config["views"] if v["path"] == "cameras")
     cameras_text = json.dumps(cameras)
-    if "custom:auto-entities" not in cameras_text and "picture-glance" not in cameras_text:
-        issues.append("Cameras view should use picture-glance or auto-entities")
+    for required in (
+        "camera.back_courtyard_fluent",
+        "camera.side_door",
+        "camera.side_of_house",
+        "camera.garage_door",
+        "#back-courtyard",
+        "eufy-driveway",
+    ):
+        if required not in cameras_text:
+            issues.append(f"Cameras view missing curated feed marker: {required}")
+    for banned in ("camera.front_yard", "camera.living_room", "camera.shed_camera_1"):
+        if banned in cameras_text:
+            issues.append(f"Cameras view still includes Mobile Home leftover: {banned}")
+    if "eufy-driveway" not in paths:
+        issues.append("Missing Eufy live subview: eufy-driveway")
 
     living_grid = next(v for v in config["views"] if v["path"] == "room-living-grid")
     grid_text = json.dumps(living_grid)

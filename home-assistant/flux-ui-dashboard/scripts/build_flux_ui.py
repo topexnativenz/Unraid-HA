@@ -646,12 +646,13 @@ def build_config(
     use_mediocre_media: bool = True,
     tablet: bool = False,
 ) -> dict:
+    # camera_section ignored — Cameras tab uses curated Flux feeds only.
+    del camera_section
     # Ensure room tiles + navbar resolve to the correct dashboard URL prefix.
     set_url_prefix(TABLET_URL_PREFIX if tablet else "/flux-ui")
     try:
         return _build_config_inner(
             climate_section=climate_section,
-            camera_section=camera_section,
             use_navbar_card=use_navbar_card,
             use_kiosk=use_kiosk,
             use_auto_entities=use_auto_entities,
@@ -667,7 +668,6 @@ def build_config(
 def _build_config_inner(
     *,
     climate_section: dict | None = None,
-    camera_section: dict | None = None,
     use_navbar_card: bool = True,
     use_kiosk: bool = True,
     use_auto_entities: bool = True,
@@ -726,9 +726,8 @@ def _build_config_inner(
                 sections=[
                     build_cameras_view(
                         cfg,
-                        camera_section,
                         use_auto_entities=use_auto_entities,
-                        apply_md3=apply_md3_to_cards,
+                        tablet=True,
                     )
                 ],
                 use_navbar_card=use_navbar_card,
@@ -740,9 +739,6 @@ def _build_config_inner(
                 use_auto_entities=use_auto_entities,
             ),
         ]
-        views.extend(
-            build_tablet_eufy_live_views(cfg, use_navbar_card=use_navbar_card)
-        )
     else:
         overview = build_overview_sections(
             cfg,
@@ -795,15 +791,19 @@ def _build_config_inner(
                 sections=[
                     build_cameras_view(
                         cfg,
-                        camera_section,
                         use_auto_entities=use_auto_entities,
-                        apply_md3=apply_md3_to_cards,
+                        tablet=False,
                     )
                 ],
                 use_navbar_card=use_navbar_card,
                 navbar_media_player=navbar_media,
             ),
         ]
+
+    # Eufy wake-then-live subviews (phone + tablet Cameras / overview stills).
+    views.extend(
+        build_tablet_eufy_live_views(cfg, use_navbar_card=use_navbar_card)
+    )
 
     phone_media = None if tablet else navbar_media
 
@@ -946,21 +946,18 @@ def main() -> None:
     args = parser.parse_args()
 
     climate_section = None
-    camera_section = None
     if args.mobile_home_storage and args.mobile_home_storage.exists():
         raw = json.loads(args.mobile_home_storage.read_text())
         mobile_cfg = raw["data"]["config"]
         climate_section = extract_climate_from_mobile_home(mobile_cfg)
         if climate_section:
             print("Imported climate section from Mobile Home")
-        camera_section = extract_section_from_mobile_home(mobile_cfg, path="cameras")
-        if camera_section:
-            print("Imported cameras section from Mobile Home")
+        # Cameras stay on curated Flux feeds (tablet.overview_cameras) —
+        # never import Mobile Home Front Yard / Clubrooms / Showroom cards.
 
     cfg = load_entities()
     config = build_config(
         climate_section=climate_section,
-        camera_section=camera_section,
         use_navbar_card=not args.no_navbar_card,
         use_kiosk=not args.no_kiosk,
         use_auto_entities=not args.no_auto_entities,

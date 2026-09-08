@@ -186,6 +186,7 @@ def _full_width(card: dict) -> dict:
 
 
 def _camera_card(camera: dict) -> dict:
+    """Live picture-glance — used on room Camera subviews only."""
     entity = camera["entity"]
     name = camera.get("name") or entity.split(".", 1)[-1].replace("_", " ").title()
     return wrap_glass(
@@ -201,102 +202,110 @@ def _camera_card(camera: dict) -> dict:
     )
 
 
+# Same outdoor set as tablet 16:9 overview (`entities.yaml` → tablet.overview_cameras).
+FLUX_OVERVIEW_CAMERA_ORDER = (
+    "camera.back_courtyard_fluent",
+    "camera.side_door",
+    "camera.side_of_house",
+    "camera.garage_door",
+)
+
+
+def curated_flux_cameras(cfg: dict) -> list[dict]:
+    """Reolink Back Courtyard + Eufy Driveway / Side of House / Garage Door."""
+    tablet = cfg.get("tablet") or {}
+    curated = [c for c in (tablet.get("overview_cameras") or []) if c.get("entity")]
+    if curated:
+        return curated[:4]
+
+    cameras_cfg = cfg.get("cameras_config") or {}
+    by_id = {
+        c["entity"]: c
+        for c in (cameras_cfg.get("cameras") or [])
+        if c.get("entity")
+    }
+    ordered = [by_id[eid] for eid in FLUX_OVERVIEW_CAMERA_ORDER if eid in by_id]
+    if ordered:
+        return ordered[:4]
+    return list(cameras_cfg.get("cameras") or [])[:4]
+
+
+def _cameras_tab_tile_mod(tile: dict) -> dict:
+    """16:9 still tiles on the Cameras tab (overview mid-grid stays square)."""
+    tile = dict(tile)
+    styles = dict(tile.get("styles") or {})
+    card_styles = list(styles.get("card") or [])
+    card_styles.extend(
+        [
+            {"aspect-ratio": "16 / 9"},
+            {"min-height": "160px"},
+        ]
+    )
+    styles["card"] = card_styles
+    tile["styles"] = styles
+    name_styles = list((styles.get("name") or []))
+    replaced = False
+    for i, rule in enumerate(name_styles):
+        if isinstance(rule, dict) and "font-size" in rule:
+            name_styles[i] = {"font-size": "18px"}
+            replaced = True
+            break
+    if not replaced:
+        name_styles.append({"font-size": "18px"})
+    styles["name"] = name_styles
+    return tile
+
+
+def _cameras_tab_tile(camera: dict) -> dict:
+    """Branded still — Reolink opens bubble; Eufy opens wake-then-live subview."""
+    from flux_tablet_eufy import build_eufy_overview_tile, build_overview_still_tile
+    from flux_tablet_overview import REOLINK_CAMERA_ENTITY, REOLINK_CAMERA_HASH
+
+    entity = camera["entity"]
+    stream = (camera.get("stream") or "").strip()
+    if stream:
+        return build_eufy_overview_tile(camera)
+    if entity == REOLINK_CAMERA_ENTITY:
+        return build_overview_still_tile(camera, tap_path=REOLINK_CAMERA_HASH)
+    return build_overview_still_tile(camera, tap_path=f"{URL_PREFIX}/cameras")
+
+
 def build_cameras_view(
     cfg: dict,
     camera_section: dict | None = None,
     *,
     use_auto_entities: bool = True,
     apply_md3=None,
+    tablet: bool = False,
 ) -> dict:
-    """Cameras tab — configured feeds, optional Mobile Home import, auto-discovery."""
-    if camera_section:
-        if apply_md3:
-            return apply_md3(camera_section)
-        return camera_section
+    """Cameras tab — same Eufy/Reolink feeds as the 16:9 overview (never Mobile Home)."""
+    del camera_section, use_auto_entities, apply_md3, tablet
 
-    cameras_cfg = cfg.get("cameras_config") or {}
-    manual = cameras_cfg.get("cameras") or []
-    manual_ids = {c["entity"] for c in manual if c.get("entity")}
+    from flux_tablet_overview import build_reolink_fullscreen_popup
 
-    cards: list[dict] = [section_title("Cameras", "Live feeds")]
-    if manual:
-        for cam in manual:
-            cards.append(_full_width(_camera_card(cam)))
-    elif use_auto_entities and cameras_cfg.get("auto_discover", True):
-        cards.append(
-            wrap_glass(
-                {
-                    "type": "custom:auto-entities",
-                    "card": {"type": "grid", "columns": 2, "square": False},
-                    "card_param": "cards",
-                    "filter": {
-                        "include": [
-                            {
-                                "domain": "camera",
-                                "options": {
-                                    # picture-entity accepts auto-entities' entity;
-                                    # picture-glance needs camera_image → config errors.
-                                    "type": "picture-entity",
-                                    "camera_view": "live",
-                                    "show_name": True,
-                                    "show_state": False,
-                                    "tap_action": {"action": "more-info"},
-                                    "grid_options": {"columns": 6},
-                                },
-                            }
-                        ]
-                    },
-                    "sort": {"method": "friendly_name"},
-                    "grid_options": {"columns": 12},
-                }
-            )
-        )
-    else:
+    cameras = curated_flux_cameras(cfg)
+    cards: list[dict] = [section_title("Cameras", "Eufy & Reolink")]
+    if not cameras:
         cards.append(
             wrap_glass(
                 {
                     "type": "markdown",
                     "content": (
                         "No cameras configured yet.\n\n"
-                        "Add entries to `cameras.yaml` or deploy with SMB so Mobile Home "
-                        "camera cards are imported."
+                        "Set `tablet.overview_cameras` in `entities.yaml` "
+                        "(or entries in `cameras.yaml`)."
                     ),
                     "grid_options": {"columns": 12},
                 }
             )
         )
+        return {"type": "grid", "cards": cards}
 
-    if manual and use_auto_entities and cameras_cfg.get("auto_discover", True):
-        exclude = [{"entity_id": eid} for eid in sorted(manual_ids)]
-        cards.append(section_title("More cameras", "Auto-discovered", compact=True))
-        cards.append(
-            wrap_glass(
-                {
-                    "type": "custom:auto-entities",
-                    "card": {"type": "grid", "columns": 1, "square": False},
-                    "card_param": "cards",
-                    "filter": {
-                        "include": [
-                            {
-                                "domain": "camera",
-                                "options": {
-                                    "type": "picture-entity",
-                                    "camera_view": "live",
-                                    "show_name": True,
-                                    "show_state": False,
-                                    "tap_action": {"action": "more-info"},
-                                    "grid_options": {"columns": 6},
-                                },
-                            }
-                        ],
-                        "exclude": exclude,
-                    },
-                    "sort": {"method": "friendly_name"},
-                    "grid_options": {"columns": 12},
-                }
-            )
-        )
+    for cam in cameras:
+        cards.append(_full_width(_cameras_tab_tile_mod(_cameras_tab_tile(cam))))
 
+    # Bubble lives on this view so Reolink still taps (#back-courtyard) work here too.
+    cards.append(build_reolink_fullscreen_popup(cfg))
     return {"type": "grid", "cards": cards}
 
 

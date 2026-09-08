@@ -32,9 +32,10 @@ python3 scripts/deploy_flux_ui.py --rebuild-tablet-yaml
 Model S / Model X report charging. Override via `input_text.flux_ui_tablet_rgb_led`
 if discovery used a different ID.
 
-**Tablet cameras:** overview row is Reolink Back Courtyard → Eufy Driveway →
-Side of House → Garage Door (`entities.yaml` → `tablet.overview_cameras`).
-Overview tiles show **branded animated WebP stills** from
+**Tablet cameras:** overview row **and Cameras tab** use the same curated set —
+Reolink Back Courtyard → Eufy Driveway → Side of House → Garage Door
+(`entities.yaml` → `tablet.overview_cameras`). Mobile Home camera cards are
+never imported. Overview / Cameras tiles show **branded animated WebP stills** from
 `/local/flux-ui/camera-stills/` (name-themed looping backgrounds — not live
 snapshots). Tap Reolink → fullscreen Bubble `#back-courtyard`;
 tap Eufy → `eufy-*` live subview (wake + WebRTC MSE). Package:

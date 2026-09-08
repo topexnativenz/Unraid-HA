@@ -412,6 +412,10 @@ def verify_build(path: Path) -> list[str]:
         if is_tablet:
             # Tablet panel roots intentionally omit the floating bottom navbar.
             continue
+        path = view.get("path") or ""
+        # Eufy wake-then-live panels are fullscreen subviews (no bottom nav).
+        if path.startswith("eufy-"):
+            continue
         if view.get("type") == "panel":
             panel_blob = json.dumps(view.get("cards") or [])
             if "navbar-card" not in panel_blob and "mushroom-chips-card" not in panel_blob:
