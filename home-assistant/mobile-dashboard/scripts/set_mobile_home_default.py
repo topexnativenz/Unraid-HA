@@ -1,27 +1,43 @@
 #!/usr/bin/env python3
-"""Set Mobile Home as the system-wide default dashboard on Home Assistant."""
+"""Set a system-wide default dashboard panel on Home Assistant (iOS Companion)."""
 
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
+import os
 from pathlib import Path
 
 import websockets
 
-DEFAULT_HA = "http://192.168.1.239:8123"
-DEFAULT_PANEL = "mobile-home"
+DEFAULT_HA = os.environ.get("HA_URL", "http://192.168.1.239:8123")
+DEFAULT_PANEL = "flux-ui"
 
 
 def get_token() -> str:
-    mcp = Path.home() / ".cursor/mcp.json"
-    data = json.loads(mcp.read_text())
-    return data["mcpServers"]["homeassistant"]["headers"]["Authorization"].split(" ", 1)[1]
+    if os.environ.get("HA_TOKEN"):
+        return os.environ["HA_TOKEN"]
+    for path in (Path.home() / ".cursor" / "mcp.json", Path("/Users/topexnative/.cursor/mcp.json")):
+        if not path.exists():
+            continue
+        data = json.loads(path.read_text())
+        auth = data["mcpServers"]["homeassistant"]["headers"]["Authorization"]
+        return auth.split(" ", 1)[1]
+    raise RuntimeError("No HA token — set HA_TOKEN or provide ~/.cursor/mcp.json")
+
+
+def normalize_url(url: str) -> str:
+    url = url.rstrip("/")
+    for suffix in ("/mcp_server/sse", "/api/mcp/sse", "/sse"):
+        if url.endswith(suffix):
+            url = url[: -len(suffix)]
+    return url.rstrip("/")
 
 
 async def run(ha_url: str, panel: str, user_panel: bool) -> None:
     token = get_token()
+    ha_url = normalize_url(ha_url)
     ws_url = ha_url.replace("http://", "ws://").replace("https://", "wss://") + "/api/websocket"
     async with websockets.connect(ws_url) as ws:
         await ws.recv()
@@ -65,9 +81,7 @@ async def run(ha_url: str, panel: str, user_panel: bool) -> None:
                         raise RuntimeError(f"set_user_data failed: {r.get('error')}")
                     break
 
-        await ws.send(
-            json.dumps({"type": "frontend/get_system_data", "key": "core", "id": 3})
-        )
+        await ws.send(json.dumps({"type": "frontend/get_system_data", "key": "core", "id": 3}))
         while True:
             r = json.loads(await ws.recv())
             if r.get("id") == 3:
@@ -75,13 +89,17 @@ async def run(ha_url: str, panel: str, user_panel: bool) -> None:
                 break
 
     print(f"Default dashboard set to '{panel}' for all users on this HA instance.")
-    print("On iPhone: force-quit Companion, then reset Frontend Cache (see README).")
+    print("On iPhone: force-quit Companion, then App Configuration → Debugging → Reset Frontend Cache.")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ha-url", default=DEFAULT_HA)
-    parser.add_argument("--panel", default=DEFAULT_PANEL)
+    parser.add_argument(
+        "--panel",
+        default=DEFAULT_PANEL,
+        help="Dashboard url_path: flux-ui (phone Flux) or mobile-home",
+    )
     parser.add_argument(
         "--no-user",
         action="store_true",

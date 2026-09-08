@@ -168,6 +168,8 @@ TOP_FIVE: list[tuple[str, str]] = [
     ("light.garage", "Garage"),
     ("light.entry_centre", "Entry"),
     ("light.main_footlights", "Hall footlights"),
+    ("light.main_shed", "Main Shed"),
+    ("light.second_shed", "Second Shed"),
     ("light.all_lights", "All lights"),
     ("light.living_center", "Living"),
 ]
@@ -279,6 +281,9 @@ LIGHT_GROUPS: list[tuple[str, str, list[str]]] = [
             "light.outside_rainas",
             "light.pool_uplights",
             "light.garage",
+            "light.main_shed",
+            "light.second_shed",
+            "light.shed_all",
             "light.c_bus_light_039_c_bus_light_039",
             "light.c_bus_light_040_c_bus_light_040",
             "light.c_bus_light_061_c_bus_light_061",

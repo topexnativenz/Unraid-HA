@@ -7,10 +7,20 @@ on:
         description: Dashboards to push via Home Assistant API (Nabu Casa)
         type: choice
         options:
+          - all
           - flux-ui-both
           - flux-ui
           - flux-ui-tablet
-        default: flux-ui-both
+          - mobile-home
+        default: all
+      set_default:
+        description: Set iOS/system default dashboard panel
+        type: choice
+        options:
+          - flux-ui
+          - mobile-home
+          - none
+        default: flux-ui
   push:
     branches:
       - cursor/flux-ui-md3-dashboard-bf3a
@@ -22,6 +32,7 @@ on:
       - home-assistant/flux-ui-dashboard/*.yaml
       - home-assistant/flux-ui-dashboard/scripts/**
       - home-assistant/flux-ui-dashboard/packages/**
+      - home-assistant/mobile-dashboard/scripts/**
 
 concurrency:
   group: deploy-lovelace
@@ -34,7 +45,7 @@ jobs:
   deploy:
     name: Push Lovelace to Home Assistant
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,7 +56,11 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps
-        run: pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+        run: |
+          if [ -f home-assistant/flux-ui-dashboard/requirements.txt ]; then
+            pip install -r home-assistant/flux-ui-dashboard/requirements.txt
+          fi
+          pip install websockets pyyaml
 
       - name: Check secrets
         env:
@@ -65,18 +80,45 @@ jobs:
               ;;
           esac
 
-      - name: Deploy Flux UI (API only)
+      - name: Deploy Flux UI phone
+        if: ${{ contains(fromJSON('["all", "flux-ui-both", "flux-ui"]'), github.event.inputs.dashboards || 'all') }}
         env:
           HA_URL: ${{ secrets.HA_URL }}
           HA_TOKEN: ${{ secrets.HA_TOKEN }}
         run: |
-          set -euo pipefail
-          TARGET="${{ github.event.inputs.dashboards || 'flux-ui-both' }}"
-          EXTRA=(--api-only)
-          case "$TARGET" in
-            flux-ui) EXTRA+=(--skip-tablet) ;;
-            flux-ui-tablet) EXTRA+=(--skip-phone) ;;
-            flux-ui-both) ;;
-            *) echo "Unknown dashboards input: $TARGET"; exit 1 ;;
-          esac
-          python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py "${EXTRA[@]}"
+          python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py \
+            --api-only --skip-tablet
+
+      - name: Deploy Flux UI tablet
+        if: ${{ contains(fromJSON('["all", "flux-ui-both", "flux-ui-tablet"]'), github.event.inputs.dashboards || 'all') }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py \
+            --api-only --skip-phone
+
+      - name: Deploy Mobile Home
+        if: ${{ contains(fromJSON('["all", "mobile-home"]'), github.event.inputs.dashboards || 'all') }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          if [ -f home-assistant/mobile-dashboard/scripts/deploy_mobile_home.py ]; then
+            python3 home-assistant/mobile-dashboard/scripts/deploy_mobile_home.py \
+              --api-only --ha-url "$HA_URL"
+          else
+            echo "Mobile Home deploy script missing on this branch — skipping."
+          fi
+
+      - name: Set default dashboard (iOS / system)
+        if: ${{ (github.event.inputs.set_default || 'flux-ui') != 'none' }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          PANEL: ${{ github.event.inputs.set_default || 'flux-ui' }}
+        run: |
+          python3 home-assistant/mobile-dashboard/scripts/set_mobile_home_default.py \
+            --ha-url "$HA_URL" \
+            --panel "$PANEL"
+          echo "Default panel set to $PANEL — force-quit iOS Companion and clear Frontend Cache."
