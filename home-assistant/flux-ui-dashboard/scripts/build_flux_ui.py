@@ -113,6 +113,15 @@ def _sync_garage_room_indicators(rooms: list[dict], doors: list[dict]) -> None:
 def load_entities() -> dict:
     cfg = yaml.safe_load(ENTITIES.read_text())
     cfg["quick_actions"]["garage"] = load_garage_doors()
+    # Merge shed_lights into favourite_lights (dedupe by entity).
+    fav = list(cfg.get("favourite_lights") or [])
+    seen = {item.get("entity") for item in fav}
+    for item in cfg.get("shed_lights") or []:
+        eid = item.get("entity")
+        if eid and eid not in seen:
+            fav.append({"entity": eid, "name": item.get("name") or eid})
+            seen.add(eid)
+    cfg["favourite_lights"] = fav
     if ROOMS.exists():
         rooms = yaml.safe_load(ROOMS.read_text()).get("rooms", [])
         _sync_garage_room_indicators(rooms, cfg["quick_actions"]["garage"])
@@ -478,7 +487,9 @@ def build_quick_actions(cfg: dict) -> dict:
 
 
 def build_favourite_lights(cfg: dict) -> dict:
-    return build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
+    from flux_layouts import build_lights_dimmer_section
+
+    return build_lights_dimmer_section("Favourite lights", "Most used — tap or drag to dim", cfg["favourite_lights"])
 
 
 def build_room_detail(room: dict, cfg: dict | None = None) -> dict:

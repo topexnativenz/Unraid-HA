@@ -803,6 +803,47 @@ FLUX_LIGHT_ROW_MOD = {
     )
 }
 
+# Phone favourite / room / active lights — slim mushroom dimmer row (pre-tile era).
+FLUX_SLIM_LIGHT_MOD = {
+    "style": (
+        GLASS_CARD_MOD["style"]
+        + "ha-card {\n"
+        "  padding: 10px 16px !important;\n"
+        "  min-height: 56px !important;\n"
+        "}\n"
+        "mushroom-light-control {\n"
+        "  align-items: center;\n"
+        "  gap: 10px;\n"
+        "  width: 100%;\n"
+        "}\n"
+        "mushroom-light-brightness-control {\n"
+        "  flex: 1;\n"
+        "  min-width: 0;\n"
+        "}\n"
+        "{% if is_state(config.entity, 'on') %}\n"
+        "ha-card {\n"
+        "  background: rgba(255, 193, 7, 0.16) !important;\n"
+        "  border-color: rgba(255, 193, 7, 0.58) !important;\n"
+        "  box-shadow: 0 0 14px rgba(255, 193, 7, 0.18) !important;\n"
+        "}\n"
+        "{% else %}\n"
+        "ha-card {\n"
+        "  background: color-mix(in srgb, var(--md-sys-color-surface-container) 58%, transparent) !important;\n"
+        "  border-color: rgba(147, 143, 153, 0.28) !important;\n"
+        "  box-shadow: none !important;\n"
+        "}\n"
+        "{% endif %}\n"
+    )
+}
+
+
+def wrap_flux_light_card(card: dict) -> dict:
+    """Apply slim MD3 dimmer chrome to a mushroom-light-card."""
+    card = dict(card)
+    card["card_mod"] = FLUX_SLIM_LIGHT_MOD
+    return card
+
+
 FLUX_MUSHROOM_SLIDER_MOD = {
     "style": (
         "ha-card {\n"

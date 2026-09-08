@@ -38,6 +38,7 @@ DISCOVER_CALENDARS = ROOT / "scripts" / "discover_calendars.py"
 FIX_EUFY_CAMERAS = ROOT / "scripts" / "fix_eufy_cameras.py"
 DISCOVER_WEATHER = ROOT / "scripts" / "discover_weather.py"
 DISCOVER_SONOS = ROOT / "scripts" / "discover_sonos.py"
+DISCOVER_SHED_LIGHTS = ROOT / "scripts" / "discover_shed_lights.py"
 INSTALL = ROOT / "scripts" / "install_dependencies.py"
 ASSETS = ROOT / "scripts" / "install_frontend_assets.py"
 VERIFY = ROOT / "scripts" / "verify_flux_ui.py"
@@ -1655,6 +1656,19 @@ async def deploy_async(args: argparse.Namespace) -> int:
             [
                 "python3",
                 str(DISCOVER_WEATHER),
+                "--ha-url",
+                args.ha_url,
+                "--token",
+                token,
+                "--apply",
+            ],
+            check=False,
+        )
+        print("Discovering shed / workshop lights for favourite buttons…")
+        subprocess.run(
+            [
+                "python3",
+                str(DISCOVER_SHED_LIGHTS),
                 "--ha-url",
                 args.ha_url,
                 "--token",

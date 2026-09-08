@@ -539,8 +539,8 @@ def verify_build(path: Path) -> list[str]:
                     "Room detail FAB still uses position:fixed — breaks iOS Safari layout"
                 )
 
-    if '"template": "flux_light"' not in blob:
-        errors.append("Missing flux_light toggle tiles")
+    if '"template": "flux_light"' not in blob and "show_brightness_control" not in blob:
+        errors.append("Missing flux_light tiles or mushroom dimmer rows")
 
     if not is_tablet and '"template": "flux_door"' not in blob:
         errors.append("Missing flux_door tiles for garage/shed quick actions")
@@ -558,8 +558,17 @@ def verify_build(path: Path) -> list[str]:
             "Garage sensors still use legacy *_door_contact IDs — run discover_garage_doors.py --apply"
         )
 
-    if "show_brightness_control" in blob:
-        errors.append("Embedded mushroom sliders found — use flux_light tiles (tap/hold for dimmer)")
+    if not is_tablet:
+        if "show_brightness_control" not in overview_blob and "show_brightness_control" not in blob:
+            errors.append(
+                "Phone lights missing mushroom brightness dimmers — restore slim dimmer rows"
+            )
+        if "custom:mushroom-light-card" not in blob:
+            errors.append("Phone lights missing custom:mushroom-light-card dimmer cards")
+        if "light.main_shed" not in blob and "light.second_shed" not in blob and "shed_all" not in blob:
+            # shed_lights may discover alternate entity ids; require shed keyword somewhere
+            if "shed" not in blob.lower():
+                errors.append("Phone build missing shed lights on favourite / garage sections")
 
     if "custom:mushroom-lock-card" in blob:
         errors.append(

@@ -42,18 +42,14 @@ def main() -> int:
     if "Favourite lights" not in overview_text:
         issues.append("Missing Favourite lights section (Home tab)")
     fav_section = overview_text
-    if '"template": "flux_light"' not in fav_section:
-        issues.append("Favourite lights should use flux_light template tiles")
-    if '"columns": 2' not in fav_section:
-        issues.append("Favourite lights should use inner 2-column grid like Active now")
-    if "custom:mod-card" in fav_section:
-        issues.append("Favourite lights should not use mod-card slider rows")
-    if "show_brightness_control" in fav_section:
-        issues.append("Favourite lights should not embed mushroom sliders")
+    if "custom:mushroom-light-card" not in fav_section or "show_brightness_control" not in fav_section:
+        issues.append("Favourite lights should use slim mushroom dimmer rows")
     if '"action": "navigate"' in text and "#light-" in text:
         issues.append("Light tiles still navigate to bubble popups")
     if "Doors open" not in text:
         issues.append("Missing conditional open garage section (Active tab)")
+    if "light.main_shed" not in text and "Main Shed" not in text:
+        issues.append("Missing Main Shed light on phone dashboard")
 
     tabs_present = has_native_tabs or has_simple_tabs
     if tabs_present:
@@ -107,8 +103,8 @@ def main() -> int:
             issues.append("Room detail back control should navigate to overview, not rooms")
         if '"title": "Lights"' not in living_text:
             issues.append("Room detail missing Lights section title")
-        if '"template": "flux_light"' not in living_text:
-            issues.append("Room detail lights should use flux_light tiles")
+        if "custom:mushroom-light-card" not in living_text or "show_brightness_control" not in living_text:
+            issues.append("Room detail lights should use slim mushroom dimmer rows")
         if "mushroom-chips-card" not in living_text:
             issues.append("Room detail missing status/subnav chips")
         if "flux_feature" not in living_text:

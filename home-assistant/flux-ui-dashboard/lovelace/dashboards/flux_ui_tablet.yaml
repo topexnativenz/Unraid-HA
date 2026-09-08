@@ -1595,6 +1595,58 @@ views:
                     label:
                     - color: '#FFD54F'
                     - font-weight: '700'
+              - type: custom:button-card
+                template: flux_action
+                entity: light.shed_all
+                name: Shed
+                icon: mdi:warehouse
+                show_icon: true
+                show_entity_picture: false
+                show_label: true
+                label: '[[[ return entity?.state === ''on'' ? ''On'' : (entity?.state === ''off'' ? ''Off'' : (entity?.state
+                  || ''—'')); ]]]'
+                tap_action:
+                  action: toggle
+                hold_action:
+                  action: more-info
+                styles:
+                  grid:
+                  - grid-template-areas: '''i n'' ''i l'''
+                  - grid-template-columns: 52px 1fr
+                  - grid-template-rows: min-content min-content
+                  - column-gap: 12px
+                  card:
+                  - height: auto
+                  - min-height: unset
+                  - max-height: none
+                  img_cell:
+                  - border-radius: 16px
+                  - width: 52px
+                  - height: 52px
+                  - place-self: center
+                  - background-color: var(--contrast1)
+                  icon:
+                  - width: 26px
+                  - height: 26px
+                  - color: var(--md-sys-color-primary)
+                  name:
+                  - font-weight: '600'
+                  - font-size: 13px
+                  - justify-self: start
+                  - text-align: left
+                  label:
+                  - justify-self: start
+                  - text-align: left
+                state:
+                - value: 'on'
+                  styles:
+                    icon:
+                    - color: '#FFD54F'
+                    img_cell:
+                    - background-color: 'color-mix(in srgb, #FFD54F 28%, var(--contrast1))'
+                    label:
+                    - color: '#FFD54F'
+                    - font-weight: '700'
           card_mod:
             style:
               .: ":host {\n  display: block !important;\n  height: auto !important;\n  max-height: 100% !important;\n  min-height:\

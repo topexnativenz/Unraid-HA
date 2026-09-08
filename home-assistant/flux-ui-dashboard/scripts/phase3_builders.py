@@ -6,8 +6,7 @@ import sys
 from pathlib import Path
 
 from flux_door_builders import build_doors_open_alert_section
-from flux_layouts import flux_light_auto_entities_options
-from md3_templates import wrap_glass, wrap_title
+from md3_templates import wrap_flux_light_card, wrap_glass, wrap_title
 
 GARAGE_DIR = Path(__file__).resolve().parents[2] / "garage-doors"
 sys.path.insert(0, str(GARAGE_DIR))
@@ -24,6 +23,35 @@ def _title(title: str, subtitle: str = "") -> dict:
     if subtitle:
         card["subtitle"] = subtitle
     return wrap_title(card)
+
+
+def _flux_slim_light_card(*, entity: str | None = None, name: str | None = None, columns: int = 12) -> dict:
+    """Single-row dimmer: icon, name, and slider in one sleek MD3 pill."""
+    card: dict = {
+        "type": "custom:mushroom-light-card",
+        "fill_container": True,
+        "layout": "horizontal",
+        "show_brightness_control": True,
+        "show_color_control": False,
+        "collapsible_controls": False,
+        "use_light_color": True,
+        "grid_options": {"columns": columns},
+    }
+    if entity:
+        card["entity"] = entity
+    if name:
+        card["name"] = name
+    return wrap_flux_light_card(card)
+
+
+def light_control_tile(entity: str, name: str, *, columns: int = 12) -> dict:
+    """Whole card is the dimmer — tap toggles, drag slider to dim."""
+    return _flux_slim_light_card(entity=entity, name=name, columns=columns)
+
+
+def light_control_auto_entities_options() -> dict:
+    """auto-entities: slim dimmer row per light (entity/name injected per match)."""
+    return _flux_slim_light_card(columns=12)
 
 
 def _jinja_lights_chip(lights_entity: str) -> tuple[str, str]:
@@ -121,7 +149,7 @@ def build_active_lights_section(cfg: dict) -> dict:
     filter_include: dict = {
         "domain": domain,
         "state": state,
-        "options": flux_light_auto_entities_options(columns=6),
+        "options": light_control_auto_entities_options(),
     }
 
     card: dict = {
@@ -129,7 +157,7 @@ def build_active_lights_section(cfg: dict) -> dict:
         "card": {
             "type": "grid",
             "square": False,
-            "columns": 2,
+            "columns": 1,
         },
         "card_param": "cards",
         "show_empty": False,

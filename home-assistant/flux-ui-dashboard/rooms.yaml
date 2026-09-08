@@ -76,6 +76,9 @@ rooms:
     lights:
       - {entity: light.garage, name: Garage}
       - {entity: light.outside_garage, name: Outside garage}
+      - {entity: light.main_shed, name: Main Shed}
+      - {entity: light.second_shed, name: Second Shed}
+      - {entity: light.shed_all, name: All sheds}
 
   - name: Entry & arrival
     card_name: Entry

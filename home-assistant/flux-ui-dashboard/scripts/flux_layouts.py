@@ -378,6 +378,18 @@ def _lights_tile_grid(lights: list[dict]) -> dict:
     }
 
 
+def _lights_dimmer_list(lights: list[dict]) -> dict:
+    """Full-width slim mushroom dimmer rows (phone favourite / room lights)."""
+    from phase3_builders import light_control_tile
+
+    return {
+        "type": "grid",
+        "columns": 1,
+        "square": False,
+        "cards": [light_control_tile(item["entity"], item["name"]) for item in lights],
+    }
+
+
 def build_lights_grid_section(title: str, subtitle: str, lights: list[dict]) -> dict:
     """2-column light grid matching Flux room detail / Active now layout."""
     return {
@@ -385,6 +397,17 @@ def build_lights_grid_section(title: str, subtitle: str, lights: list[dict]) -> 
         "cards": [
             _title(title, subtitle),
             wrap_glass(_lights_tile_grid(lights)),
+        ],
+    }
+
+
+def build_lights_dimmer_section(title: str, subtitle: str, lights: list[dict]) -> dict:
+    """Phone favourite/room lights — inline brightness dimmers (restored ElementZoom style)."""
+    return {
+        "type": "grid",
+        "cards": [
+            _title(title, subtitle),
+            wrap_glass(_lights_dimmer_list(lights)),
         ],
     }
 

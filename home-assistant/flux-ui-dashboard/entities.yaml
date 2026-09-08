@@ -95,3 +95,11 @@ favourite_lights:
     name: All lights
   - entity: light.living_center
     name: Living
+
+# Shed / exterior workshop lights — also merged into favourite_lights at build.
+# Override via: python3 scripts/discover_shed_lights.py --apply
+shed_lights:
+  - entity: light.main_shed
+    name: Main Shed
+  - entity: light.second_shed
+    name: Second Shed

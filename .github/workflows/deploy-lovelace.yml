@@ -14,10 +14,14 @@ on:
   push:
     branches:
       - cursor/flux-ui-md3-dashboard-bf3a
+      - cursor/flux-ui-shed-lights-music-6a19
       - cursor/nas-array-planning-docs
     paths:
+      - .github/workflows/deploy-lovelace.yml
       - home-assistant/flux-ui-dashboard/lovelace/**
       - home-assistant/flux-ui-dashboard/*.yaml
+      - home-assistant/flux-ui-dashboard/scripts/**
+      - home-assistant/flux-ui-dashboard/packages/**
 
 concurrency:
   group: deploy-lovelace

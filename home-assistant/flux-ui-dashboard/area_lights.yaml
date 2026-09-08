@@ -23,3 +23,6 @@ areas:
   - name: Kids Hallway
     entity: light.kids_hallway_all
     icon: mdi:human-male-child
+  - name: Shed
+    entity: light.shed_all
+    icon: mdi:warehouse

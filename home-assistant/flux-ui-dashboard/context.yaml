@@ -27,4 +27,4 @@ hero:
 
 bubble_popups:
   enabled: false
-  # Legacy bubble-card popups — replaced by inline dimmer on light buttons.
+  # Legacy bubble-card popups — phone lights use inline mushroom dimmers instead.

@@ -40,7 +40,7 @@
     "room-hall-climate",
     "room-hall-camera"
   ],
-  "updated_at": "2026-08-03T21:18:02.765525+00:00",
+  "updated_at": "2026-09-08T21:42:58.769450+00:00",
   "snapshots": [
     "2026-08-01_baseline.yaml",
     "20260801T102610Z_pre-baseline-export.yaml",
@@ -50,7 +50,7 @@
   ],
   "last_snapshot": "20260803T211802Z_pre-branded-animated-stills.yaml",
   "layout_locked": true,
-  "layout_lock_sha256": "cd947cdeacd85737df2eb391ce956f942135c3b877d65e6f7be727e1cbf20b5e",
-  "layout_lock_updated_at": "2026-08-03T21:18:02.765510+00:00",
-  "layout_lock_reason": "branded-animated-camera-stills"
+  "layout_lock_sha256": "4bf6cfcc03d3d43d06161d3ef039487c140f4df470e961f52a4710be7fa3d7d0",
+  "layout_lock_updated_at": "2026-09-08T21:42:58.769450+00:00",
+  "layout_lock_reason": "add-shed-area-light-button"
 }
