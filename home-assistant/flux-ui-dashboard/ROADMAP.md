@@ -21,9 +21,9 @@ Context-aware overview + ElementZoom reference layouts.
 | **Room detail** | Status chips, feature row, sub-nav tabs, light count badge, 2-col lights |
 | **Room grid subview** | 3-col dense light grid + shortcuts per room |
 | **Room camera subview** | Per-room camera feeds from `cameras.yaml` / `rooms.yaml` |
-| **Favourite lights** | Slim mushroom dimmer rows (tap toggle / drag brightness) + shed lights |
+| **Favourite lights** | Same 2-col `flux_light` grid as room detail |
 | **Scenes tab** | Quick scripts + HA `scene.*` auto-discovery |
-| **Lights tab** | Active now + favourites + all room groups + Upstairs/Outside/Shed |
+| **Lights tab** | Active now + favourites + all room groups + Upstairs/Outside |
 | **Cameras tab** | `picture-glance` feeds + camera auto-discovery |
 
 Config: [`context.yaml`](context.yaml), [`overview_tabs.yaml`](overview_tabs.yaml), [`rooms.yaml`](rooms.yaml), [`scenes.yaml`](scenes.yaml), [`cameras.yaml`](cameras.yaml), [`light_groups.yaml`](light_groups.yaml)

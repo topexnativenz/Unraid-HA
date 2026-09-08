@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from flux_door_builders import build_doors_status_section
-from flux_layouts import _lights_dimmer_list, _title, build_room_status_chips
+from flux_layouts import _lights_tile_grid, _title, build_room_status_chips
 from flux_navbar import (
     overview_navigation_path,
     room_climate_navigation_path,
@@ -332,7 +332,7 @@ def build_room_lights_section(room: dict) -> dict:
                         },
                     ],
                 },
-                wrap_glass(_lights_dimmer_list(lights)),
+                wrap_glass(_lights_tile_grid(lights)),
             ],
         }
     )

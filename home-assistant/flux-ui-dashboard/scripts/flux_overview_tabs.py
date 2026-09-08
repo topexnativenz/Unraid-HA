@@ -329,14 +329,15 @@ def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool, for_tab_panel:
 
 
 def _active_group_section(group: dict) -> dict:
-    from phase3_builders import _title, light_control_auto_entities_options
+    from flux_layouts import flux_light_auto_entities_options
+    from phase3_builders import _title
 
     entity = group["entity"]
     state = group.get("state", "on")
     title = group.get("title", entity.split(".")[-1].replace("_", " ").title())
     is_light = entity.startswith("light.")
     options: dict[str, Any] = (
-        light_control_auto_entities_options()
+        flux_light_auto_entities_options(columns=6)
         if is_light
         else {
             "type": "custom:button-card",
@@ -346,7 +347,7 @@ def _active_group_section(group: dict) -> dict:
     )
     auto_card: dict = {
         "type": "custom:auto-entities",
-        "card": {"type": "grid", "columns": 1 if is_light else 2, "square": False},
+        "card": {"type": "grid", "columns": 2, "square": False},
         "card_param": "cards",
         "show_empty": False,
         "filter": {"include": [{"group": entity, "state": state, "options": options}]},

@@ -51,10 +51,3 @@ light:
     unique_id: flux_ui_kids_hallway_all
     entities:
       - light.kids_hall_footlights
-
-  - platform: group
-    name: Shed All
-    unique_id: flux_ui_shed_all
-    entities:
-      - light.main_shed
-      - light.second_shed

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -14,8 +15,9 @@ sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors, open_color_jinja, open_icon_jinja  # noqa: E402
 
 STORAGE_KEY = "lovelace.mobile_home"
-STORAGE = Path("/tmp/ha-config-smb/.storage") / STORAGE_KEY
-DASHBOARDS = Path("/tmp/ha-config-smb/.storage/lovelace_dashboards")
+_STORAGE_ROOT = Path(os.environ.get("HA_STORAGE_ROOT", "/tmp/ha-config-smb/.storage"))
+STORAGE = _STORAGE_ROOT / STORAGE_KEY
+DASHBOARDS = _STORAGE_ROOT / "lovelace_dashboards"
 
 
 def mushroom_light(
@@ -168,8 +170,6 @@ TOP_FIVE: list[tuple[str, str]] = [
     ("light.garage", "Garage"),
     ("light.entry_centre", "Entry"),
     ("light.main_footlights", "Hall footlights"),
-    ("light.main_shed", "Main Shed"),
-    ("light.second_shed", "Second Shed"),
     ("light.all_lights", "All lights"),
     ("light.living_center", "Living"),
 ]
@@ -281,9 +281,6 @@ LIGHT_GROUPS: list[tuple[str, str, list[str]]] = [
             "light.outside_rainas",
             "light.pool_uplights",
             "light.garage",
-            "light.main_shed",
-            "light.second_shed",
-            "light.shed_all",
             "light.c_bus_light_039_c_bus_light_039",
             "light.c_bus_light_040_c_bus_light_040",
             "light.c_bus_light_061_c_bus_light_061",
@@ -447,11 +444,12 @@ def main() -> None:
     }
     STORAGE.write_text(json.dumps(raw, indent=2))
 
-    dash = json.loads(DASHBOARDS.read_text())
-    for item in dash["data"]["items"]:
-        if item.get("id") == "dashboard_music":
-            item["show_in_sidebar"] = False
-    DASHBOARDS.write_text(json.dumps(dash, indent=2))
+    if DASHBOARDS.exists():
+        dash = json.loads(DASHBOARDS.read_text())
+        for item in dash["data"]["items"]:
+            if item.get("id") == "dashboard_music":
+                item["show_in_sidebar"] = False
+        DASHBOARDS.write_text(json.dumps(dash, indent=2))
     print("Updated mobile_home (4 views) and hid Music sidebar dashboard")
 
 

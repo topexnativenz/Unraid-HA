@@ -487,9 +487,7 @@ def build_quick_actions(cfg: dict) -> dict:
 
 
 def build_favourite_lights(cfg: dict) -> dict:
-    from flux_layouts import build_lights_dimmer_section
-
-    return build_lights_dimmer_section("Favourite lights", "Most used — tap or drag to dim", cfg["favourite_lights"])
+    return build_lights_grid_section("Favourite lights", "Most used", cfg["favourite_lights"])
 
 
 def build_room_detail(room: dict, cfg: dict | None = None) -> dict:

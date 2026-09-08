@@ -27,4 +27,4 @@ hero:
 
 bubble_popups:
   enabled: false
-  # Legacy bubble-card popups — phone lights use inline mushroom dimmers instead.
+  # Legacy bubble-card popups — phone lights use flux_light tiles (tap/hold for dimmer).

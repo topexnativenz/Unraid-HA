@@ -96,10 +96,7 @@ favourite_lights:
   - entity: light.living_center
     name: Living
 
-# Shed / exterior workshop lights — also merged into favourite_lights at build.
-# Override via: python3 scripts/discover_shed_lights.py --apply
-shed_lights:
-  - entity: light.main_shed
-    name: Main Shed
-  - entity: light.second_shed
-    name: Second Shed
+# Shed / exterior workshop lights — merged into favourite_lights at build when set.
+# Leave empty until discover_shed_lights.py --apply finds real HA entities.
+# Do not invent entity IDs (shows "Entity not found" on iOS).
+shed_lights: []

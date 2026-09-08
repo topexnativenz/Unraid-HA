@@ -20,7 +20,4 @@ groups:
     lights:
       - {entity: light.outside_area, name: Outside area}
       - {entity: light.outside_garage, name: Outside garage}
-      - {entity: light.shed_all, name: Shed}
-      - {entity: light.main_shed, name: Main Shed}
-      - {entity: light.second_shed, name: Second Shed}
       - {entity: light.pool_uplights, name: Pool uplights}
