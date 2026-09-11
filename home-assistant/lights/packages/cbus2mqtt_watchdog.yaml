@@ -1,0 +1,58 @@
+# Restart cbus2mqtt when C-Bus lights drop offline.
+# Flux tablet Lights buttons call HA → MQTT → cbus2mqtt → C-Bus. If the
+# add-on is wedged, toggles succeed in HA but never change the room.
+# Slug: a9f92ca1_cbus2mqtt (Settings → Add-ons → cbus2mqtt).
+
+script:
+  restart_cbus2mqtt:
+    alias: Restart cbus2mqtt
+    description: Restart the C-Bus MQTT bridge add-on (fixes dead tablet light buttons).
+    icon: mdi:restart
+    mode: single
+    sequence:
+      - action: persistent_notification.create
+        data:
+          notification_id: cbus2mqtt_watchdog
+          title: C-Bus bridge
+          message: Restarting cbus2mqtt add-on…
+      - action: hassio.addon_restart
+        data:
+          addon: a9f92ca1_cbus2mqtt
+      - delay:
+          seconds: 25
+      - action: persistent_notification.create
+        data:
+          notification_id: cbus2mqtt_watchdog
+          title: C-Bus bridge
+          message: cbus2mqtt restart requested. Try Flux tablet Lights again.
+
+automation:
+  - id: cbus2mqtt_watchdog_unavailable
+    alias: Restart cbus2mqtt when C-Bus lights go unavailable
+    description: >-
+      When core C-Bus circuits stay unavailable (bridge wedged / MQTT gap),
+      restart a9f92ca1_cbus2mqtt so Flux tablet area light toggles work again.
+    mode: single
+    triggers:
+      - trigger: state
+        entity_id:
+          - light.cooking
+          - light.main_atrium
+          - light.walkway
+        to: unavailable
+        for:
+          minutes: 2
+    conditions:
+      - condition: template
+        value_template: >-
+          {{ states('light.cooking') == 'unavailable'
+             and states('light.main_atrium') == 'unavailable' }}
+    actions:
+      - action: script.restart_cbus2mqtt
+      - action: persistent_notification.create
+        data:
+          notification_id: cbus2mqtt_watchdog
+          title: C-Bus bridge
+          message: >-
+            Cooking + Main Atrium were unavailable for 2 minutes —
+            restarted cbus2mqtt automatically.
