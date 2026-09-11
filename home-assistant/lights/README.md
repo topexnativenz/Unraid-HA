@@ -1,5 +1,18 @@
 # Home Assistant — lights
 
+## C-Bus bridge watchdog (Flux tablet Lights)
+
+Package: `packages/cbus2mqtt_watchdog.yaml`
+
+Flux tablet overview Lights buttons toggle C-Bus via **cbus2mqtt** (`a9f92ca1_cbus2mqtt`). If that add-on wedges, taps look dead (HA publishes MQTT, rooms never change).
+
+| Helper | Role |
+|--------|------|
+| `script.restart_cbus2mqtt` | Manual / dashboard restart of the add-on |
+| **Restart cbus2mqtt when C-Bus lights go unavailable** | Auto-restart after Cooking + Main Atrium stay `unavailable` for 2 minutes |
+
+Quick fix without deploy: **Settings → Add-ons → cbus2mqtt → Restart**.
+
 ## Hall footlights auto-off
 
 Package: `packages/footlights_auto_off.yaml`
