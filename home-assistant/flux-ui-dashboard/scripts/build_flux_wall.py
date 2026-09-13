@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Build + deploy Flux UI Wall Display (flux-ui-wall).
 
-Fixes unresponsive garage / gate taps on Fully Kiosk:
-  - perform-action instead of call-service
-  - ES5-safe door JS (no ?. / ??)
-  - correct Tapo sensor entity IDs
-  - Gate Open + Gate Latch + House Garage + Main Shed + All Off
+Wall Fully Kiosk home view:
+  - Top row: House Garage | Main Shed (flux_door)
+  - Bottom row: Gate Open | Gate Latch (flux_action)
+  - Footer: All Off (flux_action)
+  - Flux MD3 button-card templates only (no mushroom cards)
+  - perform-action taps + ES5-safe door JS
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from flux_action_builders import lock_action  # noqa: E402
 from flux_door_builders import flux_door_tile  # noqa: E402
 from garage_ui_helpers import load_garage_doors  # noqa: E402
 from ha_common import get_token, ws_call  # noqa: E402
+from md3_templates import BUTTON_CARD_TEMPLATES  # noqa: E402
 
 WALL_URL_PATH = "flux-ui-wall"
 WALL_TITLE = "Wall Display"
@@ -115,40 +117,11 @@ GRID_MOD = {
 }
 
 
-def _templates_from_live(live: dict | None) -> dict:
-    base = {
-        "flux_glass": {
-            "styles": {
-                "card": [
-                    {"border-radius": "28px"},
-                    {
-                        "background": (
-                            "color-mix(in srgb, var(--md-sys-color-surface-container) "
-                            "78%, transparent)"
-                        )
-                    },
-                    {"backdrop-filter": "blur(18px) saturate(140%)"},
-                    {
-                        "border": (
-                            "1px solid color-mix(in srgb, "
-                            "var(--md-sys-color-outline-variant) 45%, transparent)"
-                        )
-                    },
-                    {"box-shadow": "0 4px 24px rgba(0, 0, 0, 0.28)"},
-                    {"padding": "14px 16px"},
-                ]
-            }
-        },
-        "flux_action": {"template": "flux_glass", "show_label": True},
-        "flux_door": {"template": "flux_glass", "show_icon": True, "show_label": True},
-    }
-    if not live:
-        return base
-    live_tmpl = live.get("button_card_templates") or {}
-    merged = copy.deepcopy(live_tmpl)
-    for key, value in base.items():
-        merged.setdefault(key, value)
-    return merged
+def _templates_from_live(live: dict | None = None) -> dict:
+    """Flux MD3 button-card templates only — no mushroom cards on the wall."""
+    del live  # Wall home view only needs Flux chrome; don't inherit stale templates.
+    flux_keys = ("flux_glass", "flux_action", "flux_door")
+    return {k: copy.deepcopy(BUTTON_CARD_TEMPLATES[k]) for k in flux_keys}
 
 
 def _clock() -> dict:
@@ -245,12 +218,20 @@ def _all_off() -> dict:
 
 
 def _grid() -> dict:
+    """2×2 Flux button-card grid — garage doors on top, gates underneath."""
     doors = load_garage_doors()
     by_name = {d["name"]: d for d in doors}
     house = by_name.get("House Garage") or (doors[0] if doors else None)
     shed = by_name.get("Main Shed") or (doors[1] if len(doors) > 1 else None)
 
-    tiles = [
+    tiles: list[dict] = []
+    # Top row: House Garage | Main Shed (same order as before the gate-first rebuild)
+    if house:
+        tiles.append(_tile(flux_door_tile(house)))
+    if shed:
+        tiles.append(_tile(flux_door_tile(shed)))
+    # Bottom row: Gate Open | Gate Latch
+    tiles.append(
         _tile(
             lock_action(
                 GATE_OPEN["entity"],
@@ -259,7 +240,9 @@ def _grid() -> dict:
                 status_entity=GATE_OPEN.get("status_entity"),
                 hold_entity=GATE_OPEN.get("hold_entity"),
             )
-        ),
+        )
+    )
+    tiles.append(
         _tile(
             lock_action(
                 GATE_LATCH["entity"],
@@ -267,12 +250,8 @@ def _grid() -> dict:
                 columns=6,
                 hold_entity=GATE_LATCH.get("hold_entity"),
             )
-        ),
-    ]
-    if house:
-        tiles.append(_tile(flux_door_tile(house)))
-    if shed:
-        tiles.append(_tile(flux_door_tile(shed)))
+        )
+    )
     while len(tiles) < 4:
         tiles.append({"type": "markdown", "content": " "})
 
@@ -322,13 +301,25 @@ def _validate(config: dict) -> None:
         "Gate Open",
         "House Garage",
         "Main Shed",
+        '"template": "flux_door"',
+        '"template": "flux_action"',
     ):
         if needle not in blob:
             raise SystemExit(f"wall config missing {needle!r}")
     if "call-service" in blob:
         raise SystemExit("wall config still has call-service taps")
+    if "mushroom" in blob.lower():
+        raise SystemExit("wall config still references mushroom cards")
     if "variables?." in blob or "states?." in blob:
         raise SystemExit("wall config still has optional-chaining in button JS")
+
+    # Top row must be House Garage | Main Shed (garage doors first).
+    cards = config["views"][0]["cards"][0]["cards"][1]["cards"]
+    names = [c.get("name") for c in cards[:4]]
+    if names[:2] != ["House Garage", "Main Shed"]:
+        raise SystemExit(f"garage doors must be top row, got {names!r}")
+    if names[2:4] != ["Gate Open", "Gate Latch"]:
+        raise SystemExit(f"gates must be bottom row, got {names!r}")
 
 
 async def _load_live(token: str, ha_url: str) -> dict | None:
