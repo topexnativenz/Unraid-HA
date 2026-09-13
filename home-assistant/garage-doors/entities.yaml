@@ -1,5 +1,5 @@
 # Tapo T110 contact sensors — source of truth for open/closed icons.
-# TP-Link integration uses binary_sensor.*_is_open (device_class: door).
+# Live HA entity IDs (TP-Link integration names devices, not always *_is_open).
 # Run discover on your LAN: python3 home-assistant/garage-doors/scripts/discover_garage_doors.py --apply
 #
 # Standard: on = open, off = closed. Set invert: true if reversed.
@@ -8,13 +8,14 @@ doors:
   - name: House Garage
     script: script.pulse_house_garage_door
     tracked: input_boolean.house_garage_door_open
-    sensor: binary_sensor.house_garage_door_is_open
+    sensor: binary_sensor.house_garage_door_sensor_door
     invert: false
 
   - name: Main Shed
     script: script.pulse_main_shed_door
     tracked: input_boolean.main_shed_door_open
-    sensor: binary_sensor.shed_main_door_is_open
+    # Device "Shed Main Door" — entity_id stayed contact_sensor_door after adoption.
+    sensor: binary_sensor.contact_sensor_door
     invert: false
 
   - name: Second Shed

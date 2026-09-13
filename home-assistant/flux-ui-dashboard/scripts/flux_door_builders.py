@@ -32,9 +32,10 @@ def flux_door_tile(door: dict, *, columns: int | None = None) -> dict:
         "label": open_label_js(sensor, invert=invert),
         "variables": {"invert": invert, "door_name": name, "sensor_id": sensor},
         "tap_action": {
-            "action": "call-service",
-            "service": "script.turn_on",
-            "service_data": {"entity_id": door["script"]},
+            # perform-action (HA 2024+) — call-service is flaky on wall Fully Kiosk.
+            "action": "perform-action",
+            "perform_action": "script.turn_on",
+            "target": {"entity_id": door["script"]},
         },
         "hold_action": {"action": "more-info"},
         "state": [

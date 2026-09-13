@@ -76,12 +76,12 @@ automation:
     mode: restart
     trigger:
       - platform: state
-        entity_id: binary_sensor.house_garage_door_is_open
+        entity_id: binary_sensor.house_garage_door_sensor_door
     action:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ is_state('binary_sensor.house_garage_door_is_open', ['on', 'open']) }}"
+                value_template: "{{ is_state('binary_sensor.house_garage_door_sensor_door', ['on', 'open']) }}"
             sequence:
               - action: input_boolean.turn_on
                 target:
@@ -96,12 +96,12 @@ automation:
     mode: restart
     trigger:
       - platform: state
-        entity_id: binary_sensor.shed_main_door_is_open
+        entity_id: binary_sensor.contact_sensor_door
     action:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ is_state('binary_sensor.shed_main_door_is_open', ['on', 'open']) }}"
+                value_template: "{{ is_state('binary_sensor.contact_sensor_door', ['on', 'open']) }}"
             sequence:
               - action: input_boolean.turn_on
                 target:

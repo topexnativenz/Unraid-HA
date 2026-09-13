@@ -1,0 +1,1954 @@
+{
+  "title": "Wall Display",
+  "button_card_templates": {
+    "flux_glass": {
+      "styles": {
+        "card": [
+          {
+            "border-radius": "28px"
+          },
+          {
+            "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 78%, transparent)"
+          },
+          {
+            "backdrop-filter": "blur(18px) saturate(140%)"
+          },
+          {
+            "border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%, transparent)"
+          },
+          {
+            "box-shadow": "0 4px 24px rgba(0, 0, 0, 0.28)"
+          },
+          {
+            "padding": "14px 16px"
+          }
+        ],
+        "icon": [
+          {
+            "color": "var(--md-sys-color-primary)"
+          },
+          {
+            "width": "28px"
+          }
+        ],
+        "name": [
+          {
+            "font-weight": "600"
+          },
+          {
+            "font-size": "14px"
+          },
+          {
+            "white-space": "normal"
+          },
+          {
+            "line-height": "1.25"
+          },
+          {
+            "overflow": "visible"
+          },
+          {
+            "text-overflow": "clip"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface)"
+          }
+        ],
+        "label": [
+          {
+            "color": "var(--md-sys-color-on-surface-variant)"
+          },
+          {
+            "font-size": "12px"
+          }
+        ]
+      }
+    },
+    "flux_action": {
+      "template": "flux_glass",
+      "show_label": true,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i n' 'i l'"
+          },
+          {
+            "grid-template-columns": "48px 1fr"
+          },
+          {
+            "grid-template-rows": "min-content min-content"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "var(--contrast1)"
+          },
+          {
+            "border-radius": "16px"
+          },
+          {
+            "width": "48px"
+          },
+          {
+            "height": "48px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "26px"
+          },
+          {
+            "color": "var(--md-sys-color-primary)"
+          }
+        ],
+        "name": [
+          {
+            "font-weight": "600"
+          },
+          {
+            "font-size": "13px"
+          },
+          {
+            "white-space": "normal"
+          },
+          {
+            "line-height": "1.25"
+          },
+          {
+            "overflow": "visible"
+          },
+          {
+            "text-overflow": "clip"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          }
+        ],
+        "label": [
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          }
+        ]
+      }
+    },
+    "flux_overview_tab": {
+      "show_icon": true,
+      "show_label": true,
+      "show_state": false,
+      "styles": {
+        "card": [
+          {
+            "border-radius": "28px"
+          },
+          {
+            "padding": "14px 12px"
+          },
+          {
+            "min-height": "48px"
+          },
+          {
+            "width": "100%"
+          },
+          {
+            "height": "100%"
+          },
+          {
+            "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent)"
+          },
+          {
+            "border": "1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 35%, transparent)"
+          },
+          {
+            "box-shadow": "none"
+          }
+        ],
+        "grid": [
+          {
+            "grid-template-areas": "'i n'"
+          },
+          {
+            "grid-template-columns": "min-content min-content"
+          },
+          {
+            "grid-template-rows": "min-content"
+          },
+          {
+            "justify-content": "center"
+          },
+          {
+            "justify-items": "center"
+          },
+          {
+            "align-items": "center"
+          },
+          {
+            "column-gap": "8px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "20px"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface-variant)"
+          }
+        ],
+        "name": [
+          {
+            "font-weight": "600"
+          },
+          {
+            "font-size": "14px"
+          },
+          {
+            "white-space": "nowrap"
+          },
+          {
+            "text-align": "center"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface-variant)"
+          }
+        ]
+      },
+      "state": [
+        {
+          "operator": "template",
+          "value": "[[[ return entity?.state === variables.tab_option ]]]",
+          "styles": {
+            "card": [
+              {
+                "background": "var(--md-sys-color-primary)"
+              },
+              {
+                "border": "1px solid var(--md-sys-color-primary)"
+              },
+              {
+                "box-shadow": "0 2px 12px rgba(208, 188, 255, 0.35)"
+              }
+            ],
+            "icon": [
+              {
+                "color": "var(--md-sys-color-on-primary)"
+              }
+            ],
+            "name": [
+              {
+                "color": "var(--md-sys-color-on-primary)"
+              },
+              {
+                "font-weight": "700"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "flux_light": {
+      "template": "flux_glass",
+      "show_label": true,
+      "icon": "[[[ return entity.state === 'on' ? 'mdi:lightbulb-on' : 'mdi:lightbulb-outline'; ]]]",
+      "state": [
+        {
+          "value": "on",
+          "styles": {
+            "card": [
+              {
+                "background": "rgba(255, 193, 7, 0.22)"
+              },
+              {
+                "border": "1px solid rgba(255, 193, 7, 0.72)"
+              },
+              {
+                "box-shadow": "0 0 18px rgba(255, 193, 7, 0.28), 0 4px 16px rgba(0, 0, 0, 0.22)"
+              }
+            ],
+            "icon": [
+              {
+                "color": "#FFD54F"
+              }
+            ],
+            "img_cell": [
+              {
+                "background-color": "rgba(255, 193, 7, 0.45)"
+              },
+              {
+                "box-shadow": "0 0 12px rgba(255, 193, 7, 0.35)"
+              }
+            ],
+            "name": [
+              {
+                "color": "#FFF8E1"
+              },
+              {
+                "font-weight": "700"
+              }
+            ],
+            "label": [
+              {
+                "color": "#FFD54F"
+              },
+              {
+                "font-weight": "700"
+              }
+            ]
+          }
+        },
+        {
+          "value": "off",
+          "styles": {
+            "card": [
+              {
+                "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 62%, transparent)"
+              },
+              {
+                "border": "1px solid rgba(147, 143, 153, 0.28)"
+              },
+              {
+                "box-shadow": "none"
+              }
+            ],
+            "icon": [
+              {
+                "color": "#6B6770"
+              }
+            ],
+            "img_cell": [
+              {
+                "background-color": "rgba(60, 56, 65, 0.55)"
+              }
+            ],
+            "name": [
+              {
+                "color": "var(--md-sys-color-on-surface-variant)"
+              },
+              {
+                "font-weight": "500"
+              }
+            ],
+            "label": [
+              {
+                "color": "#6B6770"
+              },
+              {
+                "font-weight": "500"
+              }
+            ]
+          }
+        }
+      ],
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i n' 'i l'"
+          },
+          {
+            "grid-template-columns": "48px 1fr"
+          },
+          {
+            "grid-template-rows": "min-content min-content"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "rgba(60, 56, 65, 0.55)"
+          },
+          {
+            "border-radius": "16px"
+          },
+          {
+            "width": "48px"
+          },
+          {
+            "height": "48px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "24px"
+          },
+          {
+            "color": "#6B6770"
+          }
+        ],
+        "name": [
+          {
+            "font-weight": "600"
+          },
+          {
+            "font-size": "15px"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          }
+        ],
+        "label": [
+          {
+            "font-weight": "500"
+          },
+          {
+            "font-size": "12px"
+          },
+          {
+            "color": "#6B6770"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          }
+        ]
+      }
+    },
+    "flux_room": {
+      "template": "flux_glass",
+      "show_icon": false,
+      "show_name": false,
+      "show_label": false,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'info sensors'"
+          },
+          {
+            "grid-template-columns": "1fr 44px"
+          },
+          {
+            "grid-template-rows": "1fr"
+          },
+          {
+            "column-gap": "10px"
+          },
+          {
+            "align-items": "stretch"
+          },
+          {
+            "align-content": "stretch"
+          },
+          {
+            "justify-content": "start"
+          },
+          {
+            "height": "100%"
+          },
+          {
+            "min-height": "0"
+          }
+        ],
+        "custom_fields": {
+          "info": [
+            {
+              "grid-area": "info"
+            },
+            {
+              "justify-self": "start"
+            },
+            {
+              "align-self": "start"
+            },
+            {
+              "width": "100%"
+            },
+            {
+              "z-index": "2"
+            }
+          ],
+          "bg": [
+            {
+              "position": "absolute"
+            },
+            {
+              "bottom": "4px"
+            },
+            {
+              "left": "0"
+            },
+            {
+              "z-index": "0"
+            },
+            {
+              "pointer-events": "none"
+            },
+            {
+              "width": "96px"
+            },
+            {
+              "height": "96px"
+            },
+            {
+              "display": "flex"
+            },
+            {
+              "align-items": "flex-end"
+            },
+            {
+              "justify-content": "flex-start"
+            }
+          ],
+          "sensors": [
+            {
+              "grid-area": "sensors"
+            },
+            {
+              "justify-self": "center"
+            },
+            {
+              "align-self": "stretch"
+            },
+            {
+              "width": "40px"
+            },
+            {
+              "min-width": "40px"
+            },
+            {
+              "height": "100%"
+            },
+            {
+              "min-height": "0"
+            },
+            {
+              "padding-top": "0"
+            },
+            {
+              "padding-bottom": "0"
+            },
+            {
+              "z-index": "2"
+            }
+          ]
+        },
+        "card": [
+          {
+            "position": "relative"
+          },
+          {
+            "overflow": "hidden"
+          },
+          {
+            "padding": "14px 12px 14px 14px"
+          },
+          {
+            "height": "186px"
+          },
+          {
+            "min-height": "186px"
+          },
+          {
+            "max-height": "186px"
+          },
+          {
+            "box-sizing": "border-box"
+          },
+          {
+            "display": "flex"
+          },
+          {
+            "align-items": "stretch"
+          }
+        ]
+      },
+      "state": [
+        {
+          "operator": "template",
+          "value": "[[[ return (variables.lights || []).some(e => states[e]?.state === 'on'); ]]]",
+          "styles": {
+            "card": [
+              {
+                "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 72%, rgba(255, 193, 7, 0.08))"
+              },
+              {
+                "border": "1px solid rgba(255, 193, 7, 0.38)"
+              },
+              {
+                "box-shadow": "0 0 20px rgba(255, 193, 7, 0.14), 0 4px 24px rgba(0, 0, 0, 0.28)"
+              }
+            ],
+            "custom_fields": {
+              "bg": [
+                {
+                  "opacity": "0.28"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "flux_room_fill": {
+      "template": "flux_glass",
+      "show_icon": false,
+      "show_name": false,
+      "show_label": false,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'info sensors'"
+          },
+          {
+            "grid-template-columns": "1fr 44px"
+          },
+          {
+            "grid-template-rows": "1fr"
+          },
+          {
+            "column-gap": "10px"
+          },
+          {
+            "align-items": "stretch"
+          },
+          {
+            "align-content": "stretch"
+          },
+          {
+            "justify-content": "start"
+          },
+          {
+            "height": "100%"
+          },
+          {
+            "min-height": "0"
+          },
+          {
+            "width": "100%"
+          }
+        ],
+        "custom_fields": {
+          "info": [
+            {
+              "grid-area": "info"
+            },
+            {
+              "justify-self": "start"
+            },
+            {
+              "align-self": "start"
+            },
+            {
+              "width": "100%"
+            },
+            {
+              "z-index": "2"
+            }
+          ],
+          "bg": [
+            {
+              "position": "absolute"
+            },
+            {
+              "bottom": "4px"
+            },
+            {
+              "left": "0"
+            },
+            {
+              "z-index": "0"
+            },
+            {
+              "pointer-events": "none"
+            },
+            {
+              "width": "96px"
+            },
+            {
+              "height": "96px"
+            },
+            {
+              "display": "flex"
+            },
+            {
+              "align-items": "flex-end"
+            },
+            {
+              "justify-content": "flex-start"
+            }
+          ],
+          "sensors": [
+            {
+              "grid-area": "sensors"
+            },
+            {
+              "justify-self": "center"
+            },
+            {
+              "align-self": "stretch"
+            },
+            {
+              "width": "40px"
+            },
+            {
+              "min-width": "40px"
+            },
+            {
+              "height": "100%"
+            },
+            {
+              "min-height": "0"
+            },
+            {
+              "padding-top": "0"
+            },
+            {
+              "padding-bottom": "0"
+            },
+            {
+              "z-index": "2"
+            }
+          ]
+        },
+        "card": [
+          {
+            "position": "relative"
+          },
+          {
+            "overflow": "hidden"
+          },
+          {
+            "padding": "14px 12px 14px 14px"
+          },
+          {
+            "height": "100%"
+          },
+          {
+            "min-height": "0"
+          },
+          {
+            "max-height": "none"
+          },
+          {
+            "width": "100%"
+          },
+          {
+            "box-sizing": "border-box"
+          },
+          {
+            "display": "flex"
+          },
+          {
+            "align-items": "stretch"
+          }
+        ]
+      },
+      "state": [
+        {
+          "operator": "template",
+          "value": "[[[ return (variables.lights || []).some(e => states[e]?.state === 'on'); ]]]",
+          "styles": {
+            "card": [
+              {
+                "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 72%, rgba(255, 193, 7, 0.08))"
+              },
+              {
+                "border": "1px solid rgba(255, 193, 7, 0.38)"
+              },
+              {
+                "box-shadow": "0 0 20px rgba(255, 193, 7, 0.14), 0 4px 24px rgba(0, 0, 0, 0.28)"
+              }
+            ],
+            "custom_fields": {
+              "bg": [
+                {
+                  "opacity": "0.28"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "flux_icon_button": {
+      "template": "flux_glass",
+      "show_icon": true,
+      "show_name": false,
+      "show_label": false,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i'"
+          },
+          {
+            "grid-template-columns": "1fr"
+          },
+          {
+            "justify-items": "center"
+          },
+          {
+            "align-items": "center"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "rgba(208, 188, 255, 0.16)"
+          },
+          {
+            "border-radius": "999px"
+          },
+          {
+            "width": "40px"
+          },
+          {
+            "height": "40px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "20px"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface)"
+          }
+        ],
+        "card": [
+          {
+            "padding": "6px"
+          },
+          {
+            "min-height": "52px"
+          },
+          {
+            "max-height": "52px"
+          },
+          {
+            "border-radius": "999px"
+          },
+          {
+            "display": "flex"
+          },
+          {
+            "align-items": "center"
+          },
+          {
+            "justify-content": "center"
+          }
+        ]
+      }
+    },
+    "flux_feature": {
+      "template": "flux_glass",
+      "show_icon": true,
+      "show_name": true,
+      "show_label": false,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i' 'n'"
+          },
+          {
+            "grid-template-columns": "1fr"
+          },
+          {
+            "grid-template-rows": "min-content min-content"
+          },
+          {
+            "justify-items": "center"
+          },
+          {
+            "align-items": "center"
+          },
+          {
+            "row-gap": "6px"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "rgba(208, 188, 255, 0.16)"
+          },
+          {
+            "border-radius": "14px"
+          },
+          {
+            "width": "44px"
+          },
+          {
+            "height": "44px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "22px"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface-variant)"
+          }
+        ],
+        "name": [
+          {
+            "font-size": "11px"
+          },
+          {
+            "font-weight": "600"
+          },
+          {
+            "text-align": "center"
+          },
+          {
+            "line-height": "1.25"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface)"
+          },
+          {
+            "white-space": "normal"
+          },
+          {
+            "overflow": "hidden"
+          },
+          {
+            "display": "-webkit-box"
+          },
+          {
+            "-webkit-line-clamp": "2"
+          },
+          {
+            "-webkit-box-orient": "vertical"
+          },
+          {
+            "max-width": "100%"
+          },
+          {
+            "padding": "0 2px"
+          }
+        ],
+        "card": [
+          {
+            "padding": "12px 6px"
+          },
+          {
+            "min-height": "80px"
+          },
+          {
+            "max-height": "80px"
+          },
+          {
+            "display": "flex"
+          },
+          {
+            "align-items": "center"
+          },
+          {
+            "justify-content": "center"
+          }
+        ]
+      }
+    },
+    "flux_fab_group": {
+      "template": "flux_glass",
+      "show_icon": true,
+      "show_label": false,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i n'"
+          },
+          {
+            "grid-template-columns": "36px 1fr"
+          },
+          {
+            "column-gap": "10px"
+          },
+          {
+            "align-items": "center"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "rgba(208, 188, 255, 0.22)"
+          },
+          {
+            "border-radius": "12px"
+          },
+          {
+            "width": "36px"
+          },
+          {
+            "height": "36px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "20px"
+          },
+          {
+            "color": "var(--md-sys-color-primary)"
+          }
+        ],
+        "name": [
+          {
+            "font-size": "13px"
+          },
+          {
+            "font-weight": "600"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface)"
+          }
+        ],
+        "card": [
+          {
+            "padding": "10px 12px"
+          },
+          {
+            "margin-bottom": "8px"
+          },
+          {
+            "border-radius": "999px"
+          },
+          {
+            "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 82%, rgba(208, 188, 255, 0.12))"
+          }
+        ]
+      }
+    },
+    "flux_room_status": {
+      "show_icon": false,
+      "show_name": false,
+      "show_label": false,
+      "styles": {
+        "card": [
+          {
+            "background": "transparent"
+          },
+          {
+            "box-shadow": "none"
+          },
+          {
+            "border": "none"
+          },
+          {
+            "padding": "0"
+          }
+        ]
+      }
+    },
+    "flux_door": {
+      "template": "flux_glass",
+      "show_icon": true,
+      "show_label": true,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i n' 'i l'"
+          },
+          {
+            "grid-template-columns": "52px 1fr"
+          },
+          {
+            "grid-template-rows": "min-content min-content"
+          },
+          {
+            "column-gap": "12px"
+          },
+          {
+            "align-items": "center"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "rgba(129, 199, 132, 0.22)"
+          },
+          {
+            "border-radius": "18px"
+          },
+          {
+            "width": "52px"
+          },
+          {
+            "height": "52px"
+          }
+        ],
+        "icon": [
+          {
+            "width": "28px"
+          },
+          {
+            "color": "#81C784"
+          }
+        ],
+        "name": [
+          {
+            "font-weight": "700"
+          },
+          {
+            "font-size": "14px"
+          },
+          {
+            "white-space": "normal"
+          },
+          {
+            "line-height": "1.25"
+          },
+          {
+            "overflow": "visible"
+          },
+          {
+            "text-overflow": "clip"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface)"
+          }
+        ],
+        "label": [
+          {
+            "font-weight": "600"
+          },
+          {
+            "font-size": "12px"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "color": "#81C784"
+          }
+        ],
+        "card": [
+          {
+            "padding": "14px 16px"
+          },
+          {
+            "min-height": "80px"
+          },
+          {
+            "background": "color-mix(in srgb, var(--md-sys-color-surface-container) 78%, rgba(129, 199, 132, 0.1))"
+          },
+          {
+            "border": "1px solid rgba(129, 199, 132, 0.35)"
+          }
+        ]
+      }
+    },
+    "flux_greeting": {
+      "show_icon": false,
+      "show_label": true,
+      "styles": {
+        "card": [
+          {
+            "background": "transparent"
+          },
+          {
+            "box-shadow": "none"
+          },
+          {
+            "border": "none"
+          },
+          {
+            "padding": "8px 4px 4px 8px"
+          }
+        ],
+        "grid": [
+          {
+            "grid-template-areas": "'n' 'l'"
+          },
+          {
+            "grid-template-columns": "1fr"
+          }
+        ],
+        "name": [
+          {
+            "font-size": "22px"
+          },
+          {
+            "font-weight": "700"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface)"
+          }
+        ],
+        "label": [
+          {
+            "font-size": "13px"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface-variant)"
+          },
+          {
+            "justify-self": "start"
+          }
+        ]
+      }
+    },
+    "flux_hero": {
+      "template": "flux_glass",
+      "show_icon": false,
+      "show_entity_picture": true,
+      "show_label": true,
+      "show_state": false,
+      "styles": {
+        "grid": [
+          {
+            "grid-template-areas": "'i n' 'i l'"
+          },
+          {
+            "grid-template-columns": "72px 1fr"
+          },
+          {
+            "grid-template-rows": "min-content min-content"
+          },
+          {
+            "column-gap": "20px"
+          },
+          {
+            "row-gap": "4px"
+          },
+          {
+            "align-items": "center"
+          },
+          {
+            "justify-content": "start"
+          }
+        ],
+        "img_cell": [
+          {
+            "background-color": "transparent"
+          },
+          {
+            "border-radius": "50%"
+          },
+          {
+            "width": "72px"
+          },
+          {
+            "height": "72px"
+          },
+          {
+            "min-width": "72px"
+          },
+          {
+            "overflow": "hidden"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "align-self": "center"
+          },
+          {
+            "margin-right": "4px"
+          },
+          {
+            "background-image": "[[[ return variables.avatar_url ? `url('${variables.avatar_url}')` : 'none' ]]]"
+          },
+          {
+            "background-size": "cover"
+          },
+          {
+            "background-position": "center top"
+          },
+          {
+            "background-repeat": "no-repeat"
+          }
+        ],
+        "icon": [
+          {
+            "display": "none"
+          }
+        ],
+        "entity_picture": [
+          {
+            "width": "100%"
+          },
+          {
+            "height": "100%"
+          },
+          {
+            "object-fit": "cover"
+          },
+          {
+            "object-position": "center top"
+          },
+          {
+            "border-radius": "50%"
+          },
+          {
+            "display": "block"
+          }
+        ],
+        "name": [
+          {
+            "font-size": "24px"
+          },
+          {
+            "font-weight": "700"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          },
+          {
+            "padding-left": "0"
+          },
+          {
+            "margin-left": "0"
+          }
+        ],
+        "label": [
+          {
+            "font-size": "13px"
+          },
+          {
+            "color": "var(--md-sys-color-on-surface-variant)"
+          },
+          {
+            "justify-self": "start"
+          },
+          {
+            "text-align": "left"
+          }
+        ],
+        "card": [
+          {
+            "padding": "18px 20px"
+          }
+        ]
+      }
+    }
+  },
+  "views": [
+    {
+      "title": "Wall Display",
+      "path": "home",
+      "type": "panel",
+      "panel": true,
+      "icon": "mdi:wall",
+      "card_mod": {
+        "style": "ha-view {\n  background: center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n  height: 100dvh !important; max-height: 100dvh !important;\n  overflow: hidden !important;\n}\n#view {\n  background: transparent !important; max-width: none !important;\n  width: 100% !important; height: 100dvh !important;\n  max-height: 100dvh !important; margin: 0 !important;\n  padding: 0 !important; overflow: hidden !important;\n}\nhui-panel-view, hui-view-panel {\n  width: 100% !important; height: 100dvh !important;\n  max-height: 100dvh !important; overflow: hidden !important;\n}\nhui-panel-view > *, hui-view-panel > * {\n  width: 100% !important; height: 100dvh !important;\n  max-height: 100dvh !important; overflow: hidden !important;\n}\n@keyframes flux-door-pulse {\n  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n}\n"
+      },
+      "cards": [
+        {
+          "type": "vertical-stack",
+          "cards": [
+            {
+              "type": "custom:button-card",
+              "entity": "sensor.time",
+              "triggers_update": "all",
+              "show_icon": false,
+              "show_name": true,
+              "show_label": true,
+              "show_state": false,
+              "name": "[[[ return new Date().toLocaleTimeString('en-NZ', {timeZone: 'Pacific/Auckland', hour: 'numeric', minute: '2-digit', hour12: true}); ]]]",
+              "label": "[[[ return new Date().toLocaleDateString('en-NZ', {timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short'}); ]]]",
+              "tap_action": {
+                "action": "none"
+              },
+              "hold_action": {
+                "action": "none"
+              },
+              "styles": {
+                "card": [
+                  {
+                    "background": "transparent"
+                  },
+                  {
+                    "box-shadow": "none"
+                  },
+                  {
+                    "border": "none"
+                  },
+                  {
+                    "padding": "8px 8px 4px"
+                  },
+                  {
+                    "height": "auto"
+                  },
+                  {
+                    "min-height": "unset"
+                  }
+                ],
+                "grid": [
+                  {
+                    "grid-template-areas": "'n' 'l'"
+                  },
+                  {
+                    "grid-template-columns": "1fr"
+                  },
+                  {
+                    "grid-template-rows": "min-content min-content"
+                  },
+                  {
+                    "row-gap": "2px"
+                  },
+                  {
+                    "justify-items": "center"
+                  }
+                ],
+                "name": [
+                  {
+                    "font-size": "64px"
+                  },
+                  {
+                    "font-weight": "800"
+                  },
+                  {
+                    "letter-spacing": "-0.02em"
+                  },
+                  {
+                    "line-height": "1"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface)"
+                  },
+                  {
+                    "justify-self": "center"
+                  },
+                  {
+                    "font-variant-numeric": "tabular-nums"
+                  }
+                ],
+                "label": [
+                  {
+                    "font-size": "18px"
+                  },
+                  {
+                    "font-weight": "600"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface-variant)"
+                  },
+                  {
+                    "justify-self": "center"
+                  },
+                  {
+                    "letter-spacing": "0.04em"
+                  },
+                  {
+                    "text-transform": "uppercase"
+                  }
+                ]
+              }
+            },
+            {
+              "type": "grid",
+              "columns": 2,
+              "square": false,
+              "cards": [
+                {
+                  "type": "custom:button-card",
+                  "template": "flux_action",
+                  "entity": "lock.gate_intercom_gate_open",
+                  "name": "Gate Open",
+                  "show_icon": false,
+                  "show_entity_picture": true,
+                  "entity_picture": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIHN3dW5nIG91dHdhcmQgKHBlcnNwZWN0aXZlOiBuYXJyb3cgdmVydGljYWwgcGFuZWwgYnkgbGVmdCBwb3N0KSAtLT4KICA8cGF0aCBkPSJNNC4yIDVoMi42bDEuMiAxLjV2MTFMNi44IDE5SDQuMlY1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuMzUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSI0LjciIHk9IjYuNiIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMC44IiByeD0iMC4yNSIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjUuOSIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgc3d1bmcgb3V0d2FyZCAtLT4KICA8cGF0aCBkPSJNMTkuOCA1aC0yLjZsLTEuMiAxLjV2MTFsMS4yIDEuNWgyLjZWNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjM1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iMTguNCIgeT0iNi42IiB3aWR0aD0iMC45IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjI1IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMTcuMiIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIE9wZW4gZHJpdmV3YXkgZ2FwIC0tPgogIDxwYXRoIGQ9Ik05LjIgMTguOGg1LjYiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+Cjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIC0tPgogIDxyZWN0IHg9IjQuMiIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSI1LjUiIHk9IjYuNiIgd2lkdGg9IjEuMTUiIGhlaWdodD0iMTAuOCIgcng9IjAuMyIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjcuMyIgeT0iNi42IiB3aWR0aD0iMS4xNSIgaGVpZ2h0PSIxMC44IiByeD0iMC4zIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOS4xIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgLS0+CiAgPHJlY3QgeD0iMTIuNSIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSIxMy43IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNS41IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNy4zIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIENlbnRyZSBqb2luIChsZWF2ZXMgbWVldCkgLS0+CiAgPHJlY3QgeD0iMTEuMjUiIHk9IjQuOCIgd2lkdGg9IjEuNSIgaGVpZ2h0PSIxNC40IiByeD0iMC40NSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K';\n]]]",
+                  "label": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'Open' : 'Closed';\n]]]",
+                  "tap_action": {
+                    "action": "perform-action",
+                    "perform_action": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  if (!false) return 'lock.unlock';\n  return isOpen ? 'lock.lock' : 'lock.unlock';\n]]]",
+                    "target": {
+                      "entity_id": "lock.gate_intercom_gate_open"
+                    }
+                  },
+                  "triggers_update": [
+                    "lock.gate_intercom_gate_open",
+                    "binary_sensor.casa_luna_gate_status",
+                    "input_boolean.gate_hold_active"
+                  ],
+                  "styles": {
+                    "grid": [
+                      {
+                        "grid-template-areas": "'i n' 'i l'"
+                      },
+                      {
+                        "grid-template-columns": "52px 1fr"
+                      },
+                      {
+                        "grid-template-rows": "min-content min-content"
+                      },
+                      {
+                        "column-gap": "12px"
+                      }
+                    ],
+                    "img_cell": [
+                      {
+                        "border-radius": "16px"
+                      },
+                      {
+                        "width": "52px"
+                      },
+                      {
+                        "height": "52px"
+                      },
+                      {
+                        "place-self": "center"
+                      },
+                      {
+                        "background-color": "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+                      }
+                    ],
+                    "entity_picture": [
+                      {
+                        "width": "30px"
+                      },
+                      {
+                        "height": "30px"
+                      },
+                      {
+                        "object-fit": "contain"
+                      }
+                    ],
+                    "card": [
+                      {
+                        "padding": "14px 10px 12px"
+                      },
+                      {
+                        "height": "100%"
+                      },
+                      {
+                        "min-height": "0"
+                      },
+                      {
+                        "display": "flex"
+                      },
+                      {
+                        "align-items": "center"
+                      },
+                      {
+                        "justify-content": "center"
+                      },
+                      {
+                        "border-radius": "22px"
+                      }
+                    ]
+                  },
+                  "state": [
+                    {
+                      "operator": "template",
+                      "value": "[[[\n  if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false;\n]]]",
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                          },
+                          {
+                            "border": "1px solid rgba(242, 184, 181, 0.85)"
+                          }
+                        ],
+                        "img_cell": [
+                          {
+                            "background-color": "#5C1010"
+                          },
+                          {
+                            "box-shadow": "0 0 0 1px #5C1010"
+                          }
+                        ],
+                        "label": [
+                          {
+                            "color": "#F2B8B5"
+                          },
+                          {
+                            "font-weight": "700"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "color": "var(--md-sys-color-on-surface)"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "custom:button-card",
+                  "template": "flux_action",
+                  "entity": "lock.gate_intercom_gate_latch",
+                  "name": "Gate Latch",
+                  "show_icon": false,
+                  "show_entity_picture": true,
+                  "entity_picture": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIHN3dW5nIG91dHdhcmQgKHBlcnNwZWN0aXZlOiBuYXJyb3cgdmVydGljYWwgcGFuZWwgYnkgbGVmdCBwb3N0KSAtLT4KICA8cGF0aCBkPSJNNC4yIDVoMi42bDEuMiAxLjV2MTFMNi44IDE5SDQuMlY1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuMzUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSI0LjciIHk9IjYuNiIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMC44IiByeD0iMC4yNSIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjUuOSIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgc3d1bmcgb3V0d2FyZCAtLT4KICA8cGF0aCBkPSJNMTkuOCA1aC0yLjZsLTEuMiAxLjV2MTFsMS4yIDEuNWgyLjZWNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjM1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iMTguNCIgeT0iNi42IiB3aWR0aD0iMC45IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjI1IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMTcuMiIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIE9wZW4gZHJpdmV3YXkgZ2FwIC0tPgogIDxwYXRoIGQ9Ik05LjIgMTguOGg1LjYiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+Cjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIC0tPgogIDxyZWN0IHg9IjQuMiIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSI1LjUiIHk9IjYuNiIgd2lkdGg9IjEuMTUiIGhlaWdodD0iMTAuOCIgcng9IjAuMyIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjcuMyIgeT0iNi42IiB3aWR0aD0iMS4xNSIgaGVpZ2h0PSIxMC44IiByeD0iMC4zIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOS4xIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgLS0+CiAgPHJlY3QgeD0iMTIuNSIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSIxMy43IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNS41IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNy4zIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIENlbnRyZSBqb2luIChsZWF2ZXMgbWVldCkgLS0+CiAgPHJlY3QgeD0iMTEuMjUiIHk9IjQuOCIgd2lkdGg9IjEuNSIgaGVpZ2h0PSIxNC40IiByeD0iMC40NSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K';\n]]]",
+                  "label": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'Unlatched' : 'Latched';\n]]]",
+                  "tap_action": {
+                    "action": "perform-action",
+                    "perform_action": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  if (!true) return 'lock.unlock';\n  return isOpen ? 'lock.lock' : 'lock.unlock';\n]]]",
+                    "target": {
+                      "entity_id": "lock.gate_intercom_gate_latch"
+                    }
+                  },
+                  "triggers_update": [
+                    "lock.gate_intercom_gate_latch",
+                    "input_boolean.gate_hold_active"
+                  ],
+                  "styles": {
+                    "grid": [
+                      {
+                        "grid-template-areas": "'i n' 'i l'"
+                      },
+                      {
+                        "grid-template-columns": "52px 1fr"
+                      },
+                      {
+                        "grid-template-rows": "min-content min-content"
+                      },
+                      {
+                        "column-gap": "12px"
+                      }
+                    ],
+                    "img_cell": [
+                      {
+                        "border-radius": "16px"
+                      },
+                      {
+                        "width": "52px"
+                      },
+                      {
+                        "height": "52px"
+                      },
+                      {
+                        "place-self": "center"
+                      },
+                      {
+                        "background-color": "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+                      }
+                    ],
+                    "entity_picture": [
+                      {
+                        "width": "30px"
+                      },
+                      {
+                        "height": "30px"
+                      },
+                      {
+                        "object-fit": "contain"
+                      }
+                    ],
+                    "card": [
+                      {
+                        "padding": "14px 10px 12px"
+                      },
+                      {
+                        "height": "100%"
+                      },
+                      {
+                        "min-height": "0"
+                      },
+                      {
+                        "display": "flex"
+                      },
+                      {
+                        "align-items": "center"
+                      },
+                      {
+                        "justify-content": "center"
+                      },
+                      {
+                        "border-radius": "22px"
+                      }
+                    ]
+                  },
+                  "state": [
+                    {
+                      "operator": "template",
+                      "value": "[[[\n  if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false;\n]]]",
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                          },
+                          {
+                            "border": "1px solid rgba(242, 184, 181, 0.85)"
+                          }
+                        ],
+                        "img_cell": [
+                          {
+                            "background-color": "#5C1010"
+                          },
+                          {
+                            "box-shadow": "0 0 0 1px #5C1010"
+                          }
+                        ],
+                        "label": [
+                          {
+                            "color": "#F2B8B5"
+                          },
+                          {
+                            "font-weight": "700"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "color": "var(--md-sys-color-on-surface)"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "custom:button-card",
+                  "template": "flux_door",
+                  "entity": "binary_sensor.house_garage_door_sensor_door",
+                  "triggers_update": "all",
+                  "name": "House Garage",
+                  "icon": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'mdi:garage-open';\n  if (open === false) return 'mdi:garage';\n  return 'mdi:garage';\n]]]",
+                  "label": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'Open';\n  if (open === false) return 'Closed';\n  return (st && st.state) ? String(st.state) : 'Closed';\n]]]",
+                  "variables": {
+                    "invert": false,
+                    "door_name": "House Garage",
+                    "sensor_id": "binary_sensor.house_garage_door_sensor_door"
+                  },
+                  "tap_action": {
+                    "action": "perform-action",
+                    "perform_action": "script.turn_on",
+                    "target": {
+                      "entity_id": "script.pulse_house_garage_door"
+                    }
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "state": [
+                    {
+                      "operator": "template",
+                      "value": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  return isDoorOpen(st, false);\n]]]",
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                          },
+                          {
+                            "border": "1px solid rgba(242, 184, 181, 0.85)"
+                          },
+                          {
+                            "box-shadow": "0 0 22px rgba(242, 184, 181, 0.55), 0 0 40px rgba(242, 184, 181, 0.25)"
+                          },
+                          {
+                            "animation": "flux-door-pulse 2.4s ease-in-out infinite"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "color": "#3b1216"
+                          }
+                        ],
+                        "img_cell": [
+                          {
+                            "background-color": "rgba(242, 184, 181, 0.55)"
+                          },
+                          {
+                            "box-shadow": "0 0 16px rgba(242, 184, 181, 0.65)"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "color": "#fff8f7"
+                          },
+                          {
+                            "font-weight": "700"
+                          }
+                        ],
+                        "label": [
+                          {
+                            "color": "#F2B8B5"
+                          },
+                          {
+                            "font-weight": "700"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "styles": {
+                    "icon": [
+                      {
+                        "color": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
+                      }
+                    ],
+                    "card": [
+                      {
+                        "padding": "14px 10px 12px"
+                      },
+                      {
+                        "height": "100%"
+                      },
+                      {
+                        "min-height": "0"
+                      },
+                      {
+                        "display": "flex"
+                      },
+                      {
+                        "align-items": "center"
+                      },
+                      {
+                        "justify-content": "center"
+                      },
+                      {
+                        "border-radius": "22px"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "custom:button-card",
+                  "template": "flux_door",
+                  "entity": "binary_sensor.contact_sensor_door",
+                  "triggers_update": "all",
+                  "name": "Main Shed",
+                  "icon": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'mdi:door-sliding-open';\n  if (open === false) return 'mdi:warehouse';\n  return 'mdi:garage';\n]]]",
+                  "label": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'Open';\n  if (open === false) return 'Closed';\n  return (st && st.state) ? String(st.state) : 'Closed';\n]]]",
+                  "variables": {
+                    "invert": false,
+                    "door_name": "Main Shed",
+                    "sensor_id": "binary_sensor.contact_sensor_door"
+                  },
+                  "tap_action": {
+                    "action": "perform-action",
+                    "perform_action": "script.turn_on",
+                    "target": {
+                      "entity_id": "script.pulse_main_shed_door"
+                    }
+                  },
+                  "hold_action": {
+                    "action": "more-info"
+                  },
+                  "state": [
+                    {
+                      "operator": "template",
+                      "value": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  return isDoorOpen(st, false);\n]]]",
+                      "styles": {
+                        "card": [
+                          {
+                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                          },
+                          {
+                            "border": "1px solid rgba(242, 184, 181, 0.85)"
+                          },
+                          {
+                            "box-shadow": "0 0 22px rgba(242, 184, 181, 0.55), 0 0 40px rgba(242, 184, 181, 0.25)"
+                          },
+                          {
+                            "animation": "flux-door-pulse 2.4s ease-in-out infinite"
+                          }
+                        ],
+                        "icon": [
+                          {
+                            "color": "#3b1216"
+                          }
+                        ],
+                        "img_cell": [
+                          {
+                            "background-color": "rgba(242, 184, 181, 0.55)"
+                          },
+                          {
+                            "box-shadow": "0 0 16px rgba(242, 184, 181, 0.65)"
+                          }
+                        ],
+                        "name": [
+                          {
+                            "color": "#fff8f7"
+                          },
+                          {
+                            "font-weight": "700"
+                          }
+                        ],
+                        "label": [
+                          {
+                            "color": "#F2B8B5"
+                          },
+                          {
+                            "font-weight": "700"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "styles": {
+                    "icon": [
+                      {
+                        "color": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
+                      }
+                    ],
+                    "card": [
+                      {
+                        "padding": "14px 10px 12px"
+                      },
+                      {
+                        "height": "100%"
+                      },
+                      {
+                        "min-height": "0"
+                      },
+                      {
+                        "display": "flex"
+                      },
+                      {
+                        "align-items": "center"
+                      },
+                      {
+                        "justify-content": "center"
+                      },
+                      {
+                        "border-radius": "22px"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "card_mod": {
+                "style": ":host { display: block !important; height: 100% !important; min-height: 0 !important; }\n#root {\n  height: 100% !important; min-height: 0 !important;\n  display: grid !important; grid-template-columns: 1fr 1fr !important;\n  grid-template-rows: 1fr 1fr !important; gap: 10px !important;\n}\n#root > * { min-height: 0 !important; height: 100% !important; }\n"
+              }
+            },
+            {
+              "type": "custom:button-card",
+              "template": "flux_action",
+              "name": "All Off",
+              "label": "House lights",
+              "icon": "mdi:lightbulb-off-outline",
+              "show_icon": true,
+              "show_label": true,
+              "tap_action": {
+                "action": "perform-action",
+                "perform_action": "script.turn_on",
+                "target": {
+                  "entity_id": "script.house_lights_all_off"
+                }
+              },
+              "styles": {
+                "card": [
+                  {
+                    "padding": "12px 14px"
+                  },
+                  {
+                    "min-height": "64px"
+                  },
+                  {
+                    "border-radius": "22px"
+                  }
+                ]
+              }
+            }
+          ],
+          "card_mod": {
+            "style": ":host {\n  display: block !important; height: 100dvh !important;\n  max-height: 100dvh !important; box-sizing: border-box !important;\n  padding: 10px 12px 14px !important;\n}\n#root {\n  height: 100% !important; display: flex !important;\n  flex-direction: column !important; gap: 10px !important;\n}\n#root > *:first-child { flex: 0 0 auto !important; }\n#root > *:nth-child(2) { flex: 1 1 auto !important; min-height: 0 !important; }\n#root > *:last-child { flex: 0 0 auto !important; }\n"
+          }
+        }
+      ]
+    }
+  ]
+}

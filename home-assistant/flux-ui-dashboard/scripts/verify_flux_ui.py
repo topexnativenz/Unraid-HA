@@ -590,10 +590,18 @@ def verify_build(path: Path) -> list[str]:
         )
     if "input_boolean.gate_hold_active" not in blob:
         errors.append("Gate buttons missing hold_entity input_boolean.gate_hold_active")
-    if '"service": "lock.unlock"' not in blob and "lock.lock" not in blob:
+    if (
+        '"service": "lock.unlock"' not in blob
+        and "lock.unlock" not in blob
+        and "lock.lock" not in blob
+    ):
         errors.append("Gate buttons missing lock service actions (unlock/lock)")
     if "return isOpen ? 'lock.lock' : 'lock.unlock';" not in blob:
         errors.append("Gate Latch should call lock.lock when already unlatched")
+    if '"action": "call-service"' in blob and "script.pulse_house_garage_door" in blob:
+        errors.append(
+            "Garage door taps still use call-service — use perform-action for Fully Kiosk"
+        )
     gate_icons = ROOT / "www" / "flux-ui" / "icons"
     for name in ("vehicle-gate-closed.svg", "vehicle-gate-open.svg"):
         if not (gate_icons / name).exists():

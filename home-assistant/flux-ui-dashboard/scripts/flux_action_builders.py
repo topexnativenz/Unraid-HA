@@ -102,16 +102,17 @@ def lock_action(
             "]]]"
         ),
         "tap_action": {
-            "action": "call-service",
+            # perform-action — more reliable than call-service on wall Fully Kiosk.
+            "action": "perform-action",
             # Gate Open is momentary unlock pulse; Gate Latch must toggle lock/unlock.
-            "service": (
+            "perform_action": (
                 "[[[\n"
                 f"  const isOpen = (() => {{ {open_body} }})();\n"
                 "  if (!" + ("true" if is_latch else "false") + ") return 'lock.unlock';\n"
                 "  return isOpen ? 'lock.lock' : 'lock.unlock';\n"
                 "]]]"
             ),
-            "service_data": {"entity_id": entity},
+            "target": {"entity_id": entity},
         },
         "triggers_update": triggers,
         "styles": {

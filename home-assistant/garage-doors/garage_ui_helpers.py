@@ -98,23 +98,26 @@ def is_open_state(state: str | None, *, invert: bool = False) -> bool:
     return False
 
 
+# Keep this ES5-safe — wall Fully Kiosk / older WebViews choke on ?. and ??,
+# which can break button-card templates and make taps look dead.
 IS_DOOR_OPEN_JS = (
-    "const isDoorOpen = (st, invert) => {\n"
+    "const isDoorOpen = function(st, invert) {\n"
     "  if (!st) return null;\n"
-    "  const s = String(st.state ?? '').toLowerCase();\n"
-    "  if (!s || ['unavailable','unknown','none'].includes(s)) return null;\n"
+    "  const s = String(st.state == null ? '' : st.state).toLowerCase();\n"
+    "  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n"
     f"  const openish = [{', '.join(repr(s) for s in DOOR_OPEN_STATES)}];\n"
     f"  const closedish = [{', '.join(repr(s) for s in DOOR_CLOSED_STATES)}];\n"
-    "  if (openish.includes(s)) return invert ? false : true;\n"
-    "  if (closedish.includes(s)) return invert ? true : false;\n"
+    "  if (openish.indexOf(s) >= 0) return invert ? false : true;\n"
+    "  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n"
     "  return false;\n"
     "};\n"
 )
 
 
 _RESOLVE_DOOR_STATE_JS = (
-    "  const id = variables?.sensor_id || entity?.entity_id;\n"
-    "  const st = (id && states?.[id]) ? states[id] : entity;\n"
+    "  const id = (variables && variables.sensor_id)\n"
+    "    || (entity && entity.entity_id);\n"
+    "  const st = (id && states && states[id]) ? states[id] : entity;\n"
 )
 
 
@@ -138,7 +141,7 @@ def _door_js_body(
         tail = (
             "  if (open === true) return 'Open';\n"
             "  if (open === false) return 'Closed';\n"
-            "  return st?.state ? String(st.state) : 'Closed';\n"
+            "  return (st && st.state) ? String(st.state) : 'Closed';\n"
         )
     else:
         tail = (
