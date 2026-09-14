@@ -2,7 +2,8 @@
 """Build + deploy Flux UI Wall Display (flux-ui-wall).
 
 Garage wall Fully Kiosk home view:
-  - Full-screen 2×2 grid (equal cells, edge-to-edge)
+  - Time + date header (NZ)
+  - Full-height 2×2 grid (equal cells)
   - Top row: House Garage | Main Shed (flux_door)
   - Bottom row: Gate Open | Gate Latch (flux_action)
   - Flux UI MD3 theme + button-card templates only (no mushroom)
@@ -162,13 +163,28 @@ VIEW_MOD = {
     )
 }
 
-GRID_MOD = {
+STACK_MOD = {
     "style": (
         ":host {\n"
         "  display: block !important; height: 100dvh !important;\n"
-        "  max-height: 100dvh !important; width: 100% !important;\n"
+        "  max-height: 100dvh !important; box-sizing: border-box !important;\n"
+        "  padding: 10px 12px 12px !important;\n"
+        "}\n"
+        "#root {\n"
+        "  height: 100% !important; display: flex !important;\n"
+        "  flex-direction: column !important; gap: 8px !important;\n"
+        "}\n"
+        "#root > *:first-child { flex: 0 0 auto !important; }\n"
+        "#root > *:last-child { flex: 1 1 auto !important; min-height: 0 !important; }\n"
+    )
+}
+
+GRID_MOD = {
+    "style": (
+        ":host {\n"
+        "  display: block !important; height: 100% !important;\n"
+        "  min-height: 0 !important; width: 100% !important;\n"
         "  box-sizing: border-box !important;\n"
-        "  padding: 12px !important;\n"
         "}\n"
         "#root {\n"
         "  height: 100% !important; min-height: 0 !important;\n"
@@ -199,6 +215,65 @@ def _templates_from_live(live: dict | None = None) -> dict:
 
 def _merge_styles(styles: dict, key: str, extras: list[dict]) -> None:
     styles[key] = list(styles.get(key) or []) + list(extras)
+
+
+def _clock() -> dict:
+    """Large NZ time + date header (restored from pre-fullscreen layout)."""
+    return {
+        "type": "custom:button-card",
+        "entity": "sensor.time",
+        "triggers_update": "all",
+        "show_icon": False,
+        "show_name": True,
+        "show_label": True,
+        "show_state": False,
+        "name": (
+            "[[[ return new Date().toLocaleTimeString('en-NZ', "
+            "{timeZone: 'Pacific/Auckland', hour: 'numeric', "
+            "minute: '2-digit', hour12: true}); ]]]"
+        ),
+        "label": (
+            "[[[ return new Date().toLocaleDateString('en-NZ', "
+            "{timeZone: 'Pacific/Auckland', weekday: 'short', "
+            "day: 'numeric', month: 'short'}); ]]]"
+        ),
+        "tap_action": {"action": "none"},
+        "hold_action": {"action": "none"},
+        "styles": {
+            "card": [
+                {"background": "transparent"},
+                {"box-shadow": "none"},
+                {"border": "none"},
+                {"padding": "8px 8px 4px"},
+                {"height": "auto"},
+                {"min-height": "unset"},
+            ],
+            "grid": [
+                {"grid-template-areas": "'n' 'l'"},
+                {"grid-template-columns": "1fr"},
+                {"grid-template-rows": "min-content min-content"},
+                {"row-gap": "2px"},
+                {"justify-items": "center"},
+            ],
+            "name": [
+                {"font-size": "64px"},
+                {"font-weight": "800"},
+                {"letter-spacing": "-0.02em"},
+                {"line-height": "1"},
+                {"color": "var(--md-sys-color-on-surface)"},
+                {"justify-self": "center"},
+                {"font-variant-numeric": "tabular-nums"},
+            ],
+            "label": [
+                {"font-size": "18px"},
+                {"font-weight": "600"},
+                {"color": "var(--md-sys-color-on-surface-variant)"},
+                {"justify-self": "center"},
+                {"letter-spacing": "0.04em"},
+                {"text-transform": "uppercase"},
+            ],
+        },
+    }
 
 
 def _tile(card: dict) -> dict:
@@ -278,8 +353,13 @@ def build_wall_config(*, live: dict | None = None) -> dict:
                 "theme": WALL_THEME,
                 "icon": "mdi:garage-variant",
                 "card_mod": VIEW_MOD,
-                # Single full-screen card: four equal buttons, no clock / footer.
-                "cards": [_grid()],
+                "cards": [
+                    {
+                        "type": "vertical-stack",
+                        "cards": [_clock(), _grid()],
+                        "card_mod": STACK_MOD,
+                    }
+                ],
             }
         ],
     }
@@ -312,17 +392,27 @@ def _validate(config: dict) -> None:
         raise SystemExit("wall config still references mushroom cards")
     if "variables?." in blob or "states?." in blob:
         raise SystemExit("wall config still has optional-chaining in button JS")
-    if "All Off" in blob or "sensor.time" in blob:
-        raise SystemExit("wall config must be 4 buttons only (no clock / All Off)")
+    if "All Off" in blob:
+        raise SystemExit("wall config should not include All Off footer")
+    if "sensor.time" not in blob or "Pacific/Auckland" not in blob:
+        raise SystemExit("wall config missing NZ time/date clock")
 
     kiosk = config.get("kiosk_mode") or {}
     if not kiosk.get("hide_header") or not kiosk.get("hide_sidebar"):
         raise SystemExit("wall kiosk_mode must hide_header + hide_sidebar")
 
     view_cards = config["views"][0]["cards"]
-    if len(view_cards) != 1 or view_cards[0].get("type") != "grid":
-        raise SystemExit("wall view must be a single full-screen grid")
-    cards = view_cards[0]["cards"]
+    if len(view_cards) != 1 or view_cards[0].get("type") != "vertical-stack":
+        raise SystemExit("wall view must be a vertical-stack (clock + grid)")
+    stack = view_cards[0]["cards"]
+    if len(stack) != 2:
+        raise SystemExit(f"wall stack must be clock + grid, got {len(stack)} cards")
+    if stack[0].get("entity") != "sensor.time":
+        raise SystemExit("wall stack first card must be the time/date clock")
+    grid = stack[1]
+    if grid.get("type") != "grid":
+        raise SystemExit("wall stack second card must be the button grid")
+    cards = grid["cards"]
     if len(cards) != 4:
         raise SystemExit(f"wall grid must have exactly 4 buttons, got {len(cards)}")
     names = [c.get("name") for c in cards]
