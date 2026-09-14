@@ -1,5 +1,25 @@
 {
   "title": "Wall Display",
+  "kiosk_mode": {
+    "hide_header": true,
+    "hide_sidebar": true,
+    "hide_overflow": true,
+    "admin_settings": {
+      "hide_header": true,
+      "hide_sidebar": true,
+      "hide_overflow": true
+    },
+    "non_admin_settings": {
+      "hide_header": true,
+      "hide_sidebar": true,
+      "hide_overflow": true
+    },
+    "mobile_settings": {
+      "hide_header": true,
+      "hide_sidebar": true,
+      "hide_overflow": true
+    }
+  },
   "button_card_templates": {
     "flux_glass": {
       "styles": {

@@ -6,6 +6,7 @@ Garage wall Fully Kiosk home view:
   - Top row: House Garage | Main Shed (flux_door)
   - Bottom row: Gate Open | Gate Latch (flux_action)
   - Flux UI MD3 theme + button-card templates only (no mushroom)
+  - kiosk-mode: hide HA header + sidebar (no banners)
   - perform-action taps + ES5-safe door JS
 """
 
@@ -35,6 +36,31 @@ from md3_templates import BUTTON_CARD_TEMPLATES  # noqa: E402
 WALL_URL_PATH = "flux-ui-wall"
 WALL_TITLE = "Wall Display"
 WALL_THEME = "flux-ui-md3"
+
+# Dedicated garage wall panel — hide all HA chrome (header title/menus + sidebar).
+# Requires HACS maykar/kiosk-mode (already registered on this HA).
+# Unlike phone Flux (mobile_settings only), wall uses global flags so Fully Kiosk
+# tablets/portrait panels also lose the banner.
+WALL_KIOSK_MODE: dict = {
+    "hide_header": True,
+    "hide_sidebar": True,
+    "hide_overflow": True,
+    "admin_settings": {
+        "hide_header": True,
+        "hide_sidebar": True,
+        "hide_overflow": True,
+    },
+    "non_admin_settings": {
+        "hide_header": True,
+        "hide_sidebar": True,
+        "hide_overflow": True,
+    },
+    "mobile_settings": {
+        "hide_header": True,
+        "hide_sidebar": True,
+        "hide_overflow": True,
+    },
+}
 
 GATE_OPEN = {
     "entity": "lock.gate_intercom_gate_open",
@@ -241,6 +267,7 @@ def _grid() -> dict:
 def build_wall_config(*, live: dict | None = None) -> dict:
     return {
         "title": WALL_TITLE,
+        "kiosk_mode": copy.deepcopy(WALL_KIOSK_MODE),
         "button_card_templates": _templates_from_live(live),
         "views": [
             {
@@ -274,6 +301,8 @@ def _validate(config: dict) -> None:
         '"template": "flux_door"',
         '"template": "flux_action"',
         f'"theme": "{WALL_THEME}"',
+        '"hide_header": true',
+        '"hide_sidebar": true',
     ):
         if needle not in blob:
             raise SystemExit(f"wall config missing {needle!r}")
@@ -285,6 +314,10 @@ def _validate(config: dict) -> None:
         raise SystemExit("wall config still has optional-chaining in button JS")
     if "All Off" in blob or "sensor.time" in blob:
         raise SystemExit("wall config must be 4 buttons only (no clock / All Off)")
+
+    kiosk = config.get("kiosk_mode") or {}
+    if not kiosk.get("hide_header") or not kiosk.get("hide_sidebar"):
+        raise SystemExit("wall kiosk_mode must hide_header + hide_sidebar")
 
     view_cards = config["views"][0]["cards"]
     if len(view_cards) != 1 or view_cards[0].get("type") != "grid":
