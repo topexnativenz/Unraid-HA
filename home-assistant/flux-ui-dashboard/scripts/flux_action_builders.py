@@ -7,12 +7,17 @@ from pathlib import Path
 
 from flux_door_builders import flux_door_tile
 
-# Soft tinted card fill — only when gate is open (closed stays default theme).
+# Match flux_door status colours: green when closed/latched, pink/red when open.
+_GATE_CLOSED_BG = (
+    "color-mix(in srgb, var(--md-sys-color-surface-container) 78%, rgba(129, 199, 132, 0.1))"
+)
+_GATE_CLOSED_BORDER = "1px solid rgba(129, 199, 132, 0.35)"
+_GATE_CLOSED_LABEL = "#81C784"
+_CHIP_CLOSED = "rgba(129, 199, 132, 0.22)"
+
 _GATE_OPEN_BG = "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
 _GATE_OPEN_BORDER = "1px solid rgba(242, 184, 181, 0.85)"
-
-# High-contrast icon chips.
-_CHIP_DEFAULT = "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+_GATE_OPEN_LABEL = "#F2B8B5"
 _CHIP_OPEN = "#5C1010"  # deep rose on pink/red open card
 
 _ICONS_DIR = Path(__file__).resolve().parents[1] / "www" / "flux-ui" / "icons"
@@ -62,11 +67,10 @@ def lock_action(
     hold_entity: str | None = None,
     status_on_means_open: bool = True,
 ) -> dict:
-    """Gate Open / Gate Latch — default chrome; red background only when open."""
+    """Gate Open / Gate Latch — green when closed/latched, pink/red when open."""
     is_latch = "latch" in name.lower()
     closed_label = "Latched" if is_latch else "Closed"
     open_label = "Unlatched" if is_latch else "Open"
-    open_label_color = "#F2B8B5"
 
     open_body = _gate_open_js_body(
         status_entity=status_entity,
@@ -115,7 +119,12 @@ def lock_action(
             "target": {"entity_id": entity},
         },
         "triggers_update": triggers,
+        # Default (closed/latched) = same green chrome as flux_door closed.
         "styles": {
+            "card": [
+                {"background": _GATE_CLOSED_BG},
+                {"border": _GATE_CLOSED_BORDER},
+            ],
             "grid": [
                 {"grid-template-areas": "'i n' 'i l'"},
                 {"grid-template-columns": "52px 1fr"},
@@ -127,12 +136,16 @@ def lock_action(
                 {"width": "52px"},
                 {"height": "52px"},
                 {"place-self": "center"},
-                {"background-color": _CHIP_DEFAULT},
+                {"background-color": _CHIP_CLOSED},
             ],
             "entity_picture": [
                 {"width": "30px"},
                 {"height": "30px"},
                 {"object-fit": "contain"},
+            ],
+            "label": [
+                {"color": _GATE_CLOSED_LABEL},
+                {"font-weight": "600"},
             ],
         },
         "state": [
@@ -148,7 +161,7 @@ def lock_action(
                         {"background-color": _CHIP_OPEN},
                         {"box-shadow": f"0 0 0 1px {_CHIP_OPEN}"},
                     ],
-                    "label": [{"color": open_label_color}, {"font-weight": "700"}],
+                    "label": [{"color": _GATE_OPEN_LABEL}, {"font-weight": "700"}],
                     "name": [{"color": "var(--md-sys-color-on-surface)"}],
                 },
             },
