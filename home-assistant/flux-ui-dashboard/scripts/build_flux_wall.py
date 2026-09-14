@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Build + deploy Flux UI Wall Display (flux-ui-wall).
 
-Wall Fully Kiosk home view:
+Garage wall Fully Kiosk home view:
+  - Full-screen 2×2 grid (equal cells, edge-to-edge)
   - Top row: House Garage | Main Shed (flux_door)
   - Bottom row: Gate Open | Gate Latch (flux_action)
-  - Footer: All Off (flux_action)
-  - Flux MD3 button-card templates only (no mushroom cards)
+  - Flux UI MD3 theme + button-card templates only (no mushroom)
   - perform-action taps + ES5-safe door JS
 """
 
@@ -34,7 +34,7 @@ from md3_templates import BUTTON_CARD_TEMPLATES  # noqa: E402
 
 WALL_URL_PATH = "flux-ui-wall"
 WALL_TITLE = "Wall Display"
-ALL_OFF_SCRIPT = "script.house_lights_all_off"
+WALL_THEME = "flux-ui-md3"
 
 GATE_OPEN = {
     "entity": "lock.gate_intercom_gate_open",
@@ -48,14 +48,63 @@ GATE_LATCH = {
     "hold_entity": "input_boolean.gate_hold_active",
 }
 
+# Wall-scale touch targets — fill each equal grid cell.
 TILE_CARD = [
-    {"padding": "14px 10px 12px"},
+    {"padding": "28px 24px"},
     {"height": "100%"},
     {"min-height": "0"},
+    {"width": "100%"},
     {"display": "flex"},
     {"align-items": "center"},
     {"justify-content": "center"},
-    {"border-radius": "22px"},
+    {"border-radius": "28px"},
+    {"box-sizing": "border-box"},
+]
+
+TILE_GRID = [
+    {"grid-template-areas": "'i n' 'i l'"},
+    {"grid-template-columns": "88px 1fr"},
+    {"grid-template-rows": "min-content min-content"},
+    {"column-gap": "20px"},
+    {"align-items": "center"},
+    {"justify-content": "center"},
+]
+
+TILE_IMG = [
+    {"border-radius": "24px"},
+    {"width": "88px"},
+    {"height": "88px"},
+    {"place-self": "center"},
+]
+
+TILE_ICON = [
+    {"width": "48px"},
+    {"height": "48px"},
+]
+
+TILE_NAME = [
+    {"font-size": "28px"},
+    {"font-weight": "700"},
+    {"line-height": "1.2"},
+    {"white-space": "normal"},
+    {"overflow": "visible"},
+    {"text-overflow": "clip"},
+    {"justify-self": "start"},
+    {"text-align": "left"},
+    {"color": "var(--md-sys-color-on-surface)"},
+]
+
+TILE_LABEL = [
+    {"font-size": "18px"},
+    {"font-weight": "600"},
+    {"justify-self": "start"},
+    {"color": "var(--md-sys-color-on-surface-variant)"},
+]
+
+TILE_ENTITY_PIC = [
+    {"width": "48px"},
+    {"height": "48px"},
+    {"object-fit": "contain"},
 ]
 
 VIEW_MOD = {
@@ -87,32 +136,30 @@ VIEW_MOD = {
     )
 }
 
-STACK_MOD = {
+GRID_MOD = {
     "style": (
         ":host {\n"
         "  display: block !important; height: 100dvh !important;\n"
-        "  max-height: 100dvh !important; box-sizing: border-box !important;\n"
-        "  padding: 10px 12px 14px !important;\n"
+        "  max-height: 100dvh !important; width: 100% !important;\n"
+        "  box-sizing: border-box !important;\n"
+        "  padding: 12px !important;\n"
         "}\n"
-        "#root {\n"
-        "  height: 100% !important; display: flex !important;\n"
-        "  flex-direction: column !important; gap: 10px !important;\n"
-        "}\n"
-        "#root > *:first-child { flex: 0 0 auto !important; }\n"
-        "#root > *:nth-child(2) { flex: 1 1 auto !important; min-height: 0 !important; }\n"
-        "#root > *:last-child { flex: 0 0 auto !important; }\n"
-    )
-}
-
-GRID_MOD = {
-    "style": (
-        ":host { display: block !important; height: 100% !important; min-height: 0 !important; }\n"
         "#root {\n"
         "  height: 100% !important; min-height: 0 !important;\n"
-        "  display: grid !important; grid-template-columns: 1fr 1fr !important;\n"
-        "  grid-template-rows: 1fr 1fr !important; gap: 10px !important;\n"
+        "  width: 100% !important;\n"
+        "  display: grid !important;\n"
+        "  grid-template-columns: 1fr 1fr !important;\n"
+        "  grid-template-rows: 1fr 1fr !important;\n"
+        "  gap: 12px !important;\n"
+        "  box-sizing: border-box !important;\n"
         "}\n"
-        "#root > * { min-height: 0 !important; height: 100% !important; }\n"
+        "#root > * {\n"
+        "  min-height: 0 !important; min-width: 0 !important;\n"
+        "  height: 100% !important; width: 100% !important;\n"
+        "}\n"
+        "#root > * > * {\n"
+        "  height: 100% !important; width: 100% !important;\n"
+        "}\n"
     )
 }
 
@@ -124,97 +171,24 @@ def _templates_from_live(live: dict | None = None) -> dict:
     return {k: copy.deepcopy(BUTTON_CARD_TEMPLATES[k]) for k in flux_keys}
 
 
-def _clock() -> dict:
-    return {
-        "type": "custom:button-card",
-        "entity": "sensor.time",
-        "triggers_update": "all",
-        "show_icon": False,
-        "show_name": True,
-        "show_label": True,
-        "show_state": False,
-        "name": (
-            "[[[ return new Date().toLocaleTimeString('en-NZ', "
-            "{timeZone: 'Pacific/Auckland', hour: 'numeric', "
-            "minute: '2-digit', hour12: true}); ]]]"
-        ),
-        "label": (
-            "[[[ return new Date().toLocaleDateString('en-NZ', "
-            "{timeZone: 'Pacific/Auckland', weekday: 'short', "
-            "day: 'numeric', month: 'short'}); ]]]"
-        ),
-        "tap_action": {"action": "none"},
-        "hold_action": {"action": "none"},
-        "styles": {
-            "card": [
-                {"background": "transparent"},
-                {"box-shadow": "none"},
-                {"border": "none"},
-                {"padding": "8px 8px 4px"},
-                {"height": "auto"},
-                {"min-height": "unset"},
-            ],
-            "grid": [
-                {"grid-template-areas": "'n' 'l'"},
-                {"grid-template-columns": "1fr"},
-                {"grid-template-rows": "min-content min-content"},
-                {"row-gap": "2px"},
-                {"justify-items": "center"},
-            ],
-            "name": [
-                {"font-size": "64px"},
-                {"font-weight": "800"},
-                {"letter-spacing": "-0.02em"},
-                {"line-height": "1"},
-                {"color": "var(--md-sys-color-on-surface)"},
-                {"justify-self": "center"},
-                {"font-variant-numeric": "tabular-nums"},
-            ],
-            "label": [
-                {"font-size": "18px"},
-                {"font-weight": "600"},
-                {"color": "var(--md-sys-color-on-surface-variant)"},
-                {"justify-self": "center"},
-                {"letter-spacing": "0.04em"},
-                {"text-transform": "uppercase"},
-            ],
-        },
-    }
+def _merge_styles(styles: dict, key: str, extras: list[dict]) -> None:
+    styles[key] = list(styles.get(key) or []) + list(extras)
 
 
 def _tile(card: dict) -> dict:
+    """Scale a Flux MD3 tile to fill one equal full-screen grid cell."""
     out = copy.deepcopy(card)
     out.pop("grid_options", None)
     styles = dict(out.get("styles") or {})
-    card_styles = list(styles.get("card") or [])
-    card_styles.extend(TILE_CARD)
-    styles["card"] = card_styles
+    _merge_styles(styles, "card", TILE_CARD)
+    _merge_styles(styles, "grid", TILE_GRID)
+    _merge_styles(styles, "img_cell", TILE_IMG)
+    _merge_styles(styles, "icon", TILE_ICON)
+    _merge_styles(styles, "entity_picture", TILE_ENTITY_PIC)
+    _merge_styles(styles, "name", TILE_NAME)
+    _merge_styles(styles, "label", TILE_LABEL)
     out["styles"] = styles
     return out
-
-
-def _all_off() -> dict:
-    return {
-        "type": "custom:button-card",
-        "template": "flux_action",
-        "name": "All Off",
-        "label": "House lights",
-        "icon": "mdi:lightbulb-off-outline",
-        "show_icon": True,
-        "show_label": True,
-        "tap_action": {
-            "action": "perform-action",
-            "perform_action": "script.turn_on",
-            "target": {"entity_id": ALL_OFF_SCRIPT},
-        },
-        "styles": {
-            "card": [
-                {"padding": "12px 14px"},
-                {"min-height": "64px"},
-                {"border-radius": "22px"},
-            ]
-        },
-    }
 
 
 def _grid() -> dict:
@@ -225,7 +199,7 @@ def _grid() -> dict:
     shed = by_name.get("Main Shed") or (doors[1] if len(doors) > 1 else None)
 
     tiles: list[dict] = []
-    # Top row: House Garage | Main Shed (same order as before the gate-first rebuild)
+    # Top row: House Garage | Main Shed
     if house:
         tiles.append(_tile(flux_door_tile(house)))
     if shed:
@@ -274,15 +248,11 @@ def build_wall_config(*, live: dict | None = None) -> dict:
                 "path": "home",
                 "type": "panel",
                 "panel": True,
-                "icon": "mdi:wall",
+                "theme": WALL_THEME,
+                "icon": "mdi:garage-variant",
                 "card_mod": VIEW_MOD,
-                "cards": [
-                    {
-                        "type": "vertical-stack",
-                        "cards": [_clock(), _grid(), _all_off()],
-                        "card_mod": STACK_MOD,
-                    }
-                ],
+                # Single full-screen card: four equal buttons, no clock / footer.
+                "cards": [_grid()],
             }
         ],
     }
@@ -303,6 +273,7 @@ def _validate(config: dict) -> None:
         "Main Shed",
         '"template": "flux_door"',
         '"template": "flux_action"',
+        f'"theme": "{WALL_THEME}"',
     ):
         if needle not in blob:
             raise SystemExit(f"wall config missing {needle!r}")
@@ -312,10 +283,16 @@ def _validate(config: dict) -> None:
         raise SystemExit("wall config still references mushroom cards")
     if "variables?." in blob or "states?." in blob:
         raise SystemExit("wall config still has optional-chaining in button JS")
+    if "All Off" in blob or "sensor.time" in blob:
+        raise SystemExit("wall config must be 4 buttons only (no clock / All Off)")
 
-    # Top row must be House Garage | Main Shed (garage doors first).
-    cards = config["views"][0]["cards"][0]["cards"][1]["cards"]
-    names = [c.get("name") for c in cards[:4]]
+    view_cards = config["views"][0]["cards"]
+    if len(view_cards) != 1 or view_cards[0].get("type") != "grid":
+        raise SystemExit("wall view must be a single full-screen grid")
+    cards = view_cards[0]["cards"]
+    if len(cards) != 4:
+        raise SystemExit(f"wall grid must have exactly 4 buttons, got {len(cards)}")
+    names = [c.get("name") for c in cards]
     if names[:2] != ["House Garage", "Main Shed"]:
         raise SystemExit(f"garage doors must be top row, got {names!r}")
     if names[2:4] != ["Gate Open", "Gate Latch"]:
@@ -368,9 +345,6 @@ async def async_main(args: argparse.Namespace) -> int:
 
     assert token is not None
     await _save(token, ha_url, config)
-
-    # Also repair wall-2 taps that still use call-service if any appear later.
-    # Wall-2 already uses perform-action for its four buttons — leave as-is.
     return 0
 
 

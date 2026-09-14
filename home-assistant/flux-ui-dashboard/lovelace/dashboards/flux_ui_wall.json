@@ -247,89 +247,204 @@
       "path": "home",
       "type": "panel",
       "panel": true,
-      "icon": "mdi:wall",
+      "theme": "flux-ui-md3",
+      "icon": "mdi:garage-variant",
       "card_mod": {
         "style": "ha-view {\n  background: center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n  height: 100dvh !important; max-height: 100dvh !important;\n  overflow: hidden !important;\n}\n#view {\n  background: transparent !important; max-width: none !important;\n  width: 100% !important; height: 100dvh !important;\n  max-height: 100dvh !important; margin: 0 !important;\n  padding: 0 !important; overflow: hidden !important;\n}\nhui-panel-view, hui-view-panel {\n  width: 100% !important; height: 100dvh !important;\n  max-height: 100dvh !important; overflow: hidden !important;\n}\nhui-panel-view > *, hui-view-panel > * {\n  width: 100% !important; height: 100dvh !important;\n  max-height: 100dvh !important; overflow: hidden !important;\n}\n@keyframes flux-door-pulse {\n  0%, 100% { box-shadow: 0 0 18px rgba(242, 184, 181, 0.45); }\n  50% { box-shadow: 0 0 28px rgba(242, 184, 181, 0.75); }\n}\n"
       },
       "cards": [
         {
-          "type": "vertical-stack",
+          "type": "grid",
+          "columns": 2,
+          "square": false,
           "cards": [
             {
               "type": "custom:button-card",
-              "entity": "sensor.time",
+              "template": "flux_door",
+              "entity": "binary_sensor.house_garage_door_sensor_door",
               "triggers_update": "all",
-              "show_icon": false,
-              "show_name": true,
-              "show_label": true,
-              "show_state": false,
-              "name": "[[[ return new Date().toLocaleTimeString('en-NZ', {timeZone: 'Pacific/Auckland', hour: 'numeric', minute: '2-digit', hour12: true}); ]]]",
-              "label": "[[[ return new Date().toLocaleDateString('en-NZ', {timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric', month: 'short'}); ]]]",
+              "name": "House Garage",
+              "icon": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'mdi:garage-open';\n  if (open === false) return 'mdi:garage';\n  return 'mdi:garage';\n]]]",
+              "label": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'Open';\n  if (open === false) return 'Closed';\n  return (st && st.state) ? String(st.state) : 'Closed';\n]]]",
+              "variables": {
+                "invert": false,
+                "door_name": "House Garage",
+                "sensor_id": "binary_sensor.house_garage_door_sensor_door"
+              },
               "tap_action": {
-                "action": "none"
+                "action": "perform-action",
+                "perform_action": "script.turn_on",
+                "target": {
+                  "entity_id": "script.pulse_house_garage_door"
+                }
               },
               "hold_action": {
-                "action": "none"
+                "action": "more-info"
               },
+              "state": [
+                {
+                  "operator": "template",
+                  "value": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  return isDoorOpen(st, false);\n]]]",
+                  "styles": {
+                    "card": [
+                      {
+                        "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                      },
+                      {
+                        "border": "1px solid rgba(242, 184, 181, 0.85)"
+                      },
+                      {
+                        "box-shadow": "0 0 22px rgba(242, 184, 181, 0.55), 0 0 40px rgba(242, 184, 181, 0.25)"
+                      },
+                      {
+                        "animation": "flux-door-pulse 2.4s ease-in-out infinite"
+                      }
+                    ],
+                    "icon": [
+                      {
+                        "color": "#3b1216"
+                      }
+                    ],
+                    "img_cell": [
+                      {
+                        "background-color": "rgba(242, 184, 181, 0.55)"
+                      },
+                      {
+                        "box-shadow": "0 0 16px rgba(242, 184, 181, 0.65)"
+                      }
+                    ],
+                    "name": [
+                      {
+                        "color": "#fff8f7"
+                      },
+                      {
+                        "font-weight": "700"
+                      }
+                    ],
+                    "label": [
+                      {
+                        "color": "#F2B8B5"
+                      },
+                      {
+                        "font-weight": "700"
+                      }
+                    ]
+                  }
+                }
+              ],
               "styles": {
+                "icon": [
+                  {
+                    "color": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
+                  },
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  }
+                ],
                 "card": [
                   {
-                    "background": "transparent"
+                    "padding": "28px 24px"
                   },
                   {
-                    "box-shadow": "none"
+                    "height": "100%"
                   },
                   {
-                    "border": "none"
+                    "min-height": "0"
                   },
                   {
-                    "padding": "8px 8px 4px"
+                    "width": "100%"
                   },
                   {
-                    "height": "auto"
+                    "display": "flex"
                   },
                   {
-                    "min-height": "unset"
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  },
+                  {
+                    "border-radius": "28px"
+                  },
+                  {
+                    "box-sizing": "border-box"
                   }
                 ],
                 "grid": [
                   {
-                    "grid-template-areas": "'n' 'l'"
+                    "grid-template-areas": "'i n' 'i l'"
                   },
                   {
-                    "grid-template-columns": "1fr"
+                    "grid-template-columns": "88px 1fr"
                   },
                   {
                     "grid-template-rows": "min-content min-content"
                   },
                   {
-                    "row-gap": "2px"
+                    "column-gap": "20px"
                   },
                   {
-                    "justify-items": "center"
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  }
+                ],
+                "img_cell": [
+                  {
+                    "border-radius": "24px"
+                  },
+                  {
+                    "width": "88px"
+                  },
+                  {
+                    "height": "88px"
+                  },
+                  {
+                    "place-self": "center"
+                  }
+                ],
+                "entity_picture": [
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  },
+                  {
+                    "object-fit": "contain"
                   }
                 ],
                 "name": [
                   {
-                    "font-size": "64px"
+                    "font-size": "28px"
                   },
                   {
-                    "font-weight": "800"
+                    "font-weight": "700"
                   },
                   {
-                    "letter-spacing": "-0.02em"
+                    "line-height": "1.2"
                   },
                   {
-                    "line-height": "1"
+                    "white-space": "normal"
+                  },
+                  {
+                    "overflow": "visible"
+                  },
+                  {
+                    "text-overflow": "clip"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "text-align": "left"
                   },
                   {
                     "color": "var(--md-sys-color-on-surface)"
-                  },
-                  {
-                    "justify-self": "center"
-                  },
-                  {
-                    "font-variant-numeric": "tabular-nums"
                   }
                 ],
                 "label": [
@@ -340,523 +455,665 @@
                     "font-weight": "600"
                   },
                   {
+                    "justify-self": "start"
+                  },
+                  {
                     "color": "var(--md-sys-color-on-surface-variant)"
-                  },
-                  {
-                    "justify-self": "center"
-                  },
-                  {
-                    "letter-spacing": "0.04em"
-                  },
-                  {
-                    "text-transform": "uppercase"
                   }
                 ]
               }
             },
             {
-              "type": "grid",
-              "columns": 2,
-              "square": false,
-              "cards": [
+              "type": "custom:button-card",
+              "template": "flux_door",
+              "entity": "binary_sensor.contact_sensor_door",
+              "triggers_update": "all",
+              "name": "Main Shed",
+              "icon": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'mdi:door-sliding-open';\n  if (open === false) return 'mdi:warehouse';\n  return 'mdi:garage';\n]]]",
+              "label": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'Open';\n  if (open === false) return 'Closed';\n  return (st && st.state) ? String(st.state) : 'Closed';\n]]]",
+              "variables": {
+                "invert": false,
+                "door_name": "Main Shed",
+                "sensor_id": "binary_sensor.contact_sensor_door"
+              },
+              "tap_action": {
+                "action": "perform-action",
+                "perform_action": "script.turn_on",
+                "target": {
+                  "entity_id": "script.pulse_main_shed_door"
+                }
+              },
+              "hold_action": {
+                "action": "more-info"
+              },
+              "state": [
                 {
-                  "type": "custom:button-card",
-                  "template": "flux_door",
-                  "entity": "binary_sensor.house_garage_door_sensor_door",
-                  "triggers_update": "all",
-                  "name": "House Garage",
-                  "icon": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'mdi:garage-open';\n  if (open === false) return 'mdi:garage';\n  return 'mdi:garage';\n]]]",
-                  "label": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'Open';\n  if (open === false) return 'Closed';\n  return (st && st.state) ? String(st.state) : 'Closed';\n]]]",
-                  "variables": {
-                    "invert": false,
-                    "door_name": "House Garage",
-                    "sensor_id": "binary_sensor.house_garage_door_sensor_door"
-                  },
-                  "tap_action": {
-                    "action": "perform-action",
-                    "perform_action": "script.turn_on",
-                    "target": {
-                      "entity_id": "script.pulse_house_garage_door"
-                    }
-                  },
-                  "hold_action": {
-                    "action": "more-info"
-                  },
-                  "state": [
-                    {
-                      "operator": "template",
-                      "value": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  return isDoorOpen(st, false);\n]]]",
-                      "styles": {
-                        "card": [
-                          {
-                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
-                          },
-                          {
-                            "border": "1px solid rgba(242, 184, 181, 0.85)"
-                          },
-                          {
-                            "box-shadow": "0 0 22px rgba(242, 184, 181, 0.55), 0 0 40px rgba(242, 184, 181, 0.25)"
-                          },
-                          {
-                            "animation": "flux-door-pulse 2.4s ease-in-out infinite"
-                          }
-                        ],
-                        "icon": [
-                          {
-                            "color": "#3b1216"
-                          }
-                        ],
-                        "img_cell": [
-                          {
-                            "background-color": "rgba(242, 184, 181, 0.55)"
-                          },
-                          {
-                            "box-shadow": "0 0 16px rgba(242, 184, 181, 0.65)"
-                          }
-                        ],
-                        "name": [
-                          {
-                            "color": "#fff8f7"
-                          },
-                          {
-                            "font-weight": "700"
-                          }
-                        ],
-                        "label": [
-                          {
-                            "color": "#F2B8B5"
-                          },
-                          {
-                            "font-weight": "700"
-                          }
-                        ]
-                      }
-                    }
-                  ],
+                  "operator": "template",
+                  "value": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  return isDoorOpen(st, false);\n]]]",
                   "styles": {
-                    "icon": [
-                      {
-                        "color": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
-                      }
-                    ],
                     "card": [
                       {
-                        "padding": "14px 10px 12px"
+                        "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
                       },
                       {
-                        "height": "100%"
+                        "border": "1px solid rgba(242, 184, 181, 0.85)"
                       },
                       {
-                        "min-height": "0"
+                        "box-shadow": "0 0 22px rgba(242, 184, 181, 0.55), 0 0 40px rgba(242, 184, 181, 0.25)"
                       },
                       {
-                        "display": "flex"
-                      },
-                      {
-                        "align-items": "center"
-                      },
-                      {
-                        "justify-content": "center"
-                      },
-                      {
-                        "border-radius": "22px"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "type": "custom:button-card",
-                  "template": "flux_door",
-                  "entity": "binary_sensor.contact_sensor_door",
-                  "triggers_update": "all",
-                  "name": "Main Shed",
-                  "icon": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'mdi:door-sliding-open';\n  if (open === false) return 'mdi:warehouse';\n  return 'mdi:garage';\n]]]",
-                  "label": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return 'Open';\n  if (open === false) return 'Closed';\n  return (st && st.state) ? String(st.state) : 'Closed';\n]]]",
-                  "variables": {
-                    "invert": false,
-                    "door_name": "Main Shed",
-                    "sensor_id": "binary_sensor.contact_sensor_door"
-                  },
-                  "tap_action": {
-                    "action": "perform-action",
-                    "perform_action": "script.turn_on",
-                    "target": {
-                      "entity_id": "script.pulse_main_shed_door"
-                    }
-                  },
-                  "hold_action": {
-                    "action": "more-info"
-                  },
-                  "state": [
-                    {
-                      "operator": "template",
-                      "value": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  return isDoorOpen(st, false);\n]]]",
-                      "styles": {
-                        "card": [
-                          {
-                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
-                          },
-                          {
-                            "border": "1px solid rgba(242, 184, 181, 0.85)"
-                          },
-                          {
-                            "box-shadow": "0 0 22px rgba(242, 184, 181, 0.55), 0 0 40px rgba(242, 184, 181, 0.25)"
-                          },
-                          {
-                            "animation": "flux-door-pulse 2.4s ease-in-out infinite"
-                          }
-                        ],
-                        "icon": [
-                          {
-                            "color": "#3b1216"
-                          }
-                        ],
-                        "img_cell": [
-                          {
-                            "background-color": "rgba(242, 184, 181, 0.55)"
-                          },
-                          {
-                            "box-shadow": "0 0 16px rgba(242, 184, 181, 0.65)"
-                          }
-                        ],
-                        "name": [
-                          {
-                            "color": "#fff8f7"
-                          },
-                          {
-                            "font-weight": "700"
-                          }
-                        ],
-                        "label": [
-                          {
-                            "color": "#F2B8B5"
-                          },
-                          {
-                            "font-weight": "700"
-                          }
-                        ]
-                      }
-                    }
-                  ],
-                  "styles": {
-                    "icon": [
-                      {
-                        "color": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
+                        "animation": "flux-door-pulse 2.4s ease-in-out infinite"
                       }
                     ],
-                    "card": [
+                    "icon": [
                       {
-                        "padding": "14px 10px 12px"
-                      },
-                      {
-                        "height": "100%"
-                      },
-                      {
-                        "min-height": "0"
-                      },
-                      {
-                        "display": "flex"
-                      },
-                      {
-                        "align-items": "center"
-                      },
-                      {
-                        "justify-content": "center"
-                      },
-                      {
-                        "border-radius": "22px"
-                      }
-                    ]
-                  }
-                },
-                {
-                  "type": "custom:button-card",
-                  "template": "flux_action",
-                  "entity": "lock.gate_intercom_gate_open",
-                  "name": "Gate Open",
-                  "show_icon": false,
-                  "show_entity_picture": true,
-                  "entity_picture": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIHN3dW5nIG91dHdhcmQgKHBlcnNwZWN0aXZlOiBuYXJyb3cgdmVydGljYWwgcGFuZWwgYnkgbGVmdCBwb3N0KSAtLT4KICA8cGF0aCBkPSJNNC4yIDVoMi42bDEuMiAxLjV2MTFMNi44IDE5SDQuMlY1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuMzUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSI0LjciIHk9IjYuNiIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMC44IiByeD0iMC4yNSIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjUuOSIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgc3d1bmcgb3V0d2FyZCAtLT4KICA8cGF0aCBkPSJNMTkuOCA1aC0yLjZsLTEuMiAxLjV2MTFsMS4yIDEuNWgyLjZWNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjM1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iMTguNCIgeT0iNi42IiB3aWR0aD0iMC45IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjI1IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMTcuMiIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIE9wZW4gZHJpdmV3YXkgZ2FwIC0tPgogIDxwYXRoIGQ9Ik05LjIgMTguOGg1LjYiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+Cjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIC0tPgogIDxyZWN0IHg9IjQuMiIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSI1LjUiIHk9IjYuNiIgd2lkdGg9IjEuMTUiIGhlaWdodD0iMTAuOCIgcng9IjAuMyIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjcuMyIgeT0iNi42IiB3aWR0aD0iMS4xNSIgaGVpZ2h0PSIxMC44IiByeD0iMC4zIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOS4xIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgLS0+CiAgPHJlY3QgeD0iMTIuNSIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSIxMy43IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNS41IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNy4zIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIENlbnRyZSBqb2luIChsZWF2ZXMgbWVldCkgLS0+CiAgPHJlY3QgeD0iMTEuMjUiIHk9IjQuOCIgd2lkdGg9IjEuNSIgaGVpZ2h0PSIxNC40IiByeD0iMC40NSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K';\n]]]",
-                  "label": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'Open' : 'Closed';\n]]]",
-                  "tap_action": {
-                    "action": "perform-action",
-                    "perform_action": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  if (!false) return 'lock.unlock';\n  return isOpen ? 'lock.lock' : 'lock.unlock';\n]]]",
-                    "target": {
-                      "entity_id": "lock.gate_intercom_gate_open"
-                    }
-                  },
-                  "triggers_update": [
-                    "lock.gate_intercom_gate_open",
-                    "binary_sensor.casa_luna_gate_status",
-                    "input_boolean.gate_hold_active"
-                  ],
-                  "styles": {
-                    "grid": [
-                      {
-                        "grid-template-areas": "'i n' 'i l'"
-                      },
-                      {
-                        "grid-template-columns": "52px 1fr"
-                      },
-                      {
-                        "grid-template-rows": "min-content min-content"
-                      },
-                      {
-                        "column-gap": "12px"
+                        "color": "#3b1216"
                       }
                     ],
                     "img_cell": [
                       {
-                        "border-radius": "16px"
+                        "background-color": "rgba(242, 184, 181, 0.55)"
                       },
                       {
-                        "width": "52px"
-                      },
-                      {
-                        "height": "52px"
-                      },
-                      {
-                        "place-self": "center"
-                      },
-                      {
-                        "background-color": "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+                        "box-shadow": "0 0 16px rgba(242, 184, 181, 0.65)"
                       }
                     ],
-                    "entity_picture": [
+                    "name": [
                       {
-                        "width": "30px"
+                        "color": "#fff8f7"
                       },
                       {
-                        "height": "30px"
-                      },
-                      {
-                        "object-fit": "contain"
+                        "font-weight": "700"
                       }
                     ],
-                    "card": [
+                    "label": [
                       {
-                        "padding": "14px 10px 12px"
+                        "color": "#F2B8B5"
                       },
                       {
-                        "height": "100%"
-                      },
-                      {
-                        "min-height": "0"
-                      },
-                      {
-                        "display": "flex"
-                      },
-                      {
-                        "align-items": "center"
-                      },
-                      {
-                        "justify-content": "center"
-                      },
-                      {
-                        "border-radius": "22px"
+                        "font-weight": "700"
                       }
                     ]
-                  },
-                  "state": [
-                    {
-                      "operator": "template",
-                      "value": "[[[\n  if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false;\n]]]",
-                      "styles": {
-                        "card": [
-                          {
-                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
-                          },
-                          {
-                            "border": "1px solid rgba(242, 184, 181, 0.85)"
-                          }
-                        ],
-                        "img_cell": [
-                          {
-                            "background-color": "#5C1010"
-                          },
-                          {
-                            "box-shadow": "0 0 0 1px #5C1010"
-                          }
-                        ],
-                        "label": [
-                          {
-                            "color": "#F2B8B5"
-                          },
-                          {
-                            "font-weight": "700"
-                          }
-                        ],
-                        "name": [
-                          {
-                            "color": "var(--md-sys-color-on-surface)"
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                },
-                {
-                  "type": "custom:button-card",
-                  "template": "flux_action",
-                  "entity": "lock.gate_intercom_gate_latch",
-                  "name": "Gate Latch",
-                  "show_icon": false,
-                  "show_entity_picture": true,
-                  "entity_picture": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIHN3dW5nIG91dHdhcmQgKHBlcnNwZWN0aXZlOiBuYXJyb3cgdmVydGljYWwgcGFuZWwgYnkgbGVmdCBwb3N0KSAtLT4KICA8cGF0aCBkPSJNNC4yIDVoMi42bDEuMiAxLjV2MTFMNi44IDE5SDQuMlY1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuMzUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSI0LjciIHk9IjYuNiIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMC44IiByeD0iMC4yNSIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjUuOSIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgc3d1bmcgb3V0d2FyZCAtLT4KICA8cGF0aCBkPSJNMTkuOCA1aC0yLjZsLTEuMiAxLjV2MTFsMS4yIDEuNWgyLjZWNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjM1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iMTguNCIgeT0iNi42IiB3aWR0aD0iMC45IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjI1IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMTcuMiIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIE9wZW4gZHJpdmV3YXkgZ2FwIC0tPgogIDxwYXRoIGQ9Ik05LjIgMTguOGg1LjYiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+Cjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIC0tPgogIDxyZWN0IHg9IjQuMiIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSI1LjUiIHk9IjYuNiIgd2lkdGg9IjEuMTUiIGhlaWdodD0iMTAuOCIgcng9IjAuMyIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjcuMyIgeT0iNi42IiB3aWR0aD0iMS4xNSIgaGVpZ2h0PSIxMC44IiByeD0iMC4zIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOS4xIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgLS0+CiAgPHJlY3QgeD0iMTIuNSIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSIxMy43IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNS41IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNy4zIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIENlbnRyZSBqb2luIChsZWF2ZXMgbWVldCkgLS0+CiAgPHJlY3QgeD0iMTEuMjUiIHk9IjQuOCIgd2lkdGg9IjEuNSIgaGVpZ2h0PSIxNC40IiByeD0iMC40NSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K';\n]]]",
-                  "label": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'Unlatched' : 'Latched';\n]]]",
-                  "tap_action": {
-                    "action": "perform-action",
-                    "perform_action": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  if (!true) return 'lock.unlock';\n  return isOpen ? 'lock.lock' : 'lock.unlock';\n]]]",
-                    "target": {
-                      "entity_id": "lock.gate_intercom_gate_latch"
-                    }
-                  },
-                  "triggers_update": [
-                    "lock.gate_intercom_gate_latch",
-                    "input_boolean.gate_hold_active"
-                  ],
-                  "styles": {
-                    "grid": [
-                      {
-                        "grid-template-areas": "'i n' 'i l'"
-                      },
-                      {
-                        "grid-template-columns": "52px 1fr"
-                      },
-                      {
-                        "grid-template-rows": "min-content min-content"
-                      },
-                      {
-                        "column-gap": "12px"
-                      }
-                    ],
-                    "img_cell": [
-                      {
-                        "border-radius": "16px"
-                      },
-                      {
-                        "width": "52px"
-                      },
-                      {
-                        "height": "52px"
-                      },
-                      {
-                        "place-self": "center"
-                      },
-                      {
-                        "background-color": "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
-                      }
-                    ],
-                    "entity_picture": [
-                      {
-                        "width": "30px"
-                      },
-                      {
-                        "height": "30px"
-                      },
-                      {
-                        "object-fit": "contain"
-                      }
-                    ],
-                    "card": [
-                      {
-                        "padding": "14px 10px 12px"
-                      },
-                      {
-                        "height": "100%"
-                      },
-                      {
-                        "min-height": "0"
-                      },
-                      {
-                        "display": "flex"
-                      },
-                      {
-                        "align-items": "center"
-                      },
-                      {
-                        "justify-content": "center"
-                      },
-                      {
-                        "border-radius": "22px"
-                      }
-                    ]
-                  },
-                  "state": [
-                    {
-                      "operator": "template",
-                      "value": "[[[\n  if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false;\n]]]",
-                      "styles": {
-                        "card": [
-                          {
-                            "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
-                          },
-                          {
-                            "border": "1px solid rgba(242, 184, 181, 0.85)"
-                          }
-                        ],
-                        "img_cell": [
-                          {
-                            "background-color": "#5C1010"
-                          },
-                          {
-                            "box-shadow": "0 0 0 1px #5C1010"
-                          }
-                        ],
-                        "label": [
-                          {
-                            "color": "#F2B8B5"
-                          },
-                          {
-                            "font-weight": "700"
-                          }
-                        ],
-                        "name": [
-                          {
-                            "color": "var(--md-sys-color-on-surface)"
-                          }
-                        ]
-                      }
-                    }
-                  ]
+                  }
                 }
               ],
-              "card_mod": {
-                "style": ":host { display: block !important; height: 100% !important; min-height: 0 !important; }\n#root {\n  height: 100% !important; min-height: 0 !important;\n  display: grid !important; grid-template-columns: 1fr 1fr !important;\n  grid-template-rows: 1fr 1fr !important; gap: 10px !important;\n}\n#root > * { min-height: 0 !important; height: 100% !important; }\n"
+              "styles": {
+                "icon": [
+                  {
+                    "color": "[[[\nconst isDoorOpen = function(st, invert) {\n  if (!st) return null;\n  const s = String(st.state == null ? '' : st.state).toLowerCase();\n  if (!s || ['unavailable','unknown','none'].indexOf(s) >= 0) return null;\n  const openish = ['on', 'open', 'opened', 'detected', 'true'];\n  const closedish = ['off', 'closed', 'close', 'clear', 'false', 'undetected'];\n  if (openish.indexOf(s) >= 0) return invert ? false : true;\n  if (closedish.indexOf(s) >= 0) return invert ? true : false;\n  return false;\n};\n  const id = (variables && variables.sensor_id)\n    || (entity && entity.entity_id);\n  const st = (id && states && states[id]) ? states[id] : entity;\n  const open = isDoorOpen(st, false);\n  if (open === true) return '#F2B8B5';\n  if (open === false) return '#81C784';\n  return '#938F99';\n]]]"
+                  },
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  }
+                ],
+                "card": [
+                  {
+                    "padding": "28px 24px"
+                  },
+                  {
+                    "height": "100%"
+                  },
+                  {
+                    "min-height": "0"
+                  },
+                  {
+                    "width": "100%"
+                  },
+                  {
+                    "display": "flex"
+                  },
+                  {
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  },
+                  {
+                    "border-radius": "28px"
+                  },
+                  {
+                    "box-sizing": "border-box"
+                  }
+                ],
+                "grid": [
+                  {
+                    "grid-template-areas": "'i n' 'i l'"
+                  },
+                  {
+                    "grid-template-columns": "88px 1fr"
+                  },
+                  {
+                    "grid-template-rows": "min-content min-content"
+                  },
+                  {
+                    "column-gap": "20px"
+                  },
+                  {
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  }
+                ],
+                "img_cell": [
+                  {
+                    "border-radius": "24px"
+                  },
+                  {
+                    "width": "88px"
+                  },
+                  {
+                    "height": "88px"
+                  },
+                  {
+                    "place-self": "center"
+                  }
+                ],
+                "entity_picture": [
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  },
+                  {
+                    "object-fit": "contain"
+                  }
+                ],
+                "name": [
+                  {
+                    "font-size": "28px"
+                  },
+                  {
+                    "font-weight": "700"
+                  },
+                  {
+                    "line-height": "1.2"
+                  },
+                  {
+                    "white-space": "normal"
+                  },
+                  {
+                    "overflow": "visible"
+                  },
+                  {
+                    "text-overflow": "clip"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "text-align": "left"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface)"
+                  }
+                ],
+                "label": [
+                  {
+                    "font-size": "18px"
+                  },
+                  {
+                    "font-weight": "600"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface-variant)"
+                  }
+                ]
               }
             },
             {
               "type": "custom:button-card",
               "template": "flux_action",
-              "name": "All Off",
-              "label": "House lights",
-              "icon": "mdi:lightbulb-off-outline",
-              "show_icon": true,
-              "show_label": true,
+              "entity": "lock.gate_intercom_gate_open",
+              "name": "Gate Open",
+              "show_icon": false,
+              "show_entity_picture": true,
+              "entity_picture": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIHN3dW5nIG91dHdhcmQgKHBlcnNwZWN0aXZlOiBuYXJyb3cgdmVydGljYWwgcGFuZWwgYnkgbGVmdCBwb3N0KSAtLT4KICA8cGF0aCBkPSJNNC4yIDVoMi42bDEuMiAxLjV2MTFMNi44IDE5SDQuMlY1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuMzUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSI0LjciIHk9IjYuNiIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMC44IiByeD0iMC4yNSIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjUuOSIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgc3d1bmcgb3V0d2FyZCAtLT4KICA8cGF0aCBkPSJNMTkuOCA1aC0yLjZsLTEuMiAxLjV2MTFsMS4yIDEuNWgyLjZWNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjM1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iMTguNCIgeT0iNi42IiB3aWR0aD0iMC45IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjI1IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMTcuMiIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIE9wZW4gZHJpdmV3YXkgZ2FwIC0tPgogIDxwYXRoIGQ9Ik05LjIgMTguOGg1LjYiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+Cjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIC0tPgogIDxyZWN0IHg9IjQuMiIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSI1LjUiIHk9IjYuNiIgd2lkdGg9IjEuMTUiIGhlaWdodD0iMTAuOCIgcng9IjAuMyIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjcuMyIgeT0iNi42IiB3aWR0aD0iMS4xNSIgaGVpZ2h0PSIxMC44IiByeD0iMC4zIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOS4xIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgLS0+CiAgPHJlY3QgeD0iMTIuNSIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSIxMy43IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNS41IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNy4zIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIENlbnRyZSBqb2luIChsZWF2ZXMgbWVldCkgLS0+CiAgPHJlY3QgeD0iMTEuMjUiIHk9IjQuOCIgd2lkdGg9IjEuNSIgaGVpZ2h0PSIxNC40IiByeD0iMC40NSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K';\n]]]",
+              "label": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'Open' : 'Closed';\n]]]",
               "tap_action": {
                 "action": "perform-action",
-                "perform_action": "script.turn_on",
+                "perform_action": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  if (!false) return 'lock.unlock';\n  return isOpen ? 'lock.lock' : 'lock.unlock';\n]]]",
                 "target": {
-                  "entity_id": "script.house_lights_all_off"
+                  "entity_id": "lock.gate_intercom_gate_open"
                 }
               },
+              "triggers_update": [
+                "lock.gate_intercom_gate_open",
+                "binary_sensor.casa_luna_gate_status",
+                "input_boolean.gate_hold_active"
+              ],
               "styles": {
+                "grid": [
+                  {
+                    "grid-template-areas": "'i n' 'i l'"
+                  },
+                  {
+                    "grid-template-columns": "52px 1fr"
+                  },
+                  {
+                    "grid-template-rows": "min-content min-content"
+                  },
+                  {
+                    "column-gap": "12px"
+                  },
+                  {
+                    "grid-template-areas": "'i n' 'i l'"
+                  },
+                  {
+                    "grid-template-columns": "88px 1fr"
+                  },
+                  {
+                    "grid-template-rows": "min-content min-content"
+                  },
+                  {
+                    "column-gap": "20px"
+                  },
+                  {
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  }
+                ],
+                "img_cell": [
+                  {
+                    "border-radius": "16px"
+                  },
+                  {
+                    "width": "52px"
+                  },
+                  {
+                    "height": "52px"
+                  },
+                  {
+                    "place-self": "center"
+                  },
+                  {
+                    "background-color": "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+                  },
+                  {
+                    "border-radius": "24px"
+                  },
+                  {
+                    "width": "88px"
+                  },
+                  {
+                    "height": "88px"
+                  },
+                  {
+                    "place-self": "center"
+                  }
+                ],
+                "entity_picture": [
+                  {
+                    "width": "30px"
+                  },
+                  {
+                    "height": "30px"
+                  },
+                  {
+                    "object-fit": "contain"
+                  },
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  },
+                  {
+                    "object-fit": "contain"
+                  }
+                ],
                 "card": [
                   {
-                    "padding": "12px 14px"
+                    "padding": "28px 24px"
                   },
                   {
-                    "min-height": "64px"
+                    "height": "100%"
                   },
                   {
-                    "border-radius": "22px"
+                    "min-height": "0"
+                  },
+                  {
+                    "width": "100%"
+                  },
+                  {
+                    "display": "flex"
+                  },
+                  {
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  },
+                  {
+                    "border-radius": "28px"
+                  },
+                  {
+                    "box-sizing": "border-box"
+                  }
+                ],
+                "icon": [
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  }
+                ],
+                "name": [
+                  {
+                    "font-size": "28px"
+                  },
+                  {
+                    "font-weight": "700"
+                  },
+                  {
+                    "line-height": "1.2"
+                  },
+                  {
+                    "white-space": "normal"
+                  },
+                  {
+                    "overflow": "visible"
+                  },
+                  {
+                    "text-overflow": "clip"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "text-align": "left"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface)"
+                  }
+                ],
+                "label": [
+                  {
+                    "font-size": "18px"
+                  },
+                  {
+                    "font-weight": "600"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface-variant)"
                   }
                 ]
-              }
+              },
+              "state": [
+                {
+                  "operator": "template",
+                  "value": "[[[\n  if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const st = states['binary_sensor.casa_luna_gate_status'];\n  if (st && st.state === 'on') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false;\n]]]",
+                  "styles": {
+                    "card": [
+                      {
+                        "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                      },
+                      {
+                        "border": "1px solid rgba(242, 184, 181, 0.85)"
+                      }
+                    ],
+                    "img_cell": [
+                      {
+                        "background-color": "#5C1010"
+                      },
+                      {
+                        "box-shadow": "0 0 0 1px #5C1010"
+                      }
+                    ],
+                    "label": [
+                      {
+                        "color": "#F2B8B5"
+                      },
+                      {
+                        "font-weight": "700"
+                      }
+                    ],
+                    "name": [
+                      {
+                        "color": "var(--md-sys-color-on-surface)"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "custom:button-card",
+              "template": "flux_action",
+              "entity": "lock.gate_intercom_gate_latch",
+              "name": "Gate Latch",
+              "show_icon": false,
+              "show_entity_picture": true,
+              "entity_picture": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIHN3dW5nIG91dHdhcmQgKHBlcnNwZWN0aXZlOiBuYXJyb3cgdmVydGljYWwgcGFuZWwgYnkgbGVmdCBwb3N0KSAtLT4KICA8cGF0aCBkPSJNNC4yIDVoMi42bDEuMiAxLjV2MTFMNi44IDE5SDQuMlY1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjEuMzUiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KICA8cmVjdCB4PSI0LjciIHk9IjYuNiIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMC44IiByeD0iMC4yNSIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjUuOSIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgc3d1bmcgb3V0d2FyZCAtLT4KICA8cGF0aCBkPSJNMTkuOCA1aC0yLjZsLTEuMiAxLjV2MTFsMS4yIDEuNWgyLjZWNXoiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjM1IiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CiAgPHJlY3QgeD0iMTguNCIgeT0iNi42IiB3aWR0aD0iMC45IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjI1IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMTcuMiIgeT0iNyIgd2lkdGg9IjAuOSIgaGVpZ2h0PSIxMCIgcng9IjAuMjUiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIE9wZW4gZHJpdmV3YXkgZ2FwIC0tPgogIDxwYXRoIGQ9Ik05LjIgMTguOGg1LjYiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgb3BhY2l0eT0iMC45Ii8+Cjwvc3ZnPgo=' : 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+CiAgPCEtLSBQb3N0cyAtLT4KICA8cmVjdCB4PSIyIiB5PSIzIiB3aWR0aD0iMS44IiBoZWlnaHQ9IjE4IiByeD0iMC40IiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iMjAuMiIgeT0iMyIgd2lkdGg9IjEuOCIgaGVpZ2h0PSIxOCIgcng9IjAuNCIgZmlsbD0iI2ZmZmZmZiIvPgogIDwhLS0gTGVmdCBsZWFmIC0tPgogIDxyZWN0IHg9IjQuMiIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSI1LjUiIHk9IjYuNiIgd2lkdGg9IjEuMTUiIGhlaWdodD0iMTAuOCIgcng9IjAuMyIgZmlsbD0iI2ZmZmZmZiIvPgogIDxyZWN0IHg9IjcuMyIgeT0iNi42IiB3aWR0aD0iMS4xNSIgaGVpZ2h0PSIxMC44IiByeD0iMC4zIiBmaWxsPSIjZmZmZmZmIi8+CiAgPHJlY3QgeD0iOS4xIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIFJpZ2h0IGxlYWYgLS0+CiAgPHJlY3QgeD0iMTIuNSIgeT0iNS4yIiB3aWR0aD0iNy4zIiBoZWlnaHQ9IjEzLjYiIHJ4PSIwLjYiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIxLjQiLz4KICA8cmVjdCB4PSIxMy43IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNS41IiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8cmVjdCB4PSIxNy4zIiB5PSI2LjYiIHdpZHRoPSIxLjE1IiBoZWlnaHQ9IjEwLjgiIHJ4PSIwLjMiIGZpbGw9IiNmZmZmZmYiLz4KICA8IS0tIENlbnRyZSBqb2luIChsZWF2ZXMgbWVldCkgLS0+CiAgPHJlY3QgeD0iMTEuMjUiIHk9IjQuOCIgd2lkdGg9IjEuNSIgaGVpZ2h0PSIxNC40IiByeD0iMC40NSIgZmlsbD0iI2ZmZmZmZiIvPgo8L3N2Zz4K';\n]]]",
+              "label": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  return isOpen ? 'Unlatched' : 'Latched';\n]]]",
+              "tap_action": {
+                "action": "perform-action",
+                "perform_action": "[[[\n  const isOpen = (() => { if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false; })();\n  if (!true) return 'lock.unlock';\n  return isOpen ? 'lock.lock' : 'lock.unlock';\n]]]",
+                "target": {
+                  "entity_id": "lock.gate_intercom_gate_latch"
+                }
+              },
+              "triggers_update": [
+                "lock.gate_intercom_gate_latch",
+                "input_boolean.gate_hold_active"
+              ],
+              "styles": {
+                "grid": [
+                  {
+                    "grid-template-areas": "'i n' 'i l'"
+                  },
+                  {
+                    "grid-template-columns": "52px 1fr"
+                  },
+                  {
+                    "grid-template-rows": "min-content min-content"
+                  },
+                  {
+                    "column-gap": "12px"
+                  },
+                  {
+                    "grid-template-areas": "'i n' 'i l'"
+                  },
+                  {
+                    "grid-template-columns": "88px 1fr"
+                  },
+                  {
+                    "grid-template-rows": "min-content min-content"
+                  },
+                  {
+                    "column-gap": "20px"
+                  },
+                  {
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  }
+                ],
+                "img_cell": [
+                  {
+                    "border-radius": "16px"
+                  },
+                  {
+                    "width": "52px"
+                  },
+                  {
+                    "height": "52px"
+                  },
+                  {
+                    "place-self": "center"
+                  },
+                  {
+                    "background-color": "color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent)"
+                  },
+                  {
+                    "border-radius": "24px"
+                  },
+                  {
+                    "width": "88px"
+                  },
+                  {
+                    "height": "88px"
+                  },
+                  {
+                    "place-self": "center"
+                  }
+                ],
+                "entity_picture": [
+                  {
+                    "width": "30px"
+                  },
+                  {
+                    "height": "30px"
+                  },
+                  {
+                    "object-fit": "contain"
+                  },
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  },
+                  {
+                    "object-fit": "contain"
+                  }
+                ],
+                "card": [
+                  {
+                    "padding": "28px 24px"
+                  },
+                  {
+                    "height": "100%"
+                  },
+                  {
+                    "min-height": "0"
+                  },
+                  {
+                    "width": "100%"
+                  },
+                  {
+                    "display": "flex"
+                  },
+                  {
+                    "align-items": "center"
+                  },
+                  {
+                    "justify-content": "center"
+                  },
+                  {
+                    "border-radius": "28px"
+                  },
+                  {
+                    "box-sizing": "border-box"
+                  }
+                ],
+                "icon": [
+                  {
+                    "width": "48px"
+                  },
+                  {
+                    "height": "48px"
+                  }
+                ],
+                "name": [
+                  {
+                    "font-size": "28px"
+                  },
+                  {
+                    "font-weight": "700"
+                  },
+                  {
+                    "line-height": "1.2"
+                  },
+                  {
+                    "white-space": "normal"
+                  },
+                  {
+                    "overflow": "visible"
+                  },
+                  {
+                    "text-overflow": "clip"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "text-align": "left"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface)"
+                  }
+                ],
+                "label": [
+                  {
+                    "font-size": "18px"
+                  },
+                  {
+                    "font-weight": "600"
+                  },
+                  {
+                    "justify-self": "start"
+                  },
+                  {
+                    "color": "var(--md-sys-color-on-surface-variant)"
+                  }
+                ]
+              },
+              "state": [
+                {
+                  "operator": "template",
+                  "value": "[[[\n  if (entity.state === 'unlocked' || entity.state === 'opening') return true;\n  const hold = states['input_boolean.gate_hold_active'];\n  if (hold && hold.state === 'on') return true;\n  return false;\n]]]",
+                  "styles": {
+                    "card": [
+                      {
+                        "background": "color-mix(in srgb, #F2B8B5 42%, var(--md-sys-color-surface-container) 58%)"
+                      },
+                      {
+                        "border": "1px solid rgba(242, 184, 181, 0.85)"
+                      }
+                    ],
+                    "img_cell": [
+                      {
+                        "background-color": "#5C1010"
+                      },
+                      {
+                        "box-shadow": "0 0 0 1px #5C1010"
+                      }
+                    ],
+                    "label": [
+                      {
+                        "color": "#F2B8B5"
+                      },
+                      {
+                        "font-weight": "700"
+                      }
+                    ],
+                    "name": [
+                      {
+                        "color": "var(--md-sys-color-on-surface)"
+                      }
+                    ]
+                  }
+                }
+              ]
             }
           ],
           "card_mod": {
-            "style": ":host {\n  display: block !important; height: 100dvh !important;\n  max-height: 100dvh !important; box-sizing: border-box !important;\n  padding: 10px 12px 14px !important;\n}\n#root {\n  height: 100% !important; display: flex !important;\n  flex-direction: column !important; gap: 10px !important;\n}\n#root > *:first-child { flex: 0 0 auto !important; }\n#root > *:nth-child(2) { flex: 1 1 auto !important; min-height: 0 !important; }\n#root > *:last-child { flex: 0 0 auto !important; }\n"
+            "style": ":host {\n  display: block !important; height: 100dvh !important;\n  max-height: 100dvh !important; width: 100% !important;\n  box-sizing: border-box !important;\n  padding: 12px !important;\n}\n#root {\n  height: 100% !important; min-height: 0 !important;\n  width: 100% !important;\n  display: grid !important;\n  grid-template-columns: 1fr 1fr !important;\n  grid-template-rows: 1fr 1fr !important;\n  gap: 12px !important;\n  box-sizing: border-box !important;\n}\n#root > * {\n  min-height: 0 !important; min-width: 0 !important;\n  height: 100% !important; width: 100% !important;\n}\n#root > * > * {\n  height: 100% !important; width: 100% !important;\n}\n"
           }
         }
       ]
