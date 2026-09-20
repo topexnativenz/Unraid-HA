@@ -37,6 +37,7 @@ Planning repository for a **homelab / small-business** storage array: hardware, 
 | [docs/09-media-centre.md](docs/09-media-centre.md) | Plex, *arr*, Sonos, Apple TV, rollout |
 | [docs/10-plex-arr-workstream.md](docs/10-plex-arr-workstream.md) | Tower audit, unified tasks, Plex & *arr session |
 | [docs/11-ios-media-ops.md](docs/11-ios-media-ops.md) | iOS Helmarr, Tautulli/Overseerr, push notifications |
+| [docs/12-ceiling-speakers-per-room.md](docs/12-ceiling-speakers-per-room.md) | Ceiling speakers ↔ TV / Apple TV / Sonos Amp per room |
 
 ## Assumptions (refine as needed)
 
@@ -57,6 +58,7 @@ Planning repository for a **homelab / small-business** storage array: hardware, 
 | 2026-05-23 | **Plex-only** media server; no Jellyfin | Lifetime Pass; Apple TV household |
 | 2026-05-23 | *arr* quality **phase 1 = fast WEB-1080p** | New releases before 4K/remux; revisit post-hardware |
 | 2026-05-23 | **Sonos** + Apple Music / Spotify; Plexamp later | Whole-home audio unchanged for now |
+| 2026-07-19 | **Sonos Amp + ceiling speakers** per TV room | Passive in-ceiling driven from TV eARC/ARC; see [docs/12-ceiling-speakers-per-room.md](docs/12-ceiling-speakers-per-room.md) |
 | 2026-05-23 | **10-plex-arr-workstream.md** = canonical Plex/*arr tasks | Merged media-centre + tower audit chats |
 
 ## Active Cursor sessions
