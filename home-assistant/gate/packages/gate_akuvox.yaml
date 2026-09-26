@@ -21,7 +21,8 @@ template:
               or (
                 is_state('device_tracker.model_s_p100d_location', 'home')
                 and (
-                  states('sensor.model_s_p100d_shift_state') in ['d', 'r']
+                  states('sensor.model_s_p100d_shift_state') | lower in ['d', 'r']
+                  or states('sensor.model_s_p100d_shift_state_2') | lower in ['d', 'r']
                   or (
                     states('sensor.model_s_p100d_speed') | float(0) > 0
                     and states('sensor.model_s_p100d_speed') | float(0) < 8
@@ -124,8 +125,10 @@ script:
           - conditions:
               - condition: template
                 value_template: >-
-                  {{ states('sensor.model_s_p100d_shift_state') in ['d', 'r']
-                     or states('sensor.model_s_p100d_speed') | float(0) > 0.5 }}
+                  {{ states('sensor.model_s_p100d_shift_state') | lower in ['d', 'r']
+                     or states('sensor.model_s_p100d_shift_state_2') | lower in ['d', 'r']
+                     or states('sensor.model_s_p100d_speed') | float(0) > 0.5
+                     or states('sensor.model_s_p100d_speed_2') | float(0) > 0.5 }}
             sequence: []
         default:
           - action: button.press
@@ -133,17 +136,32 @@ script:
               entity_id: button.model_s_p100d_wake
           - wait_for_trigger:
               - trigger: state
-                entity_id: sensor.model_s_p100d_shift_state
+                entity_id:
+                  - sensor.model_s_p100d_shift_state
+                  - sensor.model_s_p100d_shift_state_2
                 to:
                   - d
                   - r
+                  - D
+                  - R
               - trigger: numeric_state
-                entity_id: sensor.model_s_p100d_speed
+                entity_id:
+                  - sensor.model_s_p100d_speed
+                  - sensor.model_s_p100d_speed_2
                 above: 0.5
             timeout:
-              seconds: 15
-            continue_on_timeout: false
+              seconds: 8
+            continue_on_timeout: true
+      - action: script.turn_on
+        target:
+          entity_id: script.house_garage_open_if_closed
+        continue_on_error: true
       - action: script.gate_open_with_hold
+        continue_on_error: true
+      - action: script.turn_on
+        target:
+          entity_id: script.gate_pulse_departure
+        continue_on_error: true
       - action: input_datetime.set_datetime
         target:
           entity_id: input_datetime.gate_last_open

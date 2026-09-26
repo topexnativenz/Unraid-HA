@@ -21,21 +21,25 @@ Lovelace (**Mobile Home** Quick Actions): gate controls use `custom:mushroom-loc
 
 ## Automations (`automations/gate.yaml` → `/config/automations.yaml`)
 
+Live Home Assistant uses **Tessie GPS + Tesla occupant**, not `person.dave` phone geofence (those automations are unavailable).
+
 | Automation | Trigger | Notes |
 |------------|---------|-------|
-| **Gate — open on approach from outside** | `person.dave` goes `not_home` → `Gate Approach` | Zone centred on road end of driveway (200 m radius); hold until clear |
-| **Gate — open when Model S leaves park at home** | Shift p→d/r, speed > 0.5 km/h, or driver door opens | Wakes Tessie; holds gate open until car clears (passengers/delays OK) |
+| **Gate — open on Tessie arrival (Model S)** | Road/gate approach, device_tracker, occupant return, or odometer jump at home | Requires `model_s_was_away`; also opens House Garage |
+| **Gate — open on Tessie arrival (Model X)** | Road/gate approach after `model_x_was_away` | Working path (Model X GPS is live) |
+| **Gate — open when Tesla leaves park at home** | Shift P→D/R **or Model S occupant/driver door** | Pulses gate + opens House Garage; does not wait for stale shift |
+| **Gate — begin departure** | Same as above | Sets `model_s_was_away` so wake/arrival can run |
+| **Gate — wake Tessie while Model S is away** | Every 5 min | Wakes even if GPS is still stuck at home (first 12 min) |
 
-**Gate hold:** the Akuvox relay auto-closes after ~5 s. `script.gate_open_with_hold` re-pulses every 4 s while `binary_sensor.gate_still_needs_hold` is on (only when `input_boolean.gate_hold_active` is on). Hold continues during active departure (Drive/Reverse, moving, doors open) or while in the approach zone — **not** while the car is simply parked at home in Park. Stops when clear or after 8 min max.
+**Model S stale GPS (2026-09-26):** Tessie `drive_state` (shift + location) froze at home on 2026-09-23 while odometer/doors/user_present kept updating. Arrival required `model_s_was_away` (GPS > 300 m) and wake required GPS > 200 m — a catch-22. Occupant/door now starts departure, and wake no longer requires GPS to already show away.
 
-**Emergency close:** turn off `input_boolean.gate_hold_active`, stop `script.gate_open_with_hold`, then `lock.lock` on both gate lock entities.
+**Gate hold:** Akuvox auto-closes after ~5 s. Live uses `script.gate_pulse_hold_approach` / `script.gate_pulse_departure`. Repo `script.gate_open_with_hold` is the older equivalent.
+
+**Emergency close:** turn off `input_boolean.gate_hold_active`, stop the pulse scripts, then `lock.lock` on both gate lock entities.
 
 Tune hold timing: `input_number.gate_hold_repulse_seconds`, `input_number.gate_hold_max_minutes`.
 
-**Tessie:** API key and wake URL live in `/config/secrets.yaml` (`tessie_api_key_header`, `tessie_wake_model_s_url`). Do not commit secrets to git.
-| **Gate — mark exit in progress** | `person.dave` leaves `zone.home` | Prevents false open when driving out |
-
-Entity IDs: `automation.gate_open_on_approach_from_outside_100_m`, `automation.gate_open_when_model_s_leaves_park_at_home`, `automation.gate_mark_exit_in_progress_when_leaving_home`.
+**Tessie:** API key and wake URL live in `/config/secrets.yaml` (`tessie_api_key_header`, `tessie_wake_model_s_url`, `tessie_model_s_location_url`). Do not commit secrets to git.
 
 Tune gate position in `/config/secrets.yaml` (quotes required on negative latitude):
 
