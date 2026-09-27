@@ -12,7 +12,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from flux_action_builders import garage_action, lock_action, scene_action
+from flux_action_builders import garage_action, lock_action, quick_action_card
 from flux_rooms_index import build_rooms_index_section
 from flux_layouts import build_lights_grid_section
 from flux_time import METSERVICE_WEATHER, nz_greeting_js, nz_time_short_js
@@ -464,16 +464,7 @@ def build_quick_actions(cfg: dict) -> dict:
     for item in cfg["quick_actions"]["garage"]:
         cards.append(garage_action(item, columns=col))
     for item in cfg["quick_actions"]["actions"]:
-        cards.append(
-            scene_action(
-                item["name"],
-                item["subtitle"],
-                item["icon"],
-                item["service"],
-                item["target"],
-                columns=col,
-            )
-        )
+        cards.append(quick_action_card(item, columns=col))
     return {"type": "grid", "cards": cards}
 
 

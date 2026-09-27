@@ -6,7 +6,7 @@ reliably fill a 1920×1080 landscape canvas.
 
 from __future__ import annotations
 
-from flux_action_builders import garage_action, lock_action, scene_action
+from flux_action_builders import garage_action, lock_action, quick_action_card
 from flux_media_player import build_tablet_music_card
 from flux_navbar import URL_PREFIX
 from flux_overview_tabs import build_events_tab_cards
@@ -315,14 +315,7 @@ def _toggles_tab_cards(cfg: dict) -> list[dict]:
         card.pop("grid_options", None)
         cards.append(card)
     for item in cfg.get("quick_actions", {}).get("actions", []):
-        card = scene_action(
-            item["name"],
-            item["subtitle"],
-            item["icon"],
-            item["service"],
-            item["target"],
-            columns=12,
-        )
+        card = quick_action_card(item, columns=12)
         card.pop("grid_options", None)
         cards.append(card)
     if not cards:

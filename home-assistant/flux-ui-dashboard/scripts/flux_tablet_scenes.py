@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from flux_action_builders import quick_action_card
 from flux_navbar import URL_PREFIX
 from flux_tablet_layout import tablet_panel_stack, tablet_panel_view
-from flux_view_builders import scene_action_card, section_title
+from flux_view_builders import section_title
 from md3_templates import wrap_glass, wrap_title
 
 PRESET_GRADIENTS = [
@@ -151,9 +152,7 @@ def build_tablet_scenes_view(cfg: dict, *, use_navbar_card: bool = True) -> dict
     rows.append(section_title("Quick actions", "Scripts and master switches", compact=True))
     quick: list[dict] = []
     for item in cfg.get("quick_actions", {}).get("actions", []):
-        card = scene_action_card(
-            item["name"], item["subtitle"], item["icon"], item["service"], item["target"], columns=6
-        )
+        card = quick_action_card(item, columns=6)
         card.pop("grid_options", None)
         quick.append(card)
     if quick:
