@@ -472,6 +472,19 @@ def verify_build(path: Path) -> list[str]:
             missing = expected_lights - found_lights
             errors.append(f"Missing favourite lights: {sorted(missing)}")
 
+        lock_items = [
+            item
+            for item in entities_cfg["quick_actions"]["actions"]
+            if item.get("kind") == "lock" or str(item.get("entity") or "").startswith("lock.")
+        ]
+        for item in lock_items:
+            if item["entity"] not in blob:
+                errors.append(f"Missing door lock quick action: {item['entity']}")
+        if any(item.get("name") == "All Off" for item in entities_cfg["quick_actions"]["actions"]):
+            errors.append("All Off is still in phone quick_actions.actions; Front Door should take that slot")
+        elif '"name": "All Off"' in blob:
+            errors.append("Phone build still contains All Off quick-action button")
+
     if "_flux_ui" in blob:
         errors.append("Invalid lovelace root key _flux_ui — remove from build output")
 

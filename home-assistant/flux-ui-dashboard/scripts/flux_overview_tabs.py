@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from flux_action_builders import garage_action, lock_action, scene_action
+from flux_action_builders import garage_action, lock_action, quick_action_card
 from flux_tab_layout import (
     grid_to_vertical_stack,
     strip_grid_options,
@@ -476,18 +476,7 @@ def build_quick_actions_tab(cfg: dict, section_title_fn) -> dict:
     for item in cfg["quick_actions"]["garage"]:
         buttons.append(strip_grid_options(garage_action(item, columns=6)))
     for item in cfg["quick_actions"]["actions"]:
-        buttons.append(
-            strip_grid_options(
-                scene_action(
-                    item["name"],
-                    item["subtitle"],
-                    item["icon"],
-                    item["service"],
-                    item["target"],
-                    columns=6,
-                )
-            )
-        )
+        buttons.append(strip_grid_options(quick_action_card(item, columns=6)))
     title = section_title_fn("Quick Actions", "Tap to control")
     title.pop("grid_options", None)
     return {

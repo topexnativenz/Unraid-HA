@@ -51,7 +51,7 @@ Mobile overview follows [ElementZoom/Flux-UI-Home-Assistant-Dashboard](https://g
 | Hero | Greeting + `weather.forecast_home` |
 | Home status | Live chips: lights on count, garage state |
 | **Home / Events / Active tabs** | `custom:simple-tabs` filter (ElementZoom reference) |
-| **Home tab** | Quick Actions, Climate, Favourite lights |
+| **Home tab** | Quick Actions (gate, garage, **Front Door** Schlage lock in the former All Off slot), Climate, Favourite lights |
 | **Events tab** | `calendar-card-pro` timeline (or mushroom fallback) |
 | **Active tab** | Active now lights + doors open alert (shown when anything is on/open) |
 
