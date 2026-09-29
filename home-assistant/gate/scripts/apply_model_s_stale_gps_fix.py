@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Push Model S stale-GPS automation fixes to live Home Assistant via REST."""
+"""Push Model S = Model X-aligned gate/garage automations to live Home Assistant."""
 
 from __future__ import annotations
 
@@ -18,13 +18,16 @@ GARAGE_YAML = ROOT.parent / "garage-doors" / "automations" / "garage.yaml"
 
 UPDATE_IDS = {
     "gate_begin_departure",
+    "gate_end_departure",
+    "gate_clear_exit_on_approach",
     "gate_open_tesla_departure",
     "gate_tessie_wake_while_away",
     "gate_model_s_mark_away",
     "gate_model_s_clear_away",
+    "gate_end_arrival_session",
     "gate_open_on_arrival",
-    "gate_open_on_arrival_model_x",
-    "house_garage_open_on_gate_departure",
+    "house_garage_open_on_tessie_arrival",
+    "garage_outside_lights_on_tessie_arrival_after_dark",
 }
 
 

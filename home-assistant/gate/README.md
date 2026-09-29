@@ -21,17 +21,17 @@ Lovelace (**Mobile Home** Quick Actions): gate controls use `custom:mushroom-loc
 
 ## Automations (`automations/gate.yaml` → `/config/automations.yaml`)
 
-Live Home Assistant uses **Tessie GPS + Tesla occupant**, not `person.dave` phone geofence (those automations are unavailable).
+Live Home Assistant uses **Tessie for Model X** and the same approach/departure shape for Model S, mapped onto sensors that actually update.
 
 | Automation | Trigger | Notes |
 |------------|---------|-------|
-| **Gate — open on Tessie arrival (Model S)** | Road/gate approach, device_tracker, occupant return, or odometer jump at home | Requires `model_s_was_away`; also opens House Garage |
-| **Gate — open on Tessie arrival (Model X)** | Road/gate approach after `model_x_was_away` | Working path (Model X GPS is live) |
-| **Gate — open when Tesla leaves park at home** | Shift P→D/R **or Model S occupant/driver door** | Pulses gate + opens House Garage; does not wait for stale shift |
-| **Gate — begin departure** | Same as above | Sets `model_s_was_away` so wake/arrival can run |
-| **Gate — wake Tessie while Model S is away** | Every 5 min | Wakes even if GPS is still stuck at home (first 12 min) |
+| **Gate — open on Tessie arrival (Model X)** | Tessie road/gate after `model_x_was_away` | Working template. GPS is live. |
+| **Gate — open on Tessie arrival (Model S)** | Same road/gate triggers, plus `person.gen` / `gens_phone` / `person.dave` `not_home` → Road/Gate Approach | Model S Tessie GPS stays ~50 m home. Phone zone is the Model X equivalent. Also opens House Garage. |
+| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R; Model S shift or driver door | Pulses gate + House Garage |
+| **Gate — begin departure** | Same as above | Sets `model_s_was_away` / `model_x_was_away` |
+| **Gate — wake Tessie while Model S is away** | Every 5 min while was_away and Gen/Dave still out | Model X equivalent; S GPS never shows >200 m |
 
-**Model S stale GPS (2026-09-26):** Tessie `drive_state` (shift + location) froze at home on 2026-09-23 while odometer/doors/user_present kept updating. Arrival required `model_s_was_away` (GPS > 300 m) and wake required GPS > 200 m — a catch-22. Occupant/door now starts departure, and wake no longer requires GPS to already show away.
+**2026-09-29:** Occupant/odometer “arrival” opened the gate after Gen was already home (phone hit Road Approach 90 s earlier; they used the intercom). That fallback is removed. Do not treat stale GPS-home as parked while Gen/Dave are still `not_home`.
 
 **Gate hold:** Akuvox auto-closes after ~5 s. Live uses `script.gate_pulse_hold_approach` / `script.gate_pulse_departure`. Repo `script.gate_open_with_hold` is the older equivalent.
 

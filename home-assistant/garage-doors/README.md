@@ -25,10 +25,10 @@ House Garage opens with the gate on Tesla trips (`automations/garage.yaml`):
 | Automation | When |
 |------------|------|
 | `house_garage_open_on_gate_session` | Gate arrival session starts (Model S or X) |
-| `house_garage_open_on_tessie_arrival` | Tessie road/gate approach backup |
+| `house_garage_open_on_tessie_arrival` | Model X Tessie approach; Model S `person.gen`/`person.dave` Road/Gate Approach (same shape as Model X) |
 | `house_garage_open_on_gate_departure` | `gate_departure_in_progress` turns on (leaving) |
 
-**Model S (2026-09-26):** Tessie GPS/shift for the Model S has been frozen at home since 2026-09-23 while the car was still driven. Garage therefore never saw an arrival session. Departure now follows Model S occupant/door as well as shift, which starts the gate departure flag and opens House Garage.
+**Model S:** Tessie GPS stays at home, so garage follows the same phone Road/Gate Approach signal as the Model S gate clone of Model X. Opening with the gate session still covers the main path.
 
 House Garage Shelly (`switch.garage_door_3`) is currently online on live HA.
 
