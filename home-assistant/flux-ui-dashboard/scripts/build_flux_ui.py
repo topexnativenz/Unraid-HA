@@ -867,9 +867,11 @@ def _build_config_inner(
     # Disable view swipe-nav so Sonos / calendar gesture pans stay on-widget.
     out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
     if not tablet:
-        modules = extra_module_urls(cfg)
-        if modules:
-            out["extra_module_url"] = modules
+        # carousel-sync.js is a Lovelace *resource*, not a dashboard root key.
+        # extra_module_url on the stored Lovelace JSON is invalid (same class as
+        # the old _flux_ui key) and HA 2026.7 / Companion then renders every
+        # custom card as "Configuration error".
+        if extra_module_urls(cfg):
             write_carousel_sync_js(cfg, ROOT / "www" / "flux-ui" / "carousel-sync.js")
     return out
 
