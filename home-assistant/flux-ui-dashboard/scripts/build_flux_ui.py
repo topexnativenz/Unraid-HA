@@ -12,7 +12,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from flux_action_builders import garage_action, lock_action, scene_action
+from flux_action_builders import garage_action, lock_action, quick_action_card
 from flux_rooms_index import build_rooms_index_section
 from flux_layouts import build_lights_grid_section
 from flux_time import METSERVICE_WEATHER, nz_greeting_js, nz_time_short_js
@@ -464,16 +464,7 @@ def build_quick_actions(cfg: dict) -> dict:
     for item in cfg["quick_actions"]["garage"]:
         cards.append(garage_action(item, columns=col))
     for item in cfg["quick_actions"]["actions"]:
-        cards.append(
-            scene_action(
-                item["name"],
-                item["subtitle"],
-                item["icon"],
-                item["service"],
-                item["target"],
-                columns=col,
-            )
-        )
+        cards.append(quick_action_card(item, columns=col))
     return {"type": "grid", "cards": cards}
 
 
@@ -876,9 +867,11 @@ def _build_config_inner(
     # Disable view swipe-nav so Sonos / calendar gesture pans stay on-widget.
     out["swipe_nav"] = copy.deepcopy(SWIPE_NAV)
     if not tablet:
-        modules = extra_module_urls(cfg)
-        if modules:
-            out["extra_module_url"] = modules
+        # carousel-sync.js is a Lovelace *resource*, not a dashboard root key.
+        # extra_module_url on the stored Lovelace JSON is invalid (same class as
+        # the old _flux_ui key) and HA 2026.7 / Companion then renders every
+        # custom card as "Configuration error".
+        if extra_module_urls(cfg):
             write_carousel_sync_js(cfg, ROOT / "www" / "flux-ui" / "carousel-sync.js")
     return out
 

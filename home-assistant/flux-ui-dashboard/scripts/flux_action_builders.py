@@ -161,6 +161,99 @@ def garage_action(door: dict, *, columns: int = 6) -> dict:
     return flux_door_tile(door, columns=columns)
 
 
+def door_lock_action(
+    entity: str,
+    name: str,
+    *,
+    columns: int = 6,
+    subtitle: str | None = None,
+) -> dict:
+    """Schlage / HA lock tile — status label + tap to lock or unlock."""
+    unlocked_js = (
+        "const s = entity && entity.state;\n"
+        "  return s === 'unlocked' || s === 'unlocking' || s === 'open';"
+    )
+    return {
+        "type": "custom:button-card",
+        "template": "flux_action",
+        "entity": entity,
+        "name": name,
+        "show_icon": True,
+        "icon": (
+            "[[[\n"
+            f"  const isOpen = (() => {{ {unlocked_js} }})();\n"
+            "  return isOpen ? 'mdi:lock-open-variant' : 'mdi:lock';\n"
+            "]]]"
+        ),
+        "label": (
+            "[[[\n"
+            f"  const isOpen = (() => {{ {unlocked_js} }})();\n"
+            "  const s = entity && entity.state;\n"
+            "  if (!s || s === 'unavailable' || s === 'unknown') return 'Unavailable';\n"
+            "  if (s === 'locking') return 'Locking';\n"
+            "  if (s === 'unlocking') return 'Unlocking';\n"
+            f"  if (isOpen) return 'Unlocked';\n"
+            "  return 'Locked';\n"
+            "]]]"
+        ),
+        "tap_action": {
+            "action": "call-service",
+            "service": (
+                "[[[\n"
+                f"  const isOpen = (() => {{ {unlocked_js} }})();\n"
+                "  return isOpen ? 'lock.lock' : 'lock.unlock';\n"
+                "]]]"
+            ),
+            "service_data": {"entity_id": entity},
+        },
+        "hold_action": {"action": "more-info"},
+        "triggers_update": [entity],
+        "state": [
+            {
+                "operator": "template",
+                "value": f"[[[\n  {unlocked_js}\n]]]",
+                "styles": {
+                    "card": [
+                        {"background": _GATE_OPEN_BG},
+                        {"border": _GATE_OPEN_BORDER},
+                    ],
+                    "icon": [{"color": "#F2B8B5"}],
+                    "img_cell": [
+                        {"background-color": _CHIP_OPEN},
+                        {"box-shadow": f"0 0 0 1px {_CHIP_OPEN}"},
+                    ],
+                    "label": [{"color": "#F2B8B5"}, {"font-weight": "700"}],
+                    "name": [{"color": "var(--md-sys-color-on-surface)"}],
+                },
+            },
+        ],
+        "grid_options": {"columns": columns},
+    }
+
+
+def is_lock_quick_action(item: dict) -> bool:
+    return item.get("kind") == "lock" or str(item.get("entity") or "").startswith("lock.")
+
+
+def quick_action_card(item: dict, *, columns: int = 6) -> dict:
+    """Render a quick_actions.actions item (scene script or HA lock)."""
+    if is_lock_quick_action(item):
+        return door_lock_action(
+            item["entity"],
+            item["name"],
+            columns=columns,
+            subtitle=item.get("subtitle"),
+        )
+    return scene_action(
+        item["name"],
+        item["subtitle"],
+        item["icon"],
+        item["service"],
+        item["target"],
+        columns=columns,
+    )
+
+
 def scene_action(
     name: str, subtitle: str, icon: str, service: str, target: str, *, columns: int = 6
 ) -> dict:

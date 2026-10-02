@@ -1482,6 +1482,11 @@ async def save_dashboard(token: str, ha_url: str, config: dict, *, url_path: str
         print("  Live tabs engine: native")
     if "_flux_ui" in live_blob:
         raise RuntimeError("Live config contains invalid _flux_ui key — rebuild and redeploy.")
+    if '"extra_module_url"' in live_blob:
+        raise RuntimeError(
+            "Live config contains invalid extra_module_url key — "
+            "register carousel-sync.js as a Lovelace resource and redeploy."
+        )
 
 
 async def deploy_async(args: argparse.Namespace) -> int:

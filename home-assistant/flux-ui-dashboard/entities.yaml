@@ -65,12 +65,12 @@ quick_actions:
       hold_entity: input_boolean.gate_hold_active
   garage: []
   actions:
-    - name: All Off
-      subtitle: Turn off all lights
-      icon: mdi:lightbulb-off-outline
-      icon_color: grey
-      service: light.turn_off
-      target: light.all_lights
+    # Replaces the former All Off slot on the phone Quick Actions grid.
+    - kind: lock
+      entity: lock.front_door
+      name: Front Door
+      subtitle: Schlage lock
+      icon: mdi:lock
     - name: Goodnight
       subtitle: Night arrival on
       icon: mdi:weather-night

@@ -472,8 +472,26 @@ def verify_build(path: Path) -> list[str]:
             missing = expected_lights - found_lights
             errors.append(f"Missing favourite lights: {sorted(missing)}")
 
+        lock_items = [
+            item
+            for item in entities_cfg["quick_actions"]["actions"]
+            if item.get("kind") == "lock" or str(item.get("entity") or "").startswith("lock.")
+        ]
+        for item in lock_items:
+            if item["entity"] not in blob:
+                errors.append(f"Missing door lock quick action: {item['entity']}")
+        if any(item.get("name") == "All Off" for item in entities_cfg["quick_actions"]["actions"]):
+            errors.append("All Off is still in phone quick_actions.actions; Front Door should take that slot")
+        elif '"name": "All Off"' in blob:
+            errors.append("Phone build still contains All Off quick-action button")
+
     if "_flux_ui" in blob:
         errors.append("Invalid lovelace root key _flux_ui — remove from build output")
+    if '"extra_module_url"' in blob:
+        errors.append(
+            "Invalid lovelace root key extra_module_url — register "
+            "/local/flux-ui/carousel-sync.js as a Lovelace resource instead"
+        )
 
     entities_cfg_weather = entities_cfg.get("weather")
     if isinstance(entities_cfg_weather, str) and entities_cfg_weather.startswith("weather."):
@@ -703,6 +721,12 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
         errors.append(f"Could not load flux-ui config: {cfg.get('error')}")
         return errors
 
+    if "extra_module_url" in cfg["result"] or "_flux_ui" in cfg["result"]:
+        errors.append(
+            "Live flux-ui has invalid dashboard root key extra_module_url/_flux_ui "
+            "(makes every custom card Configuration error on Companion)"
+        )
+
     views = cfg["result"].get("views", [])
     if not views:
         errors.append("flux-ui has no views")
@@ -779,7 +803,8 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
                 errors.append("Live tablet overview is not panel type")
 
     resources = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
-    urls = " ".join(r.get("url", "") for r in resources.get("result", []))
+    resource_items = list(resources.get("result") or [])
+    urls = " ".join(r.get("url", "") for r in resource_items)
     if "kiosk-mode" not in urls and "kiosk_mode" not in urls:
         errors.append("Lovelace resource missing: kiosk-mode (HACS downloaded ≠ registered)")
     if "nz-timezone" not in urls:
@@ -790,6 +815,25 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
     for needle in ("mushroom", "card-mod", "button-card"):
         if needle not in urls:
             errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")
+
+    from urllib.parse import urlparse
+
+    by_path: dict[str, list[str]] = {}
+    for item in resource_items:
+        url = item.get("url") or ""
+        path = urlparse(url).path or url.split("?", 1)[0]
+        by_path.setdefault(path, []).append(url)
+    for path, listed_urls in sorted(by_path.items()):
+        if len(listed_urls) > 1:
+            errors.append(
+                "Duplicate Lovelace resource (HA 2026.7 throws on second "
+                f"customElements.define): {path} → {listed_urls}"
+            )
+    for item in resource_items:
+        url = item.get("url") or ""
+        res_type = (item.get("type") or item.get("res_type") or "").lower()
+        if url.endswith(".css") and res_type == "module":
+            errors.append(f"CSS registered as JS module: {url}")
 
     return errors
 

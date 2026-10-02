@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from flux_action_builders import is_lock_quick_action, quick_action_card
 from flux_layouts import (
     _title,
     build_lights_grid_section,
@@ -70,15 +71,18 @@ def build_scenes_view(cfg: dict, *, use_auto_entities: bool = True) -> dict:
 
     cards.append(section_title("Quick actions", "Scripts and master switches", compact=True))
     for item in cfg["quick_actions"]["actions"]:
-        cards.append(
-            scene_action_card(
-                item["name"],
-                item["subtitle"],
-                item["icon"],
-                item["service"],
-                item["target"],
+        if is_lock_quick_action(item):
+            cards.append(quick_action_card(item, columns=6))
+        else:
+            cards.append(
+                scene_action_card(
+                    item["name"],
+                    item["subtitle"],
+                    item["icon"],
+                    item["service"],
+                    item["target"],
+                )
             )
-        )
     cards.append(
         scene_action_card(
             "All lights",
