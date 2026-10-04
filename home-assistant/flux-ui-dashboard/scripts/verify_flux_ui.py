@@ -19,7 +19,11 @@ sys.path.insert(0, str(GARAGE_DIR))
 from garage_ui_helpers import load_garage_doors  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from flux_media_player import MUSIC_PLAYER_HASH, is_sonos_zone  # noqa: E402
+from flux_media_player import (  # noqa: E402
+    MUSIC_PLAYER_HASH,
+    is_sonos_zone,
+    playback_stack_forces_full_height,
+)
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
 
 
@@ -304,6 +308,30 @@ def verify_build(path: Path) -> list[str]:
         if "--mmpc-art-width" not in overview_blob:
             errors.append(
                 "Tablet music must cap album art so play/pause/previous/next stay visible"
+            )
+        if "--md-sys-color-on-surface" not in overview_blob:
+            errors.append(
+                "Tablet music transport/volume must use theme on-surface color"
+            )
+        if "--md-sys-color-primary" not in overview_blob:
+            errors.append(
+                "Tablet music play/volume must use theme primary accent"
+            )
+        if "justify-content: space-between" in overview_blob:
+            errors.append(
+                "Tablet music playback stack must not use space-between "
+                "(spreads controls and stretches the 16:9 grid)"
+            )
+        if "margin-top: auto" in overview_blob:
+            errors.append(
+                "Tablet music playback stack must not use margin-top: auto "
+                "(drops transport into the middle of the column)"
+            )
+        if playback_stack_forces_full_height(overview_blob):
+            errors.append(
+                "Tablet music playback stack must not use height: 100% "
+                "(cyclic with the overview grid; stretches Gates & Doors and "
+                "pushes Tesla off the panel)"
             )
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside lights as 2x2, not a full-width row")

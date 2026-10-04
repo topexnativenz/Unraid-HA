@@ -1035,82 +1035,48 @@ views:
                     \ > div > div:last-child {\n  display: none !important;\n  height: 0 !important;\n  max-height: 0 !important;\n\
                     \  overflow: hidden !important;\n  margin: 0 !important;\n  padding: 0 !important;\n  border: none !important;\n\
                     }\n/* Artwork tap → speaker-grouping traps UI once Home is hidden */\nmediocre-massive-media-player-card\
-                    \ button:has(img) {\n  pointer-events: none !important;\n  cursor: default !important;\n}\n/* Playback\
-                    \ stack sizes to its content. Do not set height: 100% here —\n   it is cyclic with the overview grid and\
-                    \ stretches the 16:9 rows.\n   Transport and volume use theme on-surface / primary, not cover art. */\n\
-                    mediocre-massive-media-player-card button[style*=\"--mmpc-art-width\"] {\n  flex: 0 1 180px !important;\n\
-                    \  align-self: center !important;\n  width: 180px !important;\n  height: 180px !important;\n  max-width:\
-                    \ 100% !important;\n  max-height: 100% !important;\n  min-width: 0 !important;\n  min-height: 0 !important;\n\
-                    \  aspect-ratio: 1 / 1 !important;\n  pointer-events: none !important;\n  cursor: default !important;\n\
-                    }\nmediocre-massive-media-player-card button[style*=\"--mmpc-art-width\"]::after {\n  content: none !important;\n\
-                    \  display: none !important;\n  padding: 0 !important;\n}\nmediocre-massive-media-player-card div:has(>\
-                    \ button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n  max-height: 100% !important;\n\
-                    \  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  justify-content: flex-start !important;\n\
-                    \  align-items: center !important;\n  gap: 8px !important;\n  padding-top: 4px !important;\n  padding-bottom:\
-                    \ 4px !important;\n  box-sizing: border-box !important;\n  overflow: hidden !important;\n}\nmediocre-massive-media-player-card\
-                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) {\n  flex: 0 0 auto !important;\n\
-                    \  width: 100% !important;\n  max-width: 480px !important;\n  opacity: 1 !important;\n  --primary-color:\
-                    \ var(--md-sys-color-primary, #D0BCFF) !important;\n  --primary-text-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --icon-primary-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n\
-                    \  --mmpc-on-card: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mmpc-on-card-divider:\
-                    \ rgba(230, 224, 233, 0.38) !important;\n  --divider-color: rgba(230, 224, 233, 0.38) !important;\n  --slider-on-fill-color:\
-                    \ var(--md-sys-color-on-primary, #381E72) !important;\n}\nmediocre-massive-media-player-card div:has(>\
-                    \ button[style*=\"--mmpc-art-width\"]) > div:has(> button) button,\nmediocre-massive-media-player-card\
-                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) ha-icon {\n  color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --ha-icon-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  opacity: 1 !important;\n  flex-shrink: 0 !important;\n\
-                    }\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button)\
-                    \ button:has(ha-icon[icon*=\"play\"]),\nmediocre-massive-media-player-card div:has(> button[style*=\"\
-                    --mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"pause\"]),\nmediocre-massive-media-player-card\
-                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"\
-                    ]),\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button)\
-                    \ button:has(ha-icon[icon*=\"play\"]) ha-icon,\nmediocre-massive-media-player-card div:has(> button[style*=\"\
-                    --mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"pause\"]) ha-icon,\nmediocre-massive-media-player-card\
-                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"\
-                    ]) ha-icon {\n  color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --mdc-icon-color: var(--md-sys-color-primary,\
-                    \ #D0BCFF) !important;\n  --ha-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n}\nmediocre-massive-media-player-card\
-                    \ div:has(> div > button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n  max-height: 100%\
-                    \ !important;\n  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  overflow: hidden !important;\n\
-                    \  box-sizing: border-box !important;\n}\n"
+                    \ button:has(img) {\n  pointer-events: none !important;\n  cursor: default !important;\n}\n/* Keep play\
+                    \ / pause / previous / next inside the 16:9 column.\n   Album art is a 1:1 square (padding-bottom: 100%\
+                    \ of the column width).\n   The music cell is overflow:hidden, so that square pushes the transport\n \
+                    \  row below the clip. Cap the art and don't let title/controls shrink. */\nmediocre-massive-media-player-card\
+                    \ button[style*=\"--mmpc-art-width\"] {\n  flex: 0 0 auto !important;\n  align-self: center !important;\n\
+                    \  width: 200px !important;\n  height: 200px !important;\n  max-width: 100% !important;\n  min-width:\
+                    \ 0 !important;\n  min-height: 0 !important;\n  aspect-ratio: 1 / 1 !important;\n  pointer-events: none\
+                    \ !important;\n  cursor: default !important;\n}\nmediocre-massive-media-player-card button[style*=\"--mmpc-art-width\"\
+                    ]::after {\n  content: none !important;\n  display: none !important;\n  padding: 0 !important;\n}\nmediocre-massive-media-player-card\
+                    \ div:has(> button[style*=\"--mmpc-art-width\"]) {\n  justify-content: space-between !important;\n  gap:\
+                    \ 6px !important;\n  padding-top: 4px !important;\n  padding-bottom: 4px !important;\n  min-height: 0\
+                    \ !important;\n  height: 100% !important;\n  box-sizing: border-box !important;\n  overflow: hidden !important;\n\
+                    }\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) > div {\n  flex:\
+                    \ 0 0 auto !important;\n}\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"\
+                    ]) > div:has(> button) {\n  margin-top: auto !important;\n}\nmediocre-massive-media-player-card div:has(>\
+                    \ div > button[style*=\"--mmpc-art-width\"]) {\n  padding: 8px !important;\n  gap: 8px !important;\n \
+                    \ min-height: 0 !important;\n  box-sizing: border-box !important;\n  overflow: hidden !important;\n}\n\
+                    mediocre-massive-media-player-card > div > div:last-child:has(ha-icon[icon*=\"skip-\"], ha-icon[icon*=\"\
+                    play\"], ha-icon[icon*=\"pause\"], ha-icon[icon*=\"stop\"]) {\n  display: flex !important;\n  height:\
+                    \ auto !important;\n  max-height: none !important;\n  overflow: visible !important;\n}\n"
                   mediocre-massive-media-player-card: "> div {\n  height: 100% !important;\n  grid-template-rows: 1fr !important;\n\
                     \  row-gap: 0 !important;\n  padding: 4px !important;\n  overflow: hidden !important;\n  box-sizing: border-box\
                     \ !important;\n}\n> div > div:last-child {\n  display: none !important;\n  height: 0 !important;\n  max-height:\
                     \ 0 !important;\n  overflow: hidden !important;\n  margin: 0 !important;\n  padding: 0 !important;\n \
                     \ border: none !important;\n}\nbutton:has(img) {\n  pointer-events: none !important;\n  cursor: default\
-                    \ !important;\n}\n/* Playback stack sizes to its content. Do not set height: 100% here —\n   it is cyclic\
-                    \ with the overview grid and stretches the 16:9 rows.\n   Transport and volume use theme on-surface /\
-                    \ primary, not cover art. */\nbutton[style*=\"--mmpc-art-width\"] {\n  flex: 0 1 180px !important;\n \
-                    \ align-self: center !important;\n  width: 180px !important;\n  height: 180px !important;\n  max-width:\
-                    \ 100% !important;\n  max-height: 100% !important;\n  min-width: 0 !important;\n  min-height: 0 !important;\n\
-                    \  aspect-ratio: 1 / 1 !important;\n  pointer-events: none !important;\n  cursor: default !important;\n\
-                    }\nbutton[style*=\"--mmpc-art-width\"]::after {\n  content: none !important;\n  display: none !important;\n\
-                    \  padding: 0 !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n\
-                    \  max-height: 100% !important;\n  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  justify-content:\
-                    \ flex-start !important;\n  align-items: center !important;\n  gap: 8px !important;\n  padding-top: 4px\
-                    \ !important;\n  padding-bottom: 4px !important;\n  box-sizing: border-box !important;\n  overflow: hidden\
-                    \ !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) {\n  flex: 0 0 auto\
-                    \ !important;\n  width: 100% !important;\n  max-width: 480px !important;\n  opacity: 1 !important;\n \
-                    \ --primary-color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --primary-text-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --icon-primary-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n\
-                    \  --mmpc-on-card: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mmpc-on-card-divider:\
-                    \ rgba(230, 224, 233, 0.38) !important;\n  --divider-color: rgba(230, 224, 233, 0.38) !important;\n  --slider-on-fill-color:\
-                    \ var(--md-sys-color-on-primary, #381E72) !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"\
-                    ]) > div:has(> button) button,\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) ha-icon\
-                    \ {\n  color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  opacity:\
-                    \ 1 !important;\n  flex-shrink: 0 !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
-                    \ button) button:has(ha-icon[icon*=\"play\"]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
-                    \ button) button:has(ha-icon[icon*=\"pause\"]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
-                    \ button) button:has(ha-icon[icon*=\"stop\"]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
-                    \ button) button:has(ha-icon[icon*=\"play\"]) ha-icon,\ndiv:has(> button[style*=\"--mmpc-art-width\"])\
-                    \ > div:has(> button) button:has(ha-icon[icon*=\"pause\"]) ha-icon,\ndiv:has(> button[style*=\"--mmpc-art-width\"\
-                    ]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"]) ha-icon {\n  color: var(--md-sys-color-primary,\
-                    \ #D0BCFF) !important;\n  --mdc-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --ha-icon-color:\
-                    \ var(--md-sys-color-primary, #D0BCFF) !important;\n}\ndiv:has(> div > button[style*=\"--mmpc-art-width\"\
-                    ]) {\n  height: auto !important;\n  max-height: 100% !important;\n  min-height: 0 !important;\n  flex:\
-                    \ 0 1 auto !important;\n  overflow: hidden !important;\n  box-sizing: border-box !important;\n}\n"
+                    \ !important;\n}\n/* Keep play / pause / previous / next inside the 16:9 column.\n   Album art is a 1:1\
+                    \ square (padding-bottom: 100% of the column width).\n   The music cell is overflow:hidden, so that square\
+                    \ pushes the transport\n   row below the clip. Cap the art and don't let title/controls shrink. */\nbutton[style*=\"\
+                    --mmpc-art-width\"] {\n  flex: 0 0 auto !important;\n  align-self: center !important;\n  width: 200px\
+                    \ !important;\n  height: 200px !important;\n  max-width: 100% !important;\n  min-width: 0 !important;\n\
+                    \  min-height: 0 !important;\n  aspect-ratio: 1 / 1 !important;\n  pointer-events: none !important;\n\
+                    \  cursor: default !important;\n}\nbutton[style*=\"--mmpc-art-width\"]::after {\n  content: none !important;\n\
+                    \  display: none !important;\n  padding: 0 !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"\
+                    ]) {\n  justify-content: space-between !important;\n  gap: 6px !important;\n  padding-top: 4px !important;\n\
+                    \  padding-bottom: 4px !important;\n  min-height: 0 !important;\n  height: 100% !important;\n  box-sizing:\
+                    \ border-box !important;\n  overflow: hidden !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"\
+                    ]) > div {\n  flex: 0 0 auto !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
+                    \ button) {\n  margin-top: auto !important;\n}\ndiv:has(> div > button[style*=\"--mmpc-art-width\"]) {\n\
+                    \  padding: 8px !important;\n  gap: 8px !important;\n  min-height: 0 !important;\n  box-sizing: border-box\
+                    \ !important;\n  overflow: hidden !important;\n}\n> div > div:last-child:has(ha-icon[icon*=\"skip-\"],\
+                    \ ha-icon[icon*=\"play\"], ha-icon[icon*=\"pause\"], ha-icon[icon*=\"stop\"]) {\n  display: flex !important;\n\
+                    \  height: auto !important;\n  max-height: none !important;\n  overflow: visible !important;\n}\n"
             card_mod:
               style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
                 \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter:\
