@@ -301,6 +301,10 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet music must wrap mediocre player in mod-card to hide footer")
         if "mediocre-massive-media-player-card > div > div:last-child" not in overview_blob:
             errors.append("Tablet music must hide mediocre Home/Sonos footer bar via mod-card")
+        if "--mmpc-art-width" not in overview_blob:
+            errors.append(
+                "Tablet music must cap album art so play/pause/previous/next stay visible"
+            )
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside lights as 2x2, not a full-width row")
         if "min-height: 200px" in overview_blob and "max-height: 100%" not in overview_blob:
