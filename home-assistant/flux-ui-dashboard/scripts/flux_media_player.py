@@ -479,23 +479,35 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
 
 
 def _tablet_player_fit_css(*, scope: str) -> str:
-    """CSS that keeps transport buttons inside the 16:9 music column.
+    """CSS that keeps transport and volume inside the 16:9 music column.
 
     ``scope`` is empty when card-mod injects the sheet onto the mediocre element,
     or ``mediocre-massive-media-player-card `` when the sheet lives on mod-card.
+
+    The playback stack must size to its content. ``height: 100%`` on that stack
+    is cyclic with the overview grid (music spans the 30fr and 48fr rows) and
+    stretches Gates & Doors / Lights, pushing Tesla off the panel. Album art is
+    a shrinkable square so previous / play / next stay in the cell.
+
+    ``use_art_colors`` sets ``--primary-color`` and ``--primary-text-color`` from
+    the cover. A dark cover paints the icons and volume fill the same colour as
+    the card, so those controls use the Flux UI on-surface and primary tokens.
     """
     s = scope
+    row = (
+        f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button)"
+    )
     return (
-        "/* Keep play / pause / previous / next inside the 16:9 column.\n"
-        "   Album art is a 1:1 square (padding-bottom: 100% of the column width).\n"
-        "   The music cell is overflow:hidden, so that square pushes the transport\n"
-        "   row below the clip. Cap the art and don't let title/controls shrink. */\n"
+        "/* Playback stack sizes to its content. Do not set height: 100% here —\n"
+        "   it is cyclic with the overview grid and stretches the 16:9 rows.\n"
+        "   Transport and volume use theme on-surface / primary, not cover art. */\n"
         f"{s}button[style*=\"--mmpc-art-width\"] {{\n"
-        "  flex: 0 0 auto !important;\n"
+        "  flex: 0 1 180px !important;\n"
         "  align-self: center !important;\n"
-        "  width: 200px !important;\n"
-        "  height: 200px !important;\n"
+        "  width: 180px !important;\n"
+        "  height: 180px !important;\n"
         "  max-width: 100% !important;\n"
+        "  max-height: 100% !important;\n"
         "  min-width: 0 !important;\n"
         "  min-height: 0 !important;\n"
         "  aspect-ratio: 1 / 1 !important;\n"
@@ -508,39 +520,79 @@ def _tablet_player_fit_css(*, scope: str) -> str:
         "  padding: 0 !important;\n"
         "}\n"
         f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) {{\n"
-        "  justify-content: space-between !important;\n"
-        "  gap: 6px !important;\n"
+        "  height: auto !important;\n"
+        "  max-height: 100% !important;\n"
+        "  min-height: 0 !important;\n"
+        "  flex: 0 1 auto !important;\n"
+        "  justify-content: flex-start !important;\n"
+        "  align-items: center !important;\n"
+        "  gap: 8px !important;\n"
         "  padding-top: 4px !important;\n"
         "  padding-bottom: 4px !important;\n"
-        "  min-height: 0 !important;\n"
-        "  height: 100% !important;\n"
         "  box-sizing: border-box !important;\n"
         "  overflow: hidden !important;\n"
         "}\n"
-        f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) > div {{\n"
+        f"{row} {{\n"
         "  flex: 0 0 auto !important;\n"
+        "  width: 100% !important;\n"
+        "  max-width: 480px !important;\n"
+        "  opacity: 1 !important;\n"
+        "  --primary-color: var(--md-sys-color-primary, #D0BCFF) !important;\n"
+        "  --primary-text-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --icon-primary-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --mmpc-on-card: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --mdc-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --mmpc-on-card-divider: rgba(230, 224, 233, 0.38) !important;\n"
+        "  --divider-color: rgba(230, 224, 233, 0.38) !important;\n"
+        "  --slider-on-fill-color: var(--md-sys-color-on-primary, #381E72) !important;\n"
         "}\n"
-        f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) {{\n"
-        "  margin-top: auto !important;\n"
+        f"{row} button,\n"
+        f"{row} ha-icon {{\n"
+        "  color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --mdc-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n"
+        "  opacity: 1 !important;\n"
+        "  flex-shrink: 0 !important;\n"
+        "}\n"
+        f"{row} button:has(ha-icon[icon*=\"play\"]),\n"
+        f"{row} button:has(ha-icon[icon*=\"pause\"]),\n"
+        f"{row} button:has(ha-icon[icon*=\"stop\"]),\n"
+        f"{row} button:has(ha-icon[icon*=\"play\"]) ha-icon,\n"
+        f"{row} button:has(ha-icon[icon*=\"pause\"]) ha-icon,\n"
+        f"{row} button:has(ha-icon[icon*=\"stop\"]) ha-icon {{\n"
+        "  color: var(--md-sys-color-primary, #D0BCFF) !important;\n"
+        "  --mdc-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n"
+        "  --ha-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n"
         "}\n"
         f"{s}div:has(> div > button[style*=\"--mmpc-art-width\"]) {{\n"
-        "  padding: 8px !important;\n"
-        "  gap: 8px !important;\n"
-        "  min-height: 0 !important;\n"
-        "  box-sizing: border-box !important;\n"
-        "  overflow: hidden !important;\n"
-        "}\n"
-        # A card update that moves skip/play into the old footer strip must not
-        # stay display:none. Home / search / speaker (no transport icons) still hide.
-        f"{s}> div > div:last-child:has("
-        "ha-icon[icon*=\"skip-\"], ha-icon[icon*=\"play\"], "
-        "ha-icon[icon*=\"pause\"], ha-icon[icon*=\"stop\"]) {\n"
-        "  display: flex !important;\n"
         "  height: auto !important;\n"
-        "  max-height: none !important;\n"
-        "  overflow: visible !important;\n"
+        "  max-height: 100% !important;\n"
+        "  min-height: 0 !important;\n"
+        "  flex: 0 1 auto !important;\n"
+        "  overflow: hidden !important;\n"
+        "  box-sizing: border-box !important;\n"
         "}\n"
     )
+
+
+def playback_stack_forces_full_height(blob: str) -> bool:
+    """True when the playback controller rule sets ``height: 100%``.
+
+    That percentage is cyclic with the overview grid. ``blob`` may be raw CSS
+    or ``json.dumps`` output (escaped quotes and newlines). ``max-height: 100%``
+    does not count.
+    """
+    import re
+
+    pattern = re.compile(
+        r'div:has\(> button\[style\*=\\?"--mmpc-art-width\\?"\]\) \{((?:\\n|[^}])*)\}'
+    )
+    for match in pattern.finditer(blob):
+        block = match.group(1).replace("\\n", "\n")
+        if re.search(r"(?<![\w-])height:\s*100%", block):
+            return True
+    return False
 
 
 def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
@@ -549,7 +601,9 @@ def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
     Mediocre massive has no ha-card, so card-mod on the card itself cannot reliably
     style its light-DOM footer. Wrap in mod-card (from card-mod) and hide the
     Home / dots / speaker footer from the parent ha-card stylesheet. Album art is
-    capped so play / pause / previous / next stay inside the 16:9 cell.
+    a shrinkable square so play / pause / previous / next stay inside the 16:9
+    cell without stretching the overview rows. Transport and volume ignore cover
+    colours and use the Flux UI on-surface / primary tokens.
     """
     del zone_name
     inner = {

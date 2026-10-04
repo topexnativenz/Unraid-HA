@@ -14,6 +14,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from flux_media_player import playback_stack_forces_full_height  # noqa: E402
+
 from ha_common import (
     DEFAULT_HOST,
     DEFAULT_MOUNT,
@@ -1235,6 +1237,27 @@ def build_config(
             print(
                 "\nERROR: Tablet music must cap album art "
                 "(--mmpc-art-width) so transport controls stay visible.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "--md-sys-color-on-surface" not in blob or "--md-sys-color-primary" not in blob:
+            print(
+                "\nERROR: Tablet music transport and volume must use the Flux UI "
+                "on-surface and primary colours (cover art makes them invisible).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if "justify-content: space-between" in blob or "margin-top: auto" in blob:
+            print(
+                "\nERROR: Tablet music playback stack must not use space-between "
+                "or margin-top: auto (drops controls mid-column and stretches rows).\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+        if playback_stack_forces_full_height(blob):
+            print(
+                "\nERROR: Tablet music playback stack must not use height: 100% "
+                "(cyclic with the overview grid; pushes Tesla off the 16:9 panel).\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
