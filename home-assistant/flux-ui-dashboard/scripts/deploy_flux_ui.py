@@ -1231,6 +1231,13 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if "--mmpc-art-width" not in blob:
+            print(
+                "\nERROR: Tablet music must cap album art "
+                "(--mmpc-art-width) so transport controls stay visible.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",

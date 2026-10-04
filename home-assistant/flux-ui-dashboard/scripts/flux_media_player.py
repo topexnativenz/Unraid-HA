@@ -478,12 +478,78 @@ def _mediocre_player_card(entity: str, zone_name: str) -> dict:
     }
 
 
+def _tablet_player_fit_css(*, scope: str) -> str:
+    """CSS that keeps transport buttons inside the 16:9 music column.
+
+    ``scope`` is empty when card-mod injects the sheet onto the mediocre element,
+    or ``mediocre-massive-media-player-card `` when the sheet lives on mod-card.
+    """
+    s = scope
+    return (
+        "/* Keep play / pause / previous / next inside the 16:9 column.\n"
+        "   Album art is a 1:1 square (padding-bottom: 100% of the column width).\n"
+        "   The music cell is overflow:hidden, so that square pushes the transport\n"
+        "   row below the clip. Cap the art and don't let title/controls shrink. */\n"
+        f"{s}button[style*=\"--mmpc-art-width\"] {{\n"
+        "  flex: 0 0 auto !important;\n"
+        "  align-self: center !important;\n"
+        "  width: 200px !important;\n"
+        "  height: 200px !important;\n"
+        "  max-width: 100% !important;\n"
+        "  min-width: 0 !important;\n"
+        "  min-height: 0 !important;\n"
+        "  aspect-ratio: 1 / 1 !important;\n"
+        "  pointer-events: none !important;\n"
+        "  cursor: default !important;\n"
+        "}\n"
+        f"{s}button[style*=\"--mmpc-art-width\"]::after {{\n"
+        "  content: none !important;\n"
+        "  display: none !important;\n"
+        "  padding: 0 !important;\n"
+        "}\n"
+        f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) {{\n"
+        "  justify-content: space-between !important;\n"
+        "  gap: 6px !important;\n"
+        "  padding-top: 4px !important;\n"
+        "  padding-bottom: 4px !important;\n"
+        "  min-height: 0 !important;\n"
+        "  height: 100% !important;\n"
+        "  box-sizing: border-box !important;\n"
+        "  overflow: hidden !important;\n"
+        "}\n"
+        f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) > div {{\n"
+        "  flex: 0 0 auto !important;\n"
+        "}\n"
+        f"{s}div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) {{\n"
+        "  margin-top: auto !important;\n"
+        "}\n"
+        f"{s}div:has(> div > button[style*=\"--mmpc-art-width\"]) {{\n"
+        "  padding: 8px !important;\n"
+        "  gap: 8px !important;\n"
+        "  min-height: 0 !important;\n"
+        "  box-sizing: border-box !important;\n"
+        "  overflow: hidden !important;\n"
+        "}\n"
+        # A card update that moves skip/play into the old footer strip must not
+        # stay display:none. Home / search / speaker (no transport icons) still hide.
+        f"{s}> div > div:last-child:has("
+        "ha-icon[icon*=\"skip-\"], ha-icon[icon*=\"play\"], "
+        "ha-icon[icon*=\"pause\"], ha-icon[icon*=\"stop\"]) {\n"
+        "  display: flex !important;\n"
+        "  height: auto !important;\n"
+        "  max-height: none !important;\n"
+        "  overflow: visible !important;\n"
+        "}\n"
+    )
+
+
 def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
     """Massive player for the tablet music column — fills space, does not grow rows.
 
     Mediocre massive has no ha-card, so card-mod on the card itself cannot reliably
     style its light-DOM footer. Wrap in mod-card (from card-mod) and hide the
-    Home / dots / speaker footer from the parent ha-card stylesheet.
+    Home / dots / speaker footer from the parent ha-card stylesheet. Album art is
+    capped so play / pause / previous / next stay inside the 16:9 cell.
     """
     del zone_name
     inner = {
@@ -545,6 +611,7 @@ def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
                     "  pointer-events: none !important;\n"
                     "  cursor: default !important;\n"
                     "}\n"
+                    + _tablet_player_fit_css(scope="mediocre-massive-media-player-card ")
                 ),
                 # Also inject directly onto the mediocre element (no shadow root).
                 "mediocre-massive-media-player-card": (
@@ -569,6 +636,7 @@ def _mediocre_tablet_player_card(entity: str, zone_name: str) -> dict:
                     "  pointer-events: none !important;\n"
                     "  cursor: default !important;\n"
                     "}\n"
+                    + _tablet_player_fit_css(scope="")
                 ),
             }
         },
