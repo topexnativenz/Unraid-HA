@@ -26,9 +26,9 @@ Live Home Assistant uses **Tessie for Model X** and the same approach/departure 
 | Automation | Trigger | Notes |
 |------------|---------|-------|
 | **Gate — open on Tessie arrival (Model X)** | Tessie road/gate after `model_x_was_away` | Working template. GPS is live. |
-| **Gate — open on Tessie arrival (Model S)** | Same road/gate triggers, plus `person.gen` / `gens_phone` / `person.dave` `not_home` → Road/Gate Approach | Model S Tessie GPS stays ~50 m home. Phone zone is the Model X equivalent. Also opens House Garage. |
-| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R; Model S shift or driver door | Pulses gate + House Garage |
-| **Gate — begin departure** | Same as above | Sets `model_s_was_away` / `model_x_was_away` |
+| **Gate — open on Tessie arrival (Model S)** | Phone enters Road/Gate Approach from anywhere except home, or jumps straight to home while `model_s_was_away` and someone is in the S | Model S Tessie GPS stays ~50 m home. Also opens House Garage. Relay runs before the Tessie wake. |
+| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R; Model S phone leaving home while someone is in the S. Driver door only if `model_s_was_away` is off | Pulses gate + House Garage, then wakes the car |
+| **Gate — begin departure** | Same as above | Sets `model_s_was_away` / `model_x_was_away`. Does not wait on `model_x_was_away` for the S |
 | **Gate — wake Tessie while Model S is away** | Every 5 min while was_away and Gen/Dave still out | Model X equivalent; S GPS never shows >200 m |
 
 **2026-09-29:** Occupant/odometer “arrival” opened the gate after Gen was already home (phone hit Road Approach 90 s earlier; they used the intercom). That fallback is removed. Do not treat stale GPS-home as parked while Gen/Dave are still `not_home`.

@@ -1,0 +1,160 @@
+# Model S gate/garage/lights watchdog. Notifies Halo when the chain misbehaves.
+# Read-only apart from the notification. Entity ids match the live registry
+# (they are sticky aliases, not the current automation titles).
+
+- id: model_s_watchdog_gps_frozen
+  alias: Watchdog — Model S Tessie GPS frozen while car is driving
+  triggers:
+    - trigger: state
+      entity_id: sensor.model_s_p100d_odometer
+  conditions:
+    - condition: template
+      value_template: >-
+        {% set old = trigger.from_state.state | float(0) %}
+        {% set new = trigger.to_state.state | float(0) %}
+        {{ new - old > 1
+           and states('sensor.model_s_tessie_distance_to_home') | float(9999) < 200 }}
+  actions:
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Model S GPS frozen
+        message: >-
+          Odometer moved {{ (trigger.to_state.state | float(0) - trigger.from_state.state | float(0)) | round(1) }} km
+          to {{ trigger.to_state.state }} km but Tessie still says
+          {{ states('sensor.model_s_tessie_distance_to_home') }} m from home
+          (lat {{ states('sensor.model_s_tessie_latitude') }}).
+          In the Tesla app, allow location for Tessie.
+        data:
+          tag: model_s_watchdog_gps
+          channel: gate
+  mode: single
+  max_exceeded: silent
+
+- id: model_s_watchdog_arrival_miss
+  alias: Watchdog — phone reached home or approach but gate did not open
+  triggers:
+    - trigger: state
+      entity_id:
+        - person.dave
+        - person.gen
+      to:
+        - Road Approach
+        - Gate Approach
+      not_from:
+        - home
+        - unknown
+        - unavailable
+    - trigger: state
+      entity_id:
+        - person.dave
+        - person.gen
+      to: home
+      not_from:
+        - home
+        - Road Approach
+        - Gate Approach
+        - unknown
+        - unavailable
+  actions:
+    - delay:
+        seconds: 90
+    - condition: template
+      value_template: >-
+        {{ (now() - states.input_datetime.gate_last_open.last_changed).total_seconds() > 150 }}
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Gate did not auto-open
+        message: >-
+          {{ trigger.to_state.name }} entered {{ trigger.to_state.state }} 90 s ago, no auto-open.
+          s_was_away={{ states('input_boolean.model_s_was_away') }},
+          x_was_away={{ states('input_boolean.model_x_was_away') }},
+          departure={{ states('input_boolean.gate_departure_in_progress') }},
+          session={{ states('input_boolean.gate_arrival_session') }},
+          S user_present={{ states('binary_sensor.model_s_p100d_user_present') }}.
+        data:
+          tag: model_s_watchdog_arrival
+          channel: gate
+  mode: parallel
+
+- id: model_s_watchdog_departure_miss
+  alias: Watchdog — someone left home but gate did not open
+  triggers:
+    - trigger: state
+      entity_id:
+        - person.dave
+        - person.gen
+      from: home
+  conditions:
+    - condition: template
+      value_template: >-
+        {{ (
+             is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
+             or trigger.to_state.state in ['Road Approach', 'Gate Approach']
+           )
+           and (
+             states('sensor.model_x_tessie_distance_to_home') | float(0) < 120
+             or is_state('binary_sensor.model_s_p100d_user_present', 'on')
+           ) }}
+  actions:
+    - delay:
+        seconds: 60
+    - condition: template
+      value_template: >-
+        {{ (now() - states.input_datetime.gate_last_open.last_changed).total_seconds() > 240 }}
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Departure — gate did not auto-open
+        message: >-
+          {{ trigger.to_state.name }} left home with no auto-open.
+          driver_door={{ states('binary_sensor.model_s_p100d_front_driver_door') }},
+          user_present={{ states('binary_sensor.model_s_p100d_user_present') }},
+          x_distance={{ states('sensor.model_x_tessie_distance_to_home') }} m.
+        data:
+          tag: model_s_watchdog_departure
+          channel: gate
+  mode: parallel
+
+- id: model_s_watchdog_entities_unavailable
+  alias: Watchdog — gate/garage/light/Model S entity unavailable
+  triggers:
+    - trigger: state
+      entity_id:
+        - switch.garage_door_3
+        - lock.gate_intercom_gate_open
+        - light.garage
+        - light.outside_garage
+        - binary_sensor.house_garage_door_sensor_door
+        - sensor.model_s_p100d_odometer
+        - binary_sensor.model_s_p100d_front_driver_door
+        - binary_sensor.model_s_p100d_user_present
+        - sensor.model_s_tessie_latitude
+        - person.dave
+        - person.gen
+      to:
+        - unavailable
+        - unknown
+      for:
+        minutes: 15
+    - trigger: state
+      entity_id:
+        - automation.gate_open_on_arrival_road_tessie_or_gate_zone
+        - automation.gate_open_when_model_s_leaves_park_at_home
+        - automation.gate_begin_departure_tesla_shift_out_of_park
+        - automation.house_garage_open_when_gate_arrival_session_starts
+        - automation.house_garage_open_when_tesla_departure_starts
+        - automation.garage_outside_lights_on_tessie_arrival_after_dark
+      to: "off"
+  actions:
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Home automation health
+        message: "{{ trigger.to_state.name }} is {{ trigger.to_state.state }}."
+        data:
+          tag: "watchdog_{{ trigger.entity_id }}"
+          channel: gate
+  mode: queued

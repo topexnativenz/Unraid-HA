@@ -68,9 +68,21 @@
         {% if eid == 'sensor.x_shift_state' %}
           {{ states('sensor.model_x_tessie_distance_to_home') | float(9999) < 120
              or is_state('device_tracker.x_location', 'home') }}
-        {% elif eid in ['person.gen', 'person.dave', 'device_tracker.gens_phone'] %}
+        {% elif trigger.id == 'model_s_driver_door' %}
+          {# Door opens when getting out after arriving as well as when leaving.
+             5 Oct 02:42 UTC the gate pulsed on that exit. Only arm a departure
+             when the S is not still flagged away from the trip just ending. #}
           {{ is_state('input_boolean.model_s_was_away', 'off')
-             and is_state('input_boolean.model_x_was_away', 'off')
+             and is_state('input_boolean.gate_arrival_session', 'off')
+             and is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             and (
+               states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
+               or is_state('device_tracker.model_s_p100d_location', 'home')
+             ) }}
+        {% elif eid in ['person.gen', 'person.dave', 'device_tracker.gens_phone'] %}
+          {# Occupant in the S, not model_x_was_away. That flag blocked person
+             departures whenever the X was away or the flag had stuck on. #}
+          {{ is_state('input_boolean.model_s_was_away', 'off')
              and (
                is_state('binary_sensor.model_s_p100d_user_present', 'on')
                or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
@@ -92,12 +104,6 @@
         - action: input_boolean.turn_on
           target:
             entity_id: input_boolean.model_s_was_away
-        - action: rest_command.tessie_wake_model_s
-          continue_on_error: true
-        - action: button.press
-          target:
-            entity_id: button.model_s_p100d_wake
-          continue_on_error: true
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.gate_departure_in_progress
@@ -115,6 +121,16 @@
         entity_id: input_text.gate_status_message
       data:
         value: Departure started — Tessie arrival paused
+    - if:
+        - condition: template
+          value_template: "{{ trigger.entity_id != 'sensor.x_shift_state' }}"
+      then:
+        - action: rest_command.tessie_wake_model_s
+          continue_on_error: true
+        - action: button.press
+          target:
+            entity_id: button.model_s_p100d_wake
+          continue_on_error: true
   mode: single
 
 - id: gate_end_departure
@@ -253,24 +269,20 @@
       for:
         seconds: 30
     - id: odometer_jump
-      trigger: state
-      entity_id: sensor.model_s_p100d_odometer
+      trigger: template
+      value_template: >-
+        {% set home_odo = states('input_number.model_s_home_odometer') | float(0) %}
+        {{ home_odo > 0
+           and states('sensor.model_s_p100d_odometer') | float(0) - home_odo > 1.0 }}
   conditions:
     - condition: template
       value_template: >-
         {% if trigger.id == 'odometer_jump' %}
-          {% set old = trigger.from_state.state | float(0) %}
-          {% set new = trigger.to_state.state | float(0) %}
-          {{ (new - old) > 1.0 }}
+          true
         {% elif trigger.id == 'person_left' %}
-          {{ (
-               is_state('input_boolean.model_s_was_away', 'on')
-               or is_state('binary_sensor.model_s_p100d_user_present', 'on')
-             )
-             and (
-               trigger.entity_id in ['person.gen', 'device_tracker.gens_phone']
-               or is_state('input_boolean.model_x_was_away', 'off')
-             ) }}
+          {{ is_state('input_boolean.model_s_was_away', 'on')
+             or is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on') }}
         {% else %}
           true
         {% endif %}
@@ -288,18 +300,49 @@
   triggers:
     - trigger: template
       value_template: >-
-        {{ is_state('input_boolean.model_s_was_away', 'on')
-           and states('person.gen') not in ['not_home', 'Road Approach', 'Gate Approach']
+        {{ states('person.gen') not in ['not_home', 'Road Approach', 'Gate Approach']
            and states('person.dave') not in ['not_home', 'Road Approach', 'Gate Approach']
            and states('sensor.model_s_p100d_shift_state') | lower == 'p'
            and is_state('binary_sensor.model_s_p100d_user_present', 'off')
-           and is_state('binary_sensor.model_s_p100d_front_driver_door', 'off') }}
+           and is_state('binary_sensor.model_s_p100d_front_driver_door', 'off')
+           and (
+             is_state('input_boolean.model_s_was_away', 'on')
+             or (states('sensor.model_s_p100d_odometer') | float(0)
+                 - states('input_number.model_s_home_odometer') | float(0) > 0.2)
+           ) }}
       for:
         minutes: 3
   actions:
     - action: input_boolean.turn_off
       target:
         entity_id: input_boolean.model_s_was_away
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.model_s_home_odometer
+      data:
+        value: "{{ states('sensor.model_s_p100d_odometer') | float(0) }}"
+      continue_on_error: true
+  mode: single
+
+- id: gate_model_x_clear_away
+  alias: Gate — Model X clear was away at home
+  description: >-
+    model_x_was_away used to stay on if the Model X arrival run stopped before
+    its turn_off (notify.halo is not a service, so that action aborted the
+    rest). Clear it once the X is parked at home. S departure no longer reads
+    this flag; this still keeps the X arrival gate honest.
+  triggers:
+    - trigger: template
+      value_template: >-
+        {{ is_state('input_boolean.model_x_was_away', 'on')
+           and states('sensor.model_x_tessie_distance_to_home') | float(9999) < 80
+           and states('sensor.x_shift_state') | lower in ['p', 'unknown', 'unavailable', 'none'] }}
+      for:
+        minutes: 3
+  actions:
+    - action: input_boolean.turn_off
+      target:
+        entity_id: input_boolean.model_x_was_away
   mode: single
 
 - id: gate_tessie_wake_while_away
@@ -377,10 +420,12 @@
 - id: gate_open_on_arrival
   alias: Gate — open on Tessie arrival (Model S)
   description: >-
-    Clone of Gate — open on Tessie arrival (Model X): road/gate approach after
-    model_s_was_away, then pulse gate + House Garage. Model S Tessie GPS never
-    enters those zones, so person.gen / gens_phone / person.dave not_home →
-    Road Approach / Gate Approach is the same trigger Model X gets from Tessie.
+    Opens the gate after model_s_was_away when a phone enters Road Approach or
+    Gate Approach, or when a phone jumps straight to home (5 Oct 02:36 UTC Gen
+    returned not_home → home and the gate never ran). Model X in an approach
+    zone does not count — that arrival has its own automation. The relay is
+    pulsed before any Tessie wake. was_away stays on until the car is parked
+    so the driver-door departure trigger does not fire while someone gets out.
   triggers:
     - id: tessie_road_on
       trigger: state
@@ -407,7 +452,11 @@
         - person.gen
         - person.dave
         - device_tracker.gens_phone
-      from: not_home
+      not_from:
+        - home
+        - Gate Approach
+        - unknown
+        - unavailable
       to: Road Approach
     - id: person_gate
       trigger: state
@@ -415,10 +464,24 @@
         - person.gen
         - person.dave
         - device_tracker.gens_phone
-      from:
-        - not_home
-        - Road Approach
+      not_from:
+        - home
+        - unknown
+        - unavailable
       to: Gate Approach
+    - id: person_home
+      trigger: state
+      entity_id:
+        - person.gen
+        - person.dave
+        - device_tracker.gens_phone
+      not_from:
+        - home
+        - Road Approach
+        - Gate Approach
+        - unknown
+        - unavailable
+      to: home
   conditions:
     - condition: state
       entity_id: input_boolean.gate_arrival_session
@@ -431,8 +494,14 @@
       state: "on"
     - condition: template
       value_template: >-
-        {% if trigger.id in ['person_road', 'person_gate'] %}
-          true
+        {% if trigger.id in ['person_road', 'person_gate', 'person_home'] %}
+          {{ not is_state('binary_sensor.model_x_tessie_in_road_approach', 'on')
+             and not is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on')
+             and (
+               trigger.id != 'person_home'
+               or is_state('binary_sensor.model_s_p100d_user_present', 'on')
+               or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
+             ) }}
         {% else %}
           {{ not (
                states('sensor.model_s_tessie_distance_to_home') | float(9999) < 80
@@ -452,8 +521,6 @@
              and states('sensor.model_s_p100d_speed') | float(0) > 1
            ) }}
   actions:
-    - action: rest_command.tessie_wake_model_s
-      continue_on_error: true
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.gate_arrival_session
@@ -470,7 +537,8 @@
       target:
         entity_id: script.house_garage_open_if_closed
       continue_on_error: true
-    - action: notify.halo
+    - action: notify.mobile_app_halo
+      continue_on_error: true
       data:
         title: Gate opening
         message: "Model S approach ({{ trigger.id }}). Opening now."
@@ -480,9 +548,7 @@
           importance: high
     - action: input_boolean.turn_off
       target:
-        entity_id:
-          - input_boolean.gate_exit_in_progress
-          - input_boolean.model_s_was_away
+        entity_id: input_boolean.gate_exit_in_progress
     - action: input_datetime.set_datetime
       target:
         entity_id: input_datetime.gate_last_open
@@ -498,54 +564,8 @@
         entity_id: input_text.gate_status_message
       data:
         value: Gate relay 1 pulsing — Tessie session active
-  mode: single
-  actions:
     - action: rest_command.tessie_wake_model_s
       continue_on_error: true
-    - action: input_boolean.turn_on
-      target:
-        entity_id: input_boolean.gate_arrival_session
-    - action: input_text.set_value
-      target:
-        entity_id: input_text.gate_status_message
-      data:
-        value: "Opening gate — Model S {{ trigger.id }}"
-    - action: shell_command.akuvox_gate_open_relay_1
-    - action: script.turn_on
-      target:
-        entity_id: script.gate_pulse_hold_approach
-    - action: script.turn_on
-      target:
-        entity_id: script.house_garage_open_if_closed
-      continue_on_error: true
-    - action: notify.halo
-      data:
-        title: Gate opening
-        message: "Model S Tessie approach ({{ trigger.id }}). Opening now."
-        data:
-          tag: gate_approach
-          channel: gate
-          importance: high
-    - action: input_boolean.turn_off
-      target:
-        entity_id:
-          - input_boolean.gate_exit_in_progress
-          - input_boolean.model_s_was_away
-    - action: input_datetime.set_datetime
-      target:
-        entity_id: input_datetime.gate_last_open
-      data:
-        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-    - action: input_select.select_option
-      target:
-        entity_id: input_select.gate_last_relay
-      data:
-        option: auto_approach
-    - action: input_text.set_value
-      target:
-        entity_id: input_text.gate_status_message
-      data:
-        value: Gate relay 1 pulsing — Tessie session active
   mode: single
 
 - id: gate_open_on_arrival_model_x
@@ -601,8 +621,6 @@
              and states('sensor.x_speed') | float(0) > 1
            ) }}
   actions:
-    - action: rest_command.tessie_wake_model_x
-      continue_on_error: true
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.gate_arrival_session
@@ -619,7 +637,8 @@
       target:
         entity_id: script.house_garage_open_if_closed
       continue_on_error: true
-    - action: notify.halo
+    - action: notify.mobile_app_halo
+      continue_on_error: true
       data:
         title: Gate opening
         message: "Model X Tessie approach ({{ trigger.id }}). Opening now."
@@ -647,6 +666,8 @@
         entity_id: input_text.gate_status_message
       data:
         value: Gate relay 1 pulsing — Tessie session active
+    - action: rest_command.tessie_wake_model_x
+      continue_on_error: true
   mode: single
 
 - id: gate_open_tesla_departure
@@ -701,6 +722,7 @@
       to:
         - Gate Approach
         - Road Approach
+        - not_home
   conditions:
     - condition: template
       value_template: >-
@@ -708,13 +730,17 @@
         {% if eid == 'sensor.x_shift_state' %}
           {{ states('sensor.model_x_tessie_distance_to_home') | float(9999) < 120
              or is_state('device_tracker.x_location', 'home') }}
-        {% elif eid in ['person.gen', 'person.dave', 'device_tracker.gens_phone'] %}
-          {{ is_state('input_boolean.model_x_was_away', 'off')
+        {% elif trigger.id == 'model_s_driver_door' %}
+          {{ is_state('input_boolean.model_s_was_away', 'off')
+             and is_state('input_boolean.gate_arrival_session', 'off')
+             and is_state('binary_sensor.model_s_p100d_user_present', 'on')
              and (
-               is_state('input_boolean.model_s_was_away', 'on')
-               or is_state('binary_sensor.model_s_p100d_user_present', 'on')
-               or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
+               states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
+               or is_state('device_tracker.model_s_p100d_location', 'home')
              ) }}
+        {% elif eid in ['person.gen', 'person.dave', 'device_tracker.gens_phone'] %}
+          {{ is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on') }}
         {% else %}
           {{ states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
              or is_state('device_tracker.model_s_p100d_location', 'home') }}
@@ -725,8 +751,6 @@
         {{ last.last_changed is none
            or (now() - last.last_changed).total_seconds() > 180 }}
   actions:
-    - action: rest_command.tessie_wake_model_s
-      continue_on_error: true
     - action: script.turn_on
       target:
         entity_id: script.gate_pulse_departure
@@ -744,4 +768,6 @@
         entity_id: input_select.gate_last_relay
       data:
         option: auto_tesla
+    - action: "{{ 'rest_command.tessie_wake_model_x' if trigger.id == 'model_x_shift' else 'rest_command.tessie_wake_model_s' }}"
+      continue_on_error: true
   mode: single

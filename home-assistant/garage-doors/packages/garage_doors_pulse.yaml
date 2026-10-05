@@ -20,6 +20,16 @@ input_boolean:
     name: Model X was away (Tessie arrival)
     icon: mdi:car-arrow-right
 
+input_number:
+  model_s_home_odometer:
+    name: Model S odometer when last parked at home
+    min: 0
+    max: 1000000
+    step: 0.1
+    mode: box
+    unit_of_measurement: km
+    icon: mdi:counter
+
 script:
   house_garage_open_if_closed:
     alias: House Garage — open if Tapo reports closed
