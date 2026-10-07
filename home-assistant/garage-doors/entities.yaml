@@ -8,19 +8,25 @@ doors:
   - name: House Garage
     script: script.pulse_house_garage_door
     tracked: input_boolean.house_garage_door_open
-    sensor: binary_sensor.house_garage_door_is_open
+    # Live Tapo door contact (same entity the locked tablet baseline uses).
+    sensor: binary_sensor.house_garage_door_sensor_door
     invert: false
 
   - name: Main Shed
     script: script.pulse_main_shed_door
     tracked: input_boolean.main_shed_door_open
-    sensor: binary_sensor.shed_main_door_is_open
+    # Template door sensor on HA. binary_sensor.shed_main_door_is_open is not installed.
+    sensor: binary_sensor.casa_luna_main_shed_garage_door
     invert: false
 
   - name: Second Shed
     script: script.pulse_second_shed_door
     tracked: input_boolean.second_shed_door_open
-    sensor: binary_sensor.second_shed_door_is_open
+    # No Tapo contact exists for this door. Binding the tile to the missing
+    # binary_sensor.second_shed_door_is_open caused an Active-tab configuration
+    # error, so the button was disabled and phone deploys dropped it.
+    # The tracked boolean exists; the tile pulses the Shelly and flips it.
+    sensor: input_boolean.second_shed_door_open
     invert: false
-    # No Tapo on this door yet — discover sets enabled: true when sensor appears in HA
-    enabled: false
+    enabled: true
+    toggle_tracked: true

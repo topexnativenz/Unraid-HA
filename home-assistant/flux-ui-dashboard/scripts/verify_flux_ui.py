@@ -504,6 +504,20 @@ def verify_build(path: Path) -> list[str]:
                 f"Garage Tapo sensors: found {found_garage_sensors}, "
                 f"expected {len(entities_cfg['quick_actions']['garage'])}"
             )
+        if "Second Shed" not in blob or "script.pulse_second_shed_door" not in blob:
+            errors.append(
+                "Phone dashboard missing Second Shed button "
+                "(script.pulse_second_shed_door)"
+            )
+        if "binary_sensor.second_shed_door_is_open" in blob:
+            errors.append(
+                "Phone dashboard references missing binary_sensor.second_shed_door_is_open "
+                "— use input_boolean.second_shed_door_open"
+            )
+        if '"action": "multi-actions"' not in blob:
+            errors.append(
+                "Second Shed tap must pulse the relay and toggle the tracked boolean"
+            )
         if found_lights != expected_lights:
             missing = expected_lights - found_lights
             errors.append(f"Missing favourite lights: {sorted(missing)}")

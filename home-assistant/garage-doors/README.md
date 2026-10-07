@@ -22,11 +22,11 @@ Red = open (Tapo sensor `on`), grey = closed. Icons read **Tapo contact sensors*
 
 Edit **`entities.yaml`** in this folder with your real Tapo contact sensor IDs (Developer Tools → States → filter `tapo` or `is_open`):
 
-| Door | Tapo sensor (TP-Link default) | Tracked boolean | Pulse script |
-|------|--------------------------------|-----------------|--------------|
-| House Garage | `binary_sensor.house_garage_door_is_open` | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
-| Main Shed | `binary_sensor.shed_main_door_is_open` | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
-| Second Shed | `binary_sensor.second_shed_door_is_open` | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
+| Door | Status entity | Tracked boolean | Pulse script |
+|------|---------------|-----------------|--------------|
+| House Garage | `binary_sensor.house_garage_door_sensor_door` | `input_boolean.house_garage_door_open` | `script.pulse_house_garage_door` |
+| Main Shed | `binary_sensor.casa_luna_main_shed_garage_door` | `input_boolean.main_shed_door_open` | `script.pulse_main_shed_door` |
+| Second Shed | `input_boolean.second_shed_door_open` (no Tapo contact installed) | `input_boolean.second_shed_door_open` | `script.pulse_second_shed_door` |
 
 Auto-map from live HA (on your LAN):
 
