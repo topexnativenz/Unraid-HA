@@ -333,6 +333,11 @@ def verify_build(path: Path) -> list[str]:
                 "(cyclic with the overview grid; stretches Gates & Doors and "
                 "pushes Tesla off the panel)"
             )
+        if "contain: size !important" not in overview_blob:
+            errors.append(
+                "Tablet music grid item must use contain: size so idle, paused, "
+                "and playing states cannot stretch overview rows"
+            )
         if "cameras cameras cameras calendar_notification" in overview_blob:
             errors.append("Tablet cameras must sit beside lights as 2x2, not a full-width row")
         if "min-height: 200px" in overview_blob and "max-height: 100%" not in overview_blob:
