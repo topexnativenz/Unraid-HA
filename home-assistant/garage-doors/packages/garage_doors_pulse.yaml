@@ -76,12 +76,12 @@ automation:
     mode: restart
     trigger:
       - platform: state
-        entity_id: binary_sensor.house_garage_door_is_open
+        entity_id: binary_sensor.house_garage_door_sensor_door
     action:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ is_state('binary_sensor.house_garage_door_is_open', ['on', 'open']) }}"
+                value_template: "{{ is_state('binary_sensor.house_garage_door_sensor_door', ['on', 'open']) }}"
             sequence:
               - action: input_boolean.turn_on
                 target:
@@ -96,12 +96,12 @@ automation:
     mode: restart
     trigger:
       - platform: state
-        entity_id: binary_sensor.shed_main_door_is_open
+        entity_id: binary_sensor.casa_luna_main_shed_garage_door
     action:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ is_state('binary_sensor.shed_main_door_is_open', ['on', 'open']) }}"
+                value_template: "{{ is_state('binary_sensor.casa_luna_main_shed_garage_door', ['on', 'open']) }}"
             sequence:
               - action: input_boolean.turn_on
                 target:
@@ -111,22 +111,7 @@ automation:
             target:
               entity_id: input_boolean.main_shed_door_open
 
-  - id: garage_sync_second_shed_from_tapo
-    alias: Garage — sync Second Shed tracked state from Tapo
-    mode: restart
-    trigger:
-      - platform: state
-        entity_id: binary_sensor.second_shed_door_is_open
-    action:
-      - choose:
-          - conditions:
-              - condition: template
-                value_template: "{{ is_state('binary_sensor.second_shed_door_is_open', ['on', 'open']) }}"
-            sequence:
-              - action: input_boolean.turn_on
-                target:
-                  entity_id: input_boolean.second_shed_door_open
-        default:
-          - action: input_boolean.turn_off
-            target:
-              entity_id: input_boolean.second_shed_door_open
+  # Second Shed has no contact sensor. The phone tile toggles
+  # input_boolean.second_shed_door_open itself. Do not sync that boolean from
+  # binary_sensor.second_shed_door_is_open — the entity is not installed and a
+  # sync automation would pin the button to Closed.

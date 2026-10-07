@@ -17,6 +17,31 @@ from garage_ui_helpers import (  # noqa: E402
 from md3_templates import wrap_glass, wrap_title
 
 
+def _door_tap_action(door: dict) -> dict:
+    """Pulse the Shelly script. Doors without a contact sensor also flip tracked state."""
+    pulse = {
+        "action": "call-service",
+        "service": "script.turn_on",
+        "service_data": {"entity_id": door["script"]},
+    }
+    tracked = door.get("tracked")
+    if not door.get("toggle_tracked") or not tracked:
+        return pulse
+    # button-card multi-actions runs on the phone dashboard without a package reload.
+    # script.pulse_* only fires the relay; the boolean is what the tile displays.
+    return {
+        "action": "multi-actions",
+        "actions": [
+            pulse,
+            {
+                "action": "call-service",
+                "service": "input_boolean.toggle",
+                "target": {"entity_id": tracked},
+            },
+        ],
+    }
+
+
 def flux_door_tile(door: dict, *, columns: int | None = None) -> dict:
     """Large MD3 door tile — green closed, pulsing red/pink when open."""
     sensor = door["sensor"]
@@ -31,11 +56,7 @@ def flux_door_tile(door: dict, *, columns: int | None = None) -> dict:
         "icon": open_icon_js(sensor, invert=invert, name=name),
         "label": open_label_js(sensor, invert=invert),
         "variables": {"invert": invert, "door_name": name, "sensor_id": sensor},
-        "tap_action": {
-            "action": "call-service",
-            "service": "script.turn_on",
-            "service_data": {"entity_id": door["script"]},
-        },
+        "tap_action": _door_tap_action(door),
         "hold_action": {"action": "more-info"},
         "state": [
             {
