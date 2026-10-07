@@ -442,10 +442,13 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
         ],
         "card_mod": {
             "style": (
+                "/* Music grid item: contain size so no player state (idle, paused,\n"
+                "   playing, long titles, missing art) can grow the overview rows. */\n"
                 ":host, ha-card {\n"
                 "  height: 100% !important;\n"
                 "  max-height: 100% !important;\n"
                 "  min-height: 0 !important;\n"
+                "  contain: size !important;\n"
                 "  background: transparent !important;\n"
                 "  box-shadow: none !important;\n"
                 "  border: none !important;\n"
@@ -466,7 +469,8 @@ def _music_panel(cfg: dict, *, use_mediocre_media: bool) -> dict:
                 "  overflow: visible !important;\n"
                 "}\n"
                 "#root > *:not(:first-child) {\n"
-                "  flex: 1 1 auto !important;\n"
+                "  flex: 1 1 0% !important;\n"
+                "  height: 0 !important;\n"
                 "  min-height: 0 !important;\n"
                 "  overflow: hidden !important;\n"
                 "}\n"

@@ -1042,36 +1042,33 @@ views:
                     \  align-self: center !important;\n  width: 180px !important;\n  height: 180px !important;\n  max-width:\
                     \ 100% !important;\n  max-height: 100% !important;\n  min-width: 0 !important;\n  min-height: 0 !important;\n\
                     \  aspect-ratio: 1 / 1 !important;\n  pointer-events: none !important;\n  cursor: default !important;\n\
-                    }\nmediocre-massive-media-player-card button[style*=\"--mmpc-art-width\"] img {\n  position: absolute\
-                    \ !important;\n  inset: 0 !important;\n  width: 100% !important;\n  height: 100% !important;\n  max-height:\
-                    \ 100% !important;\n  object-fit: cover !important;\n}\nmediocre-massive-media-player-card button[style*=\"\
-                    --mmpc-art-width\"]::after {\n  content: none !important;\n  display: none !important;\n  padding: 0 !important;\n\
-                    }\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) {\n  height: auto\
-                    \ !important;\n  max-height: 100% !important;\n  min-height: 0 !important;\n  flex: 0 1 auto !important;\n\
-                    \  justify-content: flex-start !important;\n  align-items: center !important;\n  gap: 8px !important;\n\
-                    \  padding-top: 4px !important;\n  padding-bottom: 4px !important;\n  box-sizing: border-box !important;\n\
-                    \  overflow: hidden !important;\n}\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"\
-                    ]) > div:has(> button) {\n  flex: 0 0 auto !important;\n  width: 100% !important;\n  max-width: 480px\
-                    \ !important;\n  opacity: 1 !important;\n  --primary-color: var(--md-sys-color-primary, #D0BCFF) !important;\n\
-                    \  --primary-text-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --icon-primary-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mmpc-on-card: var(--md-sys-color-on-surface,\
+                    }\nmediocre-massive-media-player-card button[style*=\"--mmpc-art-width\"]::after {\n  content: none !important;\n\
+                    \  display: none !important;\n  padding: 0 !important;\n}\nmediocre-massive-media-player-card div:has(>\
+                    \ button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n  max-height: 100% !important;\n\
+                    \  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  justify-content: flex-start !important;\n\
+                    \  align-items: center !important;\n  gap: 8px !important;\n  padding-top: 4px !important;\n  padding-bottom:\
+                    \ 4px !important;\n  box-sizing: border-box !important;\n  overflow: hidden !important;\n}\nmediocre-massive-media-player-card\
+                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) {\n  flex: 0 0 auto !important;\n\
+                    \  width: 100% !important;\n  max-width: 480px !important;\n  opacity: 1 !important;\n  --primary-color:\
+                    \ var(--md-sys-color-primary, #D0BCFF) !important;\n  --primary-text-color: var(--md-sys-color-on-surface,\
+                    \ #E6E0E9) !important;\n  --icon-primary-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n\
+                    \  --mmpc-on-card: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface,\
+                    \ #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mmpc-on-card-divider:\
+                    \ rgba(230, 224, 233, 0.38) !important;\n  --divider-color: rgba(230, 224, 233, 0.38) !important;\n  --slider-on-fill-color:\
+                    \ var(--md-sys-color-on-primary, #381E72) !important;\n}\nmediocre-massive-media-player-card div:has(>\
+                    \ button[style*=\"--mmpc-art-width\"]) > div:has(> button) button,\nmediocre-massive-media-player-card\
+                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) ha-icon {\n  color: var(--md-sys-color-on-surface,\
                     \ #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --ha-icon-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mmpc-on-card-divider: rgba(230, 224, 233, 0.38)\
-                    \ !important;\n  --divider-color: rgba(230, 224, 233, 0.38) !important;\n  --slider-on-fill-color: var(--md-sys-color-on-primary,\
-                    \ #381E72) !important;\n}\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"\
-                    ]) > div:has(> button) button,\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"\
-                    ]) > div:has(> button) ha-icon {\n  color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  opacity: 1 !important;\n  flex-shrink: 0 !important;\n}\nmediocre-massive-media-player-card\
-                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"play\"\
+                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  opacity: 1 !important;\n  flex-shrink: 0 !important;\n\
+                    }\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button)\
+                    \ button:has(ha-icon[icon*=\"play\"]),\nmediocre-massive-media-player-card div:has(> button[style*=\"\
+                    --mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"pause\"]),\nmediocre-massive-media-player-card\
+                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"\
                     ]),\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button)\
-                    \ button:has(ha-icon[icon*=\"pause\"]),\nmediocre-massive-media-player-card div:has(> button[style*=\"\
-                    --mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"]),\nmediocre-massive-media-player-card\
-                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"play\"\
-                    ]) ha-icon,\nmediocre-massive-media-player-card div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
-                    \ button) button:has(ha-icon[icon*=\"pause\"]) ha-icon,\nmediocre-massive-media-player-card div:has(>\
-                    \ button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"]) ha-icon\
-                    \ {\n  color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --mdc-icon-color: var(--md-sys-color-primary,\
+                    \ button:has(ha-icon[icon*=\"play\"]) ha-icon,\nmediocre-massive-media-player-card div:has(> button[style*=\"\
+                    --mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"pause\"]) ha-icon,\nmediocre-massive-media-player-card\
+                    \ div:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"\
+                    ]) ha-icon {\n  color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --mdc-icon-color: var(--md-sys-color-primary,\
                     \ #D0BCFF) !important;\n  --ha-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n}\nmediocre-massive-media-player-card\
                     \ div:has(> div > button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n  max-height: 100%\
                     \ !important;\n  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  overflow: hidden !important;\n\
@@ -1087,53 +1084,51 @@ views:
                     \ align-self: center !important;\n  width: 180px !important;\n  height: 180px !important;\n  max-width:\
                     \ 100% !important;\n  max-height: 100% !important;\n  min-width: 0 !important;\n  min-height: 0 !important;\n\
                     \  aspect-ratio: 1 / 1 !important;\n  pointer-events: none !important;\n  cursor: default !important;\n\
-                    }\nbutton[style*=\"--mmpc-art-width\"] img {\n  position: absolute !important;\n  inset: 0 !important;\n\
-                    \  width: 100% !important;\n  height: 100% !important;\n  max-height: 100% !important;\n  object-fit:\
-                    \ cover !important;\n}\nbutton[style*=\"--mmpc-art-width\"]::after {\n  content: none !important;\n  display:\
-                    \ none !important;\n  padding: 0 !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) {\n  height:\
-                    \ auto !important;\n  max-height: 100% !important;\n  min-height: 0 !important;\n  flex: 0 1 auto !important;\n\
-                    \  justify-content: flex-start !important;\n  align-items: center !important;\n  gap: 8px !important;\n\
-                    \  padding-top: 4px !important;\n  padding-bottom: 4px !important;\n  box-sizing: border-box !important;\n\
-                    \  overflow: hidden !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button)\
-                    \ {\n  flex: 0 0 auto !important;\n  width: 100% !important;\n  max-width: 480px !important;\n  opacity:\
-                    \ 1 !important;\n  --primary-color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --primary-text-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --icon-primary-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --mmpc-on-card: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --mmpc-on-card-divider: rgba(230, 224, 233, 0.38) !important;\n  --divider-color:\
-                    \ rgba(230, 224, 233, 0.38) !important;\n  --slider-on-fill-color: var(--md-sys-color-on-primary, #381E72)\
-                    \ !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button,\ndiv:has(>\
-                    \ button[style*=\"--mmpc-art-width\"]) > div:has(> button) ha-icon {\n  color: var(--md-sys-color-on-surface,\
-                    \ #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --ha-icon-color:\
-                    \ var(--md-sys-color-on-surface, #E6E0E9) !important;\n  opacity: 1 !important;\n  flex-shrink: 0 !important;\n\
-                    }\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"play\"\
-                    ]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"pause\"\
-                    ]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"\
-                    ]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"play\"\
-                    ]) ha-icon,\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"\
-                    pause\"]) ha-icon,\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) button:has(ha-icon[icon*=\"\
-                    stop\"]) ha-icon {\n  color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --mdc-icon-color: var(--md-sys-color-primary,\
-                    \ #D0BCFF) !important;\n  --ha-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n}\ndiv:has(>\
-                    \ div > button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n  max-height: 100% !important;\n\
-                    \  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  overflow: hidden !important;\n  box-sizing:\
-                    \ border-box !important;\n}\n"
+                    }\nbutton[style*=\"--mmpc-art-width\"]::after {\n  content: none !important;\n  display: none !important;\n\
+                    \  padding: 0 !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) {\n  height: auto !important;\n\
+                    \  max-height: 100% !important;\n  min-height: 0 !important;\n  flex: 0 1 auto !important;\n  justify-content:\
+                    \ flex-start !important;\n  align-items: center !important;\n  gap: 8px !important;\n  padding-top: 4px\
+                    \ !important;\n  padding-bottom: 4px !important;\n  box-sizing: border-box !important;\n  overflow: hidden\
+                    \ !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) {\n  flex: 0 0 auto\
+                    \ !important;\n  width: 100% !important;\n  max-width: 480px !important;\n  opacity: 1 !important;\n \
+                    \ --primary-color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --primary-text-color: var(--md-sys-color-on-surface,\
+                    \ #E6E0E9) !important;\n  --icon-primary-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n\
+                    \  --mmpc-on-card: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface,\
+                    \ #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mmpc-on-card-divider:\
+                    \ rgba(230, 224, 233, 0.38) !important;\n  --divider-color: rgba(230, 224, 233, 0.38) !important;\n  --slider-on-fill-color:\
+                    \ var(--md-sys-color-on-primary, #381E72) !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"\
+                    ]) > div:has(> button) button,\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(> button) ha-icon\
+                    \ {\n  color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  --mdc-icon-color: var(--md-sys-color-on-surface,\
+                    \ #E6E0E9) !important;\n  --ha-icon-color: var(--md-sys-color-on-surface, #E6E0E9) !important;\n  opacity:\
+                    \ 1 !important;\n  flex-shrink: 0 !important;\n}\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
+                    \ button) button:has(ha-icon[icon*=\"play\"]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
+                    \ button) button:has(ha-icon[icon*=\"pause\"]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
+                    \ button) button:has(ha-icon[icon*=\"stop\"]),\ndiv:has(> button[style*=\"--mmpc-art-width\"]) > div:has(>\
+                    \ button) button:has(ha-icon[icon*=\"play\"]) ha-icon,\ndiv:has(> button[style*=\"--mmpc-art-width\"])\
+                    \ > div:has(> button) button:has(ha-icon[icon*=\"pause\"]) ha-icon,\ndiv:has(> button[style*=\"--mmpc-art-width\"\
+                    ]) > div:has(> button) button:has(ha-icon[icon*=\"stop\"]) ha-icon {\n  color: var(--md-sys-color-primary,\
+                    \ #D0BCFF) !important;\n  --mdc-icon-color: var(--md-sys-color-primary, #D0BCFF) !important;\n  --ha-icon-color:\
+                    \ var(--md-sys-color-primary, #D0BCFF) !important;\n}\ndiv:has(> div > button[style*=\"--mmpc-art-width\"\
+                    ]) {\n  height: auto !important;\n  max-height: 100% !important;\n  min-height: 0 !important;\n  flex:\
+                    \ 0 1 auto !important;\n  overflow: hidden !important;\n  box-sizing: border-box !important;\n}\n"
             card_mod:
-              style: ":host, ha-card {\n  background: transparent !important;\n  box-shadow: none !important;\n  border: none\
-                \ !important;\n  height: 100% !important;\n  min-height: 0 !important;\n}\n#root {\n  display: flex !important;\n\
-                \  flex-direction: column !important;\n  height: 100% !important;\n  min-height: 0 !important;\n  gap: 4px\
-                \ !important;\n}\n#root > *:first-child {\n  flex: 0 0 auto !important;\n  min-height: 0 !important;\n}\n\
-                #root > *:not(:first-child) {\n  flex: 1 1 0% !important;\n  height: 0 !important;\n  min-height: 0 !important;\n\
-                \  overflow: hidden !important;\n}\n"
+              style: "ha-card {\n  border-radius: 28px;\n  background: color-mix(in srgb, var(--md-sys-color-surface-container)\
+                \ 78%, transparent) !important;\n  backdrop-filter: blur(18px) saturate(140%);\n  -webkit-backdrop-filter:\
+                \ blur(18px) saturate(140%);\n  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 45%,\
+                \ transparent);\n  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.28);\n}\n:host, ha-card {\n  background: transparent\
+                \ !important;\n  box-shadow: none !important;\n  border: none !important;\n  height: 100% !important;\n  min-height:\
+                \ 0 !important;\n}\n#root {\n  display: flex !important;\n  flex-direction: column !important;\n  height:\
+                \ 100% !important;\n  min-height: 0 !important;\n  gap: 4px !important;\n}\n#root > *:first-child {\n  flex:\
+                \ 0 0 auto !important;\n  min-height: 0 !important;\n}\n#root > *:not(:first-child) {\n  flex: 1 1 auto !important;\n\
+                \  min-height: 0 !important;\n}\n"
           card_mod:
-            style: "/* Music grid item: contain size so no player state (idle, paused,\n   playing, long titles, missing art)\
-              \ can grow the overview rows. */\n:host, ha-card {\n  height: 100% !important;\n  max-height: 100% !important;\n\
-              \  min-height: 0 !important;\n  contain: size !important;\n  background: transparent !important;\n  box-shadow:\
-              \ none !important;\n  border: none !important;\n  overflow: hidden !important;\n  box-sizing: border-box !important;\n\
-              \  touch-action: pan-y !important;\n}\n#root {\n  display: flex !important;\n  flex-direction: column !important;\n\
-              \  height: 100% !important;\n  min-height: 0 !important;\n  overflow: hidden !important;\n  gap: 2px !important;\n\
-              }\n#root > *:first-child {\n  flex: 0 0 auto !important;\n  overflow: visible !important;\n}\n#root > *:not(:first-child)\
-              \ {\n  flex: 1 1 0% !important;\n  height: 0 !important;\n  min-height: 0 !important;\n  overflow: hidden !important;\n\
-              }\n"
+            style: ":host, ha-card {\n  height: 100% !important;\n  max-height: 100% !important;\n  min-height: 0 !important;\n\
+              \  background: transparent !important;\n  box-shadow: none !important;\n  border: none !important;\n  overflow:\
+              \ hidden !important;\n  box-sizing: border-box !important;\n  touch-action: pan-y !important;\n}\n#root {\n\
+              \  display: flex !important;\n  flex-direction: column !important;\n  height: 100% !important;\n  min-height:\
+              \ 0 !important;\n  overflow: hidden !important;\n  gap: 2px !important;\n}\n#root > *:first-child {\n  flex:\
+              \ 0 0 auto !important;\n  overflow: visible !important;\n}\n#root > *:not(:first-child) {\n  flex: 1 1 auto\
+              \ !important;\n  min-height: 0 !important;\n  overflow: hidden !important;\n}\n"
         - type: custom:mod-card
           view_layout:
             grid-area: calendar_notification

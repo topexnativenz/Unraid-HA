@@ -1261,6 +1261,13 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        if "contain: size !important" not in blob:
+            print(
+                "\nERROR: Tablet music grid item must use contain: size so no "
+                "player state can stretch the 16:9 overview rows.\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
