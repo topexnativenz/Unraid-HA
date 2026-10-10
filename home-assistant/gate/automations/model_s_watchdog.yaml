@@ -1,0 +1,183 @@
+# Model S gate/garage/lights watchdog. Notifies Halo when the chain misbehaves.
+# Read-only apart from the notification. Entity ids match the live registry
+# (they are sticky aliases, not the current automation titles).
+
+- id: model_s_watchdog_gps_frozen
+  alias: Watchdog — Model S Tessie GPS frozen while car is driving
+  triggers:
+    - trigger: state
+      entity_id: sensor.model_s_p100d_odometer
+  conditions:
+    - condition: template
+      value_template: >-
+        {% set old = trigger.from_state.state | float(0) %}
+        {% set new = trigger.to_state.state | float(0) %}
+        {{ new - old > 1
+           and states('sensor.model_s_tessie_distance_to_home') | float(9999) < 200 }}
+  actions:
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Model S GPS frozen
+        message: >-
+          Odometer moved {{ (trigger.to_state.state | float(0) - trigger.from_state.state | float(0)) | round(1) }} km
+          to {{ trigger.to_state.state }} km but Tessie still says
+          {{ states('sensor.model_s_tessie_distance_to_home') }} m from home
+          (lat {{ states('sensor.model_s_tessie_latitude') }}).
+          Tessie location for the Model S is still the driveway.
+          Pair the Model S virtual key in the Tessie app, and in the Tesla
+          app keep Tessie location sharing on Always.
+        data:
+          tag: model_s_watchdog_gps
+          channel: gate
+  mode: single
+  max_exceeded: silent
+
+- id: model_s_watchdog_arrival_miss
+  alias: Watchdog — Model S Tessie came toward home but gate did not open
+  triggers:
+    - id: closing_in
+      trigger: numeric_state
+      entity_id: sensor.model_s_tessie_distance_to_home
+      above: 350
+      below: 1600
+    - id: approach
+      trigger: state
+      entity_id:
+        - binary_sensor.model_s_tessie_in_road_approach
+        - binary_sensor.model_s_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.model_s_was_away
+      state: "on"
+    - condition: template
+      value_template: >-
+        {{ trigger.id != 'closing_in'
+           or (
+             trigger.from_state is not none
+             and trigger.from_state.state | float(0) > trigger.to_state.state | float(9999)
+           ) }}
+  actions:
+    - delay:
+        seconds: 90
+    - condition: template
+      value_template: >-
+        {{ (now() - states.input_datetime.gate_last_open.last_changed).total_seconds() > 150 }}
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Gate did not auto-open
+        message: >-
+          Model S Tessie came toward home
+          ({{ states('sensor.model_s_tessie_distance_to_home') }} m) and the gate did not auto-open.
+          s_was_away={{ states('input_boolean.model_s_was_away') }},
+          departure={{ states('input_boolean.gate_departure_in_progress') }},
+          session={{ states('input_boolean.gate_arrival_session') }},
+          shift={{ states('sensor.model_s_p100d_shift_state') }}.
+        data:
+          tag: model_s_watchdog_arrival
+          channel: gate
+  mode: parallel
+
+- id: model_s_watchdog_departure_miss
+  alias: Watchdog — Model S left Park at home but gate did not open
+  triggers:
+    - id: shift
+      trigger: state
+      entity_id:
+        - sensor.model_s_p100d_shift_state
+        - sensor.model_s_p100d_shift_state_2
+      from:
+        - p
+        - P
+        - unknown
+        - unavailable
+      to:
+        - d
+        - r
+        - D
+        - R
+    - id: odometer
+      trigger: state
+      entity_id: sensor.model_s_p100d_odometer
+  conditions:
+    - condition: template
+      value_template: >-
+        {% if trigger.id == 'odometer' %}
+          {% set old = trigger.from_state.state | float(0) %}
+          {% set new = trigger.to_state.state | float(0) %}
+          {{ new - old > 0.5
+             and states('sensor.model_s_tessie_distance_to_home') | float(9999) < 200
+             and is_state('input_boolean.model_s_was_away', 'off') }}
+        {% else %}
+          {% set spd = [
+             states('sensor.model_s_p100d_speed') | float(0),
+             states('sensor.model_s_p100d_speed_2') | float(0)
+           ] | max %}
+          {{ spd < 15
+             and states('sensor.model_s_tessie_distance_to_home') | float(9999) < 250
+             and is_state('input_boolean.model_s_was_away', 'off') }}
+        {% endif %}
+  actions:
+    - delay:
+        seconds: 60
+    - condition: template
+      value_template: >-
+        {{ (now() - states.input_datetime.gate_last_open.last_changed).total_seconds() > 240 }}
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Departure — gate did not auto-open
+        message: >-
+          Model S looked like it left home and the gate did not auto-open.
+          shift={{ states('sensor.model_s_p100d_shift_state') }},
+          shift_2={{ states('sensor.model_s_p100d_shift_state_2') }},
+          speed={{ states('sensor.model_s_p100d_speed') }},
+          distance={{ states('sensor.model_s_tessie_distance_to_home') }} m.
+        data:
+          tag: model_s_watchdog_departure
+          channel: gate
+  mode: parallel
+
+- id: model_s_watchdog_entities_unavailable
+  alias: Watchdog — gate/garage/light/Model S entity unavailable
+  triggers:
+    - trigger: state
+      entity_id:
+        - switch.garage_door_3
+        - lock.gate_intercom_gate_open
+        - light.garage
+        - light.outside_garage
+        - binary_sensor.house_garage_door_sensor_door
+        - sensor.model_s_p100d_odometer
+        - binary_sensor.model_s_p100d_front_driver_door
+        - binary_sensor.model_s_p100d_user_present
+        - sensor.model_s_tessie_latitude
+        - sensor.model_s_p100d_shift_state
+        - sensor.model_s_p100d_shift_state_2
+      to:
+        - unavailable
+        - unknown
+      for:
+        minutes: 15
+    - trigger: state
+      entity_id:
+        - automation.gate_open_on_arrival_road_tessie_or_gate_zone
+        - automation.gate_open_when_model_s_leaves_park_at_home
+        - automation.gate_begin_departure_tesla_shift_out_of_park
+        - automation.house_garage_open_when_gate_arrival_session_starts
+        - automation.house_garage_open_when_tesla_departure_starts
+        - automation.garage_outside_lights_on_tessie_arrival_after_dark
+      to: "off"
+  actions:
+    - action: notify.mobile_app_halo
+      continue_on_error: true
+      data:
+        title: Home automation health
+        message: "{{ trigger.to_state.name }} is {{ trigger.to_state.state }}."
+        data:
+          tag: "watchdog_{{ trigger.entity_id }}"
+          channel: gate
+  mode: queued

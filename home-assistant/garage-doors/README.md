@@ -18,6 +18,20 @@ bash /Users/topexnative/Projects/unraid-array-design/home-assistant/garage-doors
 
 Red = open (boolean on), grey = closed. Each tap runs the pulse script: if the Shelly switch is already `on`, `turn_off` then `turn_on` so the relay always fires; then toggles the boolean.
 
+## Tesla arrival / departure
+
+House Garage opens with the gate on Tesla trips (`automations/garage.yaml`):
+
+| Automation | When |
+|------------|------|
+| `house_garage_open_on_gate_session` | Gate arrival session starts (Model S or X) |
+| `house_garage_open_on_tessie_arrival` | Model X and Model S Tessie vehicle location (approach zones and, for the S, distance falling through 1.6 km). Phones are not used |
+| `house_garage_open_on_gate_departure` | `gate_departure_in_progress` turns on (leaving) |
+
+**Model S:** Garage and outside lights follow the gate arrival and departure sessions. The backup approach path uses Tessie vehicle location only. Arrival cannot open early until that location is live.
+
+House Garage Shelly (`switch.garage_door_3`) is currently online on live HA.
+
 ## Entity map (Mobile Home → Garage & Doors)
 
 | Dashboard label | Entity | Hardware |
