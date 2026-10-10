@@ -24,7 +24,9 @@
           to {{ trigger.to_state.state }} km but Tessie still says
           {{ states('sensor.model_s_tessie_distance_to_home') }} m from home
           (lat {{ states('sensor.model_s_tessie_latitude') }}).
-          In the Tesla app, allow location for Tessie.
+          Tessie location for the Model S is still the driveway.
+          Pair the Model S virtual key in the Tessie app, and in the Tesla
+          app keep Tessie location sharing on Always.
         data:
           tag: model_s_watchdog_gps
           channel: gate
@@ -32,30 +34,31 @@
   max_exceeded: silent
 
 - id: model_s_watchdog_arrival_miss
-  alias: Watchdog — phone reached home or approach but gate did not open
+  alias: Watchdog — Model S Tessie came toward home but gate did not open
   triggers:
-    - trigger: state
+    - id: closing_in
+      trigger: numeric_state
+      entity_id: sensor.model_s_tessie_distance_to_home
+      above: 350
+      below: 1600
+    - id: approach
+      trigger: state
       entity_id:
-        - person.dave
-        - person.gen
-      to:
-        - Road Approach
-        - Gate Approach
-      not_from:
-        - home
-        - unknown
-        - unavailable
-    - trigger: state
-      entity_id:
-        - person.dave
-        - person.gen
-      to: home
-      not_from:
-        - home
-        - Road Approach
-        - Gate Approach
-        - unknown
-        - unavailable
+        - binary_sensor.model_s_tessie_in_road_approach
+        - binary_sensor.model_s_tessie_in_gate_approach
+      from: "off"
+      to: "on"
+  conditions:
+    - condition: state
+      entity_id: input_boolean.model_s_was_away
+      state: "on"
+    - condition: template
+      value_template: >-
+        {{ trigger.id != 'closing_in'
+           or (
+             trigger.from_state is not none
+             and trigger.from_state.state | float(0) > trigger.to_state.state | float(9999)
+           ) }}
   actions:
     - delay:
         seconds: 90
@@ -67,37 +70,56 @@
       data:
         title: Gate did not auto-open
         message: >-
-          {{ trigger.to_state.name }} entered {{ trigger.to_state.state }} 90 s ago, no auto-open.
+          Model S Tessie came toward home
+          ({{ states('sensor.model_s_tessie_distance_to_home') }} m) and the gate did not auto-open.
           s_was_away={{ states('input_boolean.model_s_was_away') }},
-          x_was_away={{ states('input_boolean.model_x_was_away') }},
           departure={{ states('input_boolean.gate_departure_in_progress') }},
           session={{ states('input_boolean.gate_arrival_session') }},
-          S user_present={{ states('binary_sensor.model_s_p100d_user_present') }}.
+          shift={{ states('sensor.model_s_p100d_shift_state') }}.
         data:
           tag: model_s_watchdog_arrival
           channel: gate
   mode: parallel
 
 - id: model_s_watchdog_departure_miss
-  alias: Watchdog — someone left home but gate did not open
+  alias: Watchdog — Model S left Park at home but gate did not open
   triggers:
-    - trigger: state
+    - id: shift
+      trigger: state
       entity_id:
-        - person.dave
-        - person.gen
-      from: home
+        - sensor.model_s_p100d_shift_state
+        - sensor.model_s_p100d_shift_state_2
+      from:
+        - p
+        - P
+        - unknown
+        - unavailable
+      to:
+        - d
+        - r
+        - D
+        - R
+    - id: odometer
+      trigger: state
+      entity_id: sensor.model_s_p100d_odometer
   conditions:
     - condition: template
       value_template: >-
-        {{ (
-             is_state('binary_sensor.model_s_p100d_user_present', 'on')
-             or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
-             or trigger.to_state.state in ['Road Approach', 'Gate Approach']
-           )
-           and (
-             states('sensor.model_x_tessie_distance_to_home') | float(0) < 120
-             or is_state('binary_sensor.model_s_p100d_user_present', 'on')
-           ) }}
+        {% if trigger.id == 'odometer' %}
+          {% set old = trigger.from_state.state | float(0) %}
+          {% set new = trigger.to_state.state | float(0) %}
+          {{ new - old > 0.5
+             and states('sensor.model_s_tessie_distance_to_home') | float(9999) < 200
+             and is_state('input_boolean.model_s_was_away', 'off') }}
+        {% else %}
+          {% set spd = [
+             states('sensor.model_s_p100d_speed') | float(0),
+             states('sensor.model_s_p100d_speed_2') | float(0)
+           ] | max %}
+          {{ spd < 15
+             and states('sensor.model_s_tessie_distance_to_home') | float(9999) < 250
+             and is_state('input_boolean.model_s_was_away', 'off') }}
+        {% endif %}
   actions:
     - delay:
         seconds: 60
@@ -109,10 +131,11 @@
       data:
         title: Departure — gate did not auto-open
         message: >-
-          {{ trigger.to_state.name }} left home with no auto-open.
-          driver_door={{ states('binary_sensor.model_s_p100d_front_driver_door') }},
-          user_present={{ states('binary_sensor.model_s_p100d_user_present') }},
-          x_distance={{ states('sensor.model_x_tessie_distance_to_home') }} m.
+          Model S looked like it left home and the gate did not auto-open.
+          shift={{ states('sensor.model_s_p100d_shift_state') }},
+          shift_2={{ states('sensor.model_s_p100d_shift_state_2') }},
+          speed={{ states('sensor.model_s_p100d_speed') }},
+          distance={{ states('sensor.model_s_tessie_distance_to_home') }} m.
         data:
           tag: model_s_watchdog_departure
           channel: gate
@@ -132,8 +155,8 @@
         - binary_sensor.model_s_p100d_front_driver_door
         - binary_sensor.model_s_p100d_user_present
         - sensor.model_s_tessie_latitude
-        - person.dave
-        - person.gen
+        - sensor.model_s_p100d_shift_state
+        - sensor.model_s_p100d_shift_state_2
       to:
         - unavailable
         - unknown

@@ -26,10 +26,10 @@ Live Home Assistant uses **Tessie for Model X** and the same approach/departure 
 | Automation | Trigger | Notes |
 |------------|---------|-------|
 | **Gate — open on Tessie arrival (Model X)** | Tessie road/gate after `model_x_was_away` | Working template. GPS is live. |
-| **Gate — open on Tessie arrival (Model S)** | Phone distance to home falls through 1.6 km while heading home, or phone enters Road/Gate Approach, or jumps straight to home, while `model_s_was_away` and someone is in the S. Tessie distance does the same once GPS is live | Model S Tessie GPS stays ~50 m home. Also opens House Garage. Relay is the first action, before the Tessie wake. |
-| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R. Model S shift P→R/D, or driver door shuts just after someone gets in, while still at home. Phone leaving home is the backup | Relay script is the first action, then House Garage, then wake |
-| **Gate — begin departure** | Same as above | Sets `model_s_was_away` / `model_x_was_away`. Does not wait on `model_x_was_away` for the S |
-| **Gate — wake Tessie while Model S is away** | Every 5 min while was_away and Gen/Dave still out | Model X equivalent; S GPS never shows >200 m |
+| **Gate — open on Tessie arrival (Model S)** | Tessie `distance_to_home` falls through 350–1600 m while heading home, or the car's road/gate approach zone turns on, after `model_s_was_away` | Does not use phones. Cannot open until Tessie location is actually moving. Relay is the first action. Also opens House Garage. |
+| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R. Model S shift into Reverse, Drive as backup, while still at home (Tessie distance under 250 m, or not yet marked away) and speed under 15 km/h | Getting in and shutting the door does not open the gate. Relay script is the first action, then House Garage, then wake |
+| **Gate — begin departure** | Same shift triggers | Sets `model_s_was_away` / `model_x_was_away` |
+| **Gate — wake Tessie while Model S is away** | Every 5 min while `model_s_was_away` is on | Model S wake currently returns unsupported until the virtual key is paired |
 
 **2026-09-29:** Occupant/odometer “arrival” opened the gate after Gen was already home (phone hit Road Approach 90 s earlier; they used the intercom). That fallback is removed. Do not treat stale GPS-home as parked while Gen/Dave are still `not_home`.
 

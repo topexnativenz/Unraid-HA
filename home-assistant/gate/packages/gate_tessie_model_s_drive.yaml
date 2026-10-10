@@ -1,0 +1,30 @@
+# Model S shift, speed, and location from one uncached Tessie state poll.
+# GET /vehicles last_state (the old shift poll) and GET /{vin}/location stay
+# on the last parked snapshot. /state?use_cache=false is the live read when
+# the car is actually online. Model X is not in this file.
+# Requires secret: tessie_api_key_header
+
+rest:
+  - resource: "https://api.tessie.com/5YJSB7E42KF302045/state?use_cache=false"
+    method: GET
+    headers:
+      Authorization: !secret tessie_api_key_header
+      Content-Type: application/json
+    scan_interval: 5
+    timeout: 10
+    sensor:
+      - name: Model S P100D shift state
+        unique_id: model_s_p100d_shift_state_tessie_rest
+        value_template: "{{ value_json.drive_state.shift_state | default('unknown') }}"
+      - name: Model S P100D speed
+        unique_id: model_s_p100d_speed_tessie_rest
+        unit_of_measurement: km/h
+        value_template: "{{ value_json.drive_state.speed | float(0) }}"
+      - name: Model S Tessie latitude
+        unique_id: model_s_tessie_latitude
+        unit_of_measurement: "°"
+        value_template: "{{ value_json.drive_state.latitude | default('unknown', true) }}"
+      - name: Model S Tessie longitude
+        unique_id: model_s_tessie_longitude
+        unit_of_measurement: "°"
+        value_template: "{{ value_json.drive_state.longitude | default('unknown', true) }}"

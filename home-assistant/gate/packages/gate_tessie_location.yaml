@@ -1,23 +1,10 @@
 # Tessie GPS polled by Home Assistant (server → Tessie cloud API).
-# Primary arrival signal — does not need the phone online at the driveway.
-# Requires secrets: tessie_model_s_location_url, tessie_model_x_location_url, tessie_api_key_header
+# Model S latitude/longitude are on the uncached /state poll in
+# gate_tessie_model_s_drive.yaml (same unique_ids). This file keeps the
+# Model X /location poll and the distance/approach templates for both cars.
+# Requires secrets: tessie_model_x_location_url, tessie_api_key_header
 
 rest:
-  - resource: !secret tessie_model_s_location_url
-    method: GET
-    headers:
-      Authorization: !secret tessie_api_key_header
-      Content-Type: application/json
-    scan_interval: 10
-    sensor:
-      - name: Model S Tessie latitude
-        unique_id: model_s_tessie_latitude
-        value_template: "{{ value_json.latitude }}"
-        unit_of_measurement: "°"
-      - name: Model S Tessie longitude
-        unique_id: model_s_tessie_longitude
-        value_template: "{{ value_json.longitude }}"
-        unit_of_measurement: "°"
   - resource: !secret tessie_model_x_location_url
     method: GET
     headers:

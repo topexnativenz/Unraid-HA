@@ -25,10 +25,10 @@ House Garage opens with the gate on Tesla trips (`automations/garage.yaml`):
 | Automation | When |
 |------------|------|
 | `house_garage_open_on_gate_session` | Gate arrival session starts (Model S or X) |
-| `house_garage_open_on_tessie_arrival` | Model X Tessie approach; Model S `person.gen`/`person.dave` Road/Gate Approach (same shape as Model X) |
+| `house_garage_open_on_tessie_arrival` | Model X and Model S Tessie vehicle location (approach zones and, for the S, distance falling through 1.6 km). Phones are not used |
 | `house_garage_open_on_gate_departure` | `gate_departure_in_progress` turns on (leaving) |
 
-**Model S:** Tessie GPS stays at home, so garage follows the same phone Road/Gate Approach signal as the Model S gate clone of Model X. Opening with the gate session still covers the main path.
+**Model S:** Garage and outside lights follow the gate arrival and departure sessions. The backup approach path uses Tessie vehicle location only. Arrival cannot open early until that location is live.
 
 House Garage Shelly (`switch.garage_door_3`) is currently online on live HA.
 
