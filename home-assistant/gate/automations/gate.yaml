@@ -12,8 +12,9 @@
   alias: Gate — begin departure (Tesla shift out of park)
   description: >-
     Sets was_away / departure flags when a Tesla starts leaving home.
-    Model X: shift P→D/R (working). Model S shift stays Park, so driver door
-    and person.gen/dave leaving home → Gate Approach are the same moment.
+    Model X: shift P→D/R. Model S shift often stays Park, so also arm when
+    someone sits in the S and shuts the driver door, or when shift does
+    report R/D. Phone leaving home remains the backup.
   triggers:
     - id: model_s_shift
       trigger: state
@@ -29,7 +30,7 @@
         - D
         - R
       for:
-        seconds: 5
+        seconds: 1
     - id: model_x_shift
       trigger: state
       entity_id: sensor.x_shift_state
@@ -46,6 +47,20 @@
     - id: model_s_driver_door
       trigger: state
       entity_id: binary_sensor.model_s_p100d_front_driver_door
+      from: "off"
+      to: "on"
+      for:
+        seconds: 2
+    - id: model_s_door_closed
+      trigger: state
+      entity_id: binary_sensor.model_s_p100d_front_driver_door
+      from: "on"
+      to: "off"
+      for:
+        seconds: 2
+    - id: model_s_user_present
+      trigger: state
+      entity_id: binary_sensor.model_s_p100d_user_present
       from: "off"
       to: "on"
       for:
@@ -78,6 +93,58 @@
              and (
                states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
                or is_state('device_tracker.model_s_p100d_location', 'home')
+             ) }}
+        {% elif trigger.id in ['model_s_door_closed', 'model_s_user_present'] %}
+          {# 10 Oct 17:17 NZDT: door shut and user_present came on together, and
+             shift never left Park. Arm as soon as someone is seated with the
+             door shut. was_away may already have been set by the twin
+             automation in the same second. Getting out closes the door only
+             after user_present has been on for the whole drive. #}
+          {% set away = states.input_boolean.model_s_was_away %}
+          {% set present = states.binary_sensor.model_s_p100d_user_present %}
+          {{ is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             and is_state('binary_sensor.model_s_p100d_front_driver_door', 'off')
+             and is_state('input_boolean.gate_arrival_session', 'off')
+             and (
+               states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
+               or is_state('device_tracker.model_s_p100d_location', 'home')
+             )
+             and (
+               is_state('person.gen', 'home')
+               or is_state('person.dave', 'home')
+               or is_state('device_tracker.gens_phone', 'home')
+             )
+             and (
+               is_state('input_boolean.model_s_was_away', 'off')
+               or (
+                 away.last_changed is not none
+                 and (now() - away.last_changed).total_seconds() < 8
+               )
+             )
+             and (
+               trigger.id != 'model_s_door_closed'
+               or (
+                 present.last_changed is not none
+                 and (now() - present.last_changed).total_seconds() < 120
+               )
+             ) }}
+        {% elif trigger.id == 'model_s_shift' %}
+          {% set away = states.input_boolean.model_s_was_away %}
+          {{ (
+               states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
+               or is_state('device_tracker.model_s_p100d_location', 'home')
+             )
+             and (
+               is_state('person.gen', 'home')
+               or is_state('person.dave', 'home')
+               or is_state('device_tracker.gens_phone', 'home')
+             )
+             and (
+               is_state('input_boolean.model_s_was_away', 'off')
+               or (
+                 away.last_changed is not none
+                 and (now() - away.last_changed).total_seconds() < 8
+               )
              ) }}
         {% elif eid in ['person.gen', 'person.dave', 'device_tracker.gens_phone'] %}
           {# Occupant in the S, not model_x_was_away. That flag blocked person
@@ -420,12 +487,13 @@
 - id: gate_open_on_arrival
   alias: Gate — open on Tessie arrival (Model S)
   description: >-
-    Opens the gate after model_s_was_away when a phone enters Road Approach or
-    Gate Approach, or when a phone jumps straight to home (5 Oct 02:36 UTC Gen
-    returned not_home → home and the gate never ran). Model X in an approach
-    zone does not count — that arrival has its own automation. The relay is
-    pulsed before any Tessie wake. was_away stays on until the car is parked
-    so the driver-door departure trigger does not fire while someone gets out.
+    Opens the gate after model_s_was_away when a phone is heading home and
+    comes inside 1.6 km, enters Road or Gate Approach, or jumps straight to
+    home. The 10 Oct 17:36 NZDT fix was 1.1 km east of home and outside both
+    approach zones, so the gate waited until the 17:38 home snap. Model X in
+    an approach zone does not count. The relay runs before any Tessie wake.
+    was_away stays on until the car is parked so getting out does not open
+    the gate.
   triggers:
     - id: tessie_road_on
       trigger: state
@@ -446,6 +514,11 @@
            and states('sensor.model_s_tessie_distance_to_home') | float(0) > 80 }}
       for:
         seconds: 10
+    - id: tessie_closing_in
+      trigger: numeric_state
+      entity_id: sensor.model_s_tessie_distance_to_home
+      above: 350
+      below: 1600
     - id: person_road
       trigger: state
       entity_id:
@@ -482,6 +555,18 @@
         - unknown
         - unavailable
       to: home
+    - id: person_closing_in
+      trigger: state
+      entity_id:
+        - device_tracker.gens_phone
+        - device_tracker.halo
+      attribute: latitude
+    - id: person_closing_in
+      trigger: state
+      entity_id:
+        - device_tracker.gens_phone
+        - device_tracker.halo
+      attribute: longitude
   conditions:
     - condition: state
       entity_id: input_boolean.gate_arrival_session
@@ -502,6 +587,28 @@
                or is_state('binary_sensor.model_s_p100d_user_present', 'on')
                or is_state('binary_sensor.model_s_p100d_front_driver_door', 'on')
              ) }}
+        {% elif trigger.id == 'person_closing_in' %}
+          {% set frm = trigger.from_state %}
+          {% set to = trigger.to_state %}
+          {% set lat0 = frm.attributes.latitude | float(-999) if frm else -999 %}
+          {% set lon0 = frm.attributes.longitude | float(-999) if frm else -999 %}
+          {% set lat1 = to.attributes.latitude | float(-999) if to else -999 %}
+          {% set lon1 = to.attributes.longitude | float(-999) if to else -999 %}
+          {% set d0 = distance(lat0, lon0, 'zone.home') %}
+          {% set d1 = distance(lat1, lon1, 'zone.home') %}
+          {{ to is not none
+             and to.state not in ['home', 'unknown', 'unavailable', 'Road Approach', 'Gate Approach']
+             and d1 < d0
+             and (d0 - d1) > 0.25
+             and d1 < 1.6
+             and d1 > 0.35
+             and is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             and not is_state('binary_sensor.model_x_tessie_in_road_approach', 'on')
+             and not is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on') }}
+        {% elif trigger.id == 'tessie_closing_in' %}
+          {{ is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             and not is_state('binary_sensor.model_x_tessie_in_road_approach', 'on')
+             and not is_state('binary_sensor.model_x_tessie_in_gate_approach', 'on') }}
         {% else %}
           {{ not (
                states('sensor.model_s_tessie_distance_to_home') | float(9999) < 80
@@ -521,6 +628,7 @@
              and states('sensor.model_s_p100d_speed') | float(0) > 1
            ) }}
   actions:
+    - action: shell_command.akuvox_gate_open_relay_1
     - action: input_boolean.turn_on
       target:
         entity_id: input_boolean.gate_arrival_session
@@ -529,7 +637,6 @@
         entity_id: input_text.gate_status_message
       data:
         value: "Opening gate — Model S {{ trigger.id }}"
-    - action: shell_command.akuvox_gate_open_relay_1
     - action: script.turn_on
       target:
         entity_id: script.gate_pulse_hold_approach
@@ -673,9 +780,10 @@
 - id: gate_open_tesla_departure
   alias: Gate — open when Tesla leaves park at home
   description: >-
-    Clone of Model X departure (shift P→D/R at home) plus Model S driver door
-    and person.gen/dave leaving home, because Model S shift_state stays Park.
-    Opens gate + House Garage.
+    Opens the gate when a Tesla leaves home. Model X: shift P→D/R. Model S:
+    shift P→R/D when Tessie actually reports it, otherwise as soon as someone
+    is seated and the driver door shuts (10 Oct 17:17 NZDT). Phone leaving
+    home is the backup. The relay script is the first action.
   triggers:
     - id: model_s_shift
       trigger: state
@@ -691,7 +799,7 @@
         - D
         - R
       for:
-        seconds: 5
+        seconds: 1
     - id: model_x_shift
       trigger: state
       entity_id: sensor.x_shift_state
@@ -708,6 +816,20 @@
     - id: model_s_driver_door
       trigger: state
       entity_id: binary_sensor.model_s_p100d_front_driver_door
+      from: "off"
+      to: "on"
+      for:
+        seconds: 2
+    - id: model_s_door_closed
+      trigger: state
+      entity_id: binary_sensor.model_s_p100d_front_driver_door
+      from: "on"
+      to: "off"
+      for:
+        seconds: 2
+    - id: model_s_user_present
+      trigger: state
+      entity_id: binary_sensor.model_s_p100d_user_present
       from: "off"
       to: "on"
       for:
@@ -737,6 +859,53 @@
              and (
                states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
                or is_state('device_tracker.model_s_p100d_location', 'home')
+             ) }}
+        {% elif trigger.id in ['model_s_door_closed', 'model_s_user_present'] %}
+          {% set away = states.input_boolean.model_s_was_away %}
+          {% set present = states.binary_sensor.model_s_p100d_user_present %}
+          {{ is_state('binary_sensor.model_s_p100d_user_present', 'on')
+             and is_state('binary_sensor.model_s_p100d_front_driver_door', 'off')
+             and is_state('input_boolean.gate_arrival_session', 'off')
+             and (
+               states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
+               or is_state('device_tracker.model_s_p100d_location', 'home')
+             )
+             and (
+               is_state('person.gen', 'home')
+               or is_state('person.dave', 'home')
+               or is_state('device_tracker.gens_phone', 'home')
+             )
+             and (
+               is_state('input_boolean.model_s_was_away', 'off')
+               or (
+                 away.last_changed is not none
+                 and (now() - away.last_changed).total_seconds() < 8
+               )
+             )
+             and (
+               trigger.id != 'model_s_door_closed'
+               or (
+                 present.last_changed is not none
+                 and (now() - present.last_changed).total_seconds() < 120
+               )
+             ) }}
+        {% elif trigger.id == 'model_s_shift' %}
+          {% set away = states.input_boolean.model_s_was_away %}
+          {{ (
+               states('sensor.model_s_tessie_distance_to_home') | float(9999) < 120
+               or is_state('device_tracker.model_s_p100d_location', 'home')
+             )
+             and (
+               is_state('person.gen', 'home')
+               or is_state('person.dave', 'home')
+               or is_state('device_tracker.gens_phone', 'home')
+             )
+             and (
+               is_state('input_boolean.model_s_was_away', 'off')
+               or (
+                 away.last_changed is not none
+                 and (now() - away.last_changed).total_seconds() < 8
+               )
              ) }}
         {% elif eid in ['person.gen', 'person.dave', 'device_tracker.gens_phone'] %}
           {{ is_state('binary_sensor.model_s_p100d_user_present', 'on')
@@ -770,4 +939,52 @@
         option: auto_tesla
     - action: "{{ 'rest_command.tessie_wake_model_x' if trigger.id == 'model_x_shift' else 'rest_command.tessie_wake_model_s' }}"
       continue_on_error: true
+  mode: single
+
+- id: model_s_refresh_approach_while_driving
+  alias: Model S — refresh shift and phone location while driving
+  description: >-
+    While someone is in the Model S, poll the Tessie shift REST sensor every
+    5 seconds so a real Reverse or Drive is seen quickly. The usual poll is
+    about 10 seconds, but on 10 Oct the API still stayed Park for the whole
+    departure. Once the S is flagged away, also ask Gen's phone (and Dave's,
+    if he is not home) for a fresh GPS fix about every 30 seconds. Phone fixes
+    on that return were about 5 minutes apart, which is why the gate opened late.
+  triggers:
+    - trigger: time_pattern
+      seconds: "/5"
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.model_s_p100d_user_present
+      state: "on"
+  actions:
+    - action: homeassistant.update_entity
+      continue_on_error: true
+      target:
+        entity_id:
+          - sensor.model_s_p100d_shift_state
+          - sensor.model_s_tessie_latitude
+          - sensor.model_s_tessie_longitude
+    - if:
+        - condition: template
+          value_template: >-
+            {{ now().second % 30 < 5
+               and is_state('input_boolean.model_s_was_away', 'on')
+               and states('device_tracker.gens_phone') not in ['home', 'unknown', 'unavailable'] }}
+      then:
+        - action: notify.mobile_app_gens_phone
+          continue_on_error: true
+          data:
+            message: command_request_location_update
+    - if:
+        - condition: template
+          value_template: >-
+            {{ now().second % 30 < 5
+               and is_state('input_boolean.model_s_was_away', 'on')
+               and states('device_tracker.halo') not in ['home', 'unknown', 'unavailable'] }}
+      then:
+        - action: notify.mobile_app_halo
+          continue_on_error: true
+          data:
+            message: command_request_location_update
   mode: single

@@ -22,6 +22,7 @@ UPDATE_IDS = {
     "gate_end_departure",
     "gate_clear_exit_on_approach",
     "gate_open_tesla_departure",
+    "model_s_refresh_approach_while_driving",
     "gate_tessie_wake_while_away",
     "gate_model_s_mark_away",
     "gate_model_s_clear_away",

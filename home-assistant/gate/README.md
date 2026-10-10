@@ -26,8 +26,8 @@ Live Home Assistant uses **Tessie for Model X** and the same approach/departure 
 | Automation | Trigger | Notes |
 |------------|---------|-------|
 | **Gate — open on Tessie arrival (Model X)** | Tessie road/gate after `model_x_was_away` | Working template. GPS is live. |
-| **Gate — open on Tessie arrival (Model S)** | Phone enters Road/Gate Approach from anywhere except home, or jumps straight to home while `model_s_was_away` and someone is in the S | Model S Tessie GPS stays ~50 m home. Also opens House Garage. Relay runs before the Tessie wake. |
-| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R; Model S phone leaving home while someone is in the S. Driver door only if `model_s_was_away` is off | Pulses gate + House Garage, then wakes the car |
+| **Gate — open on Tessie arrival (Model S)** | Phone distance to home falls through 1.6 km while heading home, or phone enters Road/Gate Approach, or jumps straight to home, while `model_s_was_away` and someone is in the S. Tessie distance does the same once GPS is live | Model S Tessie GPS stays ~50 m home. Also opens House Garage. Relay is the first action, before the Tessie wake. |
+| **Gate — open when Tesla leaves park at home** | Model X shift P→D/R. Model S shift P→R/D, or driver door shuts just after someone gets in, while still at home. Phone leaving home is the backup | Relay script is the first action, then House Garage, then wake |
 | **Gate — begin departure** | Same as above | Sets `model_s_was_away` / `model_x_was_away`. Does not wait on `model_x_was_away` for the S |
 | **Gate — wake Tessie while Model S is away** | Every 5 min while was_away and Gen/Dave still out | Model X equivalent; S GPS never shows >200 m |
 
