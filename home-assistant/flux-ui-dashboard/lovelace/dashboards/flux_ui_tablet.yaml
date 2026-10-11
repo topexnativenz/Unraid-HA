@@ -1,7 +1,7 @@
 # Flux UI 16:9 tablet dashboard — LOCKED BASELINE (source of truth)
 #
-# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 30/48/26
-# slices of 100dvh — not growable fr tracks), card sizes, and overview
+# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 34/50/20
+# slices of (100dvh - 32px) — not growable fr tracks), card sizes, and overview
 # composition are frozen. Normal deploy / page refresh / Companion cache
 # reload MUST push this exact config — they must NOT regenerate layout.
 #
@@ -514,19 +514,18 @@ views:
         layout:
           width: 100%
           max_width: 100%
-          height: calc(100dvh - var(--header-height, 0px))
+          height: 100dvh
           margin: '0'
           padding: 8px 12px 8px 12px
           grid-gap: 8px
           grid-template-columns: 1fr 1fr 1.05fr 1.15fr
-          grid-template-rows: minmax(0, calc((100dvh - var(--header-height, 0px) - 32px) * 30 / 104)) minmax(0, calc((100dvh
-            - var(--header-height, 0px) - 32px) * 48 / 104)) minmax(0, calc((100dvh - var(--header-height, 0px) - 32px) *
-            26 / 104))
+          grid-template-rows: calc((100dvh - 32px) * 34 / 104) calc((100dvh - 32px) * 50 / 104) calc((100dvh - 32px) * 20
+            / 104)
           grid-auto-rows: 0px
           align-content: stretch
           align-items: stretch
           justify-items: stretch
-          max_height: calc(100dvh - var(--header-height, 0px))
+          max_height: 100dvh
           grid-template-areas: '"greeting simple_tab music calendar_notification"
 
             "lights cameras music calendar_notification"
@@ -2343,12 +2342,12 @@ views:
               \  height: 100% !important;\n  min-height: 0 !important;\n  max-height: 100% !important;\n  overflow: hidden\
               \ !important;\n}\n"
             grid-layout:
-              $: "/* Rigid overview grid: no card may grow the 16:9 rows. */\n#root {\n  height: calc(100dvh - var(--header-height,\
-                \ 0px)) !important;\n  max-height: calc(100dvh - var(--header-height, 0px)) !important;\n  min-height: 0 !important;\n\
-                \  overflow: hidden !important;\n  box-sizing: border-box !important;\n  align-content: stretch !important;\n\
-                \  overscroll-behavior: none !important;\n  touch-action: none !important;\n}\n#root > * {\n  min-height:\
-                \ 0 !important;\n  min-width: 0 !important;\n  max-height: 100% !important;\n  overflow: hidden !important;\n\
-                \  contain: size !important;\n  box-sizing: border-box !important;\n}\n"
+              $: "/* Rigid overview grid: no card may grow the 16:9 rows. */\n/* Grid items keep their own height; do not\
+                \ size-contain them. */\n#root {\n  --header-height: 0px;\n  height: 100dvh !important;\n  max-height: 100dvh\
+                \ !important;\n  min-height: 0 !important;\n  overflow: hidden !important;\n  box-sizing: border-box !important;\n\
+                \  align-content: stretch !important;\n  overscroll-behavior: none !important;\n  touch-action: none !important;\n\
+                }\n#root > * {\n  min-height: 0 !important;\n  min-width: 0 !important;\n  max-height: 100% !important;\n\
+                \  overflow: hidden !important;\n  margin: 0 !important;\n  box-sizing: border-box !important;\n}\n"
       - type: custom:bubble-card
         card_type: pop-up
         hash: '#back-courtyard'
