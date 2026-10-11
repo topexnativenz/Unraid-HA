@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import math
+from pathlib import Path
 
 from md3_templates import TABLET_OVERVIEW_VIEW_CARD_MOD, TABLET_VIEW_CARD_MOD
 
@@ -52,11 +53,12 @@ PANEL_ROOT_MOD = {
 OVERVIEW_GRID_HEIGHT = "100dvh"
 OVERVIEW_GRID_AUTO_ROWS = "0px"
 # Shares of (100dvh - 32px), summing to OVERVIEW_ROW_SCALE.
-# 34 — clock and Gates & Doors. The overview YAML's button grid (3 rows when
-#     it holds 6 cards) is what the fit check measures, not a fixed count.
-# 50 — Lights and the square camera grid.
-# 20 — both Tesla cards, stretched to the row that ends on the 8px padding.
-OVERVIEW_ROW_PARTS = (34, 50, 20)
+# 31 — clock and the Gates & Doors grid (6 cards, 3 rows). No spare band
+#     under Goodnight.
+# 49 — Lights and the square camera grid, sized to that content.
+# 24 — both Tesla cards. The side-profile image, NOT CHARGING line, battery
+#     percent, and bar need this; 20/104 (202px) let the car cover the text.
+OVERVIEW_ROW_PARTS = (31, 49, 24)
 OVERVIEW_ROW_SCALE = 104
 _OVERVIEW_ROW_BUDGET = "(100dvh - 32px)"
 OVERVIEW_RIGID_ROWS = " ".join(
@@ -72,15 +74,17 @@ GRID_ITEMS_KEEP_HEIGHT_COMMENT = (
 # 1920×1080, header hidden. Gates and Lights heights are computed from the
 # button cards in the overview YAML. One flux_action / flux_door card is the
 # 14px padding, 52px icon, and 1px border measured in the overview column.
-# Cameras are a width-driven 2×2, so their floor is the square, not a count.
-# Tesla stays tall enough for the header, the car, the percent, and the bar.
 OVERVIEW_FIT_VIEWPORT_H = 1080
 OVERVIEW_FIT_CHROME_PX = 32
 FLUX_ACTION_BUTTON_PX = 82
 SECTION_TITLE_PX = 36
 SECTION_STACK_GAP_PX = 8
-OVERVIEW_CAMERAS_MIN_PX = 460
-OVERVIEW_TESLA_MIN_PX = 180
+# Tesla card chrome around the side-profile image, measured with the real
+# assets: padding 4+6, border 1+1, header 14, battery line 22, bar 6.
+TESLA_CARD_CHROME_PX = 54
+TESLA_IMAGE_WIDTH = 0.68
+_TESLA_IMAGE_DIR = Path(__file__).resolve().parents[1] / "www" / "flux-ui" / "tesla"
+_TESLA_IMAGES = ("model-x-blue.webp", "model-s-white.webp")
 OVERVIEW_PANEL_ROOT_MOD = {
     "style": (
         ":host {\n"
@@ -283,6 +287,54 @@ def tablet_panel_view(
     return view
 
 
+def _webp_vp8x_size(path: Path) -> tuple[int, int] | None:
+    """Width and height from a VP8X WebP, without an image library."""
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    if len(data) < 30 or data[12:16] != b"VP8X":
+        return None
+    width = 1 + int.from_bytes(data[24:27], "little")
+    height = 1 + int.from_bytes(data[27:30], "little")
+    if width <= 0 or height <= 0:
+        return None
+    return width, height
+
+
+def _column_fr_px(viewport_w: int, fr: float) -> float:
+    """One overview column track. Horizontal padding is 12+12 and there are 3 gaps."""
+    inner = viewport_w - 24 - 24
+    return inner * fr / 4.2
+
+
+def cameras_band_min_px(viewport_w: int = 1920) -> float:
+    """Cameras heading plus the width-driven square 2×2."""
+    return SECTION_TITLE_PX + SECTION_STACK_GAP_PX + _column_fr_px(viewport_w, 1)
+
+
+def tesla_card_min_px(viewport_w: int = 1920) -> float:
+    """Height of one Tesla card before the car image covers the status text.
+
+    The card is half of the three-column Tesla span. The image is 68% of the
+    content width (the tablet YAML's ``width:68%``) at the asset's real aspect.
+    Model X is the taller profile. Header, percent, and bar sit outside that image.
+    """
+    span = _column_fr_px(viewport_w, 3.05) + 16  # two gaps inside the span
+    card_w = (span - 8) / 2
+    content_w = card_w - 20  # horizontal padding 10px + 10px
+    tallest = 0.0
+    for name in _TESLA_IMAGES:
+        size = _webp_vp8x_size(_TESLA_IMAGE_DIR / name)
+        if size is None:
+            continue
+        tallest = max(tallest, content_w * TESLA_IMAGE_WIDTH * size[1] / size[0])
+    if tallest <= 0:
+        # model-x-blue.webp is 720×263 if the asset cannot be read.
+        tallest = content_w * TESLA_IMAGE_WIDTH * 263 / 720
+    return TESLA_CARD_CHROME_PX + tallest
+
+
 def overview_row_heights_px(viewport_h: int = OVERVIEW_FIT_VIEWPORT_H) -> tuple[float, float, float]:
     """Exact row heights (px) for a header-hidden viewport.
 
@@ -391,6 +443,7 @@ def tablet_overview_fit_errors(
 ) -> list[str]:
     """Fail when a counted section does not fit its row, or Tesla sits high."""
     gates_h, lights_h, tesla_h = overview_row_heights_px(viewport_h)
+    viewport_w = round(viewport_h * 16 / 9)
     errors: list[str] = []
     parsed: dict | None = None
     if blob:
@@ -432,19 +485,24 @@ def tablet_overview_fit_errors(
                 )
         if cameras["count"] < 1:
             errors.append("Cameras grid has no tiles in the tablet overview YAML")
-        elif lights_h + 0.5 < OVERVIEW_CAMERAS_MIN_PX:
-            errors.append(
-                f"Cameras has {cameras['count']} tiles "
-                f"({_button_names(cameras['buttons'])}) needing "
-                f"{OVERVIEW_CAMERAS_MIN_PX}px at {viewport_h}px but the middle row is {lights_h:.0f}px"
-            )
+        else:
+            need = cameras_band_min_px(viewport_w)
+            if lights_h + 0.5 < need:
+                errors.append(
+                    f"Cameras has {cameras['count']} tiles "
+                    f"({_button_names(cameras['buttons'])}) needing "
+                    f"{need:.0f}px at {viewport_h}px but the middle row is {lights_h:.0f}px"
+                )
         if tesla["count"] < 1:
             errors.append("Tesla row has no cards in the tablet overview YAML")
-        elif tesla_h + 0.5 < OVERVIEW_TESLA_MIN_PX:
-            errors.append(
-                f"Tesla row has {tesla['count']} cards needing {OVERVIEW_TESLA_MIN_PX}px "
-                f"at {viewport_h}px but the row is {tesla_h:.0f}px"
-            )
+        else:
+            need = tesla_card_min_px(viewport_w)
+            if tesla_h + 0.5 < need:
+                errors.append(
+                    f"Tesla row has {tesla['count']} cards whose car image, "
+                    f"NOT CHARGING status, battery percent, and bar need {need:.0f}px "
+                    f"at {viewport_h}px but the row is {tesla_h:.0f}px"
+                )
     filled = gates_h + lights_h + tesla_h + OVERVIEW_FIT_CHROME_PX
     if abs(filled - viewport_h) > 0.6:
         errors.append(

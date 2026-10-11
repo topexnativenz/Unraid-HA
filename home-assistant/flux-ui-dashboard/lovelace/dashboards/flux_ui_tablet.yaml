@@ -1,6 +1,6 @@
 # Flux UI 16:9 tablet dashboard — LOCKED BASELINE (source of truth)
 #
-# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 34/50/20
+# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 31/49/24
 # slices of (100dvh - 32px) — not growable fr tracks), card sizes, and overview
 # composition are frozen. Normal deploy / page refresh / Companion cache
 # reload MUST push this exact config — they must NOT regenerate layout.
@@ -519,7 +519,7 @@ views:
           padding: 8px 12px 8px 12px
           grid-gap: 8px
           grid-template-columns: 1fr 1fr 1.05fr 1.15fr
-          grid-template-rows: calc((100dvh - 32px) * 34 / 104) calc((100dvh - 32px) * 50 / 104) calc((100dvh - 32px) * 20
+          grid-template-rows: calc((100dvh - 32px) * 31 / 104) calc((100dvh - 32px) * 49 / 104) calc((100dvh - 32px) * 24
             / 104)
           grid-auto-rows: 0px
           align-content: stretch

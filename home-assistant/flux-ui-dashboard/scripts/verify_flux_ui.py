@@ -120,9 +120,9 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "* 34 / 104",
-            "* 50 / 104",
-            "* 20 / 104",
+            "* 31 / 104",
+            "* 49 / 104",
+            "* 24 / 104",
             "Grid items keep their own height; do not size-contain them.",
             "--header-height: 0px",
             '"align-content": "stretch"',
@@ -248,7 +248,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use the fixed 20/104 dvh fraction, "
+                "Tablet Tesla row must use the fixed 24/104 dvh fraction, "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
@@ -279,7 +279,7 @@ def verify_build(path: Path) -> list[str]:
         for marker, label in (
             ('"grid-gap": "8px"', "overview grid-gap 8px"),
             ('"padding": "8px 12px 8px 12px"', "overview padding 8px 12px"),
-            (OVERVIEW_RIGID_ROWS, "overview rigid 34/50/20 dvh rows"),
+            (OVERVIEW_RIGID_ROWS, "overview rigid 31/49/24 dvh rows"),
             (
                 '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
                 "overview grid-auto-rows 0px",
