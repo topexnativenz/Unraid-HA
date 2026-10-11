@@ -98,6 +98,14 @@ jobs:
           python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py \
             --api-only --skip-phone
 
+      - name: Verify live tablet matches this deploy
+        if: ${{ contains(fromJSON('["all", "flux-ui-both", "flux-ui-tablet"]'), github.event.inputs.dashboards || 'all') }}
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          python3 home-assistant/flux-ui-dashboard/scripts/check_tablet_drift.py
+
       - name: Deploy Mobile Home
         if: ${{ contains(fromJSON('["all", "mobile-home"]'), github.event.inputs.dashboards || 'all') }}
         continue-on-error: true

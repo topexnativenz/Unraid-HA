@@ -24,6 +24,12 @@ from flux_media_player import (  # noqa: E402
     is_sonos_zone,
     playback_stack_forces_full_height,
 )
+from flux_tablet_layout import (  # noqa: E402
+    OVERVIEW_GRID_AUTO_ROWS,
+    OVERVIEW_GRID_HEIGHT,
+    OVERVIEW_RIGID_ROWS,
+    tablet_rigid_grid_errors,
+)
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
 
 
@@ -113,9 +119,9 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "minmax(0, 30fr)",
-            "minmax(0, 48fr)",
-            "minmax(0, 26fr)",
+            "* 30 / 104",
+            "* 48 / 104",
+            "* 26 / 104",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -182,7 +188,10 @@ def verify_build(path: Path) -> list[str]:
             "media_player.kitchen_sonos",
             "1fr 1fr 1.05fr 1.15fr",
             "align-content: stretch",
-            "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
+            OVERVIEW_RIGID_ROWS,
+            '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
+            OVERVIEW_GRID_HEIGHT,
+            "Rigid overview grid: no card may grow the 16:9 rows.",
             '"font-size": "136px"',
             '"font-size": "30px"',
             "width:68%",
@@ -236,7 +245,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use flexible fr tracks (minmax(0, 26fr)), "
+                "Tablet Tesla row must use the fixed 26/104 dvh fraction, "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
@@ -267,9 +276,15 @@ def verify_build(path: Path) -> list[str]:
         for marker, label in (
             ('"grid-gap": "8px"', "overview grid-gap 8px"),
             ('"padding": "8px 12px 8px 12px"', "overview padding 8px 12px"),
+            (OVERVIEW_RIGID_ROWS, "overview rigid 30/48/26 dvh rows"),
             (
-                "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
-                "overview row fr tracks 30/48/26",
+                '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
+                "overview grid-auto-rows 0px",
+            ),
+            (OVERVIEW_GRID_HEIGHT, "overview grid height 100dvh minus header"),
+            (
+                "Rigid overview grid: no card may grow the 16:9 rows.",
+                "rigid overview grid card-mod",
             ),
             ('"days_to_show": 7', "calendar days_to_show 7"),
             ('"compact_days_to_show": 7', "calendar compact_days_to_show 7"),
@@ -277,6 +292,10 @@ def verify_build(path: Path) -> list[str]:
         ):
             if marker not in overview_blob:
                 errors.append(f"LOCKED tablet layout drifted — missing {label}")
+        errors.extend(
+            f"LOCKED tablet layout drifted — {msg}"
+            for msg in tablet_rigid_grid_errors(overview_blob)
+        )
         if '"grid-area": "mid"' in overview_blob or '"grid-area": "rooms"' in overview_blob:
             errors.append(
                 "Tablet overview must use lights|cameras areas (not mid/rooms room cards)"

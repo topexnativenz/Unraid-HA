@@ -9,7 +9,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
-BRANCH="${FLUX_UI_BRANCH:-cursor/flux-ui-md3-dashboard-bf3a}"
+# Tablet layout is locked on the shed branch. The older md3 branch still has
+# growable overview rows and must not be what this helper deploys.
+BRANCH="${FLUX_UI_BRANCH:-cursor/flux-ui-shed-lights-music-6a19}"
 ROOT="$REPO_ROOT/home-assistant/flux-ui-dashboard"
 
 cd "$REPO_ROOT"
@@ -40,7 +42,7 @@ STILL_COUNT="$(find "$ROOT/www/flux-ui/camera-stills" -maxdepth 1 -name '*.webp'
 if [[ "${STILL_COUNT}" -lt 4 ]]; then
   echo "ERROR: expected branded camera still WebPs under www/flux-ui/camera-stills/ (found ${STILL_COUNT})."
   echo "  This branch/SHA is missing the animated stills merge."
-  echo "  Use: FLUX_UI_BRANCH=cursor/flux-ui-md3-dashboard-bf3a (after stills merged) or cursor/camera-animated-stills-bf3a"
+  echo "  Use: FLUX_UI_BRANCH=cursor/flux-ui-shed-lights-music-6a19"
   exit 1
 fi
 echo "==> Camera stills: ${STILL_COUNT} branded WebP(s) ready"
