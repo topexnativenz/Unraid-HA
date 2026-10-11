@@ -7,6 +7,9 @@ Panel views render exactly one card at true full viewport width — required for
 
 from __future__ import annotations
 
+import json
+import math
+
 from md3_templates import TABLET_OVERVIEW_VIEW_CARD_MOD, TABLET_VIEW_CARD_MOD
 
 TABLET_MAX_COLUMNS = 4  # kept for CLI / legacy callers
@@ -38,20 +41,46 @@ PANEL_ROOT_MOD = {
 # The overview grid itself is rigid. layout-card copies grid-template-rows onto
 # #root as an inline style and turns layout.height into --layout-height. A
 # percentage height does not resolve in the HA panel chain, so minmax(0, Xfr)
-# then grows to whatever card is tallest and Tesla leaves the screen. Fixed
-# dvh maxima cannot grow, even when card-mod has not loaded yet.
+# then grows to whatever card is tallest and Tesla leaves the screen.
+# minmax(0, calc(...)) is only a maximum: the track may shrink, and contain:size
+# on a height:auto card (Lights, Cameras) resolves that card to 0px.
+# Exact lengths (minimum = maximum) cannot shrink or grow.
 
-# 8px top + 8px bottom padding, plus two 8px row gaps. --header-height falls
-# back to 0px so Fully Kiosk (header hidden) does not leave an empty band.
-OVERVIEW_GRID_HEIGHT = "calc(100dvh - var(--header-height, 0px))"
+# 8px top + 8px bottom padding, plus two 8px row gaps. The kiosk header is
+# hidden, so the grid is 100dvh — subtracting var(--header-height) left a
+# wallpaper gap under Tesla when HA still published a header height.
+OVERVIEW_GRID_HEIGHT = "100dvh"
 OVERVIEW_GRID_AUTO_ROWS = "0px"
-_OVERVIEW_ROW_BUDGET = "(100dvh - var(--header-height, 0px) - 32px)"
-OVERVIEW_RIGID_ROWS = (
-    "minmax(0, calc(" + _OVERVIEW_ROW_BUDGET + " * 30 / 104)) "
-    "minmax(0, calc(" + _OVERVIEW_ROW_BUDGET + " * 48 / 104)) "
-    "minmax(0, calc(" + _OVERVIEW_ROW_BUDGET + " * 26 / 104))"
+# Shares of (100dvh - 32px), summing to OVERVIEW_ROW_SCALE.
+# 34 — clock and Gates & Doors. The overview YAML's button grid (3 rows when
+#     it holds 6 cards) is what the fit check measures, not a fixed count.
+# 50 — Lights and the square camera grid.
+# 20 — both Tesla cards, stretched to the row that ends on the 8px padding.
+OVERVIEW_ROW_PARTS = (34, 50, 20)
+OVERVIEW_ROW_SCALE = 104
+_OVERVIEW_ROW_BUDGET = "(100dvh - 32px)"
+OVERVIEW_RIGID_ROWS = " ".join(
+    "calc(" + _OVERVIEW_ROW_BUDGET + f" * {part} / {OVERVIEW_ROW_SCALE})"
+    for part in OVERVIEW_ROW_PARTS
 )
 RIGID_GRID_COMMENT = "/* Rigid overview grid: no card may grow the 16:9 rows. */"
+# Lights and Cameras size to their content (height: auto). Size containment
+# on those items resolves to 0px and hides the section.
+GRID_ITEMS_KEEP_HEIGHT_COMMENT = (
+    "/* Grid items keep their own height; do not size-contain them. */"
+)
+# 1920×1080, header hidden. Gates and Lights heights are computed from the
+# button cards in the overview YAML. One flux_action / flux_door card is the
+# 14px padding, 52px icon, and 1px border measured in the overview column.
+# Cameras are a width-driven 2×2, so their floor is the square, not a count.
+# Tesla stays tall enough for the header, the car, the percent, and the bar.
+OVERVIEW_FIT_VIEWPORT_H = 1080
+OVERVIEW_FIT_CHROME_PX = 32
+FLUX_ACTION_BUTTON_PX = 82
+SECTION_TITLE_PX = 36
+SECTION_STACK_GAP_PX = 8
+OVERVIEW_CAMERAS_MIN_PX = 460
+OVERVIEW_TESLA_MIN_PX = 180
 OVERVIEW_PANEL_ROOT_MOD = {
     "style": (
         ":host {\n"
@@ -121,7 +150,9 @@ LAYOUT_CARD_MOD = {
 # injected into the grid-layout shadow, where the cards are direct children.
 _OVERVIEW_GRID_SHADOW_STYLE = (
     RIGID_GRID_COMMENT + "\n"
+    + GRID_ITEMS_KEEP_HEIGHT_COMMENT + "\n"
     "#root {\n"
+    "  --header-height: 0px;\n"
     "  height: " + OVERVIEW_GRID_HEIGHT + " !important;\n"
     "  max-height: " + OVERVIEW_GRID_HEIGHT + " !important;\n"
     "  min-height: 0 !important;\n"
@@ -136,7 +167,7 @@ _OVERVIEW_GRID_SHADOW_STYLE = (
     "  min-width: 0 !important;\n"
     "  max-height: 100% !important;\n"
     "  overflow: hidden !important;\n"
-    "  contain: size !important;\n"
+    "  margin: 0 !important;\n"
     "  box-sizing: border-box !important;\n"
     "}\n"
 )
@@ -252,25 +283,230 @@ def tablet_panel_view(
     return view
 
 
-def tablet_rigid_grid_errors(blob: str) -> list[str]:
-    """Reject a tablet config whose overview grid can still grow with content."""
+def overview_row_heights_px(viewport_h: int = OVERVIEW_FIT_VIEWPORT_H) -> tuple[float, float, float]:
+    """Exact row heights (px) for a header-hidden viewport.
+
+    Padding and the two row gaps are OVERVIEW_FIT_CHROME_PX, matching
+    ``(100dvh - 32px)`` in the grid template.
+    """
+    budget = viewport_h - OVERVIEW_FIT_CHROME_PX
+    return tuple(
+        budget * part / OVERVIEW_ROW_SCALE for part in OVERVIEW_ROW_PARTS
+    )  # type: ignore[return-value]
+
+
+def _walk_cards(node: object):
+    if isinstance(node, dict):
+        cards = node.get("cards")
+        if isinstance(cards, list):
+            for card in cards:
+                if isinstance(card, dict):
+                    yield card
+                    yield from _walk_cards(card)
+        inner = node.get("card")
+        if isinstance(inner, dict):
+            yield inner
+            yield from _walk_cards(inner)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _walk_cards(item)
+
+
+def _overview_roots(parsed: dict):
+    views = parsed.get("views")
+    if isinstance(views, list):
+        for view in views:
+            if isinstance(view, dict) and view.get("path") in (None, "overview"):
+                yield view
+        return
+    if isinstance(parsed, dict) and (
+        parsed.get("path") == "overview" or isinstance(parsed.get("cards"), list)
+    ):
+        yield parsed
+
+
+def _button_grid(section: dict) -> tuple[list[dict], int]:
+    """Action cards in a section grid. The heading button-card is not one of them."""
+    for card in _walk_cards(section):
+        if card.get("type") == "grid" and isinstance(card.get("cards"), list):
+            columns = int(card.get("columns") or 1)
+            return [c for c in card["cards"] if isinstance(c, dict)], columns
+        layout = card.get("layout") if isinstance(card.get("layout"), dict) else {}
+        if (
+            card.get("type") == "custom:layout-card"
+            and layout.get("grid-template-columns") == "1fr 1fr"
+            and isinstance(card.get("cards"), list)
+        ):
+            return [c for c in card["cards"] if isinstance(c, dict)], 2
+    if section.get("type") == "custom:layout-card" and isinstance(section.get("cards"), list):
+        return [c for c in section["cards"] if isinstance(c, dict)], 2
+    return [], 0
+
+
+def overview_button_inventory(parsed: dict) -> dict[str, dict]:
+    """Gates, Lights, Cameras, and Tesla cards as they appear in the overview YAML."""
+    areas: dict[str, dict | None] = {
+        "simple_tab": None,
+        "lights": None,
+        "cameras": None,
+        "tesla": None,
+    }
+    for root in _overview_roots(parsed):
+        for card in _walk_cards(root):
+            area = (card.get("view_layout") or {}).get("grid-area")
+            if area in areas and areas[area] is None:
+                areas[area] = card
+    inventory: dict[str, dict] = {}
+    for area, section in areas.items():
+        buttons, columns = _button_grid(section) if isinstance(section, dict) else ([], 0)
+        inventory[area] = {
+            "buttons": buttons,
+            "columns": columns,
+            "count": len(buttons),
+        }
+    return inventory
+
+
+def button_stack_px(count: int, columns: int) -> int:
+    """Height of a section title plus every row of its YAML button grid."""
+    if count <= 0 or columns <= 0:
+        return 0
+    rows = math.ceil(count / columns)
+    return (
+        SECTION_TITLE_PX
+        + SECTION_STACK_GAP_PX
+        + rows * FLUX_ACTION_BUTTON_PX
+        + (rows - 1) * SECTION_STACK_GAP_PX
+    )
+
+
+def _button_names(buttons: list[dict]) -> str:
+    names = [str(button.get("name") or button.get("entity") or "button") for button in buttons]
+    return ", ".join(names)
+
+
+def tablet_overview_fit_errors(
+    blob: str | None = None,
+    viewport_h: int = OVERVIEW_FIT_VIEWPORT_H,
+) -> list[str]:
+    """Fail when a counted section does not fit its row, or Tesla sits high."""
+    gates_h, lights_h, tesla_h = overview_row_heights_px(viewport_h)
     errors: list[str] = []
+    parsed: dict | None = None
+    if blob:
+        try:
+            loaded = json.loads(blob)
+        except json.JSONDecodeError:
+            loaded = None
+        if isinstance(loaded, dict):
+            parsed = loaded
+    if parsed is None:
+        errors.append("tablet overview buttons could not be counted from the YAML")
+    else:
+        inventory = overview_button_inventory(parsed)
+        gates = inventory["simple_tab"]
+        lights = inventory["lights"]
+        cameras = inventory["cameras"]
+        tesla = inventory["tesla"]
+        if gates["count"] < 1:
+            errors.append("Gates & Doors grid has no buttons in the tablet overview YAML")
+        else:
+            need = button_stack_px(gates["count"], gates["columns"])
+            rows = math.ceil(gates["count"] / gates["columns"])
+            if gates_h + 0.5 < need:
+                errors.append(
+                    f"Gates & Doors has {gates['count']} buttons "
+                    f"({_button_names(gates['buttons'])}) in {rows} rows "
+                    f"needing {need}px at {viewport_h}px but the top row is {gates_h:.0f}px"
+                )
+        if lights["count"] < 1:
+            errors.append("Lights grid has no buttons in the tablet overview YAML")
+        else:
+            need = button_stack_px(lights["count"], lights["columns"])
+            rows = math.ceil(lights["count"] / lights["columns"])
+            if lights_h + 0.5 < need:
+                errors.append(
+                    f"Lights has {lights['count']} buttons "
+                    f"({_button_names(lights['buttons'])}) in {rows} rows "
+                    f"needing {need}px at {viewport_h}px but the middle row is {lights_h:.0f}px"
+                )
+        if cameras["count"] < 1:
+            errors.append("Cameras grid has no tiles in the tablet overview YAML")
+        elif lights_h + 0.5 < OVERVIEW_CAMERAS_MIN_PX:
+            errors.append(
+                f"Cameras has {cameras['count']} tiles "
+                f"({_button_names(cameras['buttons'])}) needing "
+                f"{OVERVIEW_CAMERAS_MIN_PX}px at {viewport_h}px but the middle row is {lights_h:.0f}px"
+            )
+        if tesla["count"] < 1:
+            errors.append("Tesla row has no cards in the tablet overview YAML")
+        elif tesla_h + 0.5 < OVERVIEW_TESLA_MIN_PX:
+            errors.append(
+                f"Tesla row has {tesla['count']} cards needing {OVERVIEW_TESLA_MIN_PX}px "
+                f"at {viewport_h}px but the row is {tesla_h:.0f}px"
+            )
+    filled = gates_h + lights_h + tesla_h + OVERVIEW_FIT_CHROME_PX
+    if abs(filled - viewport_h) > 0.6:
+        errors.append(
+            f"overview rows plus the 8px padding and gaps must fill the "
+            f"{viewport_h}px viewport (got {filled:.1f}px) so Tesla sits on "
+            "the panel padding"
+        )
+    return errors
+
+
+def tablet_rigid_grid_errors(blob: str) -> list[str]:
+    """Reject a tablet config whose overview grid can still grow or hide a section."""
+    errors: list[str] = []
+    parts = "/".join(str(part) for part in OVERVIEW_ROW_PARTS)
     if OVERVIEW_RIGID_ROWS not in blob:
         errors.append(
-            "overview grid-template-rows must be fixed 30/48/26 fractions of 100dvh"
+            f"overview grid-template-rows must be fixed {parts} fractions of (100dvh - 32px)"
         )
     auto_rows = '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"'
     auto_rows_compact = '"grid-auto-rows":"' + OVERVIEW_GRID_AUTO_ROWS + '"'
     if auto_rows not in blob and auto_rows_compact not in blob:
         errors.append('overview grid-auto-rows must be "0px"')
     if OVERVIEW_GRID_HEIGHT not in blob:
-        errors.append(
-            "overview grid height must be calc(100dvh - var(--header-height, 0px))"
-        )
+        errors.append("overview grid height must be 100dvh")
     if "Rigid overview grid: no card may grow the 16:9 rows." not in blob:
         errors.append("overview card-mod missing the rigid-grid rule")
+    if GRID_ITEMS_KEEP_HEIGHT_COMMENT not in blob:
+        errors.append(
+            "overview grid items must keep their own height (Lights and Cameras "
+            "collapse to 0px when size-contained)"
+        )
     if "contain: size !important" not in blob:
-        errors.append("every overview grid item must use contain: size")
+        errors.append(
+            "music grid item must use contain: size so the player cannot grow the rows"
+        )
+    # Music's contain:size is earlier in the config. The rigid-grid style is the
+    # rule applied to every grid item; that rule must not size-contain them.
+    rigid_at = blob.find("Rigid overview grid: no card may grow the 16:9 rows.")
+    rigid_window = blob[rigid_at : rigid_at + 1400] if rigid_at >= 0 else ""
+    if "contain: size" in rigid_window:
+        errors.append(
+            "overview grid items must not use contain: size "
+            "(that gives Lights and Cameras a used height of 0)"
+        )
+    if "minmax(0, calc(" in blob:
+        errors.append(
+            "overview rows must be exact lengths, not minmax(0, calc(...)) maxima "
+            "(a maximum can shrink and clip Gates & Doors)"
+        )
+    if "margin: 0 !important" not in rigid_window:
+        errors.append(
+            "overview grid items must set margin: 0 (layout-card's default card "
+            "margin leaves a gap under Tesla and clips the bottom button row)"
+        )
+    if "--header-height: 0px" not in rigid_window:
+        errors.append(
+            "overview grid must force --header-height: 0px "
+            "(a hidden kiosk header must not lift Tesla off the bottom padding)"
+        )
+    for label in ("Gates & Doors", '"name": "Lights"', '"name": "Cameras"', "Model X", "Model S"):
+        if label not in blob:
+            errors.append(f"tablet overview missing {label}")
     if (
         "minmax(0, 30fr)" in blob
         or "minmax(0, 48fr)" in blob
@@ -285,6 +521,7 @@ def tablet_rigid_grid_errors(blob: str) -> list[str]:
         or '"grid-auto-rows":"minmax(0, auto)"' in blob
     ):
         errors.append("grid-auto-rows minmax(0, auto) can grow an implicit row")
+    errors.extend(tablet_overview_fit_errors(blob))
     return errors
 
 

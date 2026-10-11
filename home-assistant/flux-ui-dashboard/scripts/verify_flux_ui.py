@@ -28,6 +28,7 @@ from flux_tablet_layout import (  # noqa: E402
     OVERVIEW_GRID_AUTO_ROWS,
     OVERVIEW_GRID_HEIGHT,
     OVERVIEW_RIGID_ROWS,
+    overview_button_inventory,
     tablet_rigid_grid_errors,
 )
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
@@ -119,9 +120,11 @@ def verify_build(path: Path) -> list[str]:
             '"refresh_on_navigate": false',
             '"font-size": "16px"',
             "overflow: visible",
-            "* 30 / 104",
-            "* 48 / 104",
-            "* 26 / 104",
+            "* 34 / 104",
+            "* 50 / 104",
+            "* 20 / 104",
+            "Grid items keep their own height; do not size-contain them.",
+            "--header-height: 0px",
             '"align-content": "stretch"',
             '"overflow": "hidden"',
             "custom:mod-card",
@@ -245,7 +248,7 @@ def verify_build(path: Path) -> list[str]:
             errors.append("Tablet section headings must be 24px (50% larger than 16px)")
         if "minmax(220px, 240px)" in overview_blob or "minmax(150px, 180px)" in overview_blob:
             errors.append(
-                "Tablet Tesla row must use the fixed 26/104 dvh fraction, "
+                "Tablet Tesla row must use the fixed 20/104 dvh fraction, "
                 "not fixed px mins that push off-screen"
             )
         if '"font-size": "84px"' in overview_blob or '"font-size": "112px"' in overview_blob:
@@ -276,12 +279,12 @@ def verify_build(path: Path) -> list[str]:
         for marker, label in (
             ('"grid-gap": "8px"', "overview grid-gap 8px"),
             ('"padding": "8px 12px 8px 12px"', "overview padding 8px 12px"),
-            (OVERVIEW_RIGID_ROWS, "overview rigid 30/48/26 dvh rows"),
+            (OVERVIEW_RIGID_ROWS, "overview rigid 34/50/20 dvh rows"),
             (
                 '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
                 "overview grid-auto-rows 0px",
             ),
-            (OVERVIEW_GRID_HEIGHT, "overview grid height 100dvh minus header"),
+            (OVERVIEW_GRID_HEIGHT, "overview grid height 100dvh"),
             (
                 "Rigid overview grid: no card may grow the 16:9 rows.",
                 "rigid overview grid card-mod",
@@ -292,6 +295,26 @@ def verify_build(path: Path) -> list[str]:
         ):
             if marker not in overview_blob:
                 errors.append(f"LOCKED tablet layout drifted — missing {label}")
+        # Row fit uses the overview YAML's own grids. Gates & Doors is however
+        # many cards are in that grid (6 on this panel: three rows of two), not a
+        # fixed four.
+        counted = overview_button_inventory(overview)
+        for area, label in (
+            ("simple_tab", "Gates & Doors"),
+            ("lights", "Lights"),
+            ("cameras", "Cameras"),
+            ("tesla", "Tesla"),
+        ):
+            info = counted[area]
+            if info["count"] < 1:
+                names = ", ".join(
+                    str(button.get("name") or button.get("entity") or "button")
+                    for button in info["buttons"]
+                )
+                errors.append(
+                    f"Tablet overview YAML {label} grid has no cards"
+                    + (f" ({names})" if names else "")
+                )
         errors.extend(
             f"LOCKED tablet layout drifted — {msg}"
             for msg in tablet_rigid_grid_errors(overview_blob)

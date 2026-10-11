@@ -69,8 +69,8 @@ TABLET_DASHBOARD_ID = "flux_ui_tablet"
 
 TABLET_YAML_HEADER = """# Flux UI 16:9 tablet dashboard — LOCKED BASELINE (source of truth)
 #
-# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 30/48/26
-# slices of 100dvh — not growable fr tracks), card sizes, and overview
+# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 34/50/20
+# slices of (100dvh - 32px) — not growable fr tracks), card sizes, and overview
 # composition are frozen. Normal deploy / page refresh / Companion cache
 # reload MUST push this exact config — they must NOT regenerate layout.
 #
@@ -1142,9 +1142,11 @@ def build_config(
             "Weather Forecast",
             "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "* 30 / 104",
-            "* 48 / 104",
-            "* 26 / 104",
+            "* 34 / 104",
+            "* 50 / 104",
+            "* 20 / 104",
+            "Grid items keep their own height; do not size-contain them.",
+            "--header-height: 0px",
             OVERVIEW_RIGID_ROWS,
             '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
             OVERVIEW_GRID_HEIGHT,
@@ -1338,7 +1340,7 @@ def build_config(
             raise SystemExit(1)
         if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
-                "\nERROR: Tablet Tesla row must use the fixed 26/104 dvh "
+                "\nERROR: Tablet Tesla row must use the fixed 20/104 dvh "
                 "fraction, not fixed px mins that push off-screen.\n",
                 file=sys.stderr,
             )
