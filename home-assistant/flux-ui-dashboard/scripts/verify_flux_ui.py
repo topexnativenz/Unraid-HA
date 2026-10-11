@@ -28,6 +28,7 @@ from flux_tablet_layout import (  # noqa: E402
     OVERVIEW_GRID_AUTO_ROWS,
     OVERVIEW_GRID_HEIGHT,
     OVERVIEW_RIGID_ROWS,
+    overview_button_inventory,
     tablet_rigid_grid_errors,
 )
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
@@ -294,6 +295,26 @@ def verify_build(path: Path) -> list[str]:
         ):
             if marker not in overview_blob:
                 errors.append(f"LOCKED tablet layout drifted — missing {label}")
+        # Row fit uses the overview YAML's own grids. Gates & Doors is however
+        # many cards are in that grid (6 on this panel: three rows of two), not a
+        # fixed four.
+        counted = overview_button_inventory(overview)
+        for area, label in (
+            ("simple_tab", "Gates & Doors"),
+            ("lights", "Lights"),
+            ("cameras", "Cameras"),
+            ("tesla", "Tesla"),
+        ):
+            info = counted[area]
+            if info["count"] < 1:
+                names = ", ".join(
+                    str(button.get("name") or button.get("entity") or "button")
+                    for button in info["buttons"]
+                )
+                errors.append(
+                    f"Tablet overview YAML {label} grid has no cards"
+                    + (f" ({names})" if names else "")
+                )
         errors.extend(
             f"LOCKED tablet layout drifted — {msg}"
             for msg in tablet_rigid_grid_errors(overview_blob)
