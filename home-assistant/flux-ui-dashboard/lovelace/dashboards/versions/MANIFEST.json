@@ -40,7 +40,7 @@
     "room-hall-climate",
     "room-hall-camera"
   ],
-  "updated_at": "2026-10-11T06:47:10.312957+00:00",
+  "updated_at": "2026-10-11T22:54:41.875025+00:00",
   "snapshots": [
     "2026-08-01_baseline.yaml",
     "20260801T102610Z_pre-baseline-export.yaml",
@@ -52,11 +52,12 @@
     "20261004T071938Z_pre-restore-16x9-overview-grid.yaml",
     "20261007T204656Z_pre-contain-music-grid-item.yaml",
     "20261011T041117Z_pre-rigid-overview-grid.yaml",
-    "20261011T064709Z_pre-row-fit-overview-grid.yaml"
+    "20261011T064709Z_pre-row-fit-overview-grid.yaml",
+    "20261011T225441Z_pre-tesla-row-height.yaml"
   ],
-  "last_snapshot": "20261011T064709Z_pre-row-fit-overview-grid.yaml",
+  "last_snapshot": "20261011T225441Z_pre-tesla-row-height.yaml",
   "layout_locked": true,
-  "layout_lock_sha256": "9ee16c13c4dfc98f5bdfebcedf542d98b735ac620830741ea2e58f809005b509",
-  "layout_lock_updated_at": "2026-10-11T06:47:10.312632+00:00",
-  "layout_lock_reason": "row-fit-16x9-overview-grid"
+  "layout_lock_sha256": "a40a63a3573a931f9877882c1ceb10e09d389e125e247ee7d289f95f82872577",
+  "layout_lock_updated_at": "2026-10-11T22:54:41.874718+00:00",
+  "layout_lock_reason": "tesla-row-content-height"
 }
