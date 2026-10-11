@@ -19,6 +19,7 @@ import yaml
 SCRIPTS = Path(__file__).resolve().parents[1] / "flux-ui-dashboard" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+from flux_tablet_layout import tablet_rigid_grid_errors  # noqa: E402
 from ha_common import (  # noqa: E402
     apply_resolved_ha,
     get_token,
@@ -26,6 +27,8 @@ from ha_common import (  # noqa: E402
     wait_for_ha,
     ws_call_retry,
 )
+
+TABLET_URL_PATH = "flux-ui-tablet"
 
 
 def load_config(path: Path) -> dict:
@@ -48,7 +51,21 @@ def load_config(path: Path) -> dict:
     return cfg
 
 
+def refuse_stale_tablet(url_path: str, config: dict) -> None:
+    """Block any push of flux-ui-tablet that is missing the rigid overview grid."""
+    if url_path != TABLET_URL_PATH:
+        return
+    errors = tablet_rigid_grid_errors(json.dumps(config))
+    if errors:
+        raise SystemExit(
+            "ERROR: refusing to push flux-ui-tablet without a rigid overview grid:\n  - "
+            + "\n  - ".join(errors)
+            + "\n  Use the locked shed baseline (deploy_flux_ui.py), not an older dashboard."
+        )
+
+
 async def push(token: str, ha_url: str, url_path: str, config: dict, *, title: str) -> None:
+    refuse_stale_tablet(url_path, config)
     listed = (await ws_call_retry(token, ha_url, [{"type": "lovelace/dashboards/list"}]))[0]
     items = listed.get("result") or []
     if not any(d.get("url_path") == url_path for d in items):

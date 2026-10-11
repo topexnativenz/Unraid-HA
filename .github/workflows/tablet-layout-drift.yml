@@ -1,0 +1,95 @@
+name: Tablet layout drift
+
+# Compares the live flux-ui-tablet dashboard to the locked YAML on
+# cursor/flux-ui-shed-lights-music-6a19. On drift, pushes that locked YAML
+# back and leaves the job red.
+#
+# GitHub runs `schedule` only from the repository default branch. Until this
+# file is on that branch, run it with workflow_dispatch against the shed
+# branch. The post-deploy step in deploy-lovelace.yml checks the same thing
+# after every tablet push from a branch that contains that step.
+
+on:
+  schedule:
+    # 15:30 UTC = 04:30 NZDT / 03:30 NZST.
+    - cron: "30 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-lovelace
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Compare live tablet to locked shed YAML
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout locked shed dashboard
+        uses: actions/checkout@v4
+        with:
+          ref: cursor/flux-ui-shed-lights-music-6a19
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install websockets pyyaml
+
+      - name: Check secrets
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          if [ -z "$HA_URL" ] || [ -z "$HA_TOKEN" ]; then
+            echo "Missing GitHub secrets HA_URL and/or HA_TOKEN."
+            exit 1
+          fi
+          case "$HA_URL" in
+            *192.168.1.239*|*localhost*)
+              echo "HA_URL is a LAN address — GitHub Actions cannot reach it. Use the Nabu Casa URL."
+              exit 1
+              ;;
+          esac
+
+      - name: Compare live tablet to lock
+        id: check
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          set +e
+          python3 home-assistant/flux-ui-dashboard/scripts/check_tablet_drift.py
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Redeploy locked tablet YAML
+        if: steps.check.outputs.exit_code == '1'
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          python3 home-assistant/flux-ui-dashboard/scripts/deploy_flux_ui.py \
+            --api-only --skip-phone
+
+      - name: Re-check after redeploy
+        if: steps.check.outputs.exit_code == '1'
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+        run: |
+          python3 home-assistant/flux-ui-dashboard/scripts/check_tablet_drift.py
+
+      - name: Fail loudly when live drifted or was unreachable
+        if: steps.check.outputs.exit_code != '0'
+        run: |
+          echo "Live flux-ui-tablet check exited ${{ steps.check.outputs.exit_code }}."
+          echo "Exit 1 means the live dashboard drifted; the locked shed YAML was pushed again and this job stays red."
+          echo "Exit 2 means Home Assistant could not be reached, so nothing was redeployed."
+          exit 1

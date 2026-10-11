@@ -15,6 +15,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from flux_media_player import playback_stack_forces_full_height  # noqa: E402
+from flux_tablet_layout import (  # noqa: E402
+    OVERVIEW_GRID_AUTO_ROWS,
+    OVERVIEW_GRID_HEIGHT,
+    OVERVIEW_RIGID_ROWS,
+    tablet_rigid_grid_errors,
+)
 
 from ha_common import (
     DEFAULT_HOST,
@@ -63,7 +69,8 @@ TABLET_DASHBOARD_ID = "flux_ui_tablet"
 
 TABLET_YAML_HEADER = """# Flux UI 16:9 tablet dashboard — LOCKED BASELINE (source of truth)
 #
-# LAYOUT LOCK: gaps, spacings, grid fr tracks, card sizes, and overview
+# LAYOUT LOCK: gaps, spacings, the rigid 16:9 overview rows (fixed 30/48/26
+# slices of 100dvh — not growable fr tracks), card sizes, and overview
 # composition are frozen. Normal deploy / page refresh / Companion cache
 # reload MUST push this exact config — they must NOT regenerate layout.
 #
@@ -84,7 +91,10 @@ TABLET_YAML_HEADER = """# Flux UI 16:9 tablet dashboard — LOCKED BASELINE (sou
 TABLET_LOCKED_LAYOUT_MARKERS = (
     '"grid-gap": "8px"',
     '"padding": "8px 12px 8px 12px"',
-    "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
+    OVERVIEW_RIGID_ROWS,
+    '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
+    '"height": "' + OVERVIEW_GRID_HEIGHT + '"',
+    "Rigid overview grid: no card may grow the 16:9 rows.",
     '"days_to_show": 7',
     '"compact_days_to_show": 7',
     '"show_empty_days": true',
@@ -318,7 +328,19 @@ def write_storage(mount: str, config: dict) -> None:
     )
 
 
+def require_rigid_tablet_config(config: dict) -> None:
+    """Refuse to write or save a tablet dashboard that can still grow its rows."""
+    errors = tablet_rigid_grid_errors(json.dumps(config))
+    if errors:
+        raise SystemExit(
+            "ERROR: refusing to push flux-ui-tablet without a rigid overview grid:\n  - "
+            + "\n  - ".join(errors)
+            + "\n  An older tablet layout must not overwrite the locked 16:9 panel."
+        )
+
+
 def write_tablet_storage(mount: str, config: dict) -> None:
+    require_rigid_tablet_config(config)
     storage_dir = Path(mount) / ".storage"
     storage_dir.mkdir(parents=True, exist_ok=True)
 
@@ -436,11 +458,13 @@ def assert_tablet_layout_lock(config: dict, *, update_if_missing: bool = False) 
         )
     blob = json.dumps(config)
     missing = [m for m in TABLET_LOCKED_LAYOUT_MARKERS if m not in blob]
+    missing.extend(tablet_rigid_grid_errors(blob))
     if missing:
         raise SystemExit(
             "ERROR: LOCKED tablet overview layout markers missing:\n  - "
             + "\n  - ".join(missing)
-            + "\n  Baseline YAML must keep exact gaps/spacings/sizings."
+            + "\n  Baseline YAML must keep the rigid 16:9 grid "
+            "(fixed dvh rows, no card may grow them)."
         )
     print(f"  layout lock OK ({digest[:16]}…)")
     return digest
@@ -1118,10 +1142,13 @@ def build_config(
             "Weather Forecast",
             "lights cameras music calendar_notification",
             "tesla tesla tesla calendar_notification",
-            "minmax(0, 30fr)",
-            "minmax(0, 48fr)",
-            "minmax(0, 26fr)",
-            "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)",
+            "* 30 / 104",
+            "* 48 / 104",
+            "* 26 / 104",
+            OVERVIEW_RIGID_ROWS,
+            '"grid-auto-rows": "' + OVERVIEW_GRID_AUTO_ROWS + '"',
+            OVERVIEW_GRID_HEIGHT,
+            "Rigid overview grid: no card may grow the 16:9 rows.",
             "aspect-ratio: unset",
             '"font-size": "24px"',
             '"name": "Lights"',
@@ -1268,6 +1295,15 @@ def build_config(
                 file=sys.stderr,
             )
             raise SystemExit(1)
+        rigid_errors = tablet_rigid_grid_errors(blob)
+        if rigid_errors:
+            print(
+                "\nERROR: Tablet overview grid is not rigid:\n  - "
+                + "\n  - ".join(rigid_errors)
+                + "\n",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
         # Music player must not reshuffle overview grid areas / other cards.
         locked_area_rows = (
             "greeting simple_tab music calendar_notification",
@@ -1302,8 +1338,8 @@ def build_config(
             raise SystemExit(1)
         if "minmax(220px, 240px)" in blob or "minmax(150px, 180px)" in blob:
             print(
-                "\nERROR: Tablet Tesla row must use flexible fr tracks "
-                "(minmax(0, 28fr)), not fixed px mins that push off-screen.\n",
+                "\nERROR: Tablet Tesla row must use the fixed 26/104 dvh "
+                "fraction, not fixed px mins that push off-screen.\n",
                 file=sys.stderr,
             )
             raise SystemExit(1)
@@ -1467,6 +1503,8 @@ async def ensure_tablet_dashboard(token: str, ha_url: str) -> None:
 
 
 async def save_dashboard(token: str, ha_url: str, config: dict, *, url_path: str = URL_PATH) -> None:
+    if url_path == TABLET_URL_PATH:
+        require_rigid_tablet_config(config)
     await wait_for_ha(token, ha_url, timeout_s=120, label=f"HA before saving {url_path}")
     res = await ws_call_retry(
         token,
@@ -1988,6 +2026,7 @@ def main() -> int:
         # Validate locked geometry markers still present after the edit.
         blob = json.dumps(config)
         missing = [m for m in TABLET_LOCKED_LAYOUT_MARKERS if m not in blob]
+        missing.extend(tablet_rigid_grid_errors(blob))
         if missing:
             raise SystemExit(
                 "ERROR: cannot relock — overview layout markers missing:\n  - "

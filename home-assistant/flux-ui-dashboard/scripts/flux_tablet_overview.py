@@ -10,7 +10,14 @@ from flux_action_builders import garage_action, lock_action, scene_action
 from flux_media_player import build_tablet_music_card
 from flux_navbar import URL_PREFIX
 from flux_overview_tabs import build_events_tab_cards
-from flux_tablet_layout import tablet_layout_card, tablet_panel_stack, tablet_panel_view
+from flux_tablet_layout import (
+    OVERVIEW_GRID_AUTO_ROWS,
+    OVERVIEW_GRID_HEIGHT,
+    OVERVIEW_RIGID_ROWS,
+    tablet_layout_card,
+    tablet_panel_stack,
+    tablet_panel_view,
+)
 from flux_tablet_tesla import build_tablet_tesla_band
 from flux_time import (
     NZ_CLOCK_ENTITY,
@@ -1194,19 +1201,18 @@ def build_tablet_overview_view(
         content_cards,
         overview=True,
         layout={
-            # 15.6" / 1920×1080 — matches committed baseline YAML
-            # (lovelace/dashboards/flux_ui_tablet.yaml): 30 / 48 / 26 fr.
+            # 15.6" / 1920×1080 — same 30 / 48 / 26 split, but each row's
+            # maximum is a fixed slice of 100dvh. fr tracks grow with content
+            # when the grid's percentage height does not resolve.
             "grid-template-columns": "1fr 1fr 1.05fr 1.15fr",
-            "grid-template-rows": (
-                "minmax(0, 30fr) minmax(0, 48fr) minmax(0, 26fr)"
-            ),
-            "grid-auto-rows": "minmax(0, auto)",
+            "grid-template-rows": OVERVIEW_RIGID_ROWS,
+            "grid-auto-rows": OVERVIEW_GRID_AUTO_ROWS,
             "align-content": "stretch",
             "align-items": "stretch",
             "justify-items": "stretch",
             "grid-gap": "8px",
-            "height": "100%",
-            "max_height": "100%",
+            "height": OVERVIEW_GRID_HEIGHT,
+            "max_height": OVERVIEW_GRID_HEIGHT,
             "grid-template-areas": (
                 '"greeting simple_tab music calendar_notification"\n'
                 '"lights cameras music calendar_notification"\n'
