@@ -39,7 +39,8 @@ TITLE_CARD_MOD = {
 VIEW_CARD_MOD = {
     "style": (
         "ha-view {\n"
-        "  background: center / cover no-repeat fixed url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n"
+        "  background: center / cover no-repeat url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n"
+        "  background-attachment: scroll !important;\n"
         "}\n"
         "#view {\n"
         "  background: transparent !important;\n"

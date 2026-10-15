@@ -149,10 +149,19 @@ def build_active_lights_section(cfg: dict) -> dict:
     }
 
 
-def build_open_garage_section(cfg: dict, *, for_tab_panel: bool = False) -> dict | None:
+def build_open_garage_section(
+    cfg: dict,
+    *,
+    for_tab_panel: bool = False,
+    bound_triggers: bool = False,
+) -> dict | None:
     """Conditional alert when any Tapo garage/shed contact is open."""
     garage = cfg.get("quick_actions", {}).get("garage", [])
-    return build_doors_open_alert_section(garage, for_tab_panel=for_tab_panel)
+    return build_doors_open_alert_section(
+        garage,
+        for_tab_panel=for_tab_panel,
+        bound_triggers=bound_triggers,
+    )
 
 
 def bubble_popup_card(entity: str, name: str) -> dict:

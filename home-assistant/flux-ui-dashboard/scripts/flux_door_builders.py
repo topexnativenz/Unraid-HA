@@ -42,8 +42,18 @@ def _door_tap_action(door: dict) -> dict:
     }
 
 
-def flux_door_tile(door: dict, *, columns: int | None = None) -> dict:
-    """Large MD3 door tile — green closed, pulsing red/pink when open."""
+def flux_door_tile(
+    door: dict,
+    *,
+    columns: int | None = None,
+    triggers_update: str | list[str] | None = None,
+) -> dict:
+    """Large MD3 door tile — green closed, pulsing red/pink when open.
+
+    triggers_update defaults to "all" so tablet door tiles stay byte-identical.
+    Phone call sites pass the contact sensor so the startup state flood does not
+    re-render every door tile.
+    """
     sensor = door["sensor"]
     invert = door.get("invert", False)
     name = door["name"]
@@ -51,7 +61,7 @@ def flux_door_tile(door: dict, *, columns: int | None = None) -> dict:
         "type": "custom:button-card",
         "template": "flux_door",
         "entity": sensor,
-        "triggers_update": "all",
+        "triggers_update": "all" if triggers_update is None else triggers_update,
         "name": name,
         "icon": open_icon_js(sensor, invert=invert, name=name),
         "label": open_label_js(sensor, invert=invert),
@@ -125,7 +135,12 @@ def build_doors_status_section(doors: list[dict], *, title: str = "Doors", subti
     }
 
 
-def build_doors_open_alert_section(doors: list[dict], *, for_tab_panel: bool = False) -> dict | None:
+def build_doors_open_alert_section(
+    doors: list[dict],
+    *,
+    for_tab_panel: bool = False,
+    bound_triggers: bool = False,
+) -> dict | None:
     """Conditional alert when any Tapo garage/shed contact is open."""
     from garage_ui_helpers import is_door_open_jinja
 
@@ -135,7 +150,11 @@ def build_doors_open_alert_section(doors: list[dict], *, for_tab_panel: bool = F
     open_cards: list[dict] = []
     for door in doors:
         invert = door.get("invert", False)
-        tile = flux_door_tile(door, columns=6)
+        tile = flux_door_tile(
+            door,
+            columns=6,
+            triggers_update=[door["sensor"]] if bound_triggers else None,
+        )
         if for_tab_panel:
             tile.pop("grid_options", None)
         open_cards.append(

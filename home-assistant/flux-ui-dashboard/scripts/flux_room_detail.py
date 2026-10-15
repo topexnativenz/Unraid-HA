@@ -149,7 +149,7 @@ def build_room_top_bar(room: dict) -> dict:
     )
 
 
-def build_room_status_chips_auto(room: dict) -> dict:
+def build_room_status_chips_auto(room: dict, *, bound_triggers: bool = False) -> dict:
     """Status chips — Occupied, Cool (°C), Humid (%) with Tapo keyword discovery."""
     if room.get("status_chips"):
         chips_card = build_room_status_chips(room)
@@ -184,7 +184,7 @@ def build_room_status_chips_auto(room: dict) -> dict:
                         ],
                     },
                 },
-                "triggers_update": "all",
+                "triggers_update": triggers if bound_triggers else "all",
             }
         )
     )
@@ -342,7 +342,7 @@ def build_room_detail_page(room: dict, *, garage_doors: list[dict] | None = None
     """Full room detail matching ElementZoom reference (Living screenshot)."""
     cards: list[dict] = [
         build_room_top_bar(room),
-        build_room_status_chips_auto(room),
+        build_room_status_chips_auto(room, bound_triggers=True),
         build_room_features_row(room),
         build_room_subnav(room, active="room"),
     ]
@@ -360,7 +360,9 @@ def build_room_detail_page(room: dict, *, garage_doors: list[dict] | None = None
     return {"type": "grid", "cards": cards}
 
 
-def build_room_climate_page(room: dict, *, active_tab: str = "climate") -> dict:
+def build_room_climate_page(
+    room: dict, *, active_tab: str = "climate", bound_triggers: bool = False
+) -> dict:
     """Climate subview — Control card + Climate History."""
     climate_entity = room.get("climate_entity")
     temp = room.get("temperature_entity")
@@ -368,7 +370,7 @@ def build_room_climate_page(room: dict, *, active_tab: str = "climate") -> dict:
 
     cards: list[dict] = [
         build_room_top_bar(room),
-        build_room_status_chips_auto(room),
+        build_room_status_chips_auto(room, bound_triggers=bound_triggers),
         build_room_features_row(room),
         build_room_subnav(room, active=active_tab),
         _full_width(
