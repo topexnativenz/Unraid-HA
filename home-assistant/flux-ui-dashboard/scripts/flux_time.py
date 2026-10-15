@@ -65,11 +65,22 @@ def nz_datetime_short_js() -> str:
 
 
 def nz_time_short_js() -> str:
-    """JS: time only in NZ."""
+    """JS: time only in NZ.
+
+    Phone hero only. A one-minute timer refreshes the clock and greeting
+    without subscribing the card to every Home Assistant state.
+    """
     return (
-        "[[[ return new Date().toLocaleTimeString('en-NZ', {"
+        "[[[\n"
+        "  if (this && !this.__fluxPhoneClock) {\n"
+        "    this.__fluxPhoneClock = setInterval(() => {\n"
+        "      try { this.update(); } catch (e) {}\n"
+        "    }, 60000);\n"
+        "  }\n"
+        "  return new Date().toLocaleTimeString('en-NZ', {"
         f"timeZone: '{NZ_TIMEZONE}', "
-        "hour: 'numeric', minute: '2-digit'}); ]]]"
+        "hour: 'numeric', minute: '2-digit'});\n"
+        "]]]"
     )
 
 

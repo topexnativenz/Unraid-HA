@@ -156,9 +156,14 @@ def lock_action(
     }
 
 
-def garage_action(door: dict, *, columns: int = 6) -> dict:
+def garage_action(
+    door: dict,
+    *,
+    columns: int = 6,
+    triggers_update: str | list[str] | None = None,
+) -> dict:
     """Quick action — flux_door tile bound to Tapo contact sensor."""
-    return flux_door_tile(door, columns=columns)
+    return flux_door_tile(door, columns=columns, triggers_update=triggers_update)
 
 
 def scene_action(

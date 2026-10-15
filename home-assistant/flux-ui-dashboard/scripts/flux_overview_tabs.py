@@ -87,7 +87,7 @@ def _tab_button(label: str, icon: str) -> dict:
             "target": {"entity_id": OVERVIEW_TAB_ENTITY},
             "data": {"option": label},
         },
-        "triggers_update": "all",
+        "triggers_update": [OVERVIEW_TAB_ENTITY],
         "card_mod": {
             "style": (
                 "ha-card {\n"
@@ -308,7 +308,9 @@ def build_active_tab_cards(cfg: dict, *, use_auto_entities: bool, for_tab_panel:
     cards: list[dict] = []
     if use_auto_entities:
         cards.append(build_active_lights_section(cfg))
-    open_garage = build_open_garage_section(cfg, for_tab_panel=for_tab_panel)
+    open_garage = build_open_garage_section(
+        cfg, for_tab_panel=for_tab_panel, bound_triggers=True
+    )
     if open_garage:
         cards.append(open_garage)
     active_cfg = _tabs_cfg(cfg).get("active", {})
@@ -474,7 +476,11 @@ def build_quick_actions_tab(cfg: dict, section_title_fn) -> dict:
             )
         )
     for item in cfg["quick_actions"]["garage"]:
-        buttons.append(strip_grid_options(garage_action(item, columns=6)))
+        buttons.append(
+            strip_grid_options(
+                garage_action(item, columns=6, triggers_update=[item["sensor"]])
+            )
+        )
     for item in cfg["quick_actions"]["actions"]:
         buttons.append(
             strip_grid_options(

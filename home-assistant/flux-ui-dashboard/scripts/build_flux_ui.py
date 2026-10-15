@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -368,7 +369,7 @@ def hero_unified_card(weather_entity: str, cfg: dict) -> dict:
         "show_state": False,
         "tap_action": {"action": "none"},
         "hold_action": {"action": "none"},
-        "triggers_update": ["all", weather_entity],
+        "triggers_update": [weather_entity],
         "grid_options": {"columns": 12},
         "name": nz_greeting_js(),
         "label": nz_time_short_js(),
@@ -471,7 +472,7 @@ def build_quick_actions(cfg: dict) -> dict:
             )
         )
     for item in cfg["quick_actions"]["garage"]:
-        cards.append(garage_action(item, columns=col))
+        cards.append(garage_action(item, columns=col, triggers_update=[item["sensor"]]))
     for item in cfg["quick_actions"]["actions"]:
         cards.append(
             scene_action(
@@ -540,7 +541,7 @@ def build_overview_sections(
     sections.extend(home_tab_cards)
     if use_auto_entities:
         sections.append(build_active_lights_section(cfg))
-    open_garage = build_open_garage_section(cfg)
+    open_garage = build_open_garage_section(cfg, bound_triggers=True)
     if open_garage:
         sections.append(open_garage)
     popup_section = build_music_player_popup_section(cfg, use_mediocre=use_mediocre_media)
@@ -632,6 +633,57 @@ def climate_fallback_section(weather_entity: str) -> dict:
             ),
         ],
     }
+
+
+_GLASS_78 = (
+    "color-mix(in srgb, var(--md-sys-color-surface-container) 78%, transparent)"
+)
+_GLASS_88 = (
+    "color-mix(in srgb, var(--md-sys-color-surface-container) 88%, transparent)"
+)
+_BACKDROP_KEYS = {"backdrop-filter", "-webkit-backdrop-filter"}
+_BACKDROP_DECL = re.compile(
+    r"[ \t]*(?:-webkit-backdrop-filter|backdrop-filter)\s*:[^;]*;?[ \t]*\n?",
+    re.IGNORECASE,
+)
+
+
+def lighten_phone_compositor(obj: object) -> object:
+    """Drop live backdrop blur from the phone config only.
+
+    Shared template constants stay untouched so the tablet build hash does not
+    move. Phone cards keep the same radius, border, and shadow, with a slightly
+    more opaque surface so the wallpaper does not show through a missing blur.
+    """
+    if isinstance(obj, list):
+        cleaned = []
+        for item in obj:
+            nxt = lighten_phone_compositor(item)
+            if nxt == {}:
+                continue
+            cleaned.append(nxt)
+        return cleaned
+    if isinstance(obj, dict):
+        return {
+            key: lighten_phone_compositor(value)
+            for key, value in obj.items()
+            if key not in _BACKDROP_KEYS
+        }
+    if isinstance(obj, str):
+        text = obj
+        if "backdrop-filter" in text or _GLASS_78 in text:
+            text = _BACKDROP_DECL.sub("", text).replace(_GLASS_78, _GLASS_88)
+        # background-attachment: fixed forces iOS to repaint the wallpaper while scrolling.
+        if "no-repeat fixed" in text:
+            text = text.replace("no-repeat fixed", "no-repeat")
+            if "background-attachment" not in text and "dark-purple.webp" in text:
+                text = text.replace(
+                    "url('/local/flux-ui/wallpapers/dark-purple.webp') !important;",
+                    "url('/local/flux-ui/wallpapers/dark-purple.webp') !important;\n"
+                    "  background-attachment: scroll !important;",
+                )
+        return text
+    return obj
 
 
 def build_config(
@@ -837,7 +889,11 @@ def _build_config_inner(
                 title=f"{room.get('card_name') or room['name']} — Lights",
                 path=room_grid_view_path(slug),
                 icon="mdi:lightbulb-group",
-                sections=[build_room_grid_page(room, active_tab="lights")],
+                sections=[
+                    build_room_grid_page(
+                        room, active_tab="lights", bound_triggers=not tablet
+                    )
+                ],
                 use_navbar_card=use_navbar_card,
                 navbar_media_player=phone_media,
                 subview=True,
@@ -850,7 +906,11 @@ def _build_config_inner(
                 title=f"{room.get('card_name') or room['name']} — Climate",
                 path=room_climate_view_path(slug),
                 icon="mdi:thermostat",
-                sections=[build_room_climate_page(room, active_tab="climate")],
+                sections=[
+                    build_room_climate_page(
+                        room, active_tab="climate", bound_triggers=not tablet
+                    )
+                ],
                 use_navbar_card=use_navbar_card,
                 navbar_media_player=phone_media,
                 subview=True,
@@ -863,7 +923,11 @@ def _build_config_inner(
                 title=f"{room.get('card_name') or room['name']} — Camera",
                 path=room_camera_view_path(slug),
                 icon="mdi:cctv",
-                sections=[build_room_camera_page(room, cfg, active_tab="camera")],
+                sections=[
+                    build_room_camera_page(
+                        room, cfg, active_tab="camera", bound_triggers=not tablet
+                    )
+                ],
                 use_navbar_card=use_navbar_card,
                 navbar_media_player=phone_media,
                 subview=True,
@@ -888,7 +952,9 @@ def _build_config_inner(
         modules = extra_module_urls(cfg)
         if modules:
             out["extra_module_url"] = modules
+        if media_player_active(cfg):
             write_carousel_sync_js(cfg, ROOT / "www" / "flux-ui" / "carousel-sync.js")
+        out = lighten_phone_compositor(out)
     return out
 
 

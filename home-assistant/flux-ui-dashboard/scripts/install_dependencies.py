@@ -42,9 +42,92 @@ FRONTEND_RESOURCES: list[tuple[str, str]] = [
 ]
 
 
+def _resource_path(url: str) -> str:
+    """Ignore ?hacstag= and other query cache keys when comparing modules."""
+    return (url or "").split("?", 1)[0]
+
+
+# These registered paths 404. Delete one only when a different path already serves the card.
+_DEAD_RESOURCE_IF_SIBLING: dict[str, str] = {
+    "/hacsfiles/bubble-card/bubble-card.js": "/hacsfiles/Bubble-Card/bubble-card.js",
+    "/hacsfiles/lovelace-kiosk-mode/kiosk-mode.js": "/hacsfiles/kiosk-mode/kiosk-mode.js",
+    "/hacsfiles/weather-forecast-extended-card/weather-forecast-extended-card.js": (
+        "/hacsfiles/weather-forecast-extended/weatherforecastextended.js"
+    ),
+}
+
+
+def _keep_score(resource: dict) -> tuple[int, int]:
+    """Prefer the HACS-owned ?hacstag= URL, then the shorter URL."""
+    url = resource.get("url") or ""
+    return (0 if "hacstag=" in url else 1, len(url))
+
+
+async def _delete_resource(token: str, ha_url: str, resource: dict, reason: str) -> bool:
+    rid = resource.get("id")
+    url = resource.get("url") or ""
+    if not rid:
+        print(f"  skip delete {url} ({reason}: no resource id)")
+        return False
+    try:
+        res = await ws_call(
+            token,
+            ha_url,
+            [{"type": "lovelace/resources/delete", "resource_id": rid}],
+        )
+    except Exception as exc:
+        print(f"  skip delete {url} ({reason}: {type(exc).__name__}: {exc})")
+        return False
+    if res and res[0].get("success"):
+        print(f"  del {url} ({reason})")
+        return True
+    err = (res[0].get("error") if res else None) or res
+    print(f"  skip delete {url} ({reason}: {err})")
+    return False
+
+
 async def ensure_resources(token: str, ha_url: str) -> None:
     listed = (await ws_call(token, ha_url, [{"type": "lovelace/resources"}]))[0]
-    existing_urls = {r.get("url") for r in listed.get("result", [])}
+    resources = list(listed.get("result") or [])
+
+    # Same module registered twice (plain URL + ?hacstag=) is downloaded and parsed twice.
+    by_path: dict[str, list[dict]] = {}
+    for resource in resources:
+        by_path.setdefault(_resource_path(resource.get("url") or ""), []).append(resource)
+    removed_ids: set[str] = set()
+    for path, group in by_path.items():
+        if not path or len(group) < 2:
+            continue
+        group_sorted = sorted(group, key=_keep_score)
+        for extra in group_sorted[1:]:
+            if await _delete_resource(token, ha_url, extra, "duplicate path"):
+                if extra.get("id"):
+                    removed_ids.add(extra["id"])
+
+    paths_present = {
+        _resource_path(resource.get("url") or "")
+        for resource in resources
+        if resource.get("id") not in removed_ids
+    }
+    for dead, sibling in _DEAD_RESOURCE_IF_SIBLING.items():
+        if sibling not in paths_present or dead not in paths_present:
+            continue
+        for resource in resources:
+            if resource.get("id") in removed_ids:
+                continue
+            if _resource_path(resource.get("url") or "") != dead:
+                continue
+            if await _delete_resource(token, ha_url, resource, "404, sibling registered"):
+                if resource.get("id"):
+                    removed_ids.add(resource["id"])
+                paths_present.discard(dead)
+
+    existing_urls = {
+        resource.get("url") or ""
+        for resource in resources
+        if resource.get("id") not in removed_ids
+    }
+    existing_paths = {_resource_path(url) for url in existing_urls}
 
     # One mushroom + one card-mod is enough for overview.
     have_mushroom = any("mushroom" in u for u in existing_urls)
@@ -52,8 +135,13 @@ async def ensure_resources(token: str, ha_url: str) -> None:
 
     created = 0
     for label, url in FRONTEND_RESOURCES:
-        if url in existing_urls:
+        path = _resource_path(url)
+        if path in existing_paths:
             print(f"  ok  {label}")
+            continue
+        sibling = _DEAD_RESOURCE_IF_SIBLING.get(url)
+        if sibling and sibling in existing_paths:
+            print(f"  ok  {label} (served by {sibling})")
             continue
         if "mushroom" in label and have_mushroom:
             continue
@@ -68,6 +156,8 @@ async def ensure_resources(token: str, ha_url: str) -> None:
         if res[0].get("success"):
             print(f"  add {label}")
             created += 1
+            existing_paths.add(path)
+            existing_urls.add(url)
             if "mushroom" in url:
                 have_mushroom = True
             if "card-mod" in url:

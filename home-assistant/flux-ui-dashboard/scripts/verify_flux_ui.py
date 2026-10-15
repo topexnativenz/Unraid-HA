@@ -33,6 +33,14 @@ from flux_tablet_layout import (  # noqa: E402
 )
 from flux_weather_panel import WEATHER_PANEL_HASH  # noqa: E402
 
+# Compact Lovelace JSON (what HA stores). Measured phone config is ~1.15 MB.
+# The budget stays under the old ~2.25 MB copy so the duplicated navbar cannot return,
+# with room for a new room view.
+PHONE_CONFIG_BUDGET = 1_500_000
+PHONE_BACKDROP_BUDGET = 8
+BITMOJI_BUDGET = 80_000
+WALLPAPER_BUDGET = 120_000
+
 
 def load_media_players() -> dict:
     if not MEDIA_PLAYERS.exists():
@@ -767,9 +775,17 @@ def verify_build(path: Path) -> list[str]:
                     errors.append(
                         "Music popup must start with a single mushroom-chips-card zone picker"
                     )
-            if "/local/flux-ui/carousel-sync.js" not in blob:
+            if (
+                "__fluxCarouselSync" not in blob
+                and "/local/flux-ui/carousel-sync.js" not in blob
+            ):
                 errors.append(
-                    "Missing carousel-sync.js module — Sonos swipe will not sync popup artwork"
+                    "Missing inlined carousel sync — Sonos swipe will not sync popup artwork"
+                )
+            if "MutationObserver" in overview_blob:
+                errors.append(
+                    "Phone overview still installs a MutationObserver — "
+                    "that walks the dashboard on every state change"
                 )
             if "MIN_SLOTS = 2" not in overview_blob:
                 errors.append(
@@ -787,6 +803,50 @@ def verify_build(path: Path) -> list[str]:
                     "Navbar styles missing media-player-viewport touch-action — Sonos zone swipe may fail"
                 )
 
+    if not is_tablet:
+        errors.extend(_phone_load_budget_errors(config, blob, overview_blob))
+
+    return errors
+
+
+def _phone_load_budget_errors(config: dict, blob: str, overview_blob: str) -> list[str]:
+    """Guards so the phone dashboard cannot grow back into a slow iOS load."""
+    errors: list[str] = []
+    compact = len(json.dumps(config, separators=(",", ":")).encode())
+    if compact > PHONE_CONFIG_BUDGET:
+        errors.append(
+            f"Phone config is {compact} compact bytes (budget {PHONE_CONFIG_BUDGET})"
+        )
+    if '"camera_view": "live"' in overview_blob or "custom:webrtc-camera" in overview_blob:
+        errors.append(
+            "Phone overview must not start a live camera or webrtc stream"
+        )
+    backdrop = blob.count("backdrop-filter")
+    if backdrop > PHONE_BACKDROP_BUDGET:
+        errors.append(
+            f"Phone config has {backdrop} backdrop-filter rules "
+            f"(budget {PHONE_BACKDROP_BUDGET})"
+        )
+    if (
+        '"triggers_update": "all"' in overview_blob
+        or '"triggers_update": ["all"' in overview_blob
+    ):
+        errors.append(
+            "Phone overview still uses triggers_update all — "
+            "cards re-render on every entity during startup"
+        )
+    bitmoji = ROOT / "www" / "flux-ui" / "bitmoji" / "dave.png"
+    if bitmoji.exists() and bitmoji.stat().st_size > BITMOJI_BUDGET:
+        errors.append(
+            f"Bitmoji dave.png is {bitmoji.stat().st_size} bytes "
+            f"(budget {BITMOJI_BUDGET}) — it is shown at 64px"
+        )
+    wallpaper = ROOT / "www" / "flux-ui" / "wallpapers" / "dark-purple.webp"
+    if wallpaper.exists() and wallpaper.stat().st_size > WALLPAPER_BUDGET:
+        errors.append(
+            f"Wallpaper dark-purple.webp is {wallpaper.stat().st_size} bytes "
+            f"(budget {WALLPAPER_BUDGET})"
+        )
     return errors
 
 
@@ -891,6 +951,20 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
     for needle in ("mushroom", "card-mod", "button-card"):
         if needle not in urls:
             errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")
+
+    from collections import Counter
+
+    path_counts = Counter(
+        (resource.get("url") or "").split("?", 1)[0]
+        for resource in resources.get("result", [])
+        if resource.get("url")
+    )
+    duplicates = sorted(path for path, count in path_counts.items() if count > 1)
+    if duplicates:
+        errors.append(
+            "Duplicate Lovelace resources (same file downloaded twice): "
+            + ", ".join(duplicates)
+        )
 
     return errors
 

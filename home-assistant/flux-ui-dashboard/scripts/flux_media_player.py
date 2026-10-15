@@ -298,91 +298,258 @@ def _apple_tv_setup_js(players: list[dict]) -> str:
     )
 
 
-def _navbar_player_entity_js(entity: str, players: list[dict]) -> str:
-    """Switch navbar artwork to linked Apple TV when Sonos relays TV sound."""
-    setup = _apple_tv_setup_js(players)
+def _js_template(body: str) -> str:
+    return "[[[\n" + body + "]]]"
+
+
+def _carousel_sync_installer(players: list[dict]) -> str:
+    """Install one swipe→input_select watcher. No MutationObserver, no whole-tree poll."""
+    players_js = json.dumps([{"entity": p["entity"], "name": p["name"]} for p in players])
+    return _CAROUSEL_INSTALLER.replace("__PLAYERS_JSON__", players_js)
+
+
+# Shadow-piercing walk runs only when the track cache is empty or a finger is down.
+# Polling reads the cached track's transform, so iOS does not re-walk the HA tree
+# on every state change the way the old subtree observer did.
+_CAROUSEL_INSTALLER = """\
+  if (!window.__fluxCarouselSync) {
+    window.__fluxCarouselSync = true;
+    var ALL_PLAYERS = __PLAYERS_JSON__;
+    var zoneIsMusic = function (attrs) {
+      if (!attrs) return false;
+      var t = String(attrs.media_content_type || '').toLowerCase();
+      var app = String(attrs.app_name || '').toLowerCase();
+      if (['music','artist','album','playlist','podcast','track','genre'].indexOf(t) >= 0) return true;
+      if (['video','tvshow','movie','channel','episode'].indexOf(t) >= 0) return false;
+      if (app.indexOf('tv') >= 0 || app.indexOf('hdmi') >= 0) return false;
+      if (attrs.media_artist && !attrs.media_series_title) return true;
+      if (attrs.media_series_title && !attrs.media_artist) return false;
+      return !!attrs.media_artist || !attrs.media_series_title;
+    };
+    var visibleZoneNames = function () {
+      var el = document.querySelector('home-assistant');
+      var h = el && el.hass;
+      if (!h || !h.states) return [];
+      var active = ['playing', 'paused'];
+      var live = ALL_PLAYERS.filter(function (p) {
+        var st = h.states[p.entity];
+        return !!(st && active.indexOf(st.state) >= 0);
+      });
+      var anyMusic = live.some(function (p) {
+        var st = h.states[p.entity];
+        return zoneIsMusic(st && st.attributes);
+      });
+      var visible = live.filter(function (p) {
+        var st = h.states[p.entity];
+        return !anyMusic || zoneIsMusic(st && st.attributes);
+      });
+      var minSlots = 2;
+      if (visible.length < minSlots) {
+        for (var i = 0; i < ALL_PLAYERS.length; i++) {
+          if (visible.length >= minSlots) break;
+          var candidate = ALL_PLAYERS[i];
+          if (!visible.some(function (v) { return v.entity === candidate.entity; })) visible.push(candidate);
+        }
+      }
+      return visible.map(function (p) { return p.name; });
+    };
+    var lastZone = null;
+    var primed = false;
+    var debounce = null;
+    var cachedTracks = null;
+    var cachedDots = null;
+    var deepQueryAll = function (selector, root) {
+      var results = [];
+      var seen = new Set();
+      var walk = function (node) {
+        if (!node || seen.has(node)) return;
+        seen.add(node);
+        var nodeType = node.nodeType;
+        if (nodeType !== 1 && nodeType !== 11 && nodeType !== 9) return;
+        if (nodeType === 1 && node.matches && node.matches(selector)) results.push(node);
+        if (node.shadowRoot) walk(node.shadowRoot);
+        var kids = node.children;
+        if (kids) {
+          for (var i = 0; i < kids.length; i++) walk(kids[i]);
+        }
+      };
+      walk(root || document.body);
+      return results;
+    };
+    var cacheStale = function () {
+      if (!cachedTracks || !cachedTracks.length) return true;
+      return cachedTracks[0].isConnected === false;
+    };
+    var ensureCache = function (force) {
+      if (!force && !cacheStale()) return;
+      var root = document.querySelector('home-assistant') || document.body;
+      cachedTracks = deepQueryAll('.media-player-track', root);
+      cachedDots = deepQueryAll('.media-player-dot', root);
+    };
+    var activeCarouselIndex = function () {
+      ensureCache(false);
+      var tracks = cachedTracks || [];
+      for (var i = 0; i < tracks.length; i++) {
+        var transform = (tracks[i].style && tracks[i].style.transform) || '';
+        var match = transform.match(/translateX\\(calc\\((-?\\d+)%/);
+        if (match) return Math.round(Math.abs(parseInt(match[1], 10)) / 100);
+      }
+      var dots = cachedDots || [];
+      if (!dots.length) return -1;
+      for (var d = 0; d < dots.length; d++) {
+        if (dots[d].classList && dots[d].classList.contains('active')) return d;
+      }
+      return dots.length ? 0 : -1;
+    };
+    var activeZoneTitle = function () {
+      var zones = visibleZoneNames();
+      var idx = activeCarouselIndex();
+      if (idx >= 0 && idx < zones.length) return zones[idx];
+      return null;
+    };
+    var hassObj = function () {
+      var el = document.querySelector('home-assistant');
+      return el && el.hass;
+    };
+    var selectVisibleZone = function () {
+      var zone = activeZoneTitle();
+      if (!zone) return null;
+      var h = hassObj();
+      if (!h || !h.callService) return null;
+      lastZone = zone;
+      return h.callService('input_select', 'select_option', {
+        entity_id: 'input_select.flux_ui_media_player',
+        option: zone
+      });
+    };
+    var syncZone = function () {
+      var zone = activeZoneTitle();
+      if (!zone) return;
+      if (!primed) {
+        primed = true;
+        var h = hassObj();
+        var selectState = h && h.states && h.states['input_select.flux_ui_media_player'];
+        if (selectState && selectState.state === zone) {
+          lastZone = zone;
+          return;
+        }
+      }
+      if (zone === lastZone) return;
+      selectVisibleZone();
+    };
+    var scheduleSync = function () {
+      if (debounce) clearTimeout(debounce);
+      debounce = setTimeout(syncZone, 120);
+    };
+    var mediaHit = function (ev) {
+      var target = ev.target;
+      if (!target || !target.closest) return null;
+      return target.closest('.media-player-viewport, .media-player-carousel, .media-player-container, .media-player-track, .media-player-title, .media-player-subtitle');
+    };
+    if (!window.__fluxCarouselWatching) {
+      window.__fluxCarouselWatching = true;
+      document.addEventListener('pointerdown', function (ev) {
+        if (!mediaHit(ev)) return;
+        ensureCache(true);
+        selectVisibleZone();
+      }, true);
+      document.addEventListener('pointerup', function (ev) {
+        if (!mediaHit(ev)) return;
+        scheduleSync();
+      }, true);
+      document.addEventListener('pointercancel', function () {
+        scheduleSync();
+      }, true);
+      setInterval(syncZone, 1500);
+      syncZone();
+    }
+  }
+"""
+
+
+def _flux_nav_runtime_js(players: list[dict]) -> str:
+    """Shared navbar helpers, installed by the first template that runs."""
+    setup = _apple_tv_setup_js(players).replace("states[", "currentStates()[")
+    visible = _visible_entities_js(players).replace("states[", "currentStates()[")
+    visible = visible.replace(_is_music_js_fn() + "\n", "")
     return (
-        "[[[\n"
+        "window.__fluxNavBoot = window.__fluxNavBoot || function(statesArg) {\n"
+        "  if (window.__fluxNav) return;\n"
+        "  function currentStates() {\n"
+        "    var el = document.querySelector('home-assistant');\n"
+        "    if (el && el.hass && el.hass.states) return el.hass.states;\n"
+        "    return statesArg;\n"
+        "  }\n"
         + setup
-        + f"var atv = activeAtv({entity!r});\n"
-        f"return atv ? atv.entity_id : {entity!r};\n"
-        "]]]"
+        + "  function entityFor(id) {\n"
+        "    var atv = activeAtv(id);\n"
+        "    return atv ? atv.entity_id : id;\n"
+        "  }\n"
+        "  function titleFor(id, zoneName, useAtv) {\n"
+        "    var s = currentStates()[id];\n"
+        "    if (useAtv) {\n"
+        "      var atv = activeAtv(id);\n"
+        "      if (atv) { var shown = atvTitle(atv); if (shown) return shown; }\n"
+        "      if (!s) return zoneName;\n"
+        "      var attrs = s.attributes || {};\n"
+        "      var track = attrs.media_title || attrs.media_series_title || '';\n"
+        "      if (track && String(track).toLowerCase() !== 'tv') return track;\n"
+        "      return zoneName;\n"
+        "    }\n"
+        "    if (!s) return zoneName;\n"
+        "    var idleAttrs = s.attributes || {};\n"
+        "    var idleTrack = idleAttrs.media_title || idleAttrs.media_series_title || '';\n"
+        "    return idleTrack || zoneName;\n"
+        "  }\n"
+        "  function subtitleFor(id, zoneName, useAtv) {\n"
+        "    var s = currentStates()[id];\n"
+        "    if (useAtv) {\n"
+        "      var atv = activeAtv(id);\n"
+        "      if (atv) {\n"
+        "        var detail = atvSubtitle(atv);\n"
+        "        var device = atvName(atv.entity_id);\n"
+        "        return detail ? detail + ' · ' + device : device;\n"
+        "      }\n"
+        "      if (!s) return '';\n"
+        "      var tvAttrs = s.attributes || {};\n"
+        "      var tvArtist = tvAttrs.media_artist || tvAttrs.media_album_artist || '';\n"
+        "      if (tvArtist.indexOf('Listening on') >= 0 || tvArtist.indexOf('SONOS') >= 0) tvArtist = '';\n"
+        "      var tvTrack = tvAttrs.media_title || tvAttrs.media_series_title || '';\n"
+        "      if (tvArtist) return tvArtist + ' · ' + zoneName;\n"
+        "      if (tvTrack && String(tvTrack).toLowerCase() !== 'tv') return zoneName;\n"
+        "      return '';\n"
+        "    }\n"
+        "    if (!s) return '';\n"
+        "    var idleAttrs = s.attributes || {};\n"
+        "    var artist = idleAttrs.media_artist || idleAttrs.media_album_artist || '';\n"
+        "    if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';\n"
+        "    var track = idleAttrs.media_title || idleAttrs.media_series_title || '';\n"
+        "    if (artist) return artist + ' · ' + zoneName;\n"
+        "    if (track) return zoneName;\n"
+        "    return '';\n"
+        "  }\n"
+        "  function showFor(id) {\n"
+        + visible
+        + "    return visible.includes(id);\n"
+        "  }\n"
+        "  window.__fluxNav = {\n"
+        "    entity: entityFor,\n"
+        "    title: titleFor,\n"
+        "    subtitle: subtitleFor,\n"
+        "    show: showFor\n"
+        "  };\n"
+        + _carousel_sync_installer(players)
+        + "};\n"
     )
 
 
-def _navbar_player_title_js(entity: str, zone_name: str, players: list[dict]) -> str:
-    """Track/show title when playing; zone name when idle."""
-    player = next((p for p in players if p.get("entity") == entity), None)
-    use_atv = player and is_sonos_zone(player) and player.get("apple_tv")
-    if not use_atv:
-        return (
-            "[[[ "
-            f"const s = states[{entity!r}]; "
-            f"const player = {zone_name!r}; "
-            "if (!s) return player;"
-            "const attrs = s.attributes || {};"
-            "const track = attrs.media_title || attrs.media_series_title || '';"
-            "return track || player; "
-            "]]]"
-        )
-    setup = _apple_tv_setup_js(players)
-    return (
-        "[[[\n"
-        + setup
-        + f"var s = states[{entity!r}];\n"
-        f"var player = {zone_name!r};\n"
-        f"var atv = activeAtv({entity!r});\n"
-        "if (atv) { var t = atvTitle(atv); if (t) return t; }\n"
-        "if (!s) return player;\n"
-        "var attrs = s.attributes || {};\n"
-        "var track = attrs.media_title || attrs.media_series_title || '';\n"
-        "if (track && String(track).toLowerCase() !== 'tv') return track;\n"
-        "return player;\n"
-        "]]]"
-    )
-
-
-def _navbar_player_subtitle_js(entity: str, zone_name: str, players: list[dict]) -> str:
-    """Artist or episode detail; Apple TV/HomePod name when relaying TV sound."""
-    player = next((p for p in players if p.get("entity") == entity), None)
-    use_atv = player and is_sonos_zone(player) and player.get("apple_tv")
-    if not use_atv:
-        return (
-            "[[[ "
-            f"const s = states[{entity!r}]; "
-            f"const player = {zone_name!r}; "
-            "if (!s) return '';"
-            "const attrs = s.attributes || {};"
-            "let artist = attrs.media_artist || attrs.media_album_artist || '';"
-            "if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';"
-            "const track = attrs.media_title || attrs.media_series_title || '';"
-            "if (artist) return artist + ' · ' + player;"
-            "if (track) return player;"
-            "return ''; "
-            "]]]"
-        )
-    setup = _apple_tv_setup_js(players)
-    return (
-        "[[[\n"
-        + setup
-        + f"var s = states[{entity!r}];\n"
-        f"var player = {zone_name!r};\n"
-        f"var atv = activeAtv({entity!r});\n"
-        "if (atv) {\n"
-        "  var detail = atvSubtitle(atv);\n"
-        "  var device = atvName(atv.entity_id);\n"
-        "  return detail ? detail + ' · ' + device : device;\n"
-        "}\n"
-        "if (!s) return '';\n"
-        "var attrs = s.attributes || {};\n"
-        "var artist = attrs.media_artist || attrs.media_album_artist || '';\n"
-        "if (artist.indexOf('Listening on') >= 0 || artist.indexOf('SONOS') >= 0) artist = '';\n"
-        "var track = attrs.media_title || attrs.media_series_title || '';\n"
-        "if (artist) return artist + ' · ' + player;\n"
-        "if (track && String(track).toLowerCase() !== 'tv') return player;\n"
-        "return '';\n"
-        "]]]"
-    )
+def _nav_template(expr: str, *, install: str | None = None) -> str:
+    parts = []
+    if install:
+        parts.append(install)
+    parts.append("if (window.__fluxNavBoot) window.__fluxNavBoot(states);\n")
+    parts.append(f"return {expr};\n")
+    return _js_template("".join(parts))
 
 
 def _visible_entities_js(players: list[dict]) -> str:
@@ -1027,19 +1194,42 @@ def build_navbar_media_player(cfg: dict) -> dict | None:
     if not players:
         return None
 
+    runtime = _flux_nav_runtime_js(players)
+    installed = False
     entries: list[dict[str, Any]] = []
     for player in players:
         entity = player["entity"]
         name = player["name"]
+        use_atv = bool(is_sonos_zone(player) and player.get("apple_tv"))
+        # navbar-card evaluates entity, then show, then title/subtitle.
+        # The first JS template installs the shared runtime; the rest are one-liners.
+        entity_install = None
+        show_install = None
+        if use_atv and not installed:
+            entity_install = runtime
+            installed = True
+        elif not installed:
+            show_install = runtime
+            installed = True
         entry: dict[str, Any] = {
             "entity": (
-                _navbar_player_entity_js(entity, players)
-                if is_sonos_zone(player) and player.get("apple_tv")
+                _nav_template(
+                    f"window.__fluxNav.entity({entity!r})",
+                    install=entity_install,
+                )
+                if use_atv
                 else entity
             ),
-            "show": _player_show_jinja(players, entity),
-            "title": _navbar_player_title_js(entity, name, players),
-            "subtitle": _navbar_player_subtitle_js(entity, name, players),
+            "show": _nav_template(
+                f"window.__fluxNav.show({entity!r})",
+                install=show_install,
+            ),
+            "title": _nav_template(
+                f"window.__fluxNav.title({entity!r}, {name!r}, {'true' if use_atv else 'false'})"
+            ),
+            "subtitle": _nav_template(
+                f"window.__fluxNav.subtitle({entity!r}, {name!r}, {'true' if use_atv else 'false'})"
+            ),
             **_navbar_player_actions(name),
         }
         # No `icon` here — navbar-card replaces the album artwork with it.
@@ -1316,161 +1506,32 @@ def yaml_list(items: list[str]) -> str:
 
 
 def write_carousel_sync_js(cfg: dict, dest: Path) -> bool:
-    """Emit JS that syncs input_select when the navbar Sonos carousel is swiped."""
+    """Write the light swipe sync used if a future LAN copy publishes /local.
+
+    The phone dashboard does not load this URL. The same installer is inlined
+    in the navbar runtime so iOS does not fetch or parse a second copy, and so
+    the API deploy (which cannot upload www/) still ships the lighter sync.
+    """
     players = enabled_players(cfg)
     if not players:
         return False
 
-    zone_names = [p["name"] for p in players]
-    players_js = json.dumps([{"entity": p["entity"], "name": p["name"]} for p in players])
-
     dest.parent.mkdir(parents=True, exist_ok=True)
+    installer = _carousel_sync_installer(players)
     dest.write_text(
-        f"""\
-// Generated by build_flux_ui.py — syncs Sonos zone swipes to input_select + popup artwork.
-(function () {{
-  const ALL_PLAYERS = {players_js};
-
-  function isMusic(attrs) {{
-    if (!attrs) return false;
-    const t = String(attrs.media_content_type || '').toLowerCase();
-    const app = String(attrs.app_name || '').toLowerCase();
-    if (['music','artist','album','playlist','podcast','track','genre'].includes(t)) return true;
-    if (['video','tvshow','movie','channel','episode'].includes(t)) return false;
-    if (app.includes('tv') || app.includes('hdmi')) return false;
-    if (attrs.media_artist && !attrs.media_series_title) return true;
-    if (attrs.media_series_title && !attrs.media_artist) return false;
-    return !!attrs.media_artist || !attrs.media_series_title;
-  }}
-
-  function visiblePlayers() {{
-    const h = hass();
-    if (!h) return [];
-    const ACTIVE = ['playing', 'paused'];
-    const live = ALL_PLAYERS.filter((p) => ACTIVE.includes(h.states[p.entity]?.state));
-    const anyMusic = live.some((p) => isMusic(h.states[p.entity]?.attributes));
-    let visible = live.filter((p) => !anyMusic || isMusic(h.states[p.entity]?.attributes));
-    const MIN_SLOTS = {MIN_PLAYER_SLOTS};
-    if (visible.length < MIN_SLOTS) {{
-      for (const p of ALL_PLAYERS) {{
-        if (visible.length >= MIN_SLOTS) break;
-        if (!visible.find((v) => v.entity === p.entity)) visible.push(p);
-      }}
-    }}
-    return visible;
-  }}
-
-  function visibleZoneNames() {{
-    return visiblePlayers().map((p) => p.name);
-  }}
-
-  let lastZone = null;
-  let debounce = null;
-
-  function hass() {{
-    return document.querySelector('home-assistant')?.hass;
-  }}
-
-  function deepQueryAll(selector, root) {{
-    const results = [];
-    const seen = new Set();
-    function walk(node) {{
-      if (!node || seen.has(node)) return;
-      if (node.nodeType === 1) seen.add(node);
-      if (node.nodeType !== 1) return;
-      if (node.matches?.(selector) && !results.includes(node)) results.push(node);
-      node.querySelectorAll?.(selector)?.forEach((el) => {{
-        if (!results.includes(el)) results.push(el);
-      }});
-      if (node.shadowRoot) walk(node.shadowRoot);
-      node.children && [...node.children].forEach(walk);
-    }}
-    walk(root || document.body);
-    return results;
-  }}
-
-  function activeCarouselIndex() {{
-    const zones = visibleZoneNames();
-    const tracks = deepQueryAll('.media-player-track');
-    for (const track of tracks) {{
-      const t = track.style?.transform || '';
-      const m = t.match(/translateX\\(calc\\((-?\\d+)%/);
-      if (m) return Math.round(Math.abs(parseInt(m[1], 10)) / 100);
-    }}
-    const dots = deepQueryAll('.media-player-dot');
-    if (!dots.length) return -1;
-    const idx = dots.findIndex((d) => d.classList.contains('active'));
-    return idx >= 0 ? idx : 0;
-  }}
-
-  function activeZoneTitle() {{
-    const zones = visibleZoneNames();
-    const idx = activeCarouselIndex();
-    if (idx >= 0 && idx < zones.length) return zones[idx];
-    return null;
-  }}
-
-  function selectVisibleZone() {{
-    const zone = activeZoneTitle();
-    if (!zone) return null;
-    const h = hass();
-    if (!h) return null;
-    lastZone = zone;
-    return h.callService('input_select', 'select_option', {{
-      entity_id: 'input_select.flux_ui_media_player',
-      option: zone,
-    }});
-  }}
-
-  function syncZone() {{
-    const zone = activeZoneTitle();
-    if (!zone || zone === lastZone) return;
-    selectVisibleZone();
-  }}
-
-  function installOpenHandler() {{
-    // Select zone before navbar-card navigate opens the bubble popup.
-    document.addEventListener(
-      'pointerdown',
-      (ev) => {{
-        const hit = ev.target.closest(
-          '.media-player-viewport, .media-player-carousel, .media-player-container, .media-player-track, .media-player-title, .media-player-subtitle',
-        );
-        if (!hit) return;
-        selectVisibleZone();
-      }},
-      true,
-    );
-  }}
-
-  function scheduleSync() {{
-    if (debounce) clearTimeout(debounce);
-    debounce = setTimeout(syncZone, 100);
-  }}
-
-  function observe() {{
-    const root = document.querySelector('home-assistant');
-    if (!root) return;
-    new MutationObserver(scheduleSync).observe(root, {{
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class', 'style'],
-      childList: true,
-    }});
-    setInterval(syncZone, 500);
-    installOpenHandler();
-    scheduleSync();
-  }}
-
-  window.addEventListener('load', observe);
-  setTimeout(observe, 1500);
-}})();
-"""
+        "// Generated by build_flux_ui.py — swipe sync without a DOM mutation observer.\n"
+        "(function () {\n"
+        "  function statesArg() {\n"
+        "    var el = document.querySelector('home-assistant');\n"
+        "    return (el && el.hass && el.hass.states) || {};\n"
+        "  }\n"
+        + installer
+        + "})();\n"
     )
     return True
 
 
 def extra_module_urls(cfg: dict) -> list[str]:
-    if media_player_active(cfg):
-        return [CAROUSEL_SYNC_MODULE]
+    """Phone no longer loads carousel-sync.js. The navbar runtime installs it."""
+    del cfg
     return []

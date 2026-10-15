@@ -92,6 +92,38 @@ ha-ripple {
 }
 """
 
+# Phone pill without backdrop-filter. iOS WebKit recomposites blur(50px) on every
+# scroll and during the first paint. The fill is the same on-primary ink, just
+# opaque enough to read on the wallpaper without sampling the backdrop.
+PHONE_NAVBAR_STYLES = """
+.navbar-card {
+  background: color-mix(in srgb, var(--md-sys-color-on-primary) 78%, var(--md-sys-color-surface-container));
+  border-radius: 20px;
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+.button {
+  --icon-primary-color: color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+}
+.button.active {
+  background: transparent;
+}
+ha-ripple {
+  display: none !important;
+}
+.media-player-viewport,
+.media-player-carousel,
+.media-player-viewport *,
+.media-player-carousel *,
+.navbar-media-player,
+.navbar-media-player * {
+  touch-action: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+"""
+
 
 def _is_tablet() -> bool:
     return URL_PREFIX == TABLET_URL_PREFIX
@@ -222,7 +254,7 @@ def build_navbar_card(
                 "show_popup_label_backgrounds": False,
             },
             "routes": flux_routes(),
-            "styles": NAVBAR_STYLES,
+            "styles": NAVBAR_STYLES if _is_tablet() else PHONE_NAVBAR_STYLES,
         }
         if media_player:
             nav["media_player"] = media_player
