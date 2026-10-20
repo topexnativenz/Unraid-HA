@@ -62,6 +62,7 @@ def verify_build(path: Path) -> list[str]:
         "flux_ui_rooms.yaml",
         "flux_ui_weather.yaml",
         "flux_ui_tablet_led.yaml",
+        "flux_ui_cbus_watchdog.yaml",
     ):
         if not (ROOT / "packages" / name).exists():
             errors.append(
@@ -803,9 +804,94 @@ def verify_build(path: Path) -> list[str]:
                     "Navbar styles missing media-player-viewport touch-action — Sonos zone swipe may fail"
                 )
 
+    errors.extend(_light_tile_errors(config, is_tablet=is_tablet))
+    errors.extend(_light_resource_policy_errors())
+
     if not is_tablet:
         errors.extend(_phone_load_budget_errors(config, blob, overview_blob))
 
+    return errors
+
+
+def _walk_cards(node: object):
+    if isinstance(node, dict):
+        yield node
+        for value in node.values():
+            yield from _walk_cards(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _walk_cards(item)
+
+
+def _light_tile_errors(config: dict, *, is_tablet: bool) -> list[str]:
+    """flux_light tiles must toggle, open the dimmer, and follow that light's state."""
+    errors: list[str] = []
+    seen = 0
+    for node in _walk_cards(config.get("views")):
+        if node.get("type") != "custom:button-card" or node.get("template") != "flux_light":
+            continue
+        seen += 1
+        where = node.get("entity") or node.get("name") or "flux_light"
+        if (node.get("tap_action") or {}).get("action") != "toggle":
+            errors.append(f"{where} tap_action is not toggle")
+        if (node.get("hold_action") or {}).get("action") != "more-info":
+            errors.append(f"{where} hold_action is not more-info (dimmer)")
+        entity = node.get("entity")
+        triggers = node.get("triggers_update")
+        if entity and isinstance(triggers, list) and entity not in triggers and "all" not in triggers:
+            errors.append(f"{where} triggers_update does not include {entity}")
+        elif entity and triggers not in (None, "all") and not isinstance(triggers, list):
+            errors.append(f"{where} triggers_update is not a list of entities")
+        if not is_tablet:
+            icon = node.get("icon")
+            if isinstance(icon, str) and "unavailable" not in icon:
+                errors.append(
+                    f"{where} sets a static icon, which overrides the unavailable/unknown icon"
+                )
+            label = node.get("label") or ""
+            if "unavailable" not in label or "unknown" not in label:
+                errors.append(
+                    f"{where} label treats unavailable/unknown as Off"
+                )
+    if seen == 0:
+        errors.append("No flux_light tiles — light taps have nothing to press")
+    if not is_tablet:
+        icon_js = str((config.get("button_card_templates") or {}).get("flux_light", {}).get("icon") or "")
+        if "unavailable" not in icon_js or "unknown" not in icon_js:
+            errors.append("flux_light template icon does not distinguish unavailable/unknown")
+        states = (config.get("button_card_templates") or {}).get("flux_light", {}).get("state") or []
+        values = {item.get("value") for item in states if isinstance(item, dict)}
+        if "unavailable" not in values or "unknown" not in values:
+            errors.append("flux_light template has no unavailable/unknown state style")
+    return errors
+
+
+def _light_resource_policy_errors() -> list[str]:
+    """Dedupe may drop a duplicate URL, never the only copy a light tile needs."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from install_dependencies import (  # noqa: E402
+        FRONTEND_RESOURCES,
+        _DEAD_RESOURCE_IF_SIBLING,
+    )
+
+    registered = {url for _, url in FRONTEND_RESOURCES}
+    required = (
+        "/hacsfiles/button-card/button-card.js",
+        "/hacsfiles/lovelace-layout-card/layout-card.js",
+        "/hacsfiles/lovelace-mushroom/mushroom.js",
+        "/hacsfiles/lovelace-card-mod/card-mod.js",
+    )
+    errors: list[str] = []
+    for path in required:
+        if path not in registered:
+            errors.append(f"Light tile resource missing from FRONTEND_RESOURCES: {path}")
+        if path in _DEAD_RESOURCE_IF_SIBLING:
+            errors.append(f"Light tile resource is marked as a deletable 404: {path}")
+    bubble_dead = "/hacsfiles/bubble-card/bubble-card.js"
+    if _DEAD_RESOURCE_IF_SIBLING.get(bubble_dead) != "/hacsfiles/Bubble-Card/bubble-card.js":
+        errors.append(
+            "bubble-card dedupe must keep /hacsfiles/Bubble-Card/bubble-card.js"
+        )
     return errors
 
 
@@ -948,9 +1034,13 @@ async def verify_live(ha_url: str, token: str) -> list[str]:
             "Lovelace resource missing: /local/flux-ui/nz-timezone.js "
             "(tablet calendar times will not match phone/iOS NZST)"
         )
-    for needle in ("mushroom", "card-mod", "button-card"):
+    for needle in ("mushroom", "card-mod", "button-card", "layout-card", "Bubble-Card/bubble-card.js"):
         if needle not in urls:
             errors.append(f"Lovelace resource missing: {needle} (optional: navbar-card for bottom nav)")
+    if "/hacsfiles/bubble-card/bubble-card.js" in urls and "Bubble-Card/bubble-card.js" not in urls:
+        errors.append(
+            "Only the 404 bubble-card path is registered; keep Bubble-Card/bubble-card.js"
+        )
 
     from collections import Counter
 

@@ -157,6 +157,21 @@ TABLET_OVERVIEW_VIEW_CARD_MOD = {
     )
 }
 
+# Unavailable/unknown must not reuse the Off palette. During a C-Bus drop the
+# light is briefly unavailable, then HA republishes the last on/off value.
+_LIGHT_NO_RESPONSE_STYLES = {
+    "card": [
+        {"background": "color-mix(in srgb, var(--md-sys-color-error-container) 35%, transparent)"},
+        {"border": "1px solid rgba(255, 180, 171, 0.55)"},
+        {"box-shadow": "none"},
+    ],
+    "icon": [{"color": "#FFB4AB"}],
+    "img_cell": [{"background-color": "rgba(147, 0, 10, 0.35)"}],
+    "name": [{"color": "var(--md-sys-color-on-surface-variant)"}, {"font-weight": "500"}],
+    "label": [{"color": "#FFB4AB"}, {"font-weight": "700"}],
+}
+
+
 BUTTON_CARD_TEMPLATES: dict = {
     "flux_glass": {
         "styles": {
@@ -264,7 +279,11 @@ BUTTON_CARD_TEMPLATES: dict = {
     "flux_light": {
         "template": "flux_glass",
         "show_label": True,
-        "icon": "[[[ return entity.state === 'on' ? 'mdi:lightbulb-on' : 'mdi:lightbulb-outline'; ]]]",
+        "icon": (
+            "[[[ const state = entity?.state; "
+            "if (state === 'unavailable' || state === 'unknown') return 'mdi:lightbulb-alert-outline'; "
+            "return state === 'on' ? 'mdi:lightbulb-on' : 'mdi:lightbulb-outline'; ]]]"
+        ),
         "state": [
             {
                 "value": "on",
@@ -300,6 +319,14 @@ BUTTON_CARD_TEMPLATES: dict = {
                     "name": [{"color": "var(--md-sys-color-on-surface-variant)"}, {"font-weight": "500"}],
                     "label": [{"color": "#6B6770"}, {"font-weight": "500"}],
                 },
+            },
+            {
+                "value": "unavailable",
+                "styles": _LIGHT_NO_RESPONSE_STYLES,
+            },
+            {
+                "value": "unknown",
+                "styles": _LIGHT_NO_RESPONSE_STYLES,
             },
         ],
         "styles": {
