@@ -1,0 +1,54 @@
+# Restart cbus2mqtt when the C-Bus bridge drops.
+#
+# On 21 Oct 2026 the MQTT connection was lost at 02:51 NZDT. Dashboard lights
+# went unavailable for about 20 seconds, then Home Assistant republished the
+# last on/off state. Taps still called light.turn_on, and the service
+# succeeded, but the state never moved until cbus2mqtt was restarted.
+# The previous automation waited until cooking / atrium / walkway stayed
+# unavailable for 2 minutes, so it never ran.
+#
+# Deploy Lovelace is API-only and does not copy packages. The matching
+# storage automation (id cbus2mqtt_watchdog_unavailable) has to be updated
+# over the websocket when this file changes. A later SMB deploy that loads
+# this package uses the same id so it does not add a second restarter.
+#
+# binary_sensor.cmqttd_cmqttd stays "unknown" after the bridge is healthy
+# again, so this automation watches "unavailable" only.
+
+automation:
+  - id: cbus2mqtt_watchdog_unavailable
+    alias: Restart cbus2mqtt when C-Bus lights go unavailable
+    description: >
+      When core C-Bus circuits or cmqttd stay unavailable for 10 seconds,
+      restart cbus2mqtt so Flux light toggles work again.
+    mode: single
+    trigger:
+      - platform: state
+        entity_id:
+          - light.cooking
+          - light.main_atrium
+          - light.walkway
+        to: unavailable
+        for: "00:00:10"
+      - platform: state
+        entity_id: binary_sensor.cmqttd_cmqttd
+        to: unavailable
+        for: "00:00:10"
+    condition:
+      - condition: or
+        conditions:
+          - condition: template
+            value_template: >
+              {{ is_state('light.cooking', 'unavailable')
+                 and is_state('light.main_atrium', 'unavailable') }}
+          - condition: state
+            entity_id: binary_sensor.cmqttd_cmqttd
+            state: unavailable
+    action:
+      - action: script.restart_cbus2mqtt
+      - action: persistent_notification.create
+        data:
+          notification_id: cbus2mqtt_watchdog
+          title: C-Bus bridge
+          message: >
+            C-Bus lights or cmqttd stayed unavailable — restarted cbus2mqtt.

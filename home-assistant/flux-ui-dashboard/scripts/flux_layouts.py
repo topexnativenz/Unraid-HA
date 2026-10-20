@@ -15,7 +15,9 @@ from garage_ui_helpers import IS_DOOR_OPEN_JS  # noqa: E402
 
 _LIGHT_LABEL = (
     "[[[\n"
-    "  if (entity.state !== 'on') return 'Off';\n"
+    "  const state = entity?.state;\n"
+    "  if (state === 'unavailable' || state === 'unknown') return 'No response';\n"
+    "  if (state !== 'on') return 'Off';\n"
     "  const b = entity.attributes.brightness;\n"
     "  return b != null ? Math.round(b / 255 * 100) + '%' : 'On';\n"
     "]]]"
@@ -345,10 +347,12 @@ def flux_light_tile(entity: str, name: str, *, columns: int | None = None) -> di
         "template": "flux_light",
         "entity": entity,
         "name": name,
-        "icon": "mdi:lightbulb",
         "label": _LIGHT_LABEL,
         "tap_action": {"action": "toggle"},
         "hold_action": {"action": "more-info"},
+        # Bound to this light only. Omitting it lets a later "update all"
+        # cleanup drop the tile's state subscription.
+        "triggers_update": [entity],
     }
     if columns is not None:
         tile["grid_options"] = {"columns": columns}
@@ -360,7 +364,6 @@ def flux_light_auto_entities_options(*, columns: int = 6) -> dict:
     return {
         "type": "custom:button-card",
         "template": "flux_light",
-        "icon": "mdi:lightbulb",
         "label": _LIGHT_LABEL,
         "tap_action": {"action": "toggle"},
         "hold_action": {"action": "more-info"},
