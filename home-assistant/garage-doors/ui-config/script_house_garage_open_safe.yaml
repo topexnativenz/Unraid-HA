@@ -1,33 +1,30 @@
-house_garage_open_safe:
-  alias: House Garage — open ONLY if sensor confirms closed (never closes)
-  description: Safe replacement for house_garage_open_if_closed (which fail-opened
-    and pulsed blind when the Tapo sensor was offline). The Shelly relay is a momentary
-    toggle, so a pulse on an open door CLOSES it. This only pulses when the Tapo contact
-    reports closed with live signal; if the sensor is unavailable/unknown/open it
-    does nothing and notifies. Added 2026-11-16 by Grok Bot.
-  mode: single
-  icon: mdi:garage-alert
-  sequence:
-  - if:
-    - condition: template
-      value_template: "{{ is_state('binary_sensor.house_garage_door_sensor_door',\
-        \ 'off')\n   and states('sensor.house_garage_door_sensor_signal_level') |\
-        \ float(0) > 0 }}"
-    then:
-    - condition: template
-      value_template: "{% set s = states.script.pulse_house_garage_door %}\n{{ s is\
-        \ none or s.attributes.last_triggered is none\n   or (now() - s.attributes.last_triggered).total_seconds()\
-        \ > 90 }}"
-    - action: script.turn_on
-      target:
-        entity_id: script.pulse_house_garage_door
-    else:
-    - action: notify.mobile_app_halo
-      continue_on_error: true
+# script.house_garage_open_safe — exported from HA scripts.yaml 2026-11-17 (stale/reconnect guard, approved by David)
+alias: House Garage — open ONLY if sensor confirms closed (never closes)
+description: Safe replacement for house_garage_open_if_closed. The Shelly relay is a momentary toggle, so a pulse on an open door CLOSES it. Only pulses when the Tapo contact reports closed with live signal
+  AND that reading was confirmed by a real open/close transition (input_boolean.house_garage_contact_confirmed_live_reading, maintained by the House Garage sync automation) AND it did not just come back
+  from a hub reconnect (door and cloud-connection entities changed together). Otherwise does nothing and notifies. Never closes. Added 2026-11-16, stale/reconnect guard 2026-11-17 by Grok Bot (approved
+  by David).
+mode: single
+icon: mdi:garage-alert
+sequence:
+- if:
+  - condition: template
+    value_template: "{% set d = states.binary_sensor.house_garage_door_sensor_door %}\n{% set cloud = states.binary_sensor.house_garage_door_sensor_cloud_connection %}\n{% set reconnect = d is not none\
+      \ and cloud is not none\n   and (d.last_changed - cloud.last_changed).total_seconds() | abs < 60 %}\n{{ d is not none and d.state == 'off'\n   and states('sensor.house_garage_door_sensor_signal_level')\
+      \ | float(0) > 0\n   and is_state('input_boolean.house_garage_contact_confirmed_live_reading', 'on')\n   and not reconnect }}"
+  then:
+  - condition: template
+    value_template: "{% set s = states.script.pulse_house_garage_door %}\n{{ s is none or s.attributes.last_triggered is none\n   or (now() - s.attributes.last_triggered).total_seconds() > 90 }}"
+  - action: script.turn_on
+    target:
+      entity_id: script.pulse_house_garage_door
+  else:
+  - action: notify.mobile_app_halo
+    continue_on_error: true
+    data:
+      title: House Garage
+      message: Not opened automatically - door sensor is {{ states('binary_sensor.house_garage_door_sensor_door') }}{% if not is_state('input_boolean.house_garage_contact_confirmed_live_reading', 'on')
+        %} and not confirmed by a live open/close since the sensor or hub reconnected{% endif %} (only opens when a live reading confirms closed).
       data:
-        title: House Garage
-        message: Not opened automatically - door sensor is {{ states('binary_sensor.house_garage_door_sensor_door')
-          }} (only opens when the sensor confirms closed).
-        data:
-          tag: house_garage_safe_skip
-          channel: gate
+        tag: house_garage_safe_skip
+        channel: gate

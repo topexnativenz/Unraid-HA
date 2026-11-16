@@ -82,3 +82,26 @@ e.g. 16 Nov 08:36 NZDT Model X shifted to R → pulse; 08:37 the approach automa
 - `script.house_garage_open_if_closed` is no longer called by anything; its package YAML still has the fail-open
   fallback and should be changed/removed when the HA config share is next edited.
 - Until the Tapo hub is back online, the garage will NOT auto-open (by design). Dashboard tap still pulses.
+
+## 2026-11-17 — Stale-reading guard + tracked-state sync fixes (approved by David)
+
+**Why:** after the Tapo H200 hub outage (14–16 Nov) both contacts came back from `unavailable` reporting a stale **open**
+(the doors had been closed while the hub was offline). A stale **closed** restored the same way would have let
+`script.house_garage_open_safe` pulse — i.e. CLOSE — a door that was really open.
+
+1. `script.house_garage_open_safe` now pulses only if ALL hold: contact `off`, signal > 0,
+   `input_boolean.house_garage_contact_confirmed_live_reading` is `on`, and the door + cloud-connection entities did not
+   change within 60 s of each other (hub/integration reconnect). Otherwise: no pulse, notify `mobile_app_halo` with the reason.
+   Open/close logic otherwise unchanged; still never closes.
+2. `Garage — sync House Garage tracked state from Tapo` (UI, id `garage_sync_house_garage_from_tapo`): triggers on door
+   state/attribute changes, signal-level changes, cloud-connection changes and HA start. Sets the "confirmed" helper ON only
+   after a real open↔closed transition with signal > 0; OFF on unavailable/unknown, return from unavailable, reconnect or HA start.
+   Mirrors `input_boolean.house_garage_door_open` (on = open with signal > 0, off = closed, unavailable/signal 0 = unchanged).
+3. YAML-package automations `garage_sync_main_shed_from_tapo` / `garage_sync_second_shed_from_tapo` pointed at non-existent
+   `binary_sensor.shed_main_door_is_open` / `binary_sensor.second_shed_door_is_open`. Both are **disabled in the entity
+   registry** and renamed `*_yaml_disabled`. Replacement UI automation `garage_sync_main_shed_from_tapo_contact`
+   (entity `automation.garage_sync_main_shed_tracked_state_from_tapo`) mirrors `binary_sensor.contact_sensor_door`.
+   Second shed has no sensor → no sync. TODO when the HA config share is next edited: delete both blocks from the package YAML.
+
+Consequence: the House Garage will not auto-open until the door has been opened/closed once (live transition) after any
+hub reconnect or HA restart. Exports: `ui-config/script_house_garage_open_safe.yaml`, `ui-config/automations_garage_tracked_state_sync.yaml`.

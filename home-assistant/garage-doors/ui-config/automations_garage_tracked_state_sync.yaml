@@ -1,0 +1,90 @@
+# UI automations exported 2026-11-17. Helper created via UI: input_boolean.house_garage_contact_confirmed_live_reading
+- id: garage_sync_house_garage_from_tapo
+  alias: Garage — sync House Garage tracked state from Tapo
+  description: 'Mirrors the House Garage Tapo contact into input_boolean.house_garage_door_open (dashboard) and maintains input_boolean.house_garage_contact_confirmed_live_reading (used by script.house_garage_open_safe):
+    ON only after a real open<->closed transition with signal > 0; OFF when the sensor goes/returns from unavailable/unknown, the hub reconnects, or HA starts. Re-syncs on signal/attribute changes and on
+    return from unavailable. 2026-11-17 by Grok Bot (approved by David). Never touches the door.'
+  triggers:
+  - id: door
+    trigger: state
+    entity_id: binary_sensor.house_garage_door_sensor_door
+    to: null
+  - id: signal
+    trigger: state
+    entity_id: sensor.house_garage_door_sensor_signal_level
+    to: null
+  - id: cloud
+    trigger: state
+    entity_id: binary_sensor.house_garage_door_sensor_cloud_connection
+  - id: start
+    trigger: homeassistant
+    event: start
+  actions:
+  - variables:
+      door_state: '{{ states(''binary_sensor.house_garage_door_sensor_door'') }}'
+      sig: '{{ states(''sensor.house_garage_door_sensor_signal_level'') | float(0) }}'
+      live_transition: '{{ trigger.id == ''door'' and trigger.from_state is not none and trigger.to_state is not none and trigger.from_state.state in [''on'',''off''] and trigger.to_state.state in [''on'',''off'']
+        and trigger.from_state.state != trigger.to_state.state and states(''sensor.house_garage_door_sensor_signal_level'') | float(0) > 0 }}'
+      unconfirm: '{{ trigger.id in [''start'',''cloud''] or door_state not in [''on'',''off''] or (trigger.id == ''door'' and trigger.from_state is not none and trigger.from_state.state not in [''on'',''off''])
+        or (trigger.id == ''door'' and trigger.from_state is none) }}'
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ live_transition }}'
+      sequence:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.house_garage_contact_confirmed_live_reading
+    - conditions:
+      - condition: template
+        value_template: '{{ unconfirm }}'
+      sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.house_garage_contact_confirmed_live_reading
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ door_state == ''on'' and sig > 0 }}'
+      sequence:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.house_garage_door_open
+    - conditions:
+      - condition: template
+        value_template: '{{ door_state == ''off'' }}'
+      sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.house_garage_door_open
+  mode: restart
+- id: garage_sync_main_shed_from_tapo_contact
+  alias: Garage — sync Main Shed tracked state from Tapo
+  description: Mirrors the Main Shed Tapo contact (binary_sensor.contact_sensor_door) into input_boolean.main_shed_door_open. Replaces the YAML-package automation of the same name (id garage_sync_main_shed_from_tapo),
+    which pointed at the non-existent binary_sensor.shed_main_door_is_open and is now disabled in the entity registry. Unavailable/unknown or signal 0 leaves the helper unchanged. 2026-11-17 by Grok Bot
+    (approved by David). Never touches the door.
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.contact_sensor_door
+    to: null
+  - trigger: state
+    entity_id: sensor.contact_sensor_signal_level
+    to: null
+  actions:
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ is_state(''binary_sensor.contact_sensor_door'',''on'') and states(''sensor.contact_sensor_signal_level'') | float(0) > 0 }}'
+      sequence:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.main_shed_door_open
+    - conditions:
+      - condition: state
+        entity_id: binary_sensor.contact_sensor_door
+        state: 'off'
+      sequence:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.main_shed_door_open
+  mode: restart
