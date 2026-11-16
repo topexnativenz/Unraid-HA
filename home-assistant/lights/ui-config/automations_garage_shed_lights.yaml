@@ -1,0 +1,146 @@
+# Exported from HA UI automations 2026-11-17 by Grok Bot. Applied live via /api/config/automation/config/<id>.
+- id: shed_lights_on_at_sunset_if_shed_garage_open
+  alias: Shed lights — on at sunset if shed garage already open
+  description: 'At sunset, turns on the three shed Shelly lights only if the main or second shed door was seen OPENING in the last 6 hours (main: live Tapo contact with signal > 0, ignoring ''open'' restored
+    by a hub reconnect; second: tracked helper). Fixed 2026-11-17 by Grok Bot: it used to trust stale ''open'' states (second-shed helper stuck on since 13 Nov, main-shed Tapo stuck ''open'' after the hub
+    outage) and switched the shed lights on every night with no way to turn them off.'
+  triggers:
+  - trigger: state
+    entity_id: sun.sun
+    from: above_horizon
+    to: below_horizon
+  conditions:
+  - condition: template
+    value_template: "{% set m = states.binary_sensor.contact_sensor_door %}\n{% set cloud = states.binary_sensor.contact_sensor_cloud_connection %}\n{% set s2 = states.input_boolean.second_shed_door_open\
+      \ %}\n{% set max_age = 6 * 3600 %}\n{# A real door event changes only the door entity; a hub/integration reconnect changes door + cloud connection together. #}\n{% set reconnect = cloud is not none\
+      \ and m is not none\n   and (m.last_changed - cloud.last_changed).total_seconds() | abs < 60 %}\n{% set main_open = m is not none and m.state == 'on' and not reconnect\n   and states('sensor.contact_sensor_signal_level')\
+      \ | float(0) > 0\n   and (now() - m.last_changed).total_seconds() < max_age %}\n{% set second_open = s2 is not none and s2.state == 'on'\n   and (now() - s2.last_changed).total_seconds() < max_age\
+      \ %}\n{{ main_open or second_open }}"
+  actions:
+  - action: switch.turn_on
+    target:
+      entity_id:
+      - switch.shed_shed_lights_1
+      - switch.shed_shelly_light_2
+      - switch.shed_shelly_light_3
+  mode: single
+- id: shed_lights_off_when_shed_garage_closes
+  alias: Shed lights — off when main or second shed door closes
+  description: 'Turns off the three shed Shelly lights when the main or second shed door closes (Tapo contact or tracked helpers). 2026-11-17: also listens to the main-shed tracked helper; the nightly sweep
+    is the safety net if the sensors miss a close.'
+  triggers:
+  - id: main_close
+    trigger: state
+    entity_id: binary_sensor.contact_sensor_door
+    from: 'on'
+    to: 'off'
+  - id: second_close
+    trigger: state
+    entity_id: input_boolean.second_shed_door_open
+    from: 'on'
+    to: 'off'
+  - id: main_helper_close
+    trigger: state
+    entity_id: input_boolean.main_shed_door_open
+    from: 'on'
+    to: 'off'
+  actions:
+  - action: switch.turn_off
+    target:
+      entity_id:
+      - switch.shed_shed_lights_1
+      - switch.shed_shelly_light_2
+      - switch.shed_shelly_light_3
+  mode: single
+- id: garage_outside_lights_off_house_garage_closed
+  alias: Garage outside lights — off when House Garage closes
+  description: 'Turns off light.outside_garage after a Tessie arrival: when the House Garage Tapo contact reports closed, or 15 min after the arrival turned it on (fallback, because the Tapo contact can
+    be unavailable/stale). 2026-11-17: removed non-existent binary_sensor.house_garage_door_is_open, added the 15-min fallback.'
+  triggers:
+  - id: garage_closed
+    trigger: state
+    entity_id: binary_sensor.house_garage_door_sensor_door
+    from: 'on'
+    to: 'off'
+  - id: timeout
+    trigger: state
+    entity_id: light.outside_garage
+    to: 'on'
+    for:
+      minutes: 15
+  conditions:
+  - condition: state
+    entity_id: input_boolean.garage_outside_lights_arrival_active
+    state: 'on'
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id: light.outside_garage
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.garage_outside_lights_arrival_active
+  mode: single
+- id: garage_light_auto_off_after_automation
+  alias: Garage light — off 15 min after an automation turned it on
+  description: light.garage is switched on by the Tesla departure/arrival automations but nothing ever turned it off, so it stayed on for hours (e.g. 16 Nov 4:49pm–8:34pm, 17 Nov from 7:49am). This turns
+    it off 15 min later, only when it was turned on by an automation (not by hand) and no gate session is running. Added 2026-11-17 by Grok Bot.
+  triggers:
+  - trigger: state
+    entity_id: light.garage
+    to: 'on'
+    for:
+      minutes: 15
+  conditions:
+  - condition: template
+    value_template: '{{ trigger.to_state.context.parent_id is not none }}'
+  - condition: state
+    entity_id: input_boolean.gate_departure_in_progress
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.gate_arrival_session
+    state: 'off'
+  actions:
+  - action: light.turn_off
+    target:
+      entity_id: light.garage
+  mode: single
+- id: garage_shed_lights_night_sweep
+  alias: Garage & shed lights — night sweep off
+  description: Safety net so the garage, outside-garage and shed lights never stay on all night because a door sensor/helper is stale. At 11:30pm and 30 min after sunrise turns off any that are on, clears
+    the outside-lights arrival flag, and tells David what it switched off. Skipped while a Tesla gate arrival/departure session is running. Lights only — never touches doors or gates. Added 2026-11-17 by
+    Grok Bot.
+  triggers:
+  - id: night
+    trigger: time
+    at: '23:30:00'
+  - id: morning
+    trigger: sun
+    event: sunrise
+    offset: 00:30:00
+  conditions:
+  - condition: state
+    entity_id: input_boolean.gate_departure_in_progress
+    state: 'off'
+  - condition: state
+    entity_id: input_boolean.gate_arrival_session
+    state: 'off'
+  actions:
+  - variables:
+      on_list: '{{ ([''light.garage'',''light.outside_garage''] + ["switch.shed_shed_lights_1", "switch.shed_shelly_light_2", "switch.shed_shelly_light_3"]) | select(''is_state'',''on'') | list }}'
+  - action: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.garage_outside_lights_arrival_active
+  - condition: template
+    value_template: '{{ on_list | count > 0 }}'
+  - action: homeassistant.turn_off
+    target:
+      entity_id: '{{ on_list }}'
+  - action: notify.mobile_app_halo
+    continue_on_error: true
+    data:
+      title: Garage lights
+      message: 'Turned off ({{ trigger.id }} sweep): {{ on_list | map(''state_attr'',''friendly_name'') | join('', '') }}.'
+      data:
+        tag: garage_lights_sweep
+        channel: gate
+  mode: single
