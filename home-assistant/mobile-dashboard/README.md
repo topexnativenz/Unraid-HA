@@ -75,3 +75,16 @@ There is **no** supported way to delete the built-in Overview; only hide it and 
 8. `light.living_center` — Living
 
 Change `TOP_FIVE` in `scripts/build_mobile_home.py` to reorder.
+
+## Maintenance log
+
+- **2026-11-25 (overnight maintenance, Grok Bot):** live `mobile-home` Home view climate chips + entities card
+  pointed at `sensor.hypanel_pro_temperature` / `sensor.hypanel_pro_humidity`, which no longer exist
+  (HomeKit re-pair renamed them). Repointed all 4 references to `sensor.hypanel_pro_temperature_2` /
+  `sensor.hypanel_pro_humidity_2` via `lovelace/config/save` (no other card changes).
+  Note: those `_2` sensors are still *unavailable* because the Akubela Home Center (HomeKit controller)
+  is configured at 192.168.1.24, an IP now used by a shed Shelly — re-pair/fix its IP to bring them back.
+  Still-missing camera entities on the Cameras view (driveway / clubrooms_1 / showroom_1 motion+person,
+  `camera.shed_camera_1`) have no obvious replacement and were left as-is.
+  `build_mobile_home.py` does not generate these cards (the live dashboard has been UI-edited since), so
+  re-running the builder would overwrite them.
